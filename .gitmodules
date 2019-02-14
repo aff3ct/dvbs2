@@ -1,0 +1,3 @@
+[submodule "lib/aff3ct"]
+	path = lib/aff3ct
+	url = https://gitlab.inria.fr/fec/aff3ct.git
