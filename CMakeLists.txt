@@ -2,7 +2,7 @@
 cmake_minimum_required (VERSION 3.0.2)
 cmake_policy(SET CMP0054 NEW)
 
-project (dvbs2_optique_ims)
+project (dvbs2_optique)
 
 # Enable C++11
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
@@ -33,14 +33,14 @@ if (AFF3CT_FOUND)
         include_directories(${AFF3CT_INCLUDE_DIRS})
 
         # Define the objects from the source files
-        add_library (dvbs2_optique_ims-obj OBJECT ${source_files})
+        add_library (dvbs2_optique-obj OBJECT ${source_files})
 
         # Declare the binary
-        add_executable        (dvbs2_optique_ims-bin $<TARGET_OBJECTS:my_project-obj>)
-        set_target_properties (dvbs2_optique_ims-bin PROPERTIES OUTPUT_NAME my_project)
+        add_executable        (dvbs2_optique-bin $<TARGET_OBJECTS:dvbs2_optique-obj>)
+        set_target_properties (dvbs2_optique-bin PROPERTIES OUTPUT_NAME dvbs2_optique)
 
         # Link with AFF3CT
-        target_link_libraries(dvbs2_optique_ims-bin ${AFF3CT_LIBRARIES})
+        target_link_libraries(dvbs2_optique-bin ${AFF3CT_LIBRARIES})
     else()
         message(FATAL_ERROR "Incompatible AFF3CT library build.")
     endif()
