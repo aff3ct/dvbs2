@@ -39,7 +39,7 @@ Compile the library on Windows (Visual Studio project)
 	$ devenv /build Release aff3ct.sln
 	$ cd ../../..
 	$ mkdir cmake-config
-	$ cp lib/aff3ct/build/lib/cmake/aff3ct-*/* cmake-config
+	$ cp lib/aff3ct/build/lib/cmake/aff3ct-*/* cmake/Modules
 
 Create the project on Windows (Visual Studio project)
 
