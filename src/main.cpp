@@ -28,7 +28,7 @@ int main(int argc, char** argv)
 	my_scrambler.scramble( scrambler_in );
 
 	// Pushes data to Matlab
-	sink_to_matlab.push_vector( scrambler_in, true);
+	sink_to_matlab.push_vector( scrambler_in, false);
 
 	//tracer.display_bit_vector( scrambler_in );
 
