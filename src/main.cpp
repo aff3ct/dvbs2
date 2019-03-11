@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 
 	const std::string mat2aff_file_name = "../build/matlab_to_aff3ct.txt";
 	const std::string aff2mat_file_name = "../build/aff3ct_to_matlab.txt";
-	Sink sink_to_matlab    (mat2aff_file_name,aff2mat_file_name);
+	Sink sink_to_matlab    (mat2aff_file_name, aff2mat_file_name);
 
 	if (sink_to_matlab.destination_chain_name == "coding")
 	{
