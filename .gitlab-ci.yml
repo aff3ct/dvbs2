@@ -36,7 +36,7 @@ build-linux-gcc:
       - ./build_linux_gcc/
   script:
     - export CXX="g++"
-    - export CFLAGS="-Wall -funroll-loops -msse4.2 -Wno-deprecated-declarations"
+    - export CFLAGS="-Wall -funroll-loops -msse4.2"
     - export BUILD="build_linux_gcc"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
@@ -53,7 +53,7 @@ build-linux-clang:
       - ./build_linux_clang/
   script:
     - export CXX="clang++"
-    - export CFLAGS="-Wall -funroll-loops -msse4.2 -Wno-deprecated-declarations"
+    - export CFLAGS="-Wall -funroll-loops -msse4.2 -Wno-overloaded-virtual"
     - export BUILD="build_linux_clang"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
@@ -69,7 +69,7 @@ build-linux-gcc-4.8:
       - ./build_linux_gcc-4.8/
   script:
     - export CXX="g++-4.8"
-    - export CFLAGS="-Wall -funroll-loops -msse4.2 -Wno-deprecated-declarations"
+    - export CFLAGS="-Wall -funroll-loops -msse4.2"
     - export BUILD="build_linux_gcc-4.8"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
@@ -86,7 +86,7 @@ build-linux-icpc:
       - ./build_linux_icpc/
   script:
     - export CXX="icpc"
-    - export CFLAGS="-Wall -funroll-loops -msse4.2 -Wno-deprecated-declarations -std=c++11"
+    - export CFLAGS="-Wall -funroll-loops -msse4.2 -std=c++11"
     - export BUILD="build_linux_icpc"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
@@ -101,7 +101,7 @@ build-windows-gcc:
     paths:
       - ./build_windows_gcc/
   script:
-    - set "CFLAGS=-Wall -Wno-misleading-indentation -Wno-deprecated-declarations -funroll-loops -mavx"
+    - set "CFLAGS=-Wall -funroll-loops -mavx"
     - set "BUILD=build_windows_gcc"
     - call ./ci/tools/threads.bat
     - ./ci/build-windows-gcc.bat
@@ -133,7 +133,7 @@ build-macos-clang:
       - ./build_macos_clang/
   script:
     - export CXX="clang++"
-    - export CFLAGS="-Wall -funroll-loops -msse4.2"
+    - export CFLAGS="-Wall -funroll-loops -msse4.2 -Wno-overloaded-virtual"
     - export BUILD="build_macos_clang"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
