@@ -65,7 +65,7 @@ Sink
 void Sink
 ::pull_vector(int *vec, const int N)
 {
-	if (N != this->source[this->src_counter].size())
+	if (N != (int)this->source[this->src_counter].size())
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, "Wrong source size.");
 
 	std::copy(this->source[this->src_counter].begin(),
