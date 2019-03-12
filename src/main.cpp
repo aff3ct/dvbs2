@@ -3,6 +3,7 @@
  #include <aff3ct.hpp>
  #include "Sink.hpp"
  #include "BB_scrambler.hpp"
+ #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
 
 int main(int argc, char** argv)
 {
@@ -63,6 +64,24 @@ int main(int argc, char** argv)
 		
 		// Pushes data to Matlab
 		sink_to_matlab.push_vector( bch_encoded , false);
+	}
+	else if(sink_to_matlab.destination_chain_name == "shaping")
+	{
+		const float ROLLOFF = 0.05;
+		const int N_SYMBOLS = 8370;
+		const int OSF       = 4;
+		const int GRP_DELAY = 50;
+		Filter_UPRRC_ccr_naive<float> shaping_filter((N_SYMBOLS + GRP_DELAY)*2, ROLLOFF, OSF, GRP_DELAY);
+		
+		std::vector<float  > shaping_in (N_SYMBOLS*2, 0.0f);
+		std::vector<float  > shaping_out((N_SYMBOLS+ GRP_DELAY)*2*OSF);
+		std::vector<float  > shaping_cut(N_SYMBOLS*2*OSF);
+
+		sink_to_matlab.pull_vector(shaping_in);
+		shaping_in.resize((N_SYMBOLS+ GRP_DELAY)*2, 0.0f);
+		shaping_filter.filter(shaping_in, shaping_out);
+		std::copy(shaping_out.begin()+GRP_DELAY*OSF*2, shaping_out.begin()+(GRP_DELAY+N_SYMBOLS)*OSF*2, shaping_cut.begin());
+		sink_to_matlab.push_vector( shaping_cut , true);
 	}
 	else
 	{
