@@ -3,6 +3,7 @@
  #include <aff3ct.hpp>
  #include "Sink.hpp"
  #include "BB_scrambler.hpp"
+ //#include "DVBS2_constants.hpp"
 
 int main(int argc, char** argv)
 {
@@ -12,10 +13,16 @@ int main(int argc, char** argv)
 	const std::string aff2mat_file_name = "../build/aff3ct_to_matlab.txt";
 	Sink sink_to_matlab    (mat2aff_file_name, aff2mat_file_name);
 
+	auto dvbs2 = tools::build_dvbs2(14400, 16200);
+	module::Encoder_LDPC_DVBS2<int > LDPC_encoder_toto(*dvbs2);
+	
+	
+
 	if (sink_to_matlab.destination_chain_name == "coding")
 	{
 		const int K_BCH = 14232;
 		const int N_BCH = 14400;
+		const int N_LDPC = 16200;
 
 		const std::vector<int  > BCH_gen_poly{1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1};
 		// buffers to store the data
@@ -23,6 +30,7 @@ int main(int argc, char** argv)
 
 		std::vector<int  > bch_enc_in(K_BCH);
 		std::vector<int  > bch_encoded(N_BCH);
+		std::vector<int  > ldpc_encoded(N_LDPC);
 
 		std::vector<int  > parity(N_BCH-K_BCH);
 		std::vector<int  > msg(K_BCH);
@@ -61,8 +69,9 @@ int main(int argc, char** argv)
 
 		bch_encoded.erase(bch_encoded.begin()+N_BCH, bch_encoded.end());
 		
+		LDPC_encoder_toto.encode(bch_encoded, ldpc_encoded);
 		// Pushes data to Matlab
-		sink_to_matlab.push_vector( bch_encoded , false);
+		sink_to_matlab.push_vector( ldpc_encoded , false);
 	}
 	else
 	{
