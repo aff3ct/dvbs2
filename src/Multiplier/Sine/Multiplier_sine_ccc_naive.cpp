@@ -5,6 +5,11 @@
 #define _USE_MATH_DEFINES // enable M_PI definition on MSVC compiler
 #include <cmath>
 
+// _USE_MATH_DEFINES does not seem to work on MSVC...
+#ifndef M_PI
+#define M_PI 3.1415926535897932384626433832795
+#endif
+
 #include "Multiplier_sine_ccc_naive.hpp"
 
 using namespace aff3ct::module;
