@@ -1,15 +1,11 @@
-#ifndef FILTER_FIR_CCR_NAIVE_HXX
-#define FILTER_FIR_CCR_NAIVE_HXX
-
+#include <cassert>
+#include <iostream>
 #include <vector>
 #include <complex>
 
 #include "Filter_FIR_ccr_naive.hpp"
+using namespace aff3ct::module;
 
-namespace aff3ct
-{
-namespace module
-{
 template <typename R>
 Filter_FIR_ccr_naive<R>
 ::Filter_FIR_ccr_naive(const int N, const std::vector<R> b)
@@ -47,23 +43,6 @@ void Filter_FIR_ccr_naive<R>
 	this->head = 0;
 }
 
-
-template <typename R>
-void Filter_FIR_ccr_naive<R>
-::step(const std::complex<R>* x_elt, std::complex<R>* y_elt)
-{
-	this->buff[this->head] = *x_elt;
-	this->buff[this->head + this->size] = *x_elt;
-	
-	std::complex<R> ps = this->buff[this->head+1] * this->b[0];
-	for (auto i = 1; i < this->size ; i++)
-		ps += this->buff[this->head+1+i] * this->b[i];
-
-	*y_elt = ps;
-	
-	this->head++;
-	this->head %= this->size;
-}
 template <typename R>
 std::vector<R> Filter_FIR_ccr_naive<R>
 ::get_filter_coefs()
@@ -75,6 +54,7 @@ std::vector<R> Filter_FIR_ccr_naive<R>
 	return flipped_b;
 }
 
-}
-}
-#endif //FILTER_FIR_CCR_NAIVE_HXX
+// ==================================================================================== explicit template instantiation
+template class aff3ct::module::Filter_FIR_ccr_naive<float>;
+template class aff3ct::module::Filter_FIR_ccr_naive<double>;
+// ==================================================================================== explicit template instantiation

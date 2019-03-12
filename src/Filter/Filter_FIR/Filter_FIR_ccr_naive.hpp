@@ -1,8 +1,6 @@
 #ifndef FILTER_FIR_CCR_NAIVE_HPP
 #define FILTER_FIR_CCR_NAIVE_HPP
 
-#include <cassert>
-#include <iostream>
 #include <vector>
 #include <complex>
 
@@ -24,15 +22,33 @@ private:
 public:
 	Filter_FIR_ccr_naive (const int N, const std::vector<R> b);
 	virtual ~Filter_FIR_ccr_naive();
-	inline void step  (const std::complex<R>* x_elt, std::complex<R>* y_elt);
+	inline void step(const std::complex<R>* x_elt, std::complex<R>* y_elt);
 	void reset();
 	std::vector<R> get_filter_coefs();
 protected:
 	void _filter(const R *X_N1,  R *Y_N2, const int frame_id);
 
 };
+
+// Adrien: I put this function here because you wanted to be inlined
+template <typename R>
+void Filter_FIR_ccr_naive<R>
+::step(const std::complex<R>* x_elt, std::complex<R>* y_elt)
+{
+	this->buff[this->head] = *x_elt;
+	this->buff[this->head + this->size] = *x_elt;
+
+	std::complex<R> ps = this->buff[this->head+1] * this->b[0];
+	for (auto i = 1; i < this->size ; i++)
+		ps += this->buff[this->head+1+i] * this->b[i];
+
+	*y_elt = ps;
+
+	this->head++;
+	this->head %= this->size;
+}
+
 }
 }
 
-#include "Filter_FIR_ccr_naive.hxx"
 #endif //FILTER_FIR_CCR_NAIVE_HPP

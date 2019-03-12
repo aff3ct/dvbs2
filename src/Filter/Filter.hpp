@@ -8,8 +8,6 @@
 #ifndef FILTER_HPP_
 #define FILTER_HPP_
 
-#include <string>
-#include <memory>
 #include <vector>
 
 #include "Module/Module.hpp"
@@ -69,7 +67,7 @@ public:
 	int get_N() const;
 
 	int get_N_fil() const;
-	
+
 	virtual void reset() = 0;
 	/*!
 	 * \brief Filters a vector of samples.

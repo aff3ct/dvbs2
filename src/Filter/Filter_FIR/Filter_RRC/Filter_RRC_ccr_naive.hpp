@@ -1,8 +1,6 @@
 #ifndef FILTER_RRC_CCR_NAIVE_HPP
 #define FILTER_RRC_CCR_NAIVE_HPP
 
-#include <cassert>
-#include <iostream>
 #include <vector>
 
 #include "../Filter_FIR_ccr_naive.hpp"
@@ -28,5 +26,4 @@ public:
 }
 }
 
-#include "Filter_RRC_ccr_naive.hxx"
 #endif //FILTER_RRC_CCR_NAIVE_HPP
