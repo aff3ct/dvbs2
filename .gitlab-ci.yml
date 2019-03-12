@@ -1,3 +1,6 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
 stages:
   - analysis
   - build
@@ -6,11 +9,11 @@ before_script:
   - hostname
   - whoami
 # - pwd
-  - git submodule sync --recursive
-  - git submodule update --init --recursive
 
 analysis-cppcheck:
   stage: analysis
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
   artifacts:
     name: analysis-cppcheck-logs
     when: always
