@@ -32,8 +32,7 @@ namespace module
  *
  * \brief Filters a signal.
  *
- * \tparam Ri: type of the reals (floating-point representation) of the input of the filtering process.
- * \tparam Ro: type of the reals (floating-point representation) of the output of the filtering process.
+ * \tparam R: type of the reals (floating-point representation) of the filtering process.
  *
  * Please use Filter for inheritance (instead of Filter)
  */
@@ -55,7 +54,6 @@ public:
 	 * \param N:        size of one frame (= number of samples in one frame).
 	 * \param N_fil:    number of samples after the filtering process.
 	 * \param n_frames: number of frames to process in the Filter.
-	 * \param name:     Filter's name.
 	 */
 	Filter(const int N, const int N_fil, const int n_frames = 1);
 
