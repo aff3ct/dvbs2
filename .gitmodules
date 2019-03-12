@@ -1,4 +1,0 @@
-[submodule "lib/aff3ct"]
-	path = lib/aff3ct
-	url = git@gitlab.inria.fr:fec/aff3ct
-	branch = development
