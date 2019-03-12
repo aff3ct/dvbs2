@@ -10,22 +10,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Specify bin path
 set (EXECUTABLE_OUTPUT_PATH bin/)
 
-# Create the executable from sources
-add_executable(dvbs2_optique ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+# Generate the source files list
+file(GLOB_RECURSE SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*)
 
-# Link with the "Threads library (required to link with AFF3CT after)
-set(CMAKE_THREAD_PREFER_PTHREAD ON)
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
+# Create the executable from sources
+add_executable(dvbs2_optique ${SRC_FILES})
+
+# Configure the AFF3CT library before compiling it
+option(AFF3CT_COMPILE_EXE        ""  OFF                   )
+option(AFF3CT_COMPILE_STATIC_LIB ""  OFF                   )
+option(AFF3CT_COMPILE_SHARED_LIB ""  ON                    )
+option(AFF3CT_LINK_GSL           ""  OFF                   )
+option(AFF3CT_LINK_MKL           ""  OFF                   )
+set   (AFF3CT_PREC                  "MULTI" CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
+
+# Compile the AFF3CT library
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/)
 
 # Link with AFF3CT
-set(AFF3CT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
-
-add_custom_target (aff3ct-config.cmake
-                   COMMAND cp "${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/build/lib/cmake/aff3ct/*" ${AFF3CT_DIR}
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
-add_dependencies(dvbs2_optique aff3ct-config.cmake)
-
-find_package(AFF3CT CONFIG 2.3.1 REQUIRED)
-target_link_libraries(dvbs2_optique PRIVATE aff3ct::aff3ct-static-lib)
+target_link_libraries(dvbs2_optique PRIVATE aff3ct-shared-lib)
