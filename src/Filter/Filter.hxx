@@ -8,6 +8,8 @@
 #ifndef FILTER_HXX_
 #define FILTER_HXX_
 
+#include <string>
+#include <memory>
 #include <stdexcept>
 #include <cmath>
 #include <sstream>
