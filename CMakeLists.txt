@@ -18,8 +18,8 @@ add_executable(dvbs2_optique ${SRC_FILES})
 
 # Configure the AFF3CT library before compiling it
 option(AFF3CT_COMPILE_EXE        ""  OFF                   )
-option(AFF3CT_COMPILE_STATIC_LIB ""  OFF                   )
-option(AFF3CT_COMPILE_SHARED_LIB ""  ON                    )
+option(AFF3CT_COMPILE_STATIC_LIB ""  ON                    )
+option(AFF3CT_COMPILE_SHARED_LIB ""  OFF                   )
 option(AFF3CT_LINK_GSL           ""  OFF                   )
 option(AFF3CT_LINK_MKL           ""  OFF                   )
 set   (AFF3CT_PREC                  "MULTI" CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
@@ -28,4 +28,4 @@ set   (AFF3CT_PREC                  "MULTI" CACHE STRING "") # can be '8', '16',
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/)
 
 # Link with AFF3CT
-target_link_libraries(dvbs2_optique PRIVATE aff3ct-shared-lib)
+target_link_libraries(dvbs2_optique PRIVATE aff3ct-static-lib)
