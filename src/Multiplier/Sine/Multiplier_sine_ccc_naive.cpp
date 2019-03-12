@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <complex>
+#define _USE_MATH_DEFINES // enable M_PI definition on MSVC compiler
 #include <cmath>
 
 #include "Multiplier_sine_ccc_naive.hpp"
