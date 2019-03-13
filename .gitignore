@@ -1,0 +1,14 @@
+*.gitignore*
+
+.cproject
+.project
+.pydevproject
+.settings
+*sublime-*
+.fuse_*
+.idea/
+.vs
+build*/
+cmake-build*/
+cppcheck/
+__pycache__/
