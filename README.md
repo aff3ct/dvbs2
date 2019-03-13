@@ -20,7 +20,7 @@ Create the Visual Studio project and compile the code:
 	$ mkdir build
 	$ cd build
 	$ cmake .. -G"Visual Studio 15 2017 Win64" -DCMAKE_CXX_FLAGS="-D_SCL_SECURE_NO_WARNINGS /EHsc"
-	$ devenv /build Release my_project.sln
+	$ devenv /build Release dvbs2_optique.sln
 
 The source code of this project is in the `src/` dir.
 The compiled binary is in `build/bin/dvbs2_optique`.

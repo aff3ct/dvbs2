@@ -25,6 +25,8 @@ int main(int argc, char** argv)
 		const int K_BCH = 14232;
 		const int N_BCH = 14400;
 		const int N_LDPC = 16200;
+		const int BPS = 2; // QPSK
+
 		const std::vector<int  > BCH_gen_poly{1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1};
 
 		// buffers to store the data
@@ -34,6 +36,7 @@ int main(int argc, char** argv)
 		std::vector<int  > ldpc_encoded(N_LDPC);
 		std::vector<int  > parity(N_BCH-K_BCH);
 		std::vector<int  > msg(K_BCH);
+		std::vector<float> XFEC_frame(BPS*N_LDPC/2);
 
 		// Tracer
 		tools::Frame_trace<>     tracer            (15, 10, std::cout);
@@ -55,7 +58,7 @@ int main(int argc, char** argv)
 		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user <R > ("));
 		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../lib/aff3ct/conf/mod/4QAM_GRAY.mod"));
 		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_PSK <R > (2));
-		module::Modem_generic<> modulator(N_LDPC, std::move(cstl), tools::Sigma<R >(1.0), true, 1);
+		module::Modem_generic<> modulator(N_LDPC, std::move(cstl), tools::Sigma<R >(1.0), false, 1);
 
 		// retrieve data from Matlab
 		sink_to_matlab.pull_vector( scrambler_in );
@@ -64,7 +67,7 @@ int main(int argc, char** argv)
 		my_scrambler.scramble( scrambler_in );
 
 		// reverse message for Matlab compliance
-		std:reverse(scrambler_in.begin(), scrambler_in.end());
+		std::reverse(scrambler_in.begin(), scrambler_in.end());
 
 		// BCH Encoding
 		BCH_encoder.encode(scrambler_in, bch_encoded);
@@ -84,8 +87,10 @@ int main(int argc, char** argv)
 		// LDPC encoding
 		LDPC_encoder_toto.encode(bch_encoded, ldpc_encoded);
 
+		modulator.modulate(ldpc_encoded, XFEC_frame);
+
 		// Pushes data to Matlab
-		sink_to_matlab.push_vector( ldpc_encoded , false);
+		sink_to_matlab.push_vector( XFEC_frame , true);
 	}
 	else if(sink_to_matlab.destination_chain_name == "shaping")
 	{

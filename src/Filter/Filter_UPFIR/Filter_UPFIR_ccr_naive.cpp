@@ -7,7 +7,7 @@ Filter_UPFIR_ccr_naive<R>
 	: Filter<R>(N, F*N), F(F), H(F), flt_bank()
 {
 	this->H.resize(F);
-	for(auto i=0; i < H.size(); i++)
+	for(size_t i=0; i < H.size(); i++)
 		this->H[i%F].push_back(H[i]);
 
 	for (auto f=0;f<F; f++)
