@@ -133,7 +133,7 @@ multiply(const std::vector<R,AR>& X_N, const std::vector<R,AR>& Y_N, std::vector
 		        << ", 'N' = " << this->N << ", 'n_frames' = " << this->n_frames << ").";
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
-	
+
 	if (this->N * this->n_frames != (int)Z_N.size())
 	{
 		std::stringstream message;

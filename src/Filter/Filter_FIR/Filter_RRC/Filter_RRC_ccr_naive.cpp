@@ -41,7 +41,7 @@ std::vector<R> Filter_RRC_ccr_naive<R>
 		energie += value*value + value*value;
 	}
 
-	for (int i = 0 ; i < rrc_coefs.size() ; i++)
+	for (size_t i = 0 ; i < rrc_coefs.size() ; i++)
 		rrc_coefs[i] /= std::sqrt(energie);
 
 	return rrc_coefs;

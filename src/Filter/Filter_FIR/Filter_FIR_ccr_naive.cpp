@@ -9,11 +9,11 @@ using namespace aff3ct::module;
 template <typename R>
 Filter_FIR_ccr_naive<R>
 ::Filter_FIR_ccr_naive(const int N, const std::vector<R> b)
-: Filter<R>(N,N), b(b.size(), R(0)), buff(2*b.size(), std::complex<R>(R(0))), head(0), size(b.size())
+: Filter<R>(N,N), b(b.size(), R(0)), buff(2*b.size(), std::complex<R>(R(0))), head(0), size((int)b.size())
 {
 	assert(size > 0);
 
-	for (auto i = 0; i < b.size(); i++)
+	for (size_t i = 0; i < b.size(); i++)
 		this->b[i] = b[b.size() - 1 - i];
 }
 
@@ -37,7 +37,7 @@ template <typename R>
 void Filter_FIR_ccr_naive<R>
 ::reset()
 {
-	for (auto i = 0; i<this->buff.size(); i++)
+	for (size_t i = 0; i<this->buff.size(); i++)
 		this->buff[i] = std::complex<R>(R(0));
 
 	this->head = 0;
@@ -48,7 +48,7 @@ std::vector<R> Filter_FIR_ccr_naive<R>
 ::get_filter_coefs()
 {
 	std::vector<R> flipped_b(this->b.size(),(R)0);
-	for (auto i=0; i<this->b.size();i++)
+	for (size_t i=0; i<this->b.size();i++)
 		flipped_b[i] = this->b[this->b.size()-1-i];
 
 	return flipped_b;

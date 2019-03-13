@@ -10,7 +10,7 @@ using namespace aff3ct::module;
 Multiplier_sequence_ccc_naive
 ::Multiplier_sequence_ccc_naive(const int N, const std::vector<float>& sequence, const int n_frames)
 : Multiplier<float>(N, n_frames), cplx_sequence(N/2)
-{	if (N != sequence.size())
+{	if (N != (int)sequence.size())
 	{
 		std::stringstream message;
 		message << "'sequence.size()' has to be equal to 'N' ('sequence.size()' = " << sequence.size()

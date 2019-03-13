@@ -7,7 +7,7 @@ using namespace aff3ct;
 
 Sink
 ::Sink(const std::string input_filename, const std::string output_filename)
-: input_filename(input_filename), output_filename(output_filename), input_file(std::ifstream()), output_file(std::ofstream()), source(), src_counter(0), destination_chain_name()
+: input_filename(input_filename), output_filename(output_filename), source(), src_counter(0), destination_chain_name()
 {
 	if (input_filename.empty())
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, "'input_filename' should not be empty.");
@@ -65,7 +65,7 @@ Sink
 void Sink
 ::pull_vector(int *vec, const int N)
 {
-	if (N != this->source[this->src_counter].size())
+	if (N != (int)this->source[this->src_counter].size())
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, "Wrong source size.");
 
 	std::copy(this->source[this->src_counter].begin(),

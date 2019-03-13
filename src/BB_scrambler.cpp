@@ -20,7 +20,7 @@ void BB_scrambler
 ::scramble(std::vector<int >& vec)
 {
 	init_lfsr();
-	for( int i = 0; i < vec.size(); i++)
+	for(size_t i = 0; i < vec.size(); i++)
 	{
 		// step on LFSR
 		int feedback = (lfsr[14] + lfsr[13]) % 2;

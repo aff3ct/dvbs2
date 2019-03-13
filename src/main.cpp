@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 		my_scrambler.scramble( scrambler_in );
 
 		// reverse message for Matlab compliance
-		std:reverse(scrambler_in.begin(), scrambler_in.end());
+		std::reverse(scrambler_in.begin(), scrambler_in.end());
 
 		// BCH Encoding
 		BCH_encoder.encode(scrambler_in, bch_encoded);
