@@ -23,6 +23,8 @@ int main(int argc, char** argv)
 	const int N_LDPC = 16200;
 	const int BPS = 2; // QPSK
 
+
+
 	if (sink_to_matlab.destination_chain_name == "coding")
 	{
 		
@@ -56,7 +58,7 @@ int main(int argc, char** argv)
 
 		// Modulator
 		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user <R > ("));
-		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../lib/aff3ct/conf/mod/4QAM_GRAY.mod"));
+		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../conf/4QAM_GRAY.mod"));
 		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_PSK <R > (2));
 		module::Modem_generic<> modulator(N_LDPC, std::move(cstl), tools::Sigma<R >(1.0), false, 1);
 
@@ -89,10 +91,6 @@ int main(int argc, char** argv)
 
 		modulator.modulate(ldpc_encoded, XFEC_frame);
 
-		// Pushes data to Matlab
-		//sink_to_matlab.push_vector( XFEC_frame , true);
-
-
 		std::vector<float > in_vec (2*8370);
 
 		std::vector<std::vector<int> > G_32_7 { { 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
@@ -104,11 +102,12 @@ int main(int argc, char** argv)
 												{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
 
 		const std::vector<int> PLS_scrambler_sequence{0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0};
-		//const vector <int > {0, 0, 1, 0, 1}} // QPSK 3/5
+		
+		//const vector <int > {} // QPSK 3/5
 		const std::vector <int > mod_cod{0, 0, 1, 0, 1, 0, 1}; // QPSK 8/9
-		//const vector <int > {0, 1, 1, 0, 0} // 8PSK 3/5
-		//const vector <int > {1, 0, 0, 0, 0} // 8PSK 8/9
-		//const vector <int > {1, 0, 1, 1, 0} // 16APSK 8/9
+		//const vector <int > {} // 8PSK 3/5
+		//const vector <int > {} // 8PSK 8/9
+		//const vector <int > {} // 16APSK 8/9
 		//const int pilot_insert = 1; // pilots are inserted
 		//const int short_code = 1; // short LDPC frame is used
 		std::vector <int > coded_PLS(32, 0);
@@ -118,7 +117,6 @@ int main(int argc, char** argv)
 		std::vector <float > pilot_mod(72, (1/sqrt(2)) );
 		
 
-		//sink_to_matlab.pull_vector(in_vec);
 
 		// generate and modulate SOF
 		const std::vector<int > SOF_bin {0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0};
@@ -177,9 +175,6 @@ int main(int argc, char** argv)
 				final_PLS_mod[4*i + 3] = -1 * (1/sqrt(2)) * final_PLS_bpsk[2*i+1]; // imag part of the odd symbols
 			}
 
-		//tracer.display_bit_vector(coded_PLS);
-		//tracer.display_real_vector(SOF_mod,2);
-
 		int BPS = 2; // Nb of bit per symbols
 		int N_XFEC_FRAME = N_LDPC / BPS; // number of complex symbols
 		int S; // number of slots
@@ -193,22 +188,11 @@ int main(int argc, char** argv)
 		
 		int PL_FRAME_SIZE = M*(S+1) + (N_PILOTS*P);
 
-		//PL_FRAME.resize(2* PL_FRAME_SIZE);
-		
-		/*std::cout << "N_LDPC " << N_LDPC << std::endl;
-		std::cout << "N_XFEC_FRAME " << N_XFEC_FRAME << std::endl;
-		std::cout << "S " << S << std::endl;
-		std::cout << "N_PILOTS " << N_PILOTS << std::endl;
-		std::cout << "PL_FRAME_SIZE " << PL_FRAME_SIZE << std::endl;*/
-
 		// insert PLS
 		PL_FRAME.resize(2*26);
 		PL_FRAME = SOF_mod; // assign SOF
-		//tracer.display_real_vector(PL_FRAME,2);
-		//PL_FRAME.push_back( final_PLS_mod ); // append PLS
 		PL_FRAME.insert( PL_FRAME.end(), final_PLS_mod.begin(), final_PLS_mod.end()); // append PLS
 
-		//std::cout << "PLH " << PL_FRAME.size() << std::endl;
 		std::vector<float>::iterator data_it;
 		data_it = XFEC_frame.begin();
 
@@ -218,17 +202,13 @@ int main(int argc, char** argv)
 		for(int i = 0; i < N_PILOTS; i++)
 		{
 			data_slice.assign(data_it, data_it+(2*16*M));
-			//PL_FRAME.push_back(data_slice); // append 16 slots of data
 			PL_FRAME.insert(PL_FRAME.end(), data_slice.begin(), data_slice.end()); // append 16 slots of data
-			//PL_FRAME.push_back(pilot_mod); // append the pilot
 			PL_FRAME.insert(PL_FRAME.end(), pilot_mod.begin(), pilot_mod.end()); // append the pilot
-			data_it += (2*16*M); // update the data index to the next block of 16 slots
-			//std::cout << "PILOT " << PL_FRAME.size() << std::endl;
+			data_it += (2*16*M); // update the data index to the next block of 16 slots			
 		}
 
 		data_remainder.assign(XFEC_frame.begin()+(2*16*M*N_PILOTS), XFEC_frame.end());
-		//std::cout << "data_remainder " << data_remainder.size() << std::endl;
-		//PL_FRAME.push_back(data_remainder);
+		
 		PL_FRAME.insert(PL_FRAME.end(), data_remainder.begin(), data_remainder.end());
 
 		for(int i = M; i < PL_FRAME.size()/2; i++)
@@ -242,10 +222,8 @@ int main(int argc, char** argv)
 			PL_FRAME[2*i] = R_real*D_real - R_imag*D_imag; // real part
 			PL_FRAME[2*i + 1] = R_imag*D_real + R_real*D_imag; // imag part
 		}
-		
-		//sink_to_matlab.push_vector(PL_FRAME , true);
 
-
+		/* SHAPING */
 		const float ROLLOFF = 0.05;
 		const int N_SYMBOLS = 8370;
 		const int OSF       = 4;
@@ -263,29 +241,6 @@ int main(int argc, char** argv)
 		std::copy(shaping_out.begin()+GRP_DELAY*OSF*2, shaping_out.begin()+(GRP_DELAY+N_SYMBOLS)*OSF*2, shaping_cut.begin());
 		sink_to_matlab.push_vector( shaping_cut , true);
 
-
-	}
-	else if(sink_to_matlab.destination_chain_name == "shaping")
-	{
-		const float ROLLOFF = 0.05;
-		const int N_SYMBOLS = 8370;
-		const int OSF       = 4;
-		const int GRP_DELAY = 50;
-		Filter_UPRRC_ccr_naive<float> shaping_filter((N_SYMBOLS + GRP_DELAY)*2, ROLLOFF, OSF, GRP_DELAY);
-
-		std::vector<float  > shaping_in (N_SYMBOLS*2, 0.0f);
-		std::vector<float  > shaping_out((N_SYMBOLS+ GRP_DELAY)*2*OSF);
-		std::vector<float  > shaping_cut(N_SYMBOLS*2*OSF);
-
-		sink_to_matlab.pull_vector(shaping_in);
-		shaping_in.resize((N_SYMBOLS+ GRP_DELAY)*2, 0.0f);
-		shaping_filter.filter(shaping_in, shaping_out);
-		std::copy(shaping_out.begin()+GRP_DELAY*OSF*2, shaping_out.begin()+(GRP_DELAY+N_SYMBOLS)*OSF*2, shaping_cut.begin());
-		sink_to_matlab.push_vector( shaping_cut , true);
-	}
-	else if(sink_to_matlab.destination_chain_name == "frame_construction")
-	{
-		
 	}
 	else
 	{
