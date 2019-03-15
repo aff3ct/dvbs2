@@ -6,7 +6,7 @@ using namespace aff3ct::module;
 
 #include "Sink.hpp"
 #include "BB_scrambler.hpp"
-#include "./Framer/Framer.hpp"
+#include "../common/Framer/Framer.hpp"
 
 
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
@@ -47,11 +47,6 @@ int main(int argc, char** argv)
 		std::vector<int  > parity(N_BCH-K_BCH);
 		std::vector<int  > msg(K_BCH);
 		
-		
-
-		
-		
-
 		std::vector <float > XFEC_frame(2*N_LDPC/BPS);
 		
 		// Tracer
