@@ -28,5 +28,11 @@ cmake .. -G"Visual Studio 15 2017 Win64" -DCMAKE_CXX_FLAGS="-D_SCL_SECURE_NO_WAR
 devenv /build Release dvbs2_optique.sln
 ```
 
-The source code of this project is in the `src/` dir.
-The compiled binary is in `build/bin/dvbs2_optique`.
+The source code of this project is in the `src/` directory:
+- `src/TX`: source code of the transmitter,
+- `src/RX`: source code of the receiver,
+- `src/common`: source code common to the transmitter and the receiver.
+
+The compiled binaries are:
+- `build/bin/dvbs2_optique_tx`: the transmitter,
+- `build/bin/dvbs2_optique_rx`: the receiver.
