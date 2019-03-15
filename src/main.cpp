@@ -6,6 +6,8 @@ using namespace aff3ct::module;
 
 #include "Sink.hpp"
 #include "BB_scrambler.hpp"
+#include "./Framer/Framer.hpp"
+
 
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
 
@@ -22,8 +24,14 @@ int main(int argc, char** argv)
 	const int N_BCH = 14400;
 	const int N_LDPC = 16200;
 	const int BPS = 2; // QPSK
+	const int M = 90; // number of symbols per slot
+	const int P = 36; // number of symbols per pilot
 
+	const int N_XFEC_FRAME = N_LDPC / BPS; // number of complex symbols
+	const int N_PILOTS = N_XFEC_FRAME / (16*M);
+	const int S = N_XFEC_FRAME / 90; // number of slots	
 
+	
 
 	if (sink_to_matlab.destination_chain_name == "coding")
 	{
@@ -38,12 +46,21 @@ int main(int argc, char** argv)
 		std::vector<int  > ldpc_encoded(N_LDPC);
 		std::vector<int  > parity(N_BCH-K_BCH);
 		std::vector<int  > msg(K_BCH);
-		std::vector<float> XFEC_frame(2*N_LDPC/BPS);
+		
+		
 
+		
+		
+
+		std::vector <float > XFEC_frame(2*N_LDPC/BPS);
+		
 		// Tracer
 		tools::Frame_trace<>     tracer            (20, 5, std::cout);
 
-		// Create the AFF3CT objects
+		////////////////////////////////////////////////////
+		// Create modules and blocks
+		////////////////////////////////////////////////////
+
 		// Base Band scrambler
 		BB_scrambler             my_scrambler;
 
@@ -62,16 +79,22 @@ int main(int argc, char** argv)
 		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_PSK <R > (2));
 		module::Modem_generic<> modulator(N_LDPC, std::move(cstl), tools::Sigma<R >(1.0), false, 1);
 
+		////////////////////////////////////////////////////
 		// retrieve data from Matlab
+		////////////////////////////////////////////////////
 		sink_to_matlab.pull_vector( scrambler_in );
 
+		////////////////////////////////////////////////////
 		// Base Band scrambling
+		////////////////////////////////////////////////////
 		my_scrambler.scramble( scrambler_in );
 
 		// reverse message for Matlab compliance
 		std::reverse(scrambler_in.begin(), scrambler_in.end());
 
+		////////////////////////////////////////////////////
 		// BCH Encoding
+		////////////////////////////////////////////////////
 		BCH_encoder.encode(scrambler_in, bch_encoded);
 
 		// reverse parity and msg for Matlab compliance
@@ -86,131 +109,30 @@ int main(int argc, char** argv)
 
 		bch_encoded.erase(bch_encoded.begin()+N_BCH, bch_encoded.end());
 
+		////////////////////////////////////////////////////
 		// LDPC encoding
+		////////////////////////////////////////////////////
 		LDPC_encoder_toto.encode(bch_encoded, ldpc_encoded);
 
+		////////////////////////////////////////////////////
+		// Modulation
+		////////////////////////////////////////////////////
 		modulator.modulate(ldpc_encoded, XFEC_frame);
 
-		std::vector<float > in_vec (2*8370);
+		////////////////////////////////////////////////////
+		// PL_HEADER generation : SOF + PLS code
+		////////////////////////////////////////////////////
 
-		std::vector<std::vector<int> > G_32_7 { { 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
-												{ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1},
-												{ 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1},
-												{ 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1},
-												{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},
-												{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-												{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
-
-		const std::vector<int> PLS_scrambler_sequence{0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0};
-		
-		//const vector <int > {} // QPSK 3/5
-		const std::vector <int > mod_cod{0, 0, 1, 0, 1, 0, 1}; // QPSK 8/9
-		//const vector <int > {} // 8PSK 3/5
-		//const vector <int > {} // 8PSK 8/9
-		//const vector <int > {} // 16APSK 8/9
-		//const int pilot_insert = 1; // pilots are inserted
-		//const int short_code = 1; // short LDPC frame is used
-		std::vector <int > coded_PLS(32, 0);
-		std::vector <int > complementary_coded_PLS(32, 0);
-		std::vector <int > final_PLS(64, 0);
-
-		std::vector <float > pilot_mod(72, (1/sqrt(2)) );
-		
-
-
-		// generate and modulate SOF
-		const std::vector<int > SOF_bin {0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0};
-		std::vector<int > SOF_bpsk(26);
-		std::vector<float > SOF_mod(52);
-
-		std::vector<int > final_PLS_bpsk(64);
-		std::vector<float > final_PLS_mod(128);
-
-		for( int i = 0; i < 26; i++)
-			SOF_bpsk[i] = (1 - 2*SOF_bin[i]);
-
-		for( int i = 0; i < 13; i++)
-		{
-			SOF_mod[4*i    ] =      (1/sqrt(2)) * SOF_bpsk[2*i]; // real part of the even symbols (starting index = 0)
-			SOF_mod[4*i + 1] =      (1/sqrt(2)) * SOF_bpsk[2*i]; // imag part of the even symbols
-			SOF_mod[4*i + 2] = -1 * (1/sqrt(2)) * SOF_bpsk[2*i+1]; // real part of the odd symbols
-			SOF_mod[4*i + 3] =      (1/sqrt(2)) * SOF_bpsk[2*i+1]; // imag part of the odd symbols
-		}
-
-		for(int col=0; col<32 ; col++)
-		{
-			for(int row=0; row<7 ; row++)
-			{
-				coded_PLS[col] = (coded_PLS[col] + mod_cod[row] * G_32_7[row][col])%2;
-				complementary_coded_PLS[col] = 	(coded_PLS[col] == 0) ? 1 : 0;
-			}
-		}
-
-		// interleave PLS and complementary PLS (p.47 DVB-S2X)
-		// scramble and the same time
-		for(int i=0; i<32 ; i++)
-		{
-			final_PLS[2*i] = (coded_PLS[i] + PLS_scrambler_sequence[2*i])%2;
-			final_PLS[2*i+1] = (complementary_coded_PLS[i] + PLS_scrambler_sequence[2*i+1])%2;
-		}
-
-		// Pi/2 BPSK modulation
-		for( int i = 0; i < 64; i++)
-			final_PLS_bpsk[i] = (1 - 2*final_PLS[i]);
-
-		if(mod_cod[0] == 0)
-			for( int i = 0; i < 32; i++)
-			{
-				final_PLS_mod[4*i    ] =      (1/sqrt(2)) * final_PLS_bpsk[2*i]; // real part of the even symbols (starting index = 0)
-				final_PLS_mod[4*i + 1] =      (1/sqrt(2)) * final_PLS_bpsk[2*i]; // imag part of the even symbols
-				final_PLS_mod[4*i + 2] = -1 * (1/sqrt(2)) * final_PLS_bpsk[2*i+1]; // real part of the odd symbols
-				final_PLS_mod[4*i + 3] =      (1/sqrt(2)) * final_PLS_bpsk[2*i+1]; // imag part of the odd symbols
-			}
-		else // include pi/2 jump if b_0 == 1 (See note 2 p.44, DVBS2X)
-			for( int i = 0; i < 32; i++)
-			{
-				final_PLS_mod[4*i    ] = -1 * (1/sqrt(2)) * final_PLS_bpsk[2*i]; // real part of the even symbols (starting index = 0)
-				final_PLS_mod[4*i + 1] =      (1/sqrt(2)) * final_PLS_bpsk[2*i]; // imag part of the even symbols
-				final_PLS_mod[4*i + 2] = -1 * (1/sqrt(2)) * final_PLS_bpsk[2*i+1]; // real part of the odd symbols
-				final_PLS_mod[4*i + 3] = -1 * (1/sqrt(2)) * final_PLS_bpsk[2*i+1]; // imag part of the odd symbols
-			}
-
-		int BPS = 2; // Nb of bit per symbols
-		int N_XFEC_FRAME = N_LDPC / BPS; // number of complex symbols
-		int S; // number of slots
-		S = N_XFEC_FRAME / 90;
-
-		const int M = 90; // number of symbols per slot
-		const int P = 36; // number of symbols per pilot
-		
-		int N_PILOTS = N_XFEC_FRAME / (16*M);
-		std::vector<float> PL_FRAME;
-		
 		int PL_FRAME_SIZE = M*(S+1) + (N_PILOTS*P);
+		std::vector<float> PL_FRAME(2*PL_FRAME_SIZE);
 
-		// insert PLS
-		PL_FRAME.resize(2*26);
-		PL_FRAME = SOF_mod; // assign SOF
-		PL_FRAME.insert( PL_FRAME.end(), final_PLS_mod.begin(), final_PLS_mod.end()); // append PLS
+		Framer<float> DVBS2_framer(2*PL_FRAME_SIZE);
 
-		std::vector<float>::iterator data_it;
-		data_it = XFEC_frame.begin();
-
-		std::vector<float> data_slice((2*16*M)); // 16 slots of data
-		std::vector<float> data_remainder( 2*(N_XFEC_FRAME - (16*M*N_PILOTS))); // remaining data at the end of the XFEC_frame
-
-		for(int i = 0; i < N_PILOTS; i++)
-		{
-			data_slice.assign(data_it, data_it+(2*16*M));
-			PL_FRAME.insert(PL_FRAME.end(), data_slice.begin(), data_slice.end()); // append 16 slots of data
-			PL_FRAME.insert(PL_FRAME.end(), pilot_mod.begin(), pilot_mod.end()); // append the pilot
-			data_it += (2*16*M); // update the data index to the next block of 16 slots			
-		}
-
-		data_remainder.assign(XFEC_frame.begin()+(2*16*M*N_PILOTS), XFEC_frame.end());
-		
-		PL_FRAME.insert(PL_FRAME.end(), data_remainder.begin(), data_remainder.end());
-
+		DVBS2_framer.generate(PL_FRAME, XFEC_frame);
+				
+		////////////////////////////////////////////////////
+		// PL Scrambling
+		////////////////////////////////////////////////////
 		for(int i = M; i < PL_FRAME.size()/2; i++)
 		{
 			int R_lsb = PL_RAND_SEQ[i]%2;
@@ -223,7 +145,10 @@ int main(int argc, char** argv)
 			PL_FRAME[2*i + 1] = R_imag*D_real + R_real*D_imag; // imag part
 		}
 
-		/* SHAPING */
+		////////////////////////////////////////////////////
+		// SHAPING
+		////////////////////////////////////////////////////
+
 		const float ROLLOFF = 0.05;
 		const int N_SYMBOLS = 8370;
 		const int OSF       = 4;
