@@ -36,7 +36,48 @@ int main(int argc, char** argv)
 	// Tracer
 	tools::Frame_trace<>     tracer            (20, 5, std::cout);
 
-	if (sink_to_matlab.destination_chain_name == "coding")
+	if (sink_to_matlab.destination_chain_name == "descramble")
+	{
+
+		PL_scrambler<float> complex_scrambler(2*PL_FRAME_SIZE, M, false);
+		std::vector<float  > SCRAMBLED_PL_FRAME(2*PL_FRAME_SIZE);
+		//std::vector<float  > PL_FRAME(2*PL_FRAME_SIZE);
+		std::vector<float  > PL_FRAME_OUTPUT(2*PL_FRAME_SIZE);
+
+
+		std::vector<float> PL_FRAME(2*PL_FRAME_SIZE-2*M);
+
+		
+
+		sink_to_matlab.pull_vector( SCRAMBLED_PL_FRAME );
+
+		PL_FRAME.insert(PL_FRAME.begin(), SCRAMBLED_PL_FRAME.begin(), SCRAMBLED_PL_FRAME.begin()+2*M);
+
+		complex_scrambler.scramble(SCRAMBLED_PL_FRAME, PL_FRAME);
+		//tracer.display_real_vector(SCRAMBLED_PL_FRAME);
+		//std::copy(PL_FRAME.begin(), PL_FRAME.end(), PL_FRAME_OUTPUT.begin());
+		sink_to_matlab.push_vector( PL_FRAME , true);
+	}
+	else if (sink_to_matlab.destination_chain_name == "deframe")
+	{
+		std::vector<float  > mod_samples(2*PL_FRAME_SIZE);
+		std::vector<float  > mod_samples_out(2*N_XFEC_FRAME);
+		
+		sink_to_matlab.pull_vector( mod_samples );
+
+		mod_samples.erase(mod_samples.begin(), mod_samples.begin() + 2*M); // erase the PLHEADER
+
+		for( int i = 1; i < N_PILOTS+1; i++)
+		{
+			mod_samples.erase(mod_samples.begin()+(i*90*16*2), mod_samples.begin()+(i*90*16*2)+(36*2) );
+		}
+		mod_samples_out = mod_samples;
+
+		sink_to_matlab.push_vector( mod_samples_out , true);
+
+
+	}
+	else if (sink_to_matlab.destination_chain_name == "decoding")
 	{
 
 		const std::vector<int > BCH_gen_poly{1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1};
@@ -56,16 +97,15 @@ int main(int argc, char** argv)
 		//sink_to_matlab.pull_vector( LDPC_encoded );
 		sink_to_matlab.pull_vector( BCH_encoded );
 
-		//auto dvbs2 = tools::build_dvbs2(N_BCH, N_LDPC);
+		//auto dvbs2 = tools::build_dvbs2(K_LDPC, N_LDPC);
 
 		//tools::Sparse_matrix H_dvbs2;
 		//H_dvbs2 = build_H(*dvbs2);
 
-		//std::vector<uint32_t> info_bits_pos(N_BCH);
+		//std::vector<uint32_t> info_bits_pos(K_LDPC);
 
-		//or(int i = 0; i< K_LDPC; i++)
-		//	info_bits_pos[i] = i;
-
+		//for(int i = 0; i< K_LDPC; i++)
+		//	info_bits_pos[i] = i+N_LDPC-K_LDPC;
 
 		//Decoder_LDPC_BP_flooding_SPA<int, float> LDPC_decoder(K_LDPC, N_LDPC, 20, H_dvbs2, info_bits_pos, false, 1);
 
@@ -99,35 +139,8 @@ int main(int argc, char** argv)
 		//sink_to_matlab.push_vector( BCH_encoded , false);
 
 	}
-	else if (sink_to_matlab.destination_chain_name == "descramble")
-	{
 
-		PL_scrambler<float> complex_scrambler(2*PL_FRAME_SIZE, M, false);
-		std::vector<float  > SCRAMBLED_PL_FRAME(2*PL_FRAME_SIZE);
-		//std::vector<float  > PL_FRAME(2*PL_FRAME_SIZE);
-		std::vector<float  > PL_FRAME_OUTPUT(2*PL_FRAME_SIZE);
-
-
-		std::vector<float> PL_FRAME(2*PL_FRAME_SIZE-2*M);
-
-		
-
-		sink_to_matlab.pull_vector( SCRAMBLED_PL_FRAME );
-
-		PL_FRAME.insert(PL_FRAME.begin(), SCRAMBLED_PL_FRAME.begin(), SCRAMBLED_PL_FRAME.begin()+2*M);
-
-		complex_scrambler.scramble(SCRAMBLED_PL_FRAME, PL_FRAME);
-		//tracer.display_real_vector(SCRAMBLED_PL_FRAME);
-		//std::copy(PL_FRAME.begin(), PL_FRAME.end(), PL_FRAME_OUTPUT.begin());
-		sink_to_matlab.push_vector( PL_FRAME , true);
-	}
-	else if (sink_to_matlab.destination_chain_name == "demod")
-	{
-		std::vector<float  > mod_samples(N_LDPC);
-		
-		sink_to_matlab.pull_vector( mod_samples );
-		sink_to_matlab.push_vector( mod_samples , false);
-	}
+	
 	else
 	{
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, "Invalid destination name.");
