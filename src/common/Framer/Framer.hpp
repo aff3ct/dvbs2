@@ -45,42 +45,46 @@ public:
 	inline Socket& operator[](const frm::sck::generate s) { return Module::operator[]((int)frm::tsk::generate)[(int)s]; }
 
 protected:
-	const int K; /*!< Number of information bits in one frame */
+	const int XFEC_FRAME_SIZE; /*!< Number of complex symbols x2 in one XFEC frame */
+	const int PL_FRAME_SIZE; /*!< Number of complex symbols x2 in one payload frame */
 
 private:
-	std::vector<B > PLH;
-	void generate_PLH( void );
-	int N_LDPC, BPS, N_XFEC_FRAME, M, N_PILOTS;
+
+	std::vector<B > PLH; /*!< Payload header */
+	void generate_PLH( void ); /*!< Payload header generation */
+	int N_XFEC_FRAME, M, N_PILOTS; 
 
 public:
 	/*!
 	 * \brief Constructor.
 	 *
-	 * \param K:        number of information bits in the frame.
+	 * \param XFEC_FRAME_SIZE : Number of complex symbols in one XFEC frame.
+	 * \param PL_FRAME_SIZE : Number of complex symbols in one payload frame.
 	 * \param n_frames: number of frames to process in the Framer.
 	 * \param name:     Framer's name.
 	 */
-	Framer(const int K, const int n_frames = 1);
+	Framer(const int XFEC_FRAME_SIZE, const int PL_FRAME_SIZE, const int n_frames = 1);
 
 	/*!
 	 * \brief Destructor.
 	 */
 	virtual ~Framer() = default;
 
-	virtual int get_K() const;
+	//virtual int get_K() const;
 
 	/*!
-	 * \brief Fulfills a vector with bits.
+	 * \brief Generate the payload frame.
 	 *
-	 * \param U_K: a vector of bits to fill.
+	 * \param XFEC_frame : a vector of complex input symbols.
+	 * \param PL_frame : a vector of complex output symbols.
 	 */
 	template <class A = std::allocator<B>>
-	void generate(std::vector<B,A>& U_K, std::vector<B> XFEC_frame, const int frame_id = -1);
+	void generate(std::vector<B,A>& XFEC_frame, std::vector<B,A>& PL_frame, const int frame_id = -1);
 
-	virtual void generate(B *U_K, B *XFEC_frame, const int frame_id = -1);
+	virtual void generate(B *XFEC_frame, B *PL_frame, const int frame_id = -1);
 
 protected:
-	virtual void _generate(B *U_K, B *XFEC_frame, const int frame_id);
+	virtual void _generate(B *XFEC_frame, B *PL_frame, const int frame_id);
 };
 }
 }

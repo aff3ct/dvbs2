@@ -9,6 +9,7 @@
 #define FRAMER_HXX_
 
 #include <sstream>
+#include <complex>
 
 #include "Tools/Exception/exception.hpp"
 
@@ -21,52 +22,53 @@ namespace module
 
 template <typename B>
 Framer<B>::
-Framer(const int K, const int n_frames)
-: Module(n_frames), K(K)
+Framer(const int XFEC_FRAME_SIZE, const int PL_FRAME_SIZE, const int n_frames)
+: Module(n_frames), XFEC_FRAME_SIZE(XFEC_FRAME_SIZE), PL_FRAME_SIZE(PL_FRAME_SIZE)
 {
 	const std::string name = "Framer";
 	this->set_name(name);
 	this->set_short_name(name);
 
 	this->generate_PLH();
+	
+	this->M = 90;
+	this->N_PILOTS = this->XFEC_FRAME_SIZE / (2*16*this->M);
 
-	N_LDPC = 16200;
-	BPS = 2;
-	N_XFEC_FRAME = N_LDPC / BPS;
-	M = 90;
-	N_PILOTS = N_XFEC_FRAME / (16*M);
-
-	if (K <= 0)
+	if (XFEC_FRAME_SIZE <= 0)
 	{
 		std::stringstream message;
-		message << "'K' has to be greater than 0 ('K' = " << K << ").";
+		message << "'XFEC_FRAME_SIZE' has to be greater than 0 ('XFEC_FRAME_SIZE' = " << XFEC_FRAME_SIZE << ").";
+		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+	}
+	if (PL_FRAME_SIZE <= 0)
+	{
+		std::stringstream message;
+		message << "'PL_FRAME_SIZE' has to be greater than 0 ('PL_FRAME_SIZE' = " << PL_FRAME_SIZE << ").";
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	auto &p = this->create_task("generate");
-	auto &ps_XFEC_frame = this->template create_socket_out<B>(p, "XFEC_frame", this->N_XFEC_FRAME * this->n_frames);
-	auto &ps_U_K = this->template create_socket_out<B>(p, "U_K", this->K * this->n_frames);
-	this->create_codelet(p, [this, &ps_U_K, &ps_XFEC_frame]() -> int
+	auto &ps_XFEC_frame = this->template create_socket_out<B>(p, "XFEC_frame", this->XFEC_FRAME_SIZE * this->n_frames);
+	auto &ps_PL_frame = this->template create_socket_out<B>(p, "PL_frame", this->PL_FRAME_SIZE * this->n_frames);
+	this->create_codelet(p, [this, &ps_PL_frame, &ps_XFEC_frame]() -> int
 	{
-		this->generate(static_cast<B*>(ps_U_K.get_dataptr()), static_cast<B*>(ps_XFEC_frame.get_dataptr()));
+		this->generate(static_cast<B*>(ps_PL_frame.get_dataptr()), static_cast<B*>(ps_XFEC_frame.get_dataptr()));
 
 		return 0;
 	});
 }
 
-template <typename B>
+/*template <typename B>
 int Framer<B>::
 get_K() const
 {
 	return K;
-}
+}*/
 
 template <typename B>
 void Framer<B>::
 generate_PLH( void )
 {
-	//for (auto i = 0; i < this->K; i++)
-	//	U_K[i] = (B)this->uniform_dist(this->rd_engine);
 	this->PLH.resize(2*90);
 	std::vector<std::vector<int> > G_32_7 { { 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
 												{ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1},
@@ -90,14 +92,16 @@ generate_PLH( void )
 	std::vector <int > final_PLS(64, 0);
 
 	
-	
 	// generate and modulate SOF
 	const std::vector<int > SOF_bin {0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0};
 	std::vector<int > SOF_bpsk(26);
+
 	std::vector<float > SOF_mod(52);
+	std::vector<std::complex<float> > Cx_SOF_mod(26);
 
 	std::vector<int > final_PLS_bpsk(64);
 	std::vector<float > final_PLS_mod(128);
+	std::vector<std::complex<float> > Cx_final_PLS_mod(64);
 
 	for( int i = 0; i < 26; i++)
 		SOF_bpsk[i] = (1 - 2*SOF_bin[i]);
@@ -148,84 +152,105 @@ generate_PLH( void )
 			final_PLS_mod[4*i + 3] = -1 * (1/sqrt(2)) * final_PLS_bpsk[2*i+1]; // imag part of the odd symbols
 		}
 
-	//U_K.resize(2*26);
 	this->PLH = SOF_mod; // assign SOF
 	this->PLH.insert( this->PLH.end(), final_PLS_mod.begin(), final_PLS_mod.end()); // append PLS
 
-	//U_K = &PLH[0]; // assign SOF	
-	//std::copy(PLH.begin(), PLH.end(), U_K);
 }
 
 template <typename B>
 template <class A>
 void Framer<B>::
-generate(std::vector<B,A>& U_K, std::vector<B> XFEC_frame, const int frame_id)
+generate(std::vector<B,A>& XFEC_frame, std::vector<B,A>& PL_frame, const int frame_id)
 {
-	if (this->K * this->n_frames != (int)U_K.size())
+	if (this->XFEC_FRAME_SIZE * this->n_frames != (int)XFEC_frame.size())
 	{
 		std::stringstream message;
-		message << "'U_K.size()' has to be equal to 'K' * 'n_frames' ('U_K.size()' = " << U_K.size()
-		        << ", 'K' = " << this->K << ", 'n_frames' = " << this->n_frames << ").";
+		message << "'XFEC_frame.size()' has to be equal to 'XFEC_FRAME_SIZE' * 'n_frames' ('XFEC_frame.size()' = " << XFEC_frame.size()
+		        << ", 'XFEC_FRAME_SIZE' = " << this->XFEC_FRAME_SIZE << ", 'n_frames' = " << this->n_frames << ").";
+		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+	}
+	if (this->PL_FRAME_SIZE * this->n_frames != (int)PL_frame.size())
+	{
+		std::stringstream message;
+		message << "'PL_frame.size()' has to be equal to 'PL_FRAME_SIZE' * 'n_frames' ('PL_frame.size()' = " << PL_frame.size()
+		        << ", 'PL_FRAME_SIZE' = " << this->PL_FRAME_SIZE << ", 'n_frames' = " << this->n_frames << ").";
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->generate(U_K.data(), XFEC_frame.data(), frame_id);
+	this->generate(XFEC_frame.data(), PL_frame.data(), frame_id);
 }
 
 template <typename B>
 void Framer<B>::
-generate(B *U_K, B *XFEC_frame, const int frame_id)
+generate(B *XFEC_frame, B *PL_frame, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_generate(U_K + f * this->K, XFEC_frame + f * this->N_XFEC_FRAME, f);
+		this->_generate(XFEC_frame + f * this->XFEC_FRAME_SIZE, PL_frame + f * this->PL_FRAME_SIZE, f);
 }
 template <typename B>
 void Framer<B>::
-_generate(B *U_K, B *XFEC_frame, const int frame_id)
+_generate(B *XFEC_frame, B *PL_frame, const int frame_id)
 {
 
-		std::vector <float > XFEC_frame_v;
-		XFEC_frame_v.assign(XFEC_frame, XFEC_frame + 2*N_LDPC/BPS);
-	
+		std::vector <std::complex<float> > Cx_XFEC_frame(this->XFEC_FRAME_SIZE/2);
+		
+		for (unsigned int i = 0; i < Cx_XFEC_frame.size(); i++)
+		{
+			Cx_XFEC_frame[i].real(XFEC_frame[2*i]);
+			Cx_XFEC_frame[i].imag(XFEC_frame[2*i+1]);
+		}
+
 		////////////////////////////////////////////////////
 		// Pilot generation
 		////////////////////////////////////////////////////
 
-		std::vector <float > pilot_mod(72, (1/sqrt(2)) );
+		std::vector <std::complex<float> > Cx_pilot_mod(36);//, (1/sqrt(2), 1/sqrt(2)) );
+		
+		for (unsigned int i = 0; i < Cx_pilot_mod.size(); i++)
+		{
+			Cx_pilot_mod[i].real(1/sqrt(2));
+			Cx_pilot_mod[i].imag(1/sqrt(2));
+		}
 
 		////////////////////////////////////////////////////
 		// Framing : PL_HEADER + DATA + PILOTS
 		////////////////////////////////////////////////////
 
-		std::vector<float> PL_FRAME;
-
-		PL_FRAME.resize(2*90);
-		PL_FRAME = this->PLH;
-
-		std::vector<float>::iterator data_it;
-		data_it = XFEC_frame_v.begin();
-
-		std::vector<float> data_slice((2*16*M)); // 16 slots of data
-		std::vector<float> data_remainder( 2*(N_XFEC_FRAME - (16*M*N_PILOTS))); // remaining data at the end of the XFEC_frame
-
-		for(int i = 0; i < N_PILOTS; i++)
+		std::vector<std::complex<float> > Cx_PL_FRAME(90);
+		std::vector<std::complex<float> > Cx_PLH(90);
+		for (unsigned int i = 0; i < Cx_PLH.size(); i++)
 		{
-			data_slice.assign(data_it, data_it+(2*16*M));
-			PL_FRAME.insert(PL_FRAME.end(), data_slice.begin(), data_slice.end()); // append 16 slots of data
-			PL_FRAME.insert(PL_FRAME.end(), pilot_mod.begin(), pilot_mod.end()); // append the pilot
-			data_it += (2*16*M); // update the data index to the next block of 16 slots			
+			Cx_PLH[i].real(this->PLH[2*i]);
+			Cx_PLH[i].imag(this->PLH[2*i+1]);
+		}
+		Cx_PL_FRAME = Cx_PLH;
+
+		std::vector<std::complex<float> >::iterator Cx_data_it;
+		Cx_data_it = Cx_XFEC_frame.begin();
+
+		std::vector<std::complex<float> > Cx_data_slice(16*this->M);
+		std::vector<std::complex<float> > Cx_data_remainder( this->XFEC_FRAME_SIZE/2 - (16*this->M*this->N_PILOTS) ); // remaining data at the end of the XFEC_frame
+
+		for(int i = 0; i < this->N_PILOTS; i++)
+		{
+			Cx_data_slice.assign(Cx_data_it, Cx_data_it+(16*this->M));
+			Cx_PL_FRAME.insert(Cx_PL_FRAME.end(), Cx_data_slice.begin(), Cx_data_slice.end()); // append 16 slots of data
+			Cx_PL_FRAME.insert(Cx_PL_FRAME.end(), Cx_pilot_mod.begin(), Cx_pilot_mod.end()); // append the pilot
+			Cx_data_it += (16*M); // update the data index to the next block of 16 slots			
 		}
 
-		data_remainder.assign(XFEC_frame_v.begin()+(2*16*M*N_PILOTS), XFEC_frame_v.end());
+		Cx_data_remainder.assign(Cx_XFEC_frame.begin()+(16*M*N_PILOTS), Cx_XFEC_frame.end());
 
-		PL_FRAME.insert(PL_FRAME.end(), data_remainder.begin(), data_remainder.end());
-		std::copy(PL_FRAME.begin(), PL_FRAME.end(), U_K);
+		Cx_PL_FRAME.insert(Cx_PL_FRAME.end(), Cx_data_remainder.begin(), Cx_data_remainder.end());
 
-
-
+		for (unsigned int i = 0; i < Cx_PL_FRAME.size(); i++)
+		{
+			PL_frame[2*i] = Cx_PL_FRAME[i].real();
+			PL_frame[2*i+1] = Cx_PL_FRAME[i].imag();
+		}
 }
 
 }
