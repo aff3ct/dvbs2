@@ -30,7 +30,9 @@ int main(int argc, char** argv)
 
 	const int N_XFEC_FRAME = N_LDPC / BPS; // number of complex symbols
 	const int N_PILOTS = N_XFEC_FRAME / (16*M);
-	const int S = N_XFEC_FRAME / 90; // number of slots	
+	const int S = N_XFEC_FRAME / 90; // number of slots
+	const int PL_FRAME_SIZE = M*(S+1) + (N_PILOTS*P);
+		
 
 	if (sink_to_matlab.destination_chain_name == "coding")
 	{
@@ -116,7 +118,6 @@ int main(int argc, char** argv)
 		// PL_HEADER generation : SOF + PLS code
 		////////////////////////////////////////////////////
 
-		int PL_FRAME_SIZE = M*(S+1) + (N_PILOTS*P);
 		std::vector<float> PL_FRAME(2*PL_FRAME_SIZE);
 
 		Framer<float> DVBS2_framer(2*N_LDPC/BPS, 2*PL_FRAME_SIZE);
@@ -131,7 +132,7 @@ int main(int argc, char** argv)
 
 		SCRAMBLED_PL_FRAME.insert(SCRAMBLED_PL_FRAME.begin(), PL_FRAME.begin(), PL_FRAME.begin()+2*M);
 
-		PL_scrambler<float> complex_scrambler(2*PL_FRAME_SIZE, M); 
+		PL_scrambler<float> complex_scrambler(2*PL_FRAME_SIZE, M, true); 
 
 		complex_scrambler.scramble(PL_FRAME, SCRAMBLED_PL_FRAME);
 

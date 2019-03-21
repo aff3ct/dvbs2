@@ -63,7 +63,7 @@ public:
 	 * \param n_frames: number of frames to process in the PL_scrambler.
 	 * \param name:     PL_scrambler's name.
 	 */
-	PL_scrambler(const int FRAME_SIZE, const int start_ix, const int n_frames = 1);
+	PL_scrambler(const int FRAME_SIZE, const int start_ix, const bool scr_flag, const int n_frames = 1);
 
 	/*!
 	 * \brief Destructor.
@@ -84,6 +84,7 @@ public:
 	virtual void scramble(B *clear_frame, B *scrambled_frame, const int frame_id = -1);
 
 protected:
+	const bool scr_flag;
 	virtual void _scramble(B *clear_frame, B *scrambled_frame, const int frame_id);
 };
 }

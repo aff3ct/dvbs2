@@ -6,6 +6,8 @@ using namespace aff3ct::module;
 
 #include "Sink.hpp"
 #include "BB_scrambler.hpp"
+#include "../common/PL_scrambler/PL_scrambler.hpp"
+
 
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
 
@@ -22,8 +24,17 @@ int main(int argc, char** argv)
 	const int N_BCH = 14400;
 	const int N_LDPC = 16200;
 	const int K_LDPC = N_BCH;
-
 	const int BPS = 2; // QPSK
+	const int M = 90; // number of symbols per slot
+	const int P = 36; // number of symbols per pilot
+
+	const int N_XFEC_FRAME = N_LDPC / BPS; // number of complex symbols
+	const int N_PILOTS = N_XFEC_FRAME / (16*M);
+	const int S = N_XFEC_FRAME / 90; // number of slots	
+	const int PL_FRAME_SIZE = M*(S+1) + (N_PILOTS*P);
+
+	// Tracer
+	tools::Frame_trace<>     tracer            (20, 5, std::cout);
 
 	if (sink_to_matlab.destination_chain_name == "coding")
 	{
@@ -36,9 +47,6 @@ int main(int argc, char** argv)
 		std::vector<float  > LDPC_encoded(N_LDPC);
 		std::vector<int  > parity(N_BCH-K_BCH);
 		std::vector<int  > msg(K_BCH);
-
-		// Tracer
-		tools::Frame_trace<>     tracer            (20, 5, std::cout);
 
 		// Base Band scrambler
 		BB_scrambler             my_scrambler;
@@ -55,11 +63,9 @@ int main(int argc, char** argv)
 
 		//std::vector<uint32_t> info_bits_pos(N_BCH);
 
-		//for(int i = 0; i< N_BCH; i++)
+		//or(int i = 0; i< K_LDPC; i++)
 		//	info_bits_pos[i] = i;
 
-		//for(int i = 0; i< N_LDPC; i++)
-		//	LDPC_encoded[i] = -1*LDPC_encoded[i];
 
 		//Decoder_LDPC_BP_flooding_SPA<int, float> LDPC_decoder(K_LDPC, N_LDPC, 20, H_dvbs2, info_bits_pos, false, 1);
 
@@ -92,7 +98,35 @@ int main(int argc, char** argv)
 		sink_to_matlab.push_vector( scrambler_in , false);
 		//sink_to_matlab.push_vector( BCH_encoded , false);
 
+	}
+	else if (sink_to_matlab.destination_chain_name == "descramble")
+	{
 
+		PL_scrambler<float> complex_scrambler(2*PL_FRAME_SIZE, M, false);
+		std::vector<float  > SCRAMBLED_PL_FRAME(2*PL_FRAME_SIZE);
+		//std::vector<float  > PL_FRAME(2*PL_FRAME_SIZE);
+		std::vector<float  > PL_FRAME_OUTPUT(2*PL_FRAME_SIZE);
+
+
+		std::vector<float> PL_FRAME(2*PL_FRAME_SIZE-2*M);
+
+		
+
+		sink_to_matlab.pull_vector( SCRAMBLED_PL_FRAME );
+
+		PL_FRAME.insert(PL_FRAME.begin(), SCRAMBLED_PL_FRAME.begin(), SCRAMBLED_PL_FRAME.begin()+2*M);
+
+		complex_scrambler.scramble(SCRAMBLED_PL_FRAME, PL_FRAME);
+		//tracer.display_real_vector(SCRAMBLED_PL_FRAME);
+		//std::copy(PL_FRAME.begin(), PL_FRAME.end(), PL_FRAME_OUTPUT.begin());
+		sink_to_matlab.push_vector( PL_FRAME , true);
+	}
+	else if (sink_to_matlab.destination_chain_name == "demod")
+	{
+		std::vector<float  > mod_samples(N_LDPC);
+		
+		sink_to_matlab.pull_vector( mod_samples );
+		sink_to_matlab.push_vector( mod_samples , false);
 	}
 	else
 	{

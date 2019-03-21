@@ -22,8 +22,8 @@ namespace module
 
 template <typename B>
 PL_scrambler<B>::
-PL_scrambler(const int FRAME_SIZE, const int start_ix, const int n_frames)
-: Module(n_frames), FRAME_SIZE(FRAME_SIZE), start_ix(start_ix)
+PL_scrambler(const int FRAME_SIZE, const int start_ix, const bool scr_flag, const int n_frames)
+: Module(n_frames), FRAME_SIZE(FRAME_SIZE), start_ix(start_ix), scr_flag(scr_flag)
 {
 	const std::string name = "PL_scrambler";
 	this->set_name(name);
@@ -98,12 +98,12 @@ _scramble(B *clear_frame, B *scrambled_frame, const int frame_id)
 			int R_msb = this->PL_RAND_SEQ[i]/2;
 			int R_real = (1-R_lsb) * (-2*R_msb+1); // real part
 			int R_imag = R_lsb*(-2*R_msb+1); // imag part
+			R_imag = (2*scr_flag-1)*R_imag; // conjugate if scr_flag == false, i.e. descrambling
 			float D_real = clear_frame[2*i];
 			float D_imag = clear_frame[2*i+1];
 			scrambled_frame[2*i] = R_real*D_real - R_imag*D_imag; // real part
 			scrambled_frame[2*i + 1] = R_imag*D_real + R_real*D_imag; // imag part
 		}
-
 }
 
 }
