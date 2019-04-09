@@ -60,21 +60,39 @@ int main(int argc, char** argv)
 	}
 	else if (sink_to_matlab.destination_chain_name == "deframe")
 	{
-		std::vector<float  > mod_samples(2*PL_FRAME_SIZE);
-		std::vector<float  > mod_samples_out(2*N_XFEC_FRAME);
+		std::vector<float  > PL_FRAME(2*PL_FRAME_SIZE);
+		std::vector<float  > XFEC_FRAME(2*N_XFEC_FRAME);
 		
-		sink_to_matlab.pull_vector( mod_samples );
+		sink_to_matlab.pull_vector( PL_FRAME );
 
-		mod_samples.erase(mod_samples.begin(), mod_samples.begin() + 2*M); // erase the PLHEADER
+		PL_FRAME.erase(PL_FRAME.begin(), PL_FRAME.begin() + 2*M); // erase the PLHEADER
 
 		for( int i = 1; i < N_PILOTS+1; i++)
 		{
-			mod_samples.erase(mod_samples.begin()+(i*90*16*2), mod_samples.begin()+(i*90*16*2)+(36*2) );
+			PL_FRAME.erase(PL_FRAME.begin()+(i*90*16*2), PL_FRAME.begin()+(i*90*16*2)+(36*2) );
 		}
-		mod_samples_out = mod_samples;
+		XFEC_FRAME = PL_FRAME;
 
-		sink_to_matlab.push_vector( mod_samples_out , true);
+		float moment2 = 0, moment4 = 0;
 
+		for (int i = 0; i < N_XFEC_FRAME; i++)
+		{
+			float tmp = XFEC_FRAME[2*i]*XFEC_FRAME[2*i] + XFEC_FRAME[2*i+1]*XFEC_FRAME[2*i+1];
+			moment2 += tmp;
+			moment4 += tmp*tmp;
+		}
+		moment2 /= N_XFEC_FRAME;
+		moment4 /= N_XFEC_FRAME;
+		//std::cout << "mom2=" << moment2 << std::endl;
+		//std::cout << "mom4=" << moment4 << std::endl;
+
+		float Se = sqrt( abs(2 * moment2 * moment2 - moment4 ) );
+		float Ne = abs( moment2 - Se );
+		float SNR_est = 10 * log10(Se / Ne);
+
+		//std::cout << "SNR = " << SNR_est << std::endl;
+
+		sink_to_matlab.push_vector( XFEC_FRAME , true);
 
 	}
 	else if (sink_to_matlab.destination_chain_name == "decoding")
