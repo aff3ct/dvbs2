@@ -95,36 +95,6 @@ int main(int argc, char** argv)
 		sink_to_matlab.push_vector( XFEC_FRAME , true);
 
 	}
-	else if (sink_to_matlab.destination_chain_name == "ldpc_decoding")
-	{
-		std::vector<float  > LDPC_encoded(N_LDPC);
-		std::vector<int  > parity(N_BCH-K_BCH);
-		std::vector<int  > msg(K_BCH);
-		std::vector<int  > BCH_encoded(N_BCH);
-
-		sink_to_matlab.pull_vector( LDPC_encoded );
-
-		auto dvbs2 = tools::build_dvbs2(K_LDPC, N_LDPC);
-
-		tools::Sparse_matrix H_dvbs2;
-		H_dvbs2 = build_H(*dvbs2);
-
-		std::vector<uint32_t> info_bits_pos(K_LDPC);
-
-		for(int i = 0; i< K_LDPC; i++)
-			info_bits_pos[i] = i;//+N_LDPC-K_LDPC;
-
-		Decoder_LDPC_BP_horizontal_layered_ONMS_inter<int, float> LDPC_decoder(K_LDPC, N_LDPC, 200, H_dvbs2, info_bits_pos);
-		//Decoder_LDPC_BP_flooding_SPA<int, float> LDPC_decoder(K_LDPC, N_LDPC, 20, H_dvbs2, info_bits_pos, false, 1);
-
-		std::vector<int  > LDPC_cw(N_LDPC);
-		LDPC_decoder.decode_siho_cw(LDPC_encoded, LDPC_cw);
-
-		//tracer.display_real_vector(SCRAMBLED_PL_FRAME);
-
-		sink_to_matlab.push_vector( LDPC_cw , false);
-
-	}
 	else if (sink_to_matlab.destination_chain_name == "decoding")
 	{
 
@@ -142,8 +112,8 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 		// retrieve data from Matlab
 		////////////////////////////////////////////////////
-		//sink_to_matlab.pull_vector( LDPC_encoded );
-		sink_to_matlab.pull_vector( BCH_encoded );
+		sink_to_matlab.pull_vector( LDPC_encoded );
+		//sink_to_matlab.pull_vector( BCH_encoded );
 
 		auto dvbs2 = tools::build_dvbs2(K_LDPC, N_LDPC);
 
@@ -155,12 +125,15 @@ int main(int argc, char** argv)
 		for(int i = 0; i< K_LDPC; i++)
 			info_bits_pos[i] = i;//+N_LDPC-K_LDPC;
 
-		Decoder_LDPC_BP_horizontal_layered_ONMS_inter<int, float> LDPC_decoder(K_LDPC, N_LDPC, 200, H_dvbs2, info_bits_pos);
+		Decoder_LDPC_BP_horizontal_layered_ONMS_inter<int, float> LDPC_decoder(K_LDPC, N_LDPC, 20, H_dvbs2, info_bits_pos);
 		//Decoder_LDPC_BP_flooding_SPA<int, float> LDPC_decoder(K_LDPC, N_LDPC, 20, H_dvbs2, info_bits_pos, false, 1);
 
 		std::vector<int  > LDPC_cw(N_LDPC);
 		LDPC_decoder.decode_siho_cw(LDPC_encoded, LDPC_cw);
 		
+		for(int i = 0; i< N_BCH; i++)
+			BCH_encoded[i] = LDPC_cw[i];
+
 		// BCH decoding
 
 		tools::BCH_polynomial_generator<int  > poly_gen(16383, 12);
