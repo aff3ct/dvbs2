@@ -109,6 +109,37 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 		LDPC_encoder.encode(bch_encoded, ldpc_encoded);
 
+
+		//auto dvbs2 = tools::build_dvbs2(K_LDPC, N_LDPC);
+/*		int K_LDPC = N_BCH;
+		tools::Sparse_matrix H_dvbs2;
+		H_dvbs2 = build_H(*dvbs2);
+
+		std::vector<uint32_t> info_bits_pos(K_LDPC);
+
+		for(int i = 0; i< K_LDPC; i++)
+			info_bits_pos[i] = i;//+N_LDPC-K_LDPC;
+
+		Decoder_LDPC_BP_horizontal_layered_ONMS_inter<int, float> LDPC_decoder(K_LDPC, N_LDPC, 200, H_dvbs2, info_bits_pos);
+		//Decoder_LDPC_BP_flooding_SPA<int, float> LDPC_decoder(K_LDPC, N_LDPC, 20, H_dvbs2, info_bits_pos, false, 1);
+
+		std::vector<float  > ldpc_encoded_llr(N_LDPC);
+		std::vector<int  > BCH_encoded(N_BCH);
+		std::vector<int  > ldpc_out(N_LDPC);
+
+		for(int i = 0; i< N_LDPC; i++)
+			ldpc_encoded_llr[i] = 1-2*ldpc_encoded[i];
+
+		for(int i = 0; i< 50; i++)
+			ldpc_encoded_llr[i] = -1*ldpc_encoded_llr[i];
+
+
+		LDPC_decoder.decode_siho_cw(ldpc_encoded_llr, ldpc_out);
+
+
+
+		sink_to_matlab.push_vector( ldpc_out , false);
+*/
 		////////////////////////////////////////////////////
 		// Modulation
 		////////////////////////////////////////////////////
