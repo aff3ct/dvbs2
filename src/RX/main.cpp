@@ -17,17 +17,14 @@ int main(int argc, char** argv)
 
 	Sink sink_to_matlab    (params.mat2aff_file_name, params.aff2mat_file_name);
 
-	// Tracer
 	tools::Frame_trace<>     tracer            (20, 5, std::cout);
 
 	if (sink_to_matlab.destination_chain_name == "descramble")
 	{
-
 		module::PL_scrambler<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M, false);
 		std::vector<float  > SCRAMBLED_PL_FRAME(2*params.PL_FRAME_SIZE);
 		//std::vector<float  > PL_FRAME(2*params.PL_FRAME_SIZE);
 		std::vector<float  > PL_FRAME_OUTPUT(2*params.PL_FRAME_SIZE);
-
 
 		std::vector<float> PL_FRAME(2*params.PL_FRAME_SIZE-2*params.M);
 
@@ -68,8 +65,8 @@ int main(int argc, char** argv)
 		//std::cout << "mom2=" << moment2 << std::endl;
 		//std::cout << "mom4=" << moment4 << std::endl;
 
-		float Se = sqrt( abs(2 * moment2 * moment2 - moment4 ) );
-		float Ne = abs( moment2 - Se );
+		float Se = sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
+		float Ne = std::abs( moment2 - Se );
 		float SNR_est = 10 * log10(Se / Ne);
 
 		//std::cout << "SNR = " << SNR_est << std::endl;
