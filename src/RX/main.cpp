@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 		//std::copy(PL_FRAME.begin(), PL_FRAME.end(), PL_FRAME_OUTPUT.begin());
 		sink_to_matlab.push_vector( PL_FRAME , true);
 	}
-	else if (sink_to_matlab.destination_chain_name == "deframe")
+	else if (sink_to_matlab.destination_chain_name == "demod_decod")
 	{
 		std::vector<float  > PL_FRAME(2*PL_FRAME_SIZE);
 		std::vector<float  > XFEC_FRAME(2*N_XFEC_FRAME);
@@ -92,14 +92,12 @@ int main(int argc, char** argv)
 
 		//std::cout << "SNR_est = " << SNR_est << std::endl;
 
-		float LLRMAX = 100;
-		int BPS = 2;
-		int N_symb = 1 << BPS;
 		float pow_tot, pow_sig_util, sigma_n2;
 
 		pow_tot = moment2;
 		//pow_sig_util = pow_tot / (1+(Ne/Se));
-		SNR_est = 6.8;
+		//SNR_est = 6.8;
+		
 		float denom = (+ pow(10, (-1*SNR_est/10)));
 
 		pow_sig_util = pow_tot / (1+denom);
@@ -125,43 +123,18 @@ int main(int argc, char** argv)
 		std::vector<float  > LDPC_encoded(N_LDPC);
 
 		modulator.demodulate_wg(H_vec, XFEC_FRAME, LDPC_encoded, 1);
-	//	auto modem = module::Modem_generic<int, float, float, tools::max_star <Q>>(N_XFEC_FRAME, std::move(cstl), tools::Sigma<R>((R)this->noise), this->no_sig2, this->n_frames);
 
-
-		//std::cout << "pow_tot = " << std::setprecision(10) << pow_tot << std::endl;
-		//std::cout << "denom = " << denom << std::endl;
-		//std::cout << "pow_sig_util = " << pow_sig_util << std::endl;
-		//std::cout << "sigma_n2 = " << sigma_n2 << std::endl;
-		
-
-		//sink_to_matlab.push_vector( XFEC_FRAME , true);
-		sink_to_matlab.push_vector( LDPC_encoded , false);
-
-	}
-	// 
-	// std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../conf/4QAM_GRAY.mod"));
-	// auto modem = module::Modem_generic<B,R,Q,tools::max_star     <Q>>(N, std::move(cstl), tools::Sigma<R>((R)this->noise), this->no_sig2, this->n_frames);
-	//modem.set_noise(tools::Sigma(sigma_n2));
-	// modem.demowg
-	else if (sink_to_matlab.destination_chain_name == "decoding")
-	{
 
 		const std::vector<int > BCH_gen_poly{1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1};
 
 		// buffers to store the data
 		std::vector<int  > scrambler_in(K_BCH);	
 		std::vector<int  > BCH_encoded(N_BCH);
-		std::vector<float  > LDPC_encoded(N_LDPC);
 		std::vector<int  > parity(N_BCH-K_BCH);
 		std::vector<int  > msg(K_BCH);
 
 		// Base Band scrambler
 		BB_scrambler             my_scrambler;
-		////////////////////////////////////////////////////
-		// retrieve data from Matlab
-		////////////////////////////////////////////////////
-		sink_to_matlab.pull_vector( LDPC_encoded );
-		//sink_to_matlab.pull_vector( BCH_encoded );
 
 		auto dvbs2 = tools::build_dvbs2(K_LDPC, N_LDPC);
 
