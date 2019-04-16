@@ -22,41 +22,39 @@ int main(int argc, char** argv)
 	if (sink_to_matlab.destination_chain_name == "descramble")
 	{
 		module::PL_scrambler<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M, false);
-		std::vector<float  > SCRAMBLED_PL_FRAME(2*params.PL_FRAME_SIZE);
-		//std::vector<float  > PL_FRAME(2*params.PL_FRAME_SIZE);
-		std::vector<float  > PL_FRAME_OUTPUT(2*params.PL_FRAME_SIZE);
+		std::vector<float> scrambled_pl_frame(2 * params.PL_FRAME_SIZE);
+		std::vector<float> pl_frame_output   (2 * params.PL_FRAME_SIZE);
+		std::vector<float> pl_frame          (2 * params.PL_FRAME_SIZE - 2*params.M);
 
-		std::vector<float> PL_FRAME(2*params.PL_FRAME_SIZE-2*params.M);
+		sink_to_matlab.pull_vector( scrambled_pl_frame );
 
-		sink_to_matlab.pull_vector( SCRAMBLED_PL_FRAME );
+		pl_frame.insert(pl_frame.begin(), scrambled_pl_frame.begin(), scrambled_pl_frame.begin()+ 2 * params.M);
 
-		PL_FRAME.insert(PL_FRAME.begin(), SCRAMBLED_PL_FRAME.begin(), SCRAMBLED_PL_FRAME.begin()+2*params.M);
-
-		complex_scrambler.scramble(SCRAMBLED_PL_FRAME, PL_FRAME);
-		//tracer.display_real_vector(SCRAMBLED_PL_FRAME);
-		//std::copy(PL_FRAME.begin(), PL_FRAME.end(), PL_FRAME_OUTPUT.begin());
-		sink_to_matlab.push_vector( PL_FRAME , true);
+		complex_scrambler.scramble(scrambled_pl_frame, pl_frame);
+		//tracer.display_real_vector(scrambled_pl_frame);
+		//std::copy(pl_frame.begin(), pl_frame.end(), pl_frame_output.begin());
+		sink_to_matlab.push_vector( pl_frame_output , true);
 	}
 	else if (sink_to_matlab.destination_chain_name == "deframe")
 	{
-		std::vector<float  > PL_FRAME(2*params.PL_FRAME_SIZE);
-		std::vector<float  > XFEC_FRAME(2*params.N_XFEC_FRAME);
+		std::vector<float  > pl_frame(2*params.PL_FRAME_SIZE);
+		std::vector<float> xfec_frame(2*params.N_XFEC_FRAME);
 		
-		sink_to_matlab.pull_vector( PL_FRAME );
+		sink_to_matlab.pull_vector( pl_frame );
 
-		PL_FRAME.erase(PL_FRAME.begin(), PL_FRAME.begin() + 2*params.M); // erase the PLHEADER
+		pl_frame.erase(pl_frame.begin(), pl_frame.begin() + 2*params.M); // erase the PLHEADER
 
 		for( int i = 1; i < params.N_PILOTS+1; i++)
 		{
-			PL_FRAME.erase(PL_FRAME.begin()+(i*90*16*2), PL_FRAME.begin()+(i*90*16*2)+(36*2) );
+			pl_frame.erase(pl_frame.begin()+(i*90*16*2), pl_frame.begin()+(i*90*16*2)+(36*2) );
 		}
-		XFEC_FRAME = PL_FRAME;
+		xfec_frame = pl_frame;
 
 		float moment2 = 0, moment4 = 0;
 
 		for (int i = 0; i < params.N_XFEC_FRAME; i++)
 		{
-			float tmp = XFEC_FRAME[2*i]*XFEC_FRAME[2*i] + XFEC_FRAME[2*i+1]*XFEC_FRAME[2*i+1];
+			float tmp = xfec_frame[2*i]*xfec_frame[2*i] + xfec_frame[2*i+1]*xfec_frame[2*i+1];
 			moment2 += tmp;
 			moment4 += tmp*tmp;
 		}
@@ -65,19 +63,17 @@ int main(int argc, char** argv)
 		//std::cout << "mom2=" << moment2 << std::endl;
 		//std::cout << "mom4=" << moment4 << std::endl;
 
-		float Se = sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
-		float Ne = std::abs( moment2 - Se );
-		float SNR_est = 10 * log10(Se / Ne);
+		// float Se = sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
+		// float Ne = std::abs( moment2 - Se );
+		// float SNR_est = 10 * log10(Se / Ne);
 
 		//std::cout << "SNR = " << SNR_est << std::endl;
 
-		sink_to_matlab.push_vector( XFEC_FRAME , true);
+		sink_to_matlab.push_vector( xfec_frame , true);
 
 	}
 	else if (sink_to_matlab.destination_chain_name == "decoding")
 	{
-
-		const std::vector<int > BCH_gen_poly{1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1};
 
 		// buffers to store the data
 		std::vector<int  > scrambler_in(params.K_BCH);	
@@ -113,10 +109,8 @@ int main(int argc, char** argv)
 		for(int i = 0; i< params.N_BCH; i++)
 			BCH_encoded[i] = LDPC_cw[i];
 
-		// BCH decoding
-
 		tools::BCH_polynomial_generator<int  > poly_gen(16383, 12);
-		poly_gen.set_g(BCH_gen_poly);
+		poly_gen.set_g(params.BCH_gen_poly);
 		module::Decoder_BCH_std<int> BCH_decoder(params.K_BCH, params.N_BCH, poly_gen);
 
 		parity.assign(BCH_encoded.begin()+params.K_BCH, BCH_encoded.begin()+params.N_BCH); // retrieve parity
