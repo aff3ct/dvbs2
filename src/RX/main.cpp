@@ -11,44 +11,11 @@
 
 using namespace aff3ct;
 
-int read_arguments(int argc, const char** argv, DVBS2_params& params)
-{
-	tools::Argument_handler ah(argc, (const char**) argv);
-	tools::Argument_map_info args;
-	std::vector<std::string> cmd_warn, cmd_error;
-
-	auto modcod_format = tools::Text(tools::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
-	args.add({"mod-cod"}, modcod_format, "Modulation and coding scheme.");
-	auto arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);
-
-	if (cmd_error.size())
-	{
-		if (cmd_error.size()) std::cerr << std::endl;
-		for (auto w = 0; w < (int)cmd_error.size(); w++)
-			std::cerr << rang::tag::error << cmd_error[w] << std::endl;
-
-		if (cmd_warn.size()) std::cerr << std::endl;
-		for (auto w = 0; w < (int)cmd_warn.size(); w++)
-			std::cerr << rang::tag::warning << cmd_warn[w] << std::endl;
-		return EXIT_FAILURE;
-	}
-	if (arg_vals.exist({"mod-cod"}))
-		params.init(arg_vals.at({"mod-cod"}));
-	else
-		params.init();
-}
-
 int main(int argc, char** argv)
 {
-	auto params = DVBS2_params();
+	auto params = DVBS2_params(argc, argv);
 
-	if (read_arguments(argc, (const char**)argv, params) == EXIT_FAILURE)
-		return EXIT_FAILURE;
-
-	const std::string mat2aff_file_name = "../build/matlab_to_aff3ct.txt";
-	const std::string aff2mat_file_name = "../build/aff3ct_to_matlab.txt";
-
-	Sink sink_to_matlab    (mat2aff_file_name, aff2mat_file_name);
+	Sink sink_to_matlab    (params.mat2aff_file_name, params.aff2mat_file_name);
 
 	// Tracer
 	tools::Frame_trace<>     tracer            (20, 5, std::cout);
