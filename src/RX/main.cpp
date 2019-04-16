@@ -90,11 +90,59 @@ int main(int argc, char** argv)
 		float Ne = abs( moment2 - Se );
 		float SNR_est = 10 * log10(Se / Ne);
 
-		//std::cout << "SNR = " << SNR_est << std::endl;
+		//std::cout << "SNR_est = " << SNR_est << std::endl;
 
-		sink_to_matlab.push_vector( XFEC_FRAME , true);
+		float LLRMAX = 100;
+		int BPS = 2;
+		int N_symb = 1 << BPS;
+		float pow_tot, pow_sig_util, sigma_n2;
+
+		pow_tot = moment2;
+		//pow_sig_util = pow_tot / (1+(Ne/Se));
+		SNR_est = 6.8;
+		float denom = (+ pow(10, (-1*SNR_est/10)));
+
+		pow_sig_util = pow_tot / (1+denom);
+		sigma_n2 = pow_tot - pow_sig_util;
+
+		float H = sqrt(pow_sig_util);
+
+		std::vector<float  > H_vec(2*N_XFEC_FRAME);
+		for (int i = 0; i < N_XFEC_FRAME; i++)
+		{
+			H_vec[2*i] = H;
+			H_vec[2*i+1] = 0;
+		}
+
+		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../conf/4QAM_GRAY.mod"));
+
+		//std::cout << "cmpx = " << cstl->is_complex() << std::endl;
+
+		module::Modem_generic<int, float, float, tools::max_star <float>> modulator(N_LDPC, std::move(cstl), tools::Sigma<R >(1.0, 0, 0), false, 1);
+
+		modulator.set_noise(tools::Sigma<float>(sqrt(sigma_n2/2), 0, 0));
+
+		std::vector<float  > LDPC_encoded(N_LDPC);
+
+		modulator.demodulate_wg(H_vec, XFEC_FRAME, LDPC_encoded, 1);
+	//	auto modem = module::Modem_generic<int, float, float, tools::max_star <Q>>(N_XFEC_FRAME, std::move(cstl), tools::Sigma<R>((R)this->noise), this->no_sig2, this->n_frames);
+
+
+		//std::cout << "pow_tot = " << std::setprecision(10) << pow_tot << std::endl;
+		//std::cout << "denom = " << denom << std::endl;
+		//std::cout << "pow_sig_util = " << pow_sig_util << std::endl;
+		//std::cout << "sigma_n2 = " << sigma_n2 << std::endl;
+		
+
+		//sink_to_matlab.push_vector( XFEC_FRAME , true);
+		sink_to_matlab.push_vector( LDPC_encoded , false);
 
 	}
+	// 
+	// std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../conf/4QAM_GRAY.mod"));
+	// auto modem = module::Modem_generic<B,R,Q,tools::max_star     <Q>>(N, std::move(cstl), tools::Sigma<R>((R)this->noise), this->no_sig2, this->n_frames);
+	//modem.set_noise(tools::Sigma(sigma_n2));
+	// modem.demowg
 	else if (sink_to_matlab.destination_chain_name == "decoding")
 	{
 
