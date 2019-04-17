@@ -28,13 +28,27 @@ DVBS2_params(int argc, char** argv)
 		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
 	}
 	else if (modcod == "QPSK-S_3/5"  )
+	{
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not yet supported.");
+	}
 	else if (modcod == "8PSK-S_3/5"  )
+	{
+		ITL_N_COLS = 3;
+		READ_ORDER = "TOP_RIGHT";
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not yet supported.");
+	}
 	else if (modcod == "8PSK-S_8/9"  )
+	{
+		ITL_N_COLS = 3;
+		READ_ORDER = "TOP_LEFT";
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not yet supported.");
+	}
 	else if (modcod == "16APSK-S_8/9")
+	{
+		ITL_N_COLS = 4;
+		READ_ORDER = "TOP_LEFT";
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not yet supported.");
+	}
 	else
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not supported.");
 }

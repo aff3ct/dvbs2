@@ -90,6 +90,25 @@ int main(int argc, char** argv)
 		LDPC_encoder.encode(bch_encoded, ldpc_encoded);
 
 		////////////////////////////////////////////////////
+		// Interleaver
+		////////////////////////////////////////////////////
+
+		// auto interleaver_core = tools::Interleaver_core_column_row<uint32_t>(params.N_LDPC, params.ITL_N_COLS, params.READ_ORDER);
+		// auto interleaver      = module::Interleaver<>(interleaver_core);
+
+		// std::vector<int> input (16);
+		// std::vector<int> output(16);
+		// std::iota(input.begin(), input.end(), 0);
+		// for (auto i : input)
+		// 	std::cout << i << " ";
+		// std::cout << std::endl;
+		// interleaver_core.init();
+		// interleaver.interleave(input, output);
+		// for (auto i : output)
+		// 	std::cout << i << " ";
+		// std::cout << std::endl;
+
+		////////////////////////////////////////////////////
 		// Modulation
 		////////////////////////////////////////////////////
 		modulator.modulate(ldpc_encoded, XFEC_frame);
