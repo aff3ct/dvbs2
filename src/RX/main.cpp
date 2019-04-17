@@ -19,36 +19,49 @@ int main(int argc, char** argv)
 
 	tools::Frame_trace<>     tracer            (20, 5, std::cout);
 
+	BB_scrambler             my_scrambler;	
+	module::PL_scrambler<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M, false);
+	auto dvbs2  = tools::build_dvbs2(params.K_LDPC, params.N_LDPC);
+	auto H_dvbs2 = build_H(*dvbs2);
+	std::vector<uint32_t> info_bits_pos(params.K_LDPC);
+	std::iota(info_bits_pos.begin(), info_bits_pos.end(), 0);
+	module::Decoder_LDPC_BP_horizontal_layered_ONMS_inter<int, float> LDPC_decoder(params.K_LDPC, params.N_LDPC, 20, H_dvbs2, info_bits_pos);
+
+	tools::BCH_polynomial_generator<int  > poly_gen(16383, 12);
+	poly_gen.set_g(params.BCH_gen_poly);
+	module::Decoder_BCH_std<int> BCH_decoder(params.K_BCH, params.N_BCH, poly_gen);
+
+	std::vector<float> scrambled_pl_frame (2 * params.PL_FRAME_SIZE);
+	std::vector<float> pl_frame_scr       (2 * params.PL_FRAME_SIZE - 2 * params.M);
+	std::vector<float> pl_frame_defr      (2 * params.PL_FRAME_SIZE);
+	std::vector<float> xfec_frame         (2 * params.N_XFEC_FRAME);
+	std::vector<int>   scrambler_in       (params.K_BCH);	
+	std::vector<int>   BCH_encoded        (params.N_BCH);
+	std::vector<float> LDPC_encoded       (params.N_LDPC);
+	std::vector<int>   parity             (params.N_BCH-params.K_BCH);
+	std::vector<int>   msg                (params.K_BCH);
+	std::vector<int>   LDPC_cw            (params.N_LDPC);
+
 	if (sink_to_matlab.destination_chain_name == "descramble")
 	{
-		module::PL_scrambler<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M, false);
-		std::vector<float> scrambled_pl_frame(2 * params.PL_FRAME_SIZE);
-		std::vector<float> pl_frame_output   (2 * params.PL_FRAME_SIZE);
-		std::vector<float> pl_frame          (2 * params.PL_FRAME_SIZE - 2*params.M);
-
 		sink_to_matlab.pull_vector( scrambled_pl_frame );
 
-		pl_frame.insert(pl_frame.begin(), scrambled_pl_frame.begin(), scrambled_pl_frame.begin()+ 2 * params.M);
+		pl_frame_scr.insert(pl_frame_scr.begin(), scrambled_pl_frame.begin(), scrambled_pl_frame.begin()+ 2 * params.M);
+		complex_scrambler.scramble(scrambled_pl_frame, pl_frame_scr);
 
-		complex_scrambler.scramble(scrambled_pl_frame, pl_frame);
-		//tracer.display_real_vector(scrambled_pl_frame);
-		//std::copy(pl_frame.begin(), pl_frame.end(), pl_frame_output.begin());
-		sink_to_matlab.push_vector( pl_frame_output , true);
+		sink_to_matlab.push_vector( pl_frame_scr , true);
 	}
 	else if (sink_to_matlab.destination_chain_name == "deframe")
 	{
-		std::vector<float  > pl_frame(2*params.PL_FRAME_SIZE);
-		std::vector<float> xfec_frame(2*params.N_XFEC_FRAME);
-		
-		sink_to_matlab.pull_vector( pl_frame );
+		sink_to_matlab.pull_vector( pl_frame_defr );
 
-		pl_frame.erase(pl_frame.begin(), pl_frame.begin() + 2*params.M); // erase the PLHEADER
+		pl_frame_defr.erase(pl_frame_defr.begin(), pl_frame_defr.begin() + 2*params.M); // erase the PLHEADER
 
 		for( int i = 1; i < params.N_PILOTS+1; i++)
 		{
-			pl_frame.erase(pl_frame.begin()+(i*90*16*2), pl_frame.begin()+(i*90*16*2)+(36*2) );
+			pl_frame_defr.erase(pl_frame_defr.begin()+(i*90*16*2), pl_frame_defr.begin()+(i*90*16*2)+(36*2) );
 		}
-		xfec_frame = pl_frame;
+		xfec_frame = pl_frame_defr;
 
 		float moment2 = 0, moment4 = 0;
 
@@ -74,66 +87,22 @@ int main(int argc, char** argv)
 	}
 	else if (sink_to_matlab.destination_chain_name == "decoding")
 	{
-
-		// buffers to store the data
-		std::vector<int  > scrambler_in(params.K_BCH);	
-		std::vector<int  > BCH_encoded(params.N_BCH);
-		std::vector<float  > LDPC_encoded(params.N_LDPC);
-		std::vector<int  > parity(params.N_BCH-params.K_BCH);
-		std::vector<int  > msg(params.K_BCH);
-
-		// Base Band scrambler
-		BB_scrambler             my_scrambler;
-		////////////////////////////////////////////////////
-		// retrieve data from Matlab
-		////////////////////////////////////////////////////
 		sink_to_matlab.pull_vector( LDPC_encoded );
-		//sink_to_matlab.pull_vector( BCH_encoded );
 
-		auto dvbs2 = tools::build_dvbs2(params.K_LDPC, params.N_LDPC);
-
-		tools::Sparse_matrix H_dvbs2;
-		H_dvbs2 = build_H(*dvbs2);
-
-		std::vector<uint32_t> info_bits_pos(params.K_LDPC);
-
-		for(int i = 0; i< params.K_LDPC; i++)
-			info_bits_pos[i] = i;//+params.N_LDPC-params.K_LDPC;
-
-		module::Decoder_LDPC_BP_horizontal_layered_ONMS_inter<int, float> LDPC_decoder(params.K_LDPC, params.N_LDPC, 20, H_dvbs2, info_bits_pos);
-		//Decoder_LDPC_BP_flooding_SPA<int, float> LDPC_decoder(params.K_LDPC, params.N_LDPC, 20, H_dvbs2, info_bits_pos, false, 1);
-
-		std::vector<int  > LDPC_cw(params.N_LDPC);
 		LDPC_decoder.decode_siho_cw(LDPC_encoded, LDPC_cw);
-		
-		for(int i = 0; i< params.N_BCH; i++)
-			BCH_encoded[i] = LDPC_cw[i];
-
-		tools::BCH_polynomial_generator<int  > poly_gen(16383, 12);
-		poly_gen.set_g(params.BCH_gen_poly);
-		module::Decoder_BCH_std<int> BCH_decoder(params.K_BCH, params.N_BCH, poly_gen);
-
-		parity.assign(BCH_encoded.begin()+params.K_BCH, BCH_encoded.begin()+params.N_BCH); // retrieve parity
-		std::reverse(parity.begin(), parity.end()); // revert parity bits
-
-		msg.assign(BCH_encoded.begin(), BCH_encoded.begin()+params.K_BCH); // retrieve message
-		std::reverse(msg.begin(), msg.end()); // revert msg bits
-
+		std::copy(LDPC_cw.begin(), LDPC_cw.begin() + params.N_BCH, BCH_encoded.begin());
+		parity.assign(BCH_encoded.begin() + params.K_BCH, BCH_encoded.begin() + params.N_BCH); // retrieve parity
+		std::reverse(parity.begin(), parity.end());                                          // revert parity bits
+		msg.assign(BCH_encoded.begin(), BCH_encoded.begin() + params.K_BCH);                   // retrieve message
+		std::reverse(msg.begin(), msg.end());                                                // revert msg bits
 		BCH_encoded.insert(BCH_encoded.begin(), parity.begin(), parity.end());
-		BCH_encoded.insert(BCH_encoded.begin()+(params.N_BCH-params.K_BCH), msg.begin(), msg.end());
-
-		BCH_encoded.erase(BCH_encoded.begin()+params.N_BCH, BCH_encoded.end());
-
+		BCH_encoded.insert(BCH_encoded.begin() + (params.N_BCH - params.K_BCH), msg.begin(), msg.end());
+		BCH_encoded.erase(BCH_encoded.begin() + params.N_BCH, BCH_encoded.end());
 		BCH_decoder.decode_hiho(BCH_encoded, scrambler_in);
-
 		std::reverse(scrambler_in.begin(), scrambler_in.end());
-
-		// BB descrambling
 		my_scrambler.scramble(scrambler_in);
 
 		sink_to_matlab.push_vector( scrambler_in , false);
-		//sink_to_matlab.push_vector( LDPC_cw , false);
-
 	}
 
 	
