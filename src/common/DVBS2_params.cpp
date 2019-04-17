@@ -5,17 +5,19 @@ using namespace aff3ct;
 DVBS2_params::
 DVBS2_params(int argc, char** argv) 
 {
-	std::string modcod;
+	
 	Argument_map_value arg_vals;
 	get_arguments(argc, argv, arg_vals);
 
-	// initialize modcod
+	// TODO : slot number = 16
+	// TODO : slot size = 90 for QPSK, 60 for 8PSK, 45 for 16APSK
+	// initialize MODCOD
 	if (arg_vals.exist({"mod-cod"}))
-		modcod = arg_vals.at({"mod-cod"});
+		MODCOD = arg_vals.at({"mod-cod"});
 	else
-		modcod = "QPSK-S_8/9";
+		MODCOD = "QPSK-S_8/9";
 
-	if (modcod == "QPSK-S_8/9" || modcod == "")
+	if (MODCOD == "QPSK-S_8/9" || MODCOD == "")
 	{
 		K_BCH             = 14232;
 		N_BCH             = 14400;
@@ -24,33 +26,41 @@ DVBS2_params(int argc, char** argv)
 		BPS               = 2;
 		N_XFEC_FRAME      = N_LDPC / BPS;
 		N_PILOTS          = N_XFEC_FRAME / (16 * M);
-		S                 = N_XFEC_FRAME / 90;
+		S                 = N_XFEC_FRAME / M;
 		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
 	}
-	else if (modcod == "QPSK-S_3/5"  )
+	else if (MODCOD == "QPSK-S_3/5"  )
 	{
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not yet supported.");
+		K_BCH             = 9552;
+		N_BCH             = 9720;
+		N_BCH_unshortened = 16383;
+		K_LDPC            = N_BCH;
+		BPS               = 2;
+		N_XFEC_FRAME      = N_LDPC / BPS;
+		N_PILOTS          = N_XFEC_FRAME / (16 * M);
+		S                 = N_XFEC_FRAME / M;
+		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
 	}
-	else if (modcod == "8PSK-S_3/5"  )
+	else if (MODCOD == "8PSK-S_3/5"  )
 	{
 		ITL_N_COLS = 3;
 		READ_ORDER = "TOP_RIGHT";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not yet supported.");
+		throw tools::invalid_argument(__FILE__, __LINE__, __func__, MODCOD + " mod-cod scheme not yet supported.");
 	}
-	else if (modcod == "8PSK-S_8/9"  )
+	else if (MODCOD == "8PSK-S_8/9"  )
 	{
 		ITL_N_COLS = 3;
 		READ_ORDER = "TOP_LEFT";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not yet supported.");
+		throw tools::invalid_argument(__FILE__, __LINE__, __func__, MODCOD + " mod-cod scheme not yet supported.");
 	}
-	else if (modcod == "16APSK-S_8/9")
+	else if (MODCOD == "16APSK-S_8/9")
 	{
 		ITL_N_COLS = 4;
 		READ_ORDER = "TOP_LEFT";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not yet supported.");
+		throw tools::invalid_argument(__FILE__, __LINE__, __func__, MODCOD + " mod-cod scheme not yet supported.");
 	}
 	else
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not supported.");
+		throw tools::invalid_argument(__FILE__, __LINE__, __func__, MODCOD + " mod-cod scheme not supported.");
 }
 
 void DVBS2_params::

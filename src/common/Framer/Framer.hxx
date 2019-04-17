@@ -22,8 +22,8 @@ namespace module
 
 template <typename B>
 Framer<B>::
-Framer(const int XFEC_FRAME_SIZE, const int PL_FRAME_SIZE, const int n_frames)
-: Module(n_frames), XFEC_FRAME_SIZE(XFEC_FRAME_SIZE), PL_FRAME_SIZE(PL_FRAME_SIZE)
+Framer(const int XFEC_FRAME_SIZE, const int PL_FRAME_SIZE, const std::string MODCOD, const int n_frames)
+: Module(n_frames), XFEC_FRAME_SIZE(XFEC_FRAME_SIZE), PL_FRAME_SIZE(PL_FRAME_SIZE), MODCOD(MODCOD)
 {
 	const std::string name = "Framer";
 	this->set_name(name);
@@ -80,11 +80,24 @@ generate_PLH( void )
 
 	const std::vector<int> PLS_scrambler_sequence{0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0};
 	
-	//const vector <int > {} // QPSK 3/5
-	const std::vector <int > mod_cod{0, 0, 1, 0, 1, 0, 1}; // QPSK 8/9
-	//const vector <int > {} // 8PSK 3/5
-	//const vector <int > {} // 8PSK 8/9
-	//const vector <int > {} // 16APSK 8/9
+	std::vector <int > mod_cod(7);
+	const std::vector <int > mod_cod_Q_8_9{0, 0, 1, 0, 1, 0, 1};
+	const std::vector <int > mod_cod_Q_3_5{0, 0, 0, 1, 0, 1, 1};
+	const std::vector <int > mod_cod_8_3_5{0, 0, 1, 1, 0, 0, 1};
+	const std::vector <int > mod_cod_8_8_9{0, 1, 0, 0, 0, 0, 1};
+	const std::vector <int > mod_cod_16_8_9{0, 1, 0, 1, 1, 0, 1};
+
+	if(MODCOD == "QPSK-S_8/9")
+		mod_cod = mod_cod_Q_8_9; // QPSK 8/9 : 21
+	else if(MODCOD == "QPSK-S_3/5")
+		mod_cod = mod_cod_Q_3_5; // QPSK 3/5 : 11
+	else if(MODCOD == "8PSK-S_3/5")
+		mod_cod = mod_cod_8_3_5; // 8PSK 3/5 : 25
+	else if(MODCOD == "8PSK-S_8/9")
+		mod_cod = mod_cod_8_8_9; // 8PSK 8/9 : 33
+	else if(MODCOD == "16APSK-S_8/9")
+		mod_cod = mod_cod_16_8_9; // 16APSK 8/9 : 45
+
 	//const int pilot_insert = 1; // pilots are inserted
 	//const int short_code = 1; // short LDPC frame is used
 	std::vector <int > coded_PLS(32, 0);

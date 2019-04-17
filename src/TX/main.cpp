@@ -89,6 +89,8 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 		LDPC_encoder.encode(bch_encoded, ldpc_encoded);
 
+		//sink_to_matlab.push_vector(ldpc_encoded , false);
+
 		////////////////////////////////////////////////////
 		// Interleaver
 		////////////////////////////////////////////////////
@@ -113,15 +115,17 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 		modulator.modulate(ldpc_encoded, XFEC_frame);
 
+		//sink_to_matlab.push_vector(XFEC_frame , true);
 		////////////////////////////////////////////////////
 		// PL_HEADER generation : SOF + PLS code
 		////////////////////////////////////////////////////
 
 		std::vector<float> pl_frame(2*params.PL_FRAME_SIZE);
 
-		module::Framer<float> DVBS2_framer(2*params.N_LDPC/params.BPS, 2*params.PL_FRAME_SIZE);
+		module::Framer<float> DVBS2_framer(2*params.N_LDPC/params.BPS, 2*params.PL_FRAME_SIZE, params.MODCOD);
 
 		DVBS2_framer.generate(XFEC_frame, pl_frame);
+		//sink_to_matlab.push_vector(pl_frame , true);
 				
 		////////////////////////////////////////////////////
 		// PL Scrambling
@@ -135,6 +139,7 @@ int main(int argc, char** argv)
 
 		complex_scrambler.scramble(pl_frame, scrambled_pl_frame);
 
+		//sink_to_matlab.push_vector(scrambled_pl_frame , true);
 		////////////////////////////////////////////////////
 		// SHAPING
 		////////////////////////////////////////////////////

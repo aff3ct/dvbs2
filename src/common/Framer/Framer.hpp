@@ -53,6 +53,7 @@ private:
 	std::vector<B > PLH; /*!< Payload header */
 	void generate_PLH( void ); /*!< Payload header generation */
 	int N_XFEC_FRAME, M, N_PILOTS; 
+	std::string MODCOD;
 
 public:
 	/*!
@@ -63,7 +64,7 @@ public:
 	 * \param n_frames: number of frames to process in the Framer.
 	 * \param name:     Framer's name.
 	 */
-	Framer(const int XFEC_FRAME_SIZE, const int PL_FRAME_SIZE, const int n_frames = 1);
+	Framer(const int XFEC_FRAME_SIZE, const int PL_FRAME_SIZE, const std::string MODCOD, const int n_frames = 1);
 
 	/*!
 	 * \brief Destructor.
