@@ -121,21 +121,21 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 
 
-		module::Filter_UPRRC_ccr_naive<float> shaping_filter((params.N_SYMBOLS + params.GRP_DELAY) * 2,
+		module::Filter_UPRRC_ccr_naive<float> shaping_filter((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2,
 		                                                      params.ROLLOFF,
 		                                                      params.OSF,
 		                                                      params.GRP_DELAY);
 
-		std::vector<float  > shaping_in (params.N_SYMBOLS * 2, 0.0f);
-		std::vector<float  > shaping_out((params.N_SYMBOLS + params.GRP_DELAY) * 2 * params.OSF);
-		std::vector<float  > shaping_cut(params.N_SYMBOLS * 2 * params.OSF);
+		std::vector<float  > shaping_in (params.PL_FRAME_SIZE * 2, 0.0f);
+		std::vector<float  > shaping_out((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2 * params.OSF);
+		std::vector<float  > shaping_cut(params.PL_FRAME_SIZE * 2 * params.OSF);
 
 		//sink_to_matlab.pull_vector(shaping_in);
 		shaping_in = scrambled_pl_frame;
-		shaping_in.resize((params.N_SYMBOLS + params.GRP_DELAY) * 2, 0.0f);
+		shaping_in.resize((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2, 0.0f);
 		shaping_filter.filter(shaping_in, shaping_out);
 		std::copy(shaping_out.begin() + params.GRP_DELAY                      * params.OSF * 2, 
-		          shaping_out.begin() + (params.GRP_DELAY + params.N_SYMBOLS) * params.OSF * 2,
+		          shaping_out.begin() + (params.GRP_DELAY + params.PL_FRAME_SIZE) * params.OSF * 2,
 		          shaping_cut.begin());
 		sink_to_matlab.push_vector(shaping_cut , true);
 

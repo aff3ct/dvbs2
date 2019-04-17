@@ -10,17 +10,17 @@ class DVBS2_params
 public:
 	int K_BCH;
 	int N_BCH;
+	int N_BCH_unshortened;
 	int K_LDPC;
-	int N_LDPC;
-	int N_SYMBOLS;
 	int BPS;
-	int M;             // number of symbols per slot
-	int P;             // number of symbols per pilot
-	int N_XFEC_FRAME;  // number of complex symbols
+	int N_XFEC_FRAME;              // number of complex symbols
 	int N_PILOTS;
-	int S;             // number of slots
+	int S;                         // number of slots
 	int PL_FRAME_SIZE;
 
+	const int   N_LDPC    = 16200;
+	const int   M         = 90;    // number of symbols per slot
+	const int   P         = 36;    // number of symbols per pilot
 	const float ROLLOFF   = 0.05;
 	const int   OSF       = 4;
 	const int   GRP_DELAY = 50;

@@ -10,6 +10,7 @@
 #include "DVBS2_params.hpp"
 
 using namespace aff3ct;
+using Decoder_LDPC_DVBS2 = module::Decoder_LDPC_BP_horizontal_layered_ONMS_inter<int, float>;
 
 int main(int argc, char** argv)
 {
@@ -20,14 +21,13 @@ int main(int argc, char** argv)
 	tools::Frame_trace<>     tracer            (20, 5, std::cout);
 
 	BB_scrambler             my_scrambler;	
+
 	module::PL_scrambler<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M, false);
-	auto dvbs2  = tools::build_dvbs2(params.K_LDPC, params.N_LDPC);
-	auto H_dvbs2 = build_H(*dvbs2);
+	auto H_dvbs2 = build_H(*tools::build_dvbs2(params.K_LDPC, params.N_LDPC));
 	std::vector<uint32_t> info_bits_pos(params.K_LDPC);
 	std::iota(info_bits_pos.begin(), info_bits_pos.end(), 0);
-	module::Decoder_LDPC_BP_horizontal_layered_ONMS_inter<int, float> LDPC_decoder(params.K_LDPC, params.N_LDPC, 20, H_dvbs2, info_bits_pos);
-
-	tools::BCH_polynomial_generator<int  > poly_gen(16383, 12);
+	Decoder_LDPC_DVBS2 LDPC_decoder(params.K_LDPC, params.N_LDPC, 20, H_dvbs2, info_bits_pos);
+	tools::BCH_polynomial_generator<int> poly_gen(params.N_BCH_unshortened, 12);
 	poly_gen.set_g(params.BCH_gen_poly);
 	module::Decoder_BCH_std<int> BCH_decoder(params.K_BCH, params.N_BCH, poly_gen);
 
@@ -38,9 +38,10 @@ int main(int argc, char** argv)
 	std::vector<int>   scrambler_in       (params.K_BCH);	
 	std::vector<int>   BCH_encoded        (params.N_BCH);
 	std::vector<float> LDPC_encoded       (params.N_LDPC);
-	std::vector<int>   parity             (params.N_BCH-params.K_BCH);
+	std::vector<int>   parity             (params.N_BCH - params.K_BCH);
 	std::vector<int>   msg                (params.K_BCH);
 	std::vector<int>   LDPC_cw            (params.N_LDPC);
+	std::vector<float> H_vec              (2 * params.N_XFEC_FRAME);
 
 	if (sink_to_matlab.destination_chain_name == "descramble")
 	{
@@ -55,11 +56,12 @@ int main(int argc, char** argv)
 	{
 		sink_to_matlab.pull_vector( pl_frame_defr );
 
-		pl_frame_defr.erase(pl_frame_defr.begin(), pl_frame_defr.begin() + 2*params.M); // erase the PLHEADER
+		pl_frame_defr.erase(pl_frame_defr.begin(), pl_frame_defr.begin() + 2 * params.M); // erase the PLHEADER
 
 		for( int i = 1; i < params.N_PILOTS+1; i++)
 		{
-			pl_frame_defr.erase(pl_frame_defr.begin()+(i*90*16*2), pl_frame_defr.begin()+(i*90*16*2)+(36*2) );
+			pl_frame_defr.erase(pl_frame_defr.begin()+(i * params.M * 16 * 2),
+			                    pl_frame_defr.begin()+(i * params.M * 16 * 2) + (params.P * 2));
 		}
 		xfec_frame = pl_frame_defr;
 
@@ -68,10 +70,11 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 
 		float moment2 = 0, moment4 = 0;
+		float pow_tot, pow_sig_util, sigma_n2;
 
 		for (int i = 0; i < params.N_XFEC_FRAME; i++)
 		{
-			float tmp = xfec_frame[2*i]*xfec_frame[2*i] + xfec_frame[2*i+1]*xfec_frame[2*i+1];
+			float tmp = xfec_frame[2 * i]*xfec_frame[2 * i] + xfec_frame[2 * i + 1]*xfec_frame[2 * i + 1];
 			moment2 += tmp;
 			moment4 += tmp*tmp;
 		}
@@ -80,36 +83,31 @@ int main(int argc, char** argv)
 		//std::cout << "mom2=" << moment2 << std::endl;
 		//std::cout << "mom4=" << moment4 << std::endl;
 
-		float Se = sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
-		float Ne = std::abs( moment2 - Se );
+		float Se      = sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
+		float Ne      = std::abs( moment2 - Se );
 		float SNR_est = 10 * log10(Se / Ne);
 
-		float pow_tot, pow_sig_util, sigma_n2;
 
 		pow_tot = moment2;
 
-		pow_sig_util = pow_tot / (1+(pow(10, (-1*SNR_est/10))));
+		pow_sig_util = pow_tot / (1+(pow(10, (-1 * SNR_est/10))));
 		sigma_n2 = pow_tot - pow_sig_util;
 
 		float H = sqrt(pow_sig_util);
 
-		////////////////////////////////////////////////////
-		// Soft demodulation
-		////////////////////////////////////////////////////
-
-		std::vector<float  > H_vec(2 * params.N_XFEC_FRAME);
 		for (int i = 0; i < params.N_XFEC_FRAME; i++)
 		{
 			H_vec[2*i] = H;
 			H_vec[2*i+1] = 0;
 		}
 
+		////////////////////////////////////////////////////
+		// Soft demodulation
+		////////////////////////////////////////////////////
+
 		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../conf/4QAM_GRAY.mod"));
-
-		module::Modem_generic<int, float, float, tools::max_star <float>> modulator(params.N_LDPC, std::move(cstl), tools::Sigma<R >(1.0, 0, 0), false, 1);
-
+		module::Modem_generic<int,float,float,tools::max_star<float>> modulator(params.N_LDPC, std::move(cstl));
 		modulator.set_noise(tools::Sigma<float>(sqrt(sigma_n2/2), 0, 0));
-
 		std::vector<float  > LDPC_encoded(params.N_LDPC);
 
 		modulator.demodulate_wg(H_vec, xfec_frame, LDPC_encoded, 1);
@@ -118,12 +116,13 @@ int main(int argc, char** argv)
 		// LDPC decoding
 		////////////////////////////////////////////////////
 		
+		LDPC_decoder.decode_siho_cw(LDPC_encoded, LDPC_cw);
+		std::copy(LDPC_cw.begin(), LDPC_cw.begin() + params.N_BCH, BCH_encoded.begin());
+
 		////////////////////////////////////////////////////
 		// BCH decoding
 		////////////////////////////////////////////////////
 
-		LDPC_decoder.decode_siho_cw(LDPC_encoded, LDPC_cw);
-		std::copy(LDPC_cw.begin(), LDPC_cw.begin() + params.N_BCH, BCH_encoded.begin());
 		parity.assign(BCH_encoded.begin() + params.K_BCH, BCH_encoded.begin() + params.N_BCH); // retrieve parity
 		std::reverse(parity.begin(), parity.end());                                            // revert parity bits
 		msg.assign(BCH_encoded.begin(), BCH_encoded.begin() + params.K_BCH);                   // retrieve message

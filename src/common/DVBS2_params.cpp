@@ -17,19 +17,15 @@ DVBS2_params(int argc, char** argv)
 
 	if (modcod == "QPSK-S_8/9" || modcod == "")
 	{
-		K_BCH         = 14232;
-		N_BCH         = 14400;
-		K_LDPC        = N_BCH;
-		N_LDPC        = 16200;
-		N_SYMBOLS     = 8370;
-		BPS           = 2;
-		M             = 90;
-		P             = 36;
-		N_XFEC_FRAME  = N_LDPC / BPS;
-		N_PILOTS      = N_XFEC_FRAME / (16 * M);
-		S             = N_XFEC_FRAME / 90;
-		PL_FRAME_SIZE = M * (S + 1) + (N_PILOTS * P);
-
+		K_BCH             = 14232;
+		N_BCH             = 14400;
+		N_BCH_unshortened = 16383;
+		K_LDPC            = N_BCH;
+		BPS               = 2;
+		N_XFEC_FRAME      = N_LDPC / BPS;
+		N_PILOTS          = N_XFEC_FRAME / (16 * M);
+		S                 = N_XFEC_FRAME / 90;
+		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
 	}
 	else if (modcod == "QPSK-S_3/5"  )
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not yet supported.");
