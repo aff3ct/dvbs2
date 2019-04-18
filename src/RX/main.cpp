@@ -108,25 +108,7 @@ SNR_est = 15.8;
 		// Soft demodulation
 		////////////////////////////////////////////////////
 
-		std::string constellation_file;
-
-		if (params.MODCOD == "QPSK-S_8/9" || params.MODCOD == "QPSK-S_3/5" || params.MODCOD == "")
-		{
-			constellation_file = "../conf/4QAM_GRAY.mod";
-		}
-		else if (params.MODCOD == "8PSK-S_8/9" || params.MODCOD == "8PSK-S_3/5")
-		{
-			constellation_file = "../conf/8PSK.mod";
-		}
-		else if (params.MODCOD == "16APSK-S_8/9")
-		{
-			constellation_file = "../conf/16APSK.mod";			
-		}
-		else
-			throw tools::invalid_argument(__FILE__, __LINE__, __func__, params.MODCOD + " mod-cod scheme not yet supported.");
-				
-		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../conf/4QAM_GRAY.mod"));
-		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(constellation_file));
+		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
 
 		module::Modem_generic<int,float,float,tools::max_star<float>> modulator(params.N_LDPC, std::move(cstl));
 		modulator.set_noise(tools::Sigma<float>(sqrt(sigma_n2/2), 0, 0));

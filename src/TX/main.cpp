@@ -50,27 +50,7 @@ int main(int argc, char** argv)
 		module::Encoder_LDPC_DVBS2<int > LDPC_encoder(*dvbs2);
 
 		// Modulator
-		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user <R > ("));
-		std::string constellation_file;
-
-		if (params.MODCOD == "QPSK-S_8/9" || params.MODCOD == "QPSK-S_3/5" || params.MODCOD == "")
-		{
-			constellation_file = "../conf/4QAM_GRAY.mod";
-		}
-		else if (params.MODCOD == "8PSK-S_8/9" || params.MODCOD == "8PSK-S_3/5")
-		{
-			constellation_file = "../conf/8PSK.mod";
-		}
-		else if (params.MODCOD == "16APSK-S_8/9")
-		{
-			constellation_file = "../conf/16APSK.mod";
-		}
-		else
-			throw tools::invalid_argument(__FILE__, __LINE__, __func__, params.MODCOD + " mod-cod scheme not yet supported.");
-				
-		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../conf/4QAM_GRAY.mod"));
-		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(constellation_file));
-		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_PSK <R > (2));
+		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
 		module::Modem_generic<> modulator(params.N_LDPC, std::move(cstl), tools::Sigma<R >(1.0), false, 1);
 
 		////////////////////////////////////////////////////

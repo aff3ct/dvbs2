@@ -9,8 +9,6 @@ DVBS2_params(int argc, char** argv)
 	Argument_map_value arg_vals;
 	get_arguments(argc, argv, arg_vals);
 
-	// TODO : slot number = 16
-	// TODO : slot size = 90 for QPSK, 60 for 8PSK, 45 for 16APSK
 	// initialize MODCOD
 	if (arg_vals.exist({"mod-cod"}))
 		MODCOD = arg_vals.at({"mod-cod"});
@@ -19,72 +17,75 @@ DVBS2_params(int argc, char** argv)
 
 	if (MODCOD == "QPSK-S_8/9" || MODCOD == "")
 	{
-		K_BCH             = 14232;
-		N_BCH             = 14400;
-		N_BCH_unshortened = 16383;
-		K_LDPC            = N_BCH;
-		BPS               = 2;
-		N_XFEC_FRAME      = N_LDPC / BPS;
-		N_PILOTS          = N_XFEC_FRAME / (16 * M);
-		S                 = N_XFEC_FRAME / M;
-		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
+		MOD = "QPSK";
+		COD = "8/9";
 	}
 	else if (MODCOD == "QPSK-S_3/5"  )
 	{
-		K_BCH             = 9552;
-		N_BCH             = 9720;
-		N_BCH_unshortened = 16383;
-		K_LDPC            = N_BCH;
-		BPS               = 2;
-		N_XFEC_FRAME      = N_LDPC / BPS;
-		N_PILOTS          = N_XFEC_FRAME / (16 * M);
-		S                 = N_XFEC_FRAME / M;
-		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
+		MOD = "QPSK";
+		COD = "3/5";
 	}
 	else if (MODCOD == "8PSK-S_3/5"  )
 	{
-		ITL_N_COLS = 3;
-		READ_ORDER = "TOP_RIGHT";
-		K_BCH             = 9552;
-		N_BCH             = 9720;
-		N_BCH_unshortened = 16383;
-		K_LDPC            = N_BCH;
-		BPS               = 3;
-		N_XFEC_FRAME      = N_LDPC / BPS;
-		N_PILOTS          = N_XFEC_FRAME / (16 * M);
-		S                 = N_XFEC_FRAME / M;
-		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
+		MOD = "8PSK";
+		COD = "3/5";
+		READ_ORDER = "TOP_RIGHT";		
 	}
 	else if (MODCOD == "8PSK-S_8/9"  )
 	{
-		ITL_N_COLS = 3;
+		MOD = "8PSK";
+		COD = "8/9";
 		READ_ORDER = "TOP_LEFT";
-		K_BCH             = 14232;
-		N_BCH             = 14400;
-		N_BCH_unshortened = 16383;
-		K_LDPC            = N_BCH;
-		BPS               = 3;
-		N_XFEC_FRAME      = N_LDPC / BPS;
-		N_PILOTS          = N_XFEC_FRAME / (16 * M);
-		S                 = N_XFEC_FRAME / M;
-		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
 	}
 	else if (MODCOD == "16APSK-S_8/9")
 	{
-		ITL_N_COLS = 4;
-		READ_ORDER = "TOP_LEFT";
-		K_BCH             = 14232;
-		N_BCH             = 14400;
-		N_BCH_unshortened = 16383;
-		K_LDPC            = N_BCH;
-		BPS               = 4;
-		N_XFEC_FRAME      = N_LDPC / BPS;
-		N_PILOTS          = N_XFEC_FRAME / (16 * M);
-		S                 = N_XFEC_FRAME / M;
-		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
+		MOD = "16APSK";
+		COD = "8/9";
+		READ_ORDER = "TOP_LEFT";		
 	}
 	else
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, MODCOD + " mod-cod scheme not supported.");
+
+	if( MOD == "QPSK"  )
+	{
+		BPS = 2;
+		constellation_file = "../conf/4QAM_GRAY.mod";
+	}
+	else if ( MOD == "8PSK"  )
+	{	
+		BPS = 3;
+		constellation_file = "../conf/8PSK.mod";
+	}
+	else if ( MOD == "16APSK"){
+		BPS = 4;
+		constellation_file = "../conf/16APSK.mod";
+	}	
+	else
+	{
+		BPS = 2;
+		constellation_file = "../conf/4QAM_GRAY.mod";
+	}	
+
+	if      ( COD == "3/5"  )
+	{
+		K_BCH             = 9552;
+		N_BCH             = 9720;
+		N_BCH_unshortened = 16383;
+	}
+	else if ( COD == "8/9"  )
+	{
+		K_BCH             = 14232;
+		N_BCH             = 14400;
+		N_BCH_unshortened = 16383;
+	}
+	
+	ITL_N_COLS        = BPS;
+	K_LDPC            = N_BCH;
+	N_XFEC_FRAME      = N_LDPC / BPS;
+	N_PILOTS          = N_XFEC_FRAME / (16 * M);
+	S                 = N_XFEC_FRAME / M;
+	PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
+
 }
 
 void DVBS2_params::
