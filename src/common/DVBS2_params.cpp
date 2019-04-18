@@ -45,13 +45,29 @@ DVBS2_params(int argc, char** argv)
 	{
 		ITL_N_COLS = 3;
 		READ_ORDER = "TOP_RIGHT";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, MODCOD + " mod-cod scheme not yet supported.");
+		K_BCH             = 9552;
+		N_BCH             = 9720;
+		N_BCH_unshortened = 16383;
+		K_LDPC            = N_BCH;
+		BPS               = 3;
+		N_XFEC_FRAME      = N_LDPC / BPS;
+		N_PILOTS          = N_XFEC_FRAME / (16 * M);
+		S                 = N_XFEC_FRAME / M;
+		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
 	}
 	else if (MODCOD == "8PSK-S_8/9"  )
 	{
 		ITL_N_COLS = 3;
 		READ_ORDER = "TOP_LEFT";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, MODCOD + " mod-cod scheme not yet supported.");
+		K_BCH             = 14232;
+		N_BCH             = 14400;
+		N_BCH_unshortened = 16383;
+		K_LDPC            = N_BCH;
+		BPS               = 3;
+		N_XFEC_FRAME      = N_LDPC / BPS;
+		N_PILOTS          = N_XFEC_FRAME / (16 * M);
+		S                 = N_XFEC_FRAME / M;
+		PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
 	}
 	else if (MODCOD == "16APSK-S_8/9")
 	{

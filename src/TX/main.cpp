@@ -25,6 +25,7 @@ int main(int argc, char** argv)
 		std::vector<int>   bch_enc_in(params.K_BCH);
 		std::vector<int>   bch_encoded(params.N_BCH);
 		std::vector<int>   ldpc_encoded(params.N_LDPC);
+		std::vector<int>   ldpc_encoded_itlv(params.N_LDPC);
 		std::vector<int>   parity(params.N_BCH-params.K_BCH);
 		std::vector<int>   msg(params.K_BCH);
 		std::vector<float> XFEC_frame(2*params.N_LDPC/params.BPS);
@@ -50,7 +51,26 @@ int main(int argc, char** argv)
 
 		// Modulator
 		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user <R > ("));
-		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../conf/4QAM_GRAY.mod"));
+		std::string constellation_file;
+
+		if (params.MODCOD == "QPSK-S_8/9" || params.MODCOD == "QPSK-S_3/5" || params.MODCOD == "")
+		{
+			constellation_file = "../conf/4QAM_GRAY.mod";
+		}
+		else if (params.MODCOD == "8PSK-S_8/9" || params.MODCOD == "8PSK-S_3/5")
+		{
+			constellation_file = "../conf/8PSK.mod";
+		}
+		else if (params.MODCOD == "16APSK-S_8/9")
+		{
+			//constellation_file = "../conf/4QAM_GRAY.mod";
+			throw tools::invalid_argument(__FILE__, __LINE__, __func__, params.MODCOD + " mod-cod scheme not yet supported.");
+		}
+		else
+			throw tools::invalid_argument(__FILE__, __LINE__, __func__, params.MODCOD + " mod-cod scheme not yet supported.");
+				
+		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>("../conf/4QAM_GRAY.mod"));
+		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(constellation_file));
 		//std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_PSK <R > (2));
 		module::Modem_generic<> modulator(params.N_LDPC, std::move(cstl), tools::Sigma<R >(1.0), false, 1);
 
@@ -95,25 +115,26 @@ int main(int argc, char** argv)
 		// Interleaver
 		////////////////////////////////////////////////////
 
-		// auto interleaver_core = tools::Interleaver_core_column_row<uint32_t>(params.N_LDPC, params.ITL_N_COLS, params.READ_ORDER);
-		// auto interleaver      = module::Interleaver<>(interleaver_core);
-
-		// std::vector<int> input (16);
-		// std::vector<int> output(16);
-		// std::iota(input.begin(), input.end(), 0);
-		// for (auto i : input)
-		// 	std::cout << i << " ";
-		// std::cout << std::endl;
-		// interleaver_core.init();
-		// interleaver.interleave(input, output);
-		// for (auto i : output)
-		// 	std::cout << i << " ";
-		// std::cout << std::endl;
+		if (params.MODCOD == "QPSK-S_8/9" || params.MODCOD == "QPSK-S_3/5" || params.MODCOD == "")
+		{
+			ldpc_encoded_itlv = ldpc_encoded;
+		}
+		else if (params.MODCOD == "8PSK-S_8/9" || params.MODCOD == "8PSK-S_3/5" || params.MODCOD == "16APSK-S_8/9")
+		{
+			auto interleaver_core = tools::Interleaver_core_column_row<uint32_t>(params.N_LDPC, params.ITL_N_COLS, params.READ_ORDER);
+			auto interleaver      = module::Interleaver<>(interleaver_core);
+			interleaver_core.init();
+			interleaver.interleave(ldpc_encoded, ldpc_encoded_itlv);
+		}
+		else
+			throw tools::invalid_argument(__FILE__, __LINE__, __func__, params.MODCOD + " mod-cod scheme not yet supported.");
+				
+		//sink_to_matlab.push_vector(ldpc_encoded_itlv , false);
 
 		////////////////////////////////////////////////////
 		// Modulation
 		////////////////////////////////////////////////////
-		modulator.modulate(ldpc_encoded, XFEC_frame);
+		modulator.modulate(ldpc_encoded_itlv, XFEC_frame);
 
 		//sink_to_matlab.push_vector(XFEC_frame , true);
 		////////////////////////////////////////////////////
