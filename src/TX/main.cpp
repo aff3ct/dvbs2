@@ -63,8 +63,7 @@ int main(int argc, char** argv)
 		}
 		else if (params.MODCOD == "16APSK-S_8/9")
 		{
-			//constellation_file = "../conf/4QAM_GRAY.mod";
-			throw tools::invalid_argument(__FILE__, __LINE__, __func__, params.MODCOD + " mod-cod scheme not yet supported.");
+			constellation_file = "../conf/16APSK.mod";
 		}
 		else
 			throw tools::invalid_argument(__FILE__, __LINE__, __func__, params.MODCOD + " mod-cod scheme not yet supported.");
