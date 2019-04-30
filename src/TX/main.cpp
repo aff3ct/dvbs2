@@ -5,10 +5,12 @@
 
 #include "BB_scrambler/BB_scrambler.hpp"
 #include "Params_DVBS2O/Params_DVBS2O.hpp"
+#include "Factory_DVBS2O/Factory_DVBS2O.hpp"
 #include "Framer/Framer.hpp"
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
 #include "PL_scrambler/PL_scrambler.hpp"
 #include "Sink/Sink.hpp"
+
 
 using namespace aff3ct;
 
@@ -40,14 +42,10 @@ int main(int argc, char** argv)
 		// Base Band scrambler
 		BB_scrambler             my_scrambler;
 
-		// BCH encoder
-		tools::BCH_polynomial_generator<int  > poly_gen(16383, 12);
-		poly_gen.set_g(params.BCH_gen_poly);
-		module::Encoder_BCH<int > BCH_encoder(params.K_BCH, params.N_BCH, poly_gen, 1);
+		std::unique_ptr<module::Encoder_BCH<>> BCH_encoder (Factory_DVBS2O::build_bch_encoder<> (params));
+		std::unique_ptr<module::Codec_LDPC<>>  LDPC_cdc    (Factory_DVBS2O::build_ldpc_cdc<>(params));
 
-		// LDPC encoder
-		auto dvbs2 = tools::build_dvbs2(params.N_BCH, params.N_LDPC);
-		module::Encoder_LDPC_DVBS2<int > LDPC_encoder(*dvbs2);
+		auto& LDPC_encoder = LDPC_cdc->get_encoder();
 
 		// Modulator
 		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
@@ -69,7 +67,7 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 		// BCH Encoding
 		////////////////////////////////////////////////////
-		BCH_encoder.encode(scrambler_in, bch_encoded);
+		BCH_encoder->encode(scrambler_in, bch_encoded);
 
 		// reverse parity and msg for Matlab compliance
 		parity.assign(bch_encoded.begin(), bch_encoded.begin()+(params.N_BCH-params.K_BCH)); // retrieve parity
@@ -86,7 +84,7 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 		// LDPC encoding
 		////////////////////////////////////////////////////
-		LDPC_encoder.encode(bch_encoded, ldpc_encoded);
+		(*LDPC_encoder).encode(bch_encoded, ldpc_encoded);
 
 		//sink_to_matlab.push_vector(ldpc_encoded , false);
 
