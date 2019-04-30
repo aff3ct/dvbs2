@@ -1,11 +1,11 @@
-#ifndef DVBS2_PARAMS_HPP
-#define DVBS2_PARAMS_HPP
+#ifndef PARAMS_DVBS2O_HPP
+#define PARAMS_DVBS2O_HPP
 
 #include <aff3ct.hpp>
 
 using namespace aff3ct;
 
-class DVBS2_params
+class Params_DVBS2O
 {
 public:
 	int K_BCH;
@@ -45,10 +45,10 @@ public:
 	const std::string mat2aff_file_name = "../build/matlab_to_aff3ct.txt";
 	const std::string aff2mat_file_name = "../build/aff3ct_to_matlab.txt";
 
-	DVBS2_params(int argc, char** argv);
+	Params_DVBS2O(int argc, char** argv);
 	void get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals);
 
 
 };
 
-#endif // DVBS2_PARAMS_HPP
+#endif // PARAMS_DVBS2O_HPP

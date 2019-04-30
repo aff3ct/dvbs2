@@ -3,32 +3,32 @@
 
 #include <aff3ct.hpp>
 
-#include "BB_scrambler.hpp"
+#include "BB_scrambler/BB_scrambler.hpp"
+#include "Params_DVBS2O/Params_DVBS2O.hpp"
 #include "Framer/Framer.hpp"
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
 #include "PL_scrambler/PL_scrambler.hpp"
-#include "Sink.hpp"
-#include "DVBS2_params.hpp"
+#include "Sink/Sink.hpp"
 
 using namespace aff3ct;
 
 int main(int argc, char** argv)
 {
-	auto params = DVBS2_params(argc, argv);
+	auto params = Params_DVBS2O(argc, argv);
 
 	Sink sink_to_matlab (params.mat2aff_file_name, params.aff2mat_file_name);
 
 	if (sink_to_matlab.destination_chain_name == "coding")
 	{
 		// buffers to store the data
-		std::vector<int>   scrambler_in(params.K_BCH);
-		std::vector<int>   bch_enc_in(params.K_BCH);
-		std::vector<int>   bch_encoded(params.N_BCH);
-		std::vector<int>   ldpc_encoded(params.N_LDPC);
+		std::vector<int>   scrambler_in     (params.K_BCH);
+		std::vector<int>   bch_enc_in       (params.K_BCH);
+		std::vector<int>   bch_encoded      (params.N_BCH);
+		std::vector<int>   ldpc_encoded     (params.N_LDPC);
 		std::vector<int>   ldpc_encoded_itlv(params.N_LDPC);
-		std::vector<int>   parity(params.N_BCH-params.K_BCH);
-		std::vector<int>   msg(params.K_BCH);
-		std::vector<float> XFEC_frame(2*params.N_LDPC/params.BPS);
+		std::vector<int>   parity           (params.N_BCH - params.K_BCH);
+		std::vector<int>   msg              (params.K_BCH);
+		std::vector<float> XFEC_frame       (2 * params.N_LDPC / params.BPS);
 		
 		// Tracer
 		tools::Frame_trace<>     tracer            (200, 5, std::cout);

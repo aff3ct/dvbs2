@@ -1,9 +1,9 @@
-#include "DVBS2_params.hpp"
+#include "Params_DVBS2O.hpp"
 
 using namespace aff3ct;
 
-DVBS2_params::
-DVBS2_params(int argc, char** argv) 
+Params_DVBS2O::
+Params_DVBS2O(int argc, char** argv) 
 {
 	
 	Argument_map_value arg_vals;
@@ -88,7 +88,7 @@ DVBS2_params(int argc, char** argv)
 
 }
 
-void DVBS2_params::
+void Params_DVBS2O::
 get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 {
 			// build argument handler

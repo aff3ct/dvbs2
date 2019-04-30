@@ -3,18 +3,19 @@
 
 #include <aff3ct.hpp>
 
-#include "Sink.hpp"
-#include "BB_scrambler.hpp"
-#include "../common/PL_scrambler/PL_scrambler.hpp"
+#include "BB_scrambler/BB_scrambler.hpp"
+#include "Params_DVBS2O/Params_DVBS2O.hpp"
+#include "Framer/Framer.hpp"
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
-#include "DVBS2_params.hpp"
+#include "PL_scrambler/PL_scrambler.hpp"
+#include "Sink/Sink.hpp"
 
 using namespace aff3ct;
 using Decoder_LDPC_DVBS2 = module::Decoder_LDPC_BP_horizontal_layered_ONMS_inter<int, float>;
 
 int main(int argc, char** argv)
 {
-	auto params = DVBS2_params(argc, argv);
+	auto params = Params_DVBS2O(argc, argv);
 
 	Sink sink_to_matlab    (params.mat2aff_file_name, params.aff2mat_file_name);
 
@@ -23,10 +24,12 @@ int main(int argc, char** argv)
 	BB_scrambler             my_scrambler;	
 
 	module::PL_scrambler<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M, false);
+
 	auto H_dvbs2 = build_H(*tools::build_dvbs2(params.K_LDPC, params.N_LDPC));
 	std::vector<uint32_t> info_bits_pos(params.K_LDPC);
 	std::iota(info_bits_pos.begin(), info_bits_pos.end(), 0);
 	Decoder_LDPC_DVBS2 LDPC_decoder(params.K_LDPC, params.N_LDPC, 200, H_dvbs2, info_bits_pos);
+	
 	tools::BCH_polynomial_generator<int> poly_gen(params.N_BCH_unshortened, 12);
 	poly_gen.set_g(params.BCH_gen_poly);
 	module::Decoder_BCH_std<int> BCH_decoder(params.K_BCH, params.N_BCH, poly_gen);
