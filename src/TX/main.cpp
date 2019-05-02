@@ -43,14 +43,14 @@ int main(int argc, char** argv)
 		// Base Band scrambler
 		module::Scrambler_BB<int>             my_scrambler(params.K_BCH);
 
-		std::unique_ptr<module::Encoder_BCH<>> BCH_encoder (Factory_DVBS2O::build_bch_encoder<> (params));
-		std::unique_ptr<module::Codec_LDPC<>>  LDPC_cdc    (Factory_DVBS2O::build_ldpc_cdc<>(params));
+		std::unique_ptr<module::Encoder_BCH<>  > BCH_encoder (Factory_DVBS2O::build_bch_encoder<> (params));
+		std::unique_ptr<module::Codec_LDPC<>   > LDPC_cdc    (Factory_DVBS2O::build_ldpc_cdc<>(params));
+		std::unique_ptr<tools::Constellation<R>> cstl        (new tools::Constellation_user<R>(params.constellation_file));
+		module::Modem_generic<> modulator(params.N_LDPC, std::move(cstl), tools::Sigma<R >(1.0), false, 1);
 
 		auto& LDPC_encoder = LDPC_cdc->get_encoder();
 
 		// Modulator
-		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
-		module::Modem_generic<> modulator(params.N_LDPC, std::move(cstl), tools::Sigma<R >(1.0), false, 1);
 
 		////////////////////////////////////////////////////
 		// retrieve data from Matlab
@@ -62,25 +62,14 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 		my_scrambler.scramble(scrambler_in, scrambler_out);
 
-		// reverse message for Matlab compliance
-		std::reverse(scrambler_out.begin(), scrambler_out.end());
 
 		////////////////////////////////////////////////////
 		// BCH Encoding
 		////////////////////////////////////////////////////
+		// reverse message for aff3ct BCH compliance
+		std::reverse(scrambler_out.begin(), scrambler_out.end());
 		BCH_encoder->encode(scrambler_out, bch_encoded);
-
-		// reverse parity and msg for Matlab compliance
-		parity.assign(bch_encoded.begin(), bch_encoded.begin() + (params.N_BCH-params.K_BCH)); // retrieve parity
-		std::reverse(parity.begin(), parity.end()); // revert parity bits
-		msg.assign(bch_encoded.begin() + (params.N_BCH-params.K_BCH), bch_encoded.end()); // retrieve message
-		std::reverse(msg.begin(), msg.end()); // revert msg bits
-
-		// swap parity and msg for Matlab compliance
-		bch_encoded.insert(bch_encoded.begin(), msg.begin(), msg.end());
-		bch_encoded.insert(bch_encoded.begin() + params.K_BCH, parity.begin(), parity.end());
-
-		bch_encoded.erase(bch_encoded.begin() + params.N_BCH, bch_encoded.end());
+		std::reverse(bch_encoded.begin(), bch_encoded.end());
 
 		////////////////////////////////////////////////////
 		// LDPC encoding

@@ -150,13 +150,8 @@ SNR_est = 15.8;
 		// BCH decoding
 		////////////////////////////////////////////////////
 
-		parity.assign(BCH_encoded.begin() + params.K_BCH, BCH_encoded.begin() + params.N_BCH); // retrieve parity
-		std::reverse(parity.begin(), parity.end());                                            // revert parity bits
-		msg.assign(BCH_encoded.begin(), BCH_encoded.begin() + params.K_BCH);                   // retrieve message
-		std::reverse(msg.begin(), msg.end());                                                  // revert msg bits
-		BCH_encoded.insert(BCH_encoded.begin(), parity.begin(), parity.end());
-		BCH_encoded.insert(BCH_encoded.begin() + (params.N_BCH - params.K_BCH), msg.begin(), msg.end());
-		BCH_encoded.erase(BCH_encoded.begin() + params.N_BCH, BCH_encoded.end());
+		// reverse message for aff3ct BCH compliance
+		std::reverse(BCH_encoded.begin(), BCH_encoded.end());
 		BCH_decoder.decode_hiho(BCH_encoded, scrambler_in);
 		std::reverse(scrambler_in.begin(), scrambler_in.end());
 
