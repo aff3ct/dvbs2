@@ -3,11 +3,11 @@
 
 #include <aff3ct.hpp>
 
-#include "BB_scrambler/BB_scrambler.hpp"
+#include "Scrambler/Scrambler_BB/Scrambler_BB.hpp"
+#include "Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "Params_DVBS2O/Params_DVBS2O.hpp"
 #include "Framer/Framer.hpp"
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
-#include "PL_scrambler/PL_scrambler.hpp"
 #include "Sink/Sink.hpp"
 
 using namespace aff3ct;
@@ -21,9 +21,9 @@ int main(int argc, char** argv)
 
 	tools::Frame_trace<>     tracer            (20, 5, std::cout);
 
-	BB_scrambler             my_scrambler;	
+	module::Scrambler_BB<int> my_scrambler(params.K_BCH);	
 
-	module::PL_scrambler<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M, false);
+	module::Scrambler_PL<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M);
 
 	auto H_dvbs2 = build_H(*tools::build_dvbs2(params.K_LDPC, params.N_LDPC));
 	std::vector<uint32_t> info_bits_pos(params.K_LDPC);
@@ -39,6 +39,7 @@ int main(int argc, char** argv)
 	std::vector<float> pl_frame_defr      (2 * params.PL_FRAME_SIZE);
 	std::vector<float> xfec_frame         (2 * params.N_XFEC_FRAME);
 	std::vector<int>   scrambler_in       (params.K_BCH);	
+	std::vector<int>   scrambler_out      (params.K_BCH);	
 	std::vector<int>   BCH_encoded        (params.N_BCH);
 	std::vector<float> LDPC_encoded       (params.N_LDPC);
 	std::vector<float> LDPC_encoded_itlv  (params.N_LDPC);
@@ -164,9 +165,9 @@ SNR_est = 15.8;
 		// BB descrambling
 		////////////////////////////////////////////////////
 
-		my_scrambler.scramble(scrambler_in);
+		my_scrambler.scramble(scrambler_in, scrambler_out);
 
-		sink_to_matlab.push_vector( scrambler_in , false);
+		sink_to_matlab.push_vector(scrambler_out , false);
 	}
 
 	

@@ -3,12 +3,12 @@
 
 #include <aff3ct.hpp>
 
-#include "BB_scrambler/BB_scrambler.hpp"
+#include "Scrambler/Scrambler_BB/Scrambler_BB.hpp"
 #include "Params_DVBS2O/Params_DVBS2O.hpp"
 #include "Factory_DVBS2O/Factory_DVBS2O.hpp"
 #include "Framer/Framer.hpp"
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
-#include "PL_scrambler/PL_scrambler.hpp"
+#include "Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "Sink/Sink.hpp"
 
 
@@ -24,6 +24,7 @@ int main(int argc, char** argv)
 	{
 		// buffers to store the data
 		std::vector<int>   scrambler_in     (params.K_BCH);
+		std::vector<int>   scrambler_out    (params.K_BCH);
 		std::vector<int>   bch_enc_in       (params.K_BCH);
 		std::vector<int>   bch_encoded      (params.N_BCH);
 		std::vector<int>   ldpc_encoded     (params.N_LDPC);
@@ -40,7 +41,7 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 
 		// Base Band scrambler
-		BB_scrambler             my_scrambler;
+		module::Scrambler_BB<int>             my_scrambler(params.K_BCH);
 
 		std::unique_ptr<module::Encoder_BCH<>> BCH_encoder (Factory_DVBS2O::build_bch_encoder<> (params));
 		std::unique_ptr<module::Codec_LDPC<>>  LDPC_cdc    (Factory_DVBS2O::build_ldpc_cdc<>(params));
@@ -54,32 +55,32 @@ int main(int argc, char** argv)
 		////////////////////////////////////////////////////
 		// retrieve data from Matlab
 		////////////////////////////////////////////////////
-		sink_to_matlab.pull_vector( scrambler_in );
+		sink_to_matlab.pull_vector(scrambler_in);
 
 		////////////////////////////////////////////////////
 		// Base Band scrambling
 		////////////////////////////////////////////////////
-		my_scrambler.scramble( scrambler_in );
+		my_scrambler.scramble(scrambler_in, scrambler_out);
 
 		// reverse message for Matlab compliance
-		std::reverse(scrambler_in.begin(), scrambler_in.end());
+		std::reverse(scrambler_out.begin(), scrambler_out.end());
 
 		////////////////////////////////////////////////////
 		// BCH Encoding
 		////////////////////////////////////////////////////
-		BCH_encoder->encode(scrambler_in, bch_encoded);
+		BCH_encoder->encode(scrambler_out, bch_encoded);
 
 		// reverse parity and msg for Matlab compliance
-		parity.assign(bch_encoded.begin(), bch_encoded.begin()+(params.N_BCH-params.K_BCH)); // retrieve parity
+		parity.assign(bch_encoded.begin(), bch_encoded.begin() + (params.N_BCH-params.K_BCH)); // retrieve parity
 		std::reverse(parity.begin(), parity.end()); // revert parity bits
-		msg.assign(bch_encoded.begin()+(params.N_BCH-params.K_BCH), bch_encoded.end()); // retrieve message
+		msg.assign(bch_encoded.begin() + (params.N_BCH-params.K_BCH), bch_encoded.end()); // retrieve message
 		std::reverse(msg.begin(), msg.end()); // revert msg bits
 
 		// swap parity and msg for Matlab compliance
 		bch_encoded.insert(bch_encoded.begin(), msg.begin(), msg.end());
-		bch_encoded.insert(bch_encoded.begin()+params.K_BCH, parity.begin(), parity.end());
+		bch_encoded.insert(bch_encoded.begin() + params.K_BCH, parity.begin(), parity.end());
 
-		bch_encoded.erase(bch_encoded.begin()+params.N_BCH, bch_encoded.end());
+		bch_encoded.erase(bch_encoded.begin() + params.N_BCH, bch_encoded.end());
 
 		////////////////////////////////////////////////////
 		// LDPC encoding
@@ -133,7 +134,7 @@ int main(int argc, char** argv)
 
 		scrambled_pl_frame.insert(scrambled_pl_frame.begin(), pl_frame.begin(), pl_frame.begin()+2*params.M);
 
-		module::PL_scrambler<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M, true); 
+		module::Scrambler_PL<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M); 
 
 		complex_scrambler.scramble(pl_frame, scrambled_pl_frame);
 
