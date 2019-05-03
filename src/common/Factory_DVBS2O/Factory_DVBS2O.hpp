@@ -7,6 +7,7 @@
 #include "../Framer/Framer.hpp"
 #include "../Scrambler/Scrambler_BB/Scrambler_BB.hpp"
 #include "../Scrambler/Scrambler_PL/Scrambler_PL.hpp"
+#include "../Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
 
 struct Factory_DVBS2O {
 	template <typename B = int>
@@ -34,6 +35,9 @@ struct Factory_DVBS2O {
 
 	template <typename R = float>
 	static module::Scrambler_PL<R>* build_pl_scrambler(Params_DVBS2O& params);
+
+	template <typename R = float>
+	static module::Filter_UPRRC_ccr_naive<R>* build_uprrc_filter(Params_DVBS2O& params);
 };
 
 #endif /* FACTORY_DVBS2O_HPP */

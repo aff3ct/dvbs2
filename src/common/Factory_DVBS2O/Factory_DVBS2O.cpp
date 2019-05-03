@@ -74,6 +74,15 @@ module::Scrambler_PL<R>* Factory_DVBS2O
 	return new module::Scrambler_PL<R>(2*params.PL_FRAME_SIZE, params.M);
 }
 
+template <typename R>
+module::Filter_UPRRC_ccr_naive<R>* Factory_DVBS2O
+::build_uprrc_filter(Params_DVBS2O& params)
+{
+	return new module::Filter_UPRRC_ccr_naive<float>((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2,
+	                                                  params.ROLLOFF,
+	                                                  params.OSF,
+	                                                  params.GRP_DELAY);
+}
 
 template aff3ct::module::Encoder_BCH<B>*                       Factory_DVBS2O::build_bch_encoder<B>        (Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
 template aff3ct::module::Codec_LDPC<B,Q>*                      Factory_DVBS2O::build_ldpc_cdc<B,Q>         (Params_DVBS2O& params);
@@ -83,3 +92,4 @@ template aff3ct::module::Modem_generic<B,R,Q,tools::max_star>* Factory_DVBS2O::b
 template aff3ct::module::Framer<R>*                            Factory_DVBS2O::build_framer                (Params_DVBS2O& params);
 template aff3ct::module::Scrambler_BB<B>*                      Factory_DVBS2O::build_bb_scrambler<B>       (Params_DVBS2O& params);
 template aff3ct::module::Scrambler_PL<R>*                      Factory_DVBS2O::build_pl_scrambler<R>       (Params_DVBS2O& params);
+template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            Factory_DVBS2O::build_uprrc_filter<R>       (Params_DVBS2O& params);

@@ -49,10 +49,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Modem_generic   <>> modulator     (Factory_DVBS2O::build_modem       <> (params, std::move(cstl)));
 	std::unique_ptr<module::Framer          <>> framer        (Factory_DVBS2O::build_framer      <> (params                 ));
 	std::unique_ptr<module::Scrambler_PL    <>> pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<> (params                 ));
-	module::Filter_UPRRC_ccr_naive<float>       shaping_filter((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2,
-	                                                            params.ROLLOFF,
-	                                                            params.OSF,
-	                                                            params.GRP_DELAY);
+    std::unique_ptr<module::Filter_UPRRC_ccr_naive<>>   shaping_filter(Factory_DVBS2O::build_uprrc_filter<> (params                 ));
 	
 	auto& LDPC_encoder    = LDPC_cdc->get_encoder();
 
@@ -70,16 +67,16 @@ int main(int argc, char** argv)
 	itl         ->interleave  (ldpc_encoded, ldpc_encoded_itlv);
 	modulator   ->modulate    (ldpc_encoded_itlv, XFEC_frame);
 	framer      ->generate    (XFEC_frame, pl_frame);
-	
 	std::copy(pl_frame.begin(), pl_frame.begin() + 2 * params.M, scrambled_pl_frame.begin());
 	pl_scrambler->scramble(pl_frame, scrambled_pl_frame);
-
 	std::copy(scrambled_pl_frame.begin(), scrambled_pl_frame.end(), shaping_in.begin());
-	shaping_filter.filter     (shaping_in, shaping_out);
+	shaping_filter->filter     (shaping_in, shaping_out);
 	std::copy(shaping_out.begin() + (params.GRP_DELAY                       ) * params.OSF * 2, 
 	          shaping_out.begin() + (params.GRP_DELAY + params.PL_FRAME_SIZE) * params.OSF * 2,
 	          shaping_cut.begin());
 	sink_to_matlab.push_vector(shaping_cut , true);
+
+
 
 	return 0;
 }
