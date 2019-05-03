@@ -37,7 +37,7 @@ namespace module
  *
  * Please use Framer for inheritance (instead of Framer).
  */
-template <typename B = int>
+template <typename B = float>
 class Framer : public Module
 {
 public:
