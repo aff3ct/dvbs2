@@ -5,6 +5,9 @@
 
 #include "../Params_DVBS2O/Params_DVBS2O.hpp"
 #include "../Framer/Framer.hpp"
+#include "../Scrambler/Scrambler_BB/Scrambler_BB.hpp"
+#include "../Scrambler/Scrambler_PL/Scrambler_PL.hpp"
+
 struct Factory_DVBS2O {
 	template <typename B = int>
 	static module::Encoder_BCH<B>* build_bch_encoder(Params_DVBS2O& params,
@@ -25,6 +28,12 @@ struct Factory_DVBS2O {
 	                                                     std::unique_ptr<tools::Constellation<R>> cstl);
 	template <typename R = float>
 	static module::Framer<R>* build_framer(Params_DVBS2O& params);
+
+	template <typename B = int>
+	static module::Scrambler_BB<B>* build_bb_scrambler(Params_DVBS2O& params);
+
+	template <typename R = float>
+	static module::Scrambler_PL<R>* build_pl_scrambler(Params_DVBS2O& params);
 };
 
 #endif /* FACTORY_DVBS2O_HPP */

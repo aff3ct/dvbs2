@@ -9,7 +9,7 @@
 #define SCRAMBLER_BB_HPP_
 
 #include <vector>
-#include "Scrambler/Scrambler.hpp"
+#include "../Scrambler.hpp"
 
 namespace aff3ct
 {

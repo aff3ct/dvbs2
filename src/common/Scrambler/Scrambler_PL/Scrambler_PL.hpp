@@ -12,7 +12,7 @@
 #include <string>
 #include <iostream>
 
-#include "Scrambler/Scrambler.hpp"
+#include "../Scrambler.hpp"
 
 namespace aff3ct
 {
@@ -28,7 +28,7 @@ namespace module
  *
  * Please use Scrambler_PL for inheritance (instead of Scrambler_PL).
  */
-template <typename D = int>
+template <typename D = float>
 class Scrambler_PL : public Scrambler<D>
 {
 protected:
