@@ -14,17 +14,21 @@ set (EXECUTABLE_OUTPUT_PATH bin/)
 file(GLOB_RECURSE SRC_FILES_CO ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*)
 file(GLOB_RECURSE SRC_FILES_TX ${CMAKE_CURRENT_SOURCE_DIR}/src/TX/*)
 file(GLOB_RECURSE SRC_FILES_RX ${CMAKE_CURRENT_SOURCE_DIR}/src/RX/*)
+file(GLOB_RECURSE SRC_FILES_TX_RX ${CMAKE_CURRENT_SOURCE_DIR}/src/TX_RX/*)
 
 # Create the executables from sources
 add_library(dvbs2_optique_common STATIC ${SRC_FILES_CO})
 add_executable(dvbs2_optique_tx ${SRC_FILES_TX})
 add_executable(dvbs2_optique_rx ${SRC_FILES_RX})
+add_executable(dvbs2_optique_tx_rx ${SRC_FILES_TX_RX})
 
 # Link with common sources
 target_link_libraries(dvbs2_optique_tx PRIVATE dvbs2_optique_common)
 target_link_libraries(dvbs2_optique_rx PRIVATE dvbs2_optique_common)
+target_link_libraries(dvbs2_optique_tx_rx PRIVATE dvbs2_optique_common)
 target_include_directories(dvbs2_optique_tx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 target_include_directories(dvbs2_optique_rx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+target_include_directories(dvbs2_optique_tx_rx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 
 # Configure the AFF3CT library before compiling it
 option(AFF3CT_COMPILE_EXE        ""  OFF                   )
@@ -41,3 +45,4 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/)
 target_link_libraries(dvbs2_optique_common PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_tx     PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_rx     PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_tx_rx     PRIVATE aff3ct-static-lib)
