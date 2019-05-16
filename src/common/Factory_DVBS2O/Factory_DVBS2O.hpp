@@ -8,10 +8,15 @@
 #include "../Scrambler/Scrambler_BB/Scrambler_BB.hpp"
 #include "../Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "../Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
+#include "../Estimator/Estimator.hpp"
 
 struct Factory_DVBS2O {
 	template <typename B = int>
 	static module::Encoder_BCH<B>* build_bch_encoder(Params_DVBS2O& params,
+	                                                 tools::BCH_polynomial_generator<B>& poly_gen);
+
+	template <typename B = int>
+	static module::Decoder_BCH_std<B>* build_bch_decoder(Params_DVBS2O& params,
 	                                                 tools::BCH_polynomial_generator<B>& poly_gen);
 
 	template <typename B = int, typename Q = float>
@@ -38,6 +43,9 @@ struct Factory_DVBS2O {
 
 	template <typename R = float>
 	static module::Filter_UPRRC_ccr_naive<R>* build_uprrc_filter(Params_DVBS2O& params);
+
+	template <typename R = float>	
+	static module::Estimator<R>* build_estimator(Params_DVBS2O& params);
 };
 
 #endif /* FACTORY_DVBS2O_HPP */

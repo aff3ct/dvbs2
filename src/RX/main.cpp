@@ -9,30 +9,29 @@
 #include "Framer/Framer.hpp"
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
 #include "Sink/Sink.hpp"
+#include "Factory_DVBS2O/Factory_DVBS2O.hpp"
+#include "Estimator/Estimator.hpp"
 
 using namespace aff3ct;
-using Decoder_LDPC_DVBS2 = module::Decoder_LDPC_BP_horizontal_layered_ONMS_inter<int, float>;
 
 int main(int argc, char** argv)
 {
 	auto params = Params_DVBS2O(argc, argv);
 
+	tools::BCH_polynomial_generator<B> poly_gen (params.N_BCH_unshortened, 12);
+	std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
+
 	Sink sink_to_matlab    (params.mat2aff_file_name, params.aff2mat_file_name);
+	std::unique_ptr<module::Scrambler       <>> bb_scrambler  (Factory_DVBS2O::build_bb_scrambler<> (params                         ));
+	std::unique_ptr<module::Scrambler  <float>> pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<> (params                         ));
+	std::unique_ptr<module::Codec_LDPC      <>> LDPC_cdc      (Factory_DVBS2O::build_ldpc_cdc    <> (params                         ));
+	std::unique_ptr<module::Decoder_BCH_std <>> BCH_decoder   (Factory_DVBS2O::build_bch_decoder <> (params, poly_gen               ));
+	std::unique_ptr<module::Modem           <>> modulator     (Factory_DVBS2O::build_modem       <> (params, std::move(cstl)        ));
+	std::unique_ptr<tools ::Interleaver_core<>> itl_core      (Factory_DVBS2O::build_itl_core    <> (params                         ));
+	std::unique_ptr<module::Interleaver<float,uint32_t>> itl  (Factory_DVBS2O::build_itl         <float,uint32_t> (params, *itl_core));
+	std::unique_ptr<module::Estimator       <>> estimator     (Factory_DVBS2O::build_estimator   <> (params                         ));
 
-	tools::Frame_trace<>     tracer            (20, 5, std::cout);
-
-	module::Scrambler_BB<int> my_scrambler(params.K_BCH);	
-
-	module::Scrambler_PL<float> complex_scrambler(2*params.PL_FRAME_SIZE, params.M);
-
-	auto H_dvbs2 = build_H(*tools::build_dvbs2(params.K_LDPC, params.N_LDPC));
-	std::vector<uint32_t> info_bits_pos(params.K_LDPC);
-	std::iota(info_bits_pos.begin(), info_bits_pos.end(), 0);
-	Decoder_LDPC_DVBS2 LDPC_decoder(params.K_LDPC, params.N_LDPC, 200, H_dvbs2, info_bits_pos);
-	
-	tools::BCH_polynomial_generator<int> poly_gen(params.N_BCH_unshortened, 12);
-	poly_gen.set_g(params.BCH_gen_poly);
-	module::Decoder_BCH_std<int> BCH_decoder(params.K_BCH, params.N_BCH, poly_gen);
+	auto& LDPC_decoder    = LDPC_cdc->get_decoder_siho();
 
 	std::vector<float> scrambled_pl_frame (2 * params.PL_FRAME_SIZE);
 	std::vector<float> pl_frame_scr       (2 * params.PL_FRAME_SIZE - 2 * params.M);
@@ -48,128 +47,30 @@ int main(int argc, char** argv)
 	std::vector<int>   LDPC_cw            (params.N_LDPC);
 	std::vector<float> H_vec              (2 * params.N_XFEC_FRAME);
 
-	if (sink_to_matlab.destination_chain_name == "descramble")
+	poly_gen.set_g(params.BCH_gen_poly);
+	itl_core->init();
+
+
+	sink_to_matlab.pull_vector( pl_frame_defr );
+	pl_frame_defr.erase(pl_frame_defr.begin(), pl_frame_defr.begin() + 2 * params.M); // erase the PLHEADER
+	for( int i = 1; i < params.N_PILOTS+1; i++)
 	{
-		sink_to_matlab.pull_vector( scrambled_pl_frame );
-
-		pl_frame_scr.insert(pl_frame_scr.begin(), scrambled_pl_frame.begin(), scrambled_pl_frame.begin()+ 2 * params.M);
-		complex_scrambler.scramble(scrambled_pl_frame, pl_frame_scr);
-
-		sink_to_matlab.push_vector( pl_frame_scr , true);
+		pl_frame_defr.erase(pl_frame_defr.begin()+(i * params.M * 16 * 2),
+		                    pl_frame_defr.begin()+(i * params.M * 16 * 2) + (params.P * 2));
 	}
-	else if (sink_to_matlab.destination_chain_name == "demod_decod")
-	{
-		sink_to_matlab.pull_vector( pl_frame_defr );
+	xfec_frame = pl_frame_defr;
+	estimator   ->estimate(xfec_frame, H_vec);
+	modulator   ->set_noise(tools::Sigma<float>(sqrt(estimator->get_sigma_n2()/2), 0, 0));
+	modulator   ->demodulate_wg(H_vec, xfec_frame, LDPC_encoded_itlv, 1);
+	itl         ->deinterleave(LDPC_encoded_itlv, LDPC_encoded);
+	LDPC_decoder->decode_siho_cw(LDPC_encoded, LDPC_cw);
+	std::copy(LDPC_cw.begin(), LDPC_cw.begin() + params.N_BCH, BCH_encoded.begin());
+	std::reverse(BCH_encoded.begin(), BCH_encoded.end());
+	BCH_decoder ->decode_hiho(BCH_encoded, scrambler_in);
+	std::reverse(scrambler_in.begin(), scrambler_in.end());
+	bb_scrambler->scramble(scrambler_in, scrambler_out);
 
-		pl_frame_defr.erase(pl_frame_defr.begin(), pl_frame_defr.begin() + 2 * params.M); // erase the PLHEADER
-
-		for( int i = 1; i < params.N_PILOTS+1; i++)
-		{
-			pl_frame_defr.erase(pl_frame_defr.begin()+(i * params.M * 16 * 2),
-			                    pl_frame_defr.begin()+(i * params.M * 16 * 2) + (params.P * 2));
-		}
-		xfec_frame = pl_frame_defr;
-
-		//sink_to_matlab.push_vector( xfec_frame , true);
-
-		////////////////////////////////////////////////////
-		// Channel estimation
-		////////////////////////////////////////////////////
-
-		float moment2 = 0, moment4 = 0;
-		float pow_tot, pow_sig_util, sigma_n2;
-
-		for (int i = 0; i < params.N_XFEC_FRAME; i++)
-		{
-			float tmp = xfec_frame[2 * i]*xfec_frame[2 * i] + xfec_frame[2 * i + 1]*xfec_frame[2 * i + 1];
-			moment2 += tmp;
-			moment4 += tmp*tmp;
-		}
-		moment2 /= params.N_XFEC_FRAME;
-		moment4 /= params.N_XFEC_FRAME;
-		//std::cout << "mom2=" << moment2 << std::endl;
-		//std::cout << "mom4=" << moment4 << std::endl;
-
-		float Se      = sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
-		float Ne      = std::abs( moment2 - Se );
-		float SNR_est = 10 * log10(Se / Ne);
-SNR_est = 15.8;
-
-		pow_tot = moment2;
-
-		pow_sig_util = pow_tot / (1+(pow(10, (-1 * SNR_est/10))));
-		sigma_n2 = pow_tot - pow_sig_util;
-
-		float H = sqrt(pow_sig_util);
-
-		for (int i = 0; i < params.N_XFEC_FRAME; i++)
-		{
-			H_vec[2*i] = H;
-			H_vec[2*i+1] = 0;
-		}
-
-		////////////////////////////////////////////////////
-		// Soft demodulation
-		////////////////////////////////////////////////////
-
-		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
-
-		module::Modem_generic<int,float,float,tools::max_star<float>> modulator(params.N_LDPC, std::move(cstl));
-		modulator.set_noise(tools::Sigma<float>(sqrt(sigma_n2/2), 0, 0));
-		std::vector<float  > LDPC_encoded(params.N_LDPC);
-
-		modulator.demodulate_wg(H_vec, xfec_frame, LDPC_encoded_itlv, 1);
-		//sink_to_matlab.push_vector( LDPC_encoded_itlv , false);
-
-		if (params.MODCOD == "QPSK-S_8/9" || params.MODCOD == "QPSK-S_3/5" || params.MODCOD == "")
-		{
-			LDPC_encoded = LDPC_encoded_itlv;
-		}
-		else if (params.MODCOD == "8PSK-S_8/9" || params.MODCOD == "8PSK-S_3/5" || params.MODCOD == "16APSK-S_8/9")
-		{
-			auto interleaver_core = tools::Interleaver_core_column_row<uint32_t>(params.N_LDPC, params.ITL_N_COLS, params.READ_ORDER);
-			auto interleaver      = module::Interleaver<float>(interleaver_core);
-			interleaver_core.init();
-			interleaver.deinterleave(LDPC_encoded_itlv, LDPC_encoded);
-		}
-		else
-			throw tools::invalid_argument(__FILE__, __LINE__, __func__, params.MODCOD + " mod-cod scheme not yet supported.");
-
-		//sink_to_matlab.push_vector( LDPC_encoded , false);
-
-		////////////////////////////////////////////////////
-		// LDPC decoding
-		////////////////////////////////////////////////////
-		
-		LDPC_decoder.decode_siho_cw(LDPC_encoded, LDPC_cw);
-		std::copy(LDPC_cw.begin(), LDPC_cw.begin() + params.N_BCH, BCH_encoded.begin());
-
-		//sink_to_matlab.push_vector( BCH_encoded , false);
-
-		////////////////////////////////////////////////////
-		// BCH decoding
-		////////////////////////////////////////////////////
-
-		// reverse message for aff3ct BCH compliance
-		std::reverse(BCH_encoded.begin(), BCH_encoded.end());
-		BCH_decoder.decode_hiho(BCH_encoded, scrambler_in);
-		std::reverse(scrambler_in.begin(), scrambler_in.end());
-
-		//sink_to_matlab.push_vector( scrambler_in , false);
-		////////////////////////////////////////////////////
-		// BB descrambling
-		////////////////////////////////////////////////////
-
-		my_scrambler.scramble(scrambler_in, scrambler_out);
-
-		sink_to_matlab.push_vector(scrambler_out , false);
-	}
-
-	
-	else
-	{
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, "Invalid destination name.");
-	}
+	sink_to_matlab.push_vector(scrambler_out , false);
 
 	return 0;
 }

@@ -9,6 +9,13 @@ module::Encoder_BCH<B>* Factory_DVBS2O
 	return new module::Encoder_BCH_DVBS2O<B>(params.K_BCH, params.N_BCH, poly_gen, 1);
 }
 
+template <typename B>
+module::Decoder_BCH_std<B>* Factory_DVBS2O
+::build_bch_decoder(Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen) 
+{
+	return new module::Decoder_BCH_std<int>(params.K_BCH, params.N_BCH, poly_gen);
+}
+
 template <typename B,typename Q>
 module::Codec_LDPC<B,Q>* Factory_DVBS2O
 ::build_ldpc_cdc(Params_DVBS2O& params) 
@@ -45,7 +52,7 @@ template <typename D, typename T>
 module::Interleaver<D,T>* Factory_DVBS2O
 ::build_itl(Params_DVBS2O& params, tools::Interleaver_core<T>& itl_core) 
 {
-	 return new module::Interleaver<>(itl_core);
+	 return new module::Interleaver<D,T>(itl_core);
 }
 
 template <typename B, typename R, typename Q, tools::proto_max<Q> MAX>
@@ -86,12 +93,23 @@ module::Filter_UPRRC_ccr_naive<R>* Factory_DVBS2O
 	                                                  params.GRP_DELAY);
 }
 
+template <typename R>
+module::Estimator<R>* Factory_DVBS2O
+::build_estimator(Params_DVBS2O& params)
+{
+	return new module::Estimator<R>(2 * params.N_XFEC_FRAME);
+}
+
+
 template aff3ct::module::Encoder_BCH<B>*                       Factory_DVBS2O::build_bch_encoder<B>        (Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
+template aff3ct::module::Decoder_BCH_std<B>*                   Factory_DVBS2O::build_bch_decoder<B>        (Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
 template aff3ct::module::Codec_LDPC<B,Q>*                      Factory_DVBS2O::build_ldpc_cdc<B,Q>         (Params_DVBS2O& params);
 template aff3ct::tools::Interleaver_core<uint32_t>*            Factory_DVBS2O::build_itl_core<uint32_t>    (Params_DVBS2O& params);
 template aff3ct::module::Interleaver<int32_t,uint32_t>*        Factory_DVBS2O::build_itl<int32_t,uint32_t> (Params_DVBS2O& params,tools::Interleaver_core<uint32_t>& itl_core);
+template aff3ct::module::Interleaver<float,uint32_t>*          Factory_DVBS2O::build_itl<float,uint32_t>   (Params_DVBS2O& params,tools::Interleaver_core<uint32_t>& itl_core);
 template aff3ct::module::Modem_generic<B,R,Q,tools::max_star>* Factory_DVBS2O::build_modem                 (Params_DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl);
 template aff3ct::module::Framer<R>*                            Factory_DVBS2O::build_framer                (Params_DVBS2O& params);
 template aff3ct::module::Scrambler_BB<B>*                      Factory_DVBS2O::build_bb_scrambler<B>       (Params_DVBS2O& params);
 template aff3ct::module::Scrambler_PL<R>*                      Factory_DVBS2O::build_pl_scrambler<R>       (Params_DVBS2O& params);
 template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            Factory_DVBS2O::build_uprrc_filter<R>       (Params_DVBS2O& params);
+template aff3ct::module::Estimator<R>*                         Factory_DVBS2O::build_estimator<R>          (Params_DVBS2O& params);
