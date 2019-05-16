@@ -1,10 +1,12 @@
 #include "Factory_DVBS2O.hpp"
 
+#include "../Encoder_BCH_DVBS2O/Encoder_BCH_DVBS2O.hpp"
+
 template <typename B>
 module::Encoder_BCH<B>* Factory_DVBS2O
 ::build_bch_encoder(Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen) 
 {
-	return new module::Encoder_BCH<B>(params.K_BCH, params.N_BCH, poly_gen, 1);
+	return new module::Encoder_BCH_DVBS2O<B>(params.K_BCH, params.N_BCH, poly_gen, 1);
 }
 
 template <typename B,typename Q>

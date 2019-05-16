@@ -60,23 +60,18 @@ int main(int argc, char** argv)
 	// execution
 	sink_to_matlab.pull_vector(scrambler_in);
 	bb_scrambler->scramble    (scrambler_in, scrambler_out);
-	std::reverse              (scrambler_out.begin(), scrambler_out.end());// reverse message for aff3ct BCH compliance
 	BCH_encoder ->encode      (scrambler_out, bch_encoded);
-	std::reverse              (bch_encoded.begin(), bch_encoded.end());
 	LDPC_encoder->encode      (bch_encoded, ldpc_encoded);
 	itl         ->interleave  (ldpc_encoded, ldpc_encoded_itlv);
 	modulator   ->modulate    (ldpc_encoded_itlv, XFEC_frame);
 	framer      ->generate    (XFEC_frame, pl_frame);
-	std::copy(pl_frame.begin(), pl_frame.begin() + 2 * params.M, scrambled_pl_frame.begin());
-	pl_scrambler->scramble(pl_frame, scrambled_pl_frame);
+	pl_scrambler->scramble    (pl_frame, scrambled_pl_frame);
 	std::copy(scrambled_pl_frame.begin(), scrambled_pl_frame.end(), shaping_in.begin());
 	shaping_filter->filter     (shaping_in, shaping_out);
 	std::copy(shaping_out.begin() + (params.GRP_DELAY                       ) * params.OSF * 2, 
 	          shaping_out.begin() + (params.GRP_DELAY + params.PL_FRAME_SIZE) * params.OSF * 2,
 	          shaping_cut.begin());
 	sink_to_matlab.push_vector(shaping_cut , true);
-
-
 
 	return 0;
 }
