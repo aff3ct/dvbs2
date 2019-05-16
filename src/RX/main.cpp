@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools ::Interleaver_core<>> itl_core      (Factory_DVBS2O::build_itl_core    <> (params                         ));
 	std::unique_ptr<module::Interleaver<float,uint32_t>> itl  (Factory_DVBS2O::build_itl         <float,uint32_t> (params, *itl_core));
 	std::unique_ptr<module::Estimator       <>> estimator     (Factory_DVBS2O::build_estimator   <> (params                         ));
-
+	std::unique_ptr<module::Framer          <>> framer        (Factory_DVBS2O::build_framer      <> (params                 ));
 	auto& LDPC_decoder    = LDPC_cdc->get_decoder_siho();
 
 	std::vector<float> scrambled_pl_frame (2 * params.PL_FRAME_SIZE);
@@ -52,24 +52,14 @@ int main(int argc, char** argv)
 
 
 	sink_to_matlab.pull_vector( pl_frame_defr );
-	pl_frame_defr.erase(pl_frame_defr.begin(), pl_frame_defr.begin() + 2 * params.M); // erase the PLHEADER
-	for( int i = 1; i < params.N_PILOTS+1; i++)
-	{
-		pl_frame_defr.erase(pl_frame_defr.begin()+(i * params.M * 16 * 2),
-		                    pl_frame_defr.begin()+(i * params.M * 16 * 2) + (params.P * 2));
-	}
-	xfec_frame = pl_frame_defr;
+	framer      ->remove_plh(pl_frame_defr, xfec_frame);
 	estimator   ->estimate(xfec_frame, H_vec);
 	modulator   ->set_noise(tools::Sigma<float>(sqrt(estimator->get_sigma_n2()/2), 0, 0));
 	modulator   ->demodulate_wg(H_vec, xfec_frame, LDPC_encoded_itlv, 1);
 	itl         ->deinterleave(LDPC_encoded_itlv, LDPC_encoded);
-	LDPC_decoder->decode_siho_cw(LDPC_encoded, LDPC_cw);
-	std::copy(LDPC_cw.begin(), LDPC_cw.begin() + params.N_BCH, BCH_encoded.begin());
-	std::reverse(BCH_encoded.begin(), BCH_encoded.end());
+	LDPC_decoder->decode_siho(LDPC_encoded, BCH_encoded);
 	BCH_decoder ->decode_hiho(BCH_encoded, scrambler_in);
-	std::reverse(scrambler_in.begin(), scrambler_in.end());
 	bb_scrambler->scramble(scrambler_in, scrambler_out);
-
 	sink_to_matlab.push_vector(scrambler_out , false);
 
 	return 0;

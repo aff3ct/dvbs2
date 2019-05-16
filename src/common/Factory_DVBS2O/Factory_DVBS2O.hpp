@@ -15,9 +15,9 @@ struct Factory_DVBS2O {
 	static module::Encoder_BCH<B>* build_bch_encoder(Params_DVBS2O& params,
 	                                                 tools::BCH_polynomial_generator<B>& poly_gen);
 
-	template <typename B = int>
-	static module::Decoder_BCH_std<B>* build_bch_decoder(Params_DVBS2O& params,
-	                                                 tools::BCH_polynomial_generator<B>& poly_gen);
+	template <typename B = int, typename Q = float>
+	static module::Decoder_BCH_std<B,Q>* build_bch_decoder(Params_DVBS2O& params,
+	                                                       tools::BCH_polynomial_generator<B>& poly_gen);
 
 	template <typename B = int, typename Q = float>
 	static module::Codec_LDPC<B,Q>* build_ldpc_cdc(Params_DVBS2O& params);

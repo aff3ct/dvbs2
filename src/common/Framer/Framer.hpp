@@ -20,11 +20,12 @@ namespace module
 {
 	namespace frm
 	{
-		enum class tsk : uint8_t { generate, SIZE };
+		enum class tsk : uint8_t { generate, remove_plh, SIZE };
 
 		namespace sck
 		{
-			enum class generate : uint8_t { U_K, SIZE };
+			enum class generate   : uint8_t { U_K, SIZE };
+			enum class remove_plh : uint8_t { U_K, SIZE };
 		}
 	}
 
@@ -41,8 +42,9 @@ template <typename B = float>
 class Framer : public Module
 {
 public:
-	inline Task&   operator[](const frm::tsk           t) { return Module::operator[]((int)t);                          }
-	inline Socket& operator[](const frm::sck::generate s) { return Module::operator[]((int)frm::tsk::generate)[(int)s]; }
+	inline Task&   operator[](const frm::tsk             t) { return Module::operator[]((int)t);                            }
+	inline Socket& operator[](const frm::sck::generate   s) { return Module::operator[]((int)frm::tsk::generate  )[(int)s]; }
+	inline Socket& operator[](const frm::sck::remove_plh s) { return Module::operator[]((int)frm::tsk::remove_plh)[(int)s]; }
 
 protected:
 	const int XFEC_FRAME_SIZE; /*!< Number of complex symbols x2 in one XFEC frame */
@@ -52,7 +54,10 @@ private:
 
 	std::vector<B > PLH; /*!< Payload header */
 	void generate_PLH( void ); /*!< Payload header generation */
-	int N_XFEC_FRAME, M, N_PILOTS; 
+	int N_XFEC_FRAME;
+	int M;
+	int P;
+	int N_PILOTS; 
 	std::string MODCOD;
 
 public:
@@ -84,8 +89,22 @@ public:
 
 	virtual void generate(B *XFEC_frame, B *PL_frame, const int frame_id = -1);
 
+	/*!
+	 * \brief Remove the payload header.
+	 *
+	 * \param PL_frame   : a vector of complex output symbols.
+	 * \param XFEC_frame : a vector of complex input symbols.
+	 */
+
+	template <class A = std::allocator<B>>
+	void remove_plh(std::vector<B,A>& XFEC_frame, std::vector<B,A>& PL_frame, const int frame_id = -1);
+
+	virtual void remove_plh(B *PL_frame, B *XFEC_frame, const int frame_id = -1);
+
+
 protected:
-	virtual void _generate(B *XFEC_frame, B *PL_frame, const int frame_id);
+	virtual void _generate  (B *XFEC_frame, B *PL_frame  , const int frame_id);
+	virtual void _remove_plh(B *PL_frame  , B *XFEC_frame, const int frame_id);
 };
 }
 }

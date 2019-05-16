@@ -1,6 +1,7 @@
 #include "Factory_DVBS2O.hpp"
 
 #include "../Encoder_BCH_DVBS2O/Encoder_BCH_DVBS2O.hpp"
+#include "../Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
 
 template <typename B>
 module::Encoder_BCH<B>* Factory_DVBS2O
@@ -9,11 +10,11 @@ module::Encoder_BCH<B>* Factory_DVBS2O
 	return new module::Encoder_BCH_DVBS2O<B>(params.K_BCH, params.N_BCH, poly_gen, 1);
 }
 
-template <typename B>
-module::Decoder_BCH_std<B>* Factory_DVBS2O
+template <typename B,typename Q>
+module::Decoder_BCH_std<B,Q>* Factory_DVBS2O
 ::build_bch_decoder(Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen) 
 {
-	return new module::Decoder_BCH_std<int>(params.K_BCH, params.N_BCH, poly_gen);
+	return new module::Decoder_BCH_DVBS2O<B,Q>(params.K_BCH, params.N_BCH, poly_gen, 1);
 }
 
 template <typename B,typename Q>
