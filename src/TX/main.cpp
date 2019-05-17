@@ -18,22 +18,9 @@ int main(int argc, char** argv)
 {
 	auto params = Params_DVBS2O(argc, argv);
 
-	tools::Frame_trace<>     tracer            (200, 5, std::cout);
-
 	// buffers to store the data
 	std::vector<int>   scrambler_in      (params.K_BCH);
-	std::vector<int>   scrambler_out     (params.K_BCH);
-	std::vector<int>   bch_enc_in        (params.K_BCH);
-	std::vector<int>   bch_encoded       (params.N_BCH);
-	std::vector<int>   ldpc_encoded      (params.N_LDPC);
-	std::vector<int>   ldpc_encoded_itlv (params.N_LDPC);
-	std::vector<int>   parity            (params.N_BCH - params.K_BCH);
-	std::vector<int>   msg               (params.K_BCH);
-	std::vector<float> XFEC_frame        (2 * params.N_LDPC / params.BPS);
-	std::vector<float> pl_frame          (2 * params.PL_FRAME_SIZE);
-	std::vector<float> scrambled_pl_frame(2 * params.PL_FRAME_SIZE);
 	std::vector<float> shaping_in        ((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2, 0.0f);
-	std::vector<float> shaping_out       ((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2 * params.OSF);
 	std::vector<float> shaping_cut       (params.PL_FRAME_SIZE * 2 * params.OSF);
 
 	// construct modules
