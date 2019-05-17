@@ -24,8 +24,8 @@ namespace module
 
 		namespace sck
 		{
-			enum class generate   : uint8_t { U_K, SIZE };
-			enum class remove_plh : uint8_t { U_K, SIZE };
+			enum class generate   : uint8_t { Y_N1, Y_N2, SIZE };
+			enum class remove_plh : uint8_t { Y_N1, Y_N2, SIZE };
 		}
 	}
 
@@ -81,30 +81,30 @@ public:
 	/*!
 	 * \brief Generate the payload frame.
 	 *
-	 * \param XFEC_frame : a vector of complex input symbols.
-	 * \param PL_frame : a vector of complex output symbols.
+	 * \param Y_N1 : a vector of complex input symbols.
+	 * \param Y_N2 : a vector of complex output symbols.
 	 */
 	template <class A = std::allocator<B>>
-	void generate(std::vector<B,A>& XFEC_frame, std::vector<B,A>& PL_frame, const int frame_id = -1);
+	void generate(std::vector<B,A>& Y_N1, std::vector<B,A>& Y_N2, const int frame_id = -1);
 
-	virtual void generate(B *XFEC_frame, B *PL_frame, const int frame_id = -1);
+	virtual void generate(B *Y_N1, B *Y_N2, const int frame_id = -1);
 
 	/*!
 	 * \brief Remove the payload header.
 	 *
-	 * \param PL_frame   : a vector of complex output symbols.
-	 * \param XFEC_frame : a vector of complex input symbols.
+	 * \param Y_N1   : a vector of complex output symbols.
+	 * \param Y_N2 : a vector of complex input symbols.
 	 */
 
 	template <class A = std::allocator<B>>
-	void remove_plh(std::vector<B,A>& XFEC_frame, std::vector<B,A>& PL_frame, const int frame_id = -1);
+	void remove_plh(std::vector<B,A>& Y_N1, std::vector<B,A>& Y_N2, const int frame_id = -1);
 
-	virtual void remove_plh(B *PL_frame, B *XFEC_frame, const int frame_id = -1);
+	virtual void remove_plh(B *Y_N1, B *Y_N2, const int frame_id = -1);
 
 
 protected:
-	virtual void _generate  (B *XFEC_frame, B *PL_frame  , const int frame_id);
-	virtual void _remove_plh(B *PL_frame  , B *XFEC_frame, const int frame_id);
+	virtual void _generate  (B *Y_N1, B *Y_N2  , const int frame_id);
+	virtual void _remove_plh(B *Y_N1  , B *Y_N2, const int frame_id);
 };
 }
 }

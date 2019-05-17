@@ -57,20 +57,53 @@ int main(int argc, char** argv)
 	poly_gen.set_g(params.BCH_gen_poly);
 	itl_core->init();
 
+	using namespace module;
+	// configuration of the module tasks
+	std::vector<const module::Module*> modules = {bb_scrambler.get(), BCH_encoder.get(), LDPC_encoder.get(), itl.get(),
+	                                              modulator.get(), framer.get(), pl_scrambler.get(), 
+	                                              shaping_filter.get()};
+	for (auto& m : modules)
+		for (auto& t : m->tasks)
+		{
+			t->set_autoalloc  (true ); // enable the automatic allocation of the data in the tasks
+			t->set_autoexec   (false); // disable the auto execution mode of the tasks
+			t->set_debug      (false); // disable the debug mode
+			t->set_debug_limit(16   ); // display only the 16 first bits if the debug mode is enabled
+			t->set_stats      (true ); // enable the statistics
+
+			// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
+			t->set_fast(!t->is_debug() && !t->is_stats());
+		}
+
 	// execution
+	(*bb_scrambler)  [scr::sck::scramble::X_N1 ].bind(scrambler_in);
+	(*BCH_encoder)   [enc::sck::encode::U_K    ].bind((*bb_scrambler)[scr::sck::scramble  ::X_N2]);
+	(*LDPC_encoder)  [enc::sck::encode::U_K    ].bind((*BCH_encoder )[enc::sck::encode    ::X_N ]);
+	(*itl)           [itl::sck::interleave::nat].bind((*LDPC_encoder)[enc::sck::encode    ::X_N ]);
+	(*modulator)     [mdm::sck::modulate::X_N1 ].bind((*itl         )[itl::sck::interleave::itl ]);
+	(*framer)        [frm::sck::generate::Y_N1 ].bind((*modulator   )[mdm::sck::modulate  ::X_N2]);
+	(*pl_scrambler)  [scr::sck::scramble::X_N1 ].bind((*framer      )[frm::sck::generate  ::Y_N2]);
+	(*shaping_filter)[flt::sck::filter  ::X_N1 ].bind(shaping_in);
+
 	sink_to_matlab.pull_vector(scrambler_in);
-	bb_scrambler->scramble    (scrambler_in, scrambler_out);
-	BCH_encoder ->encode      (scrambler_out, bch_encoded);
-	LDPC_encoder->encode      (bch_encoded, ldpc_encoded);
-	itl         ->interleave  (ldpc_encoded, ldpc_encoded_itlv);
-	modulator   ->modulate    (ldpc_encoded_itlv, XFEC_frame);
-	framer      ->generate    (XFEC_frame, pl_frame);
-	pl_scrambler->scramble    (pl_frame, scrambled_pl_frame);
-	std::copy(scrambled_pl_frame.begin(), scrambled_pl_frame.end(), shaping_in.begin());
-	shaping_filter->filter     (shaping_in, shaping_out);
-	std::copy(shaping_out.begin() + (params.GRP_DELAY                       ) * params.OSF * 2, 
-	          shaping_out.begin() + (params.GRP_DELAY + params.PL_FRAME_SIZE) * params.OSF * 2,
-	          shaping_cut.begin());
+	(*bb_scrambler)[scr::tsk::scramble  ].exec();
+	(*BCH_encoder )[enc::tsk::encode    ].exec();
+	(*LDPC_encoder)[enc::tsk::encode    ].exec();
+	(*itl         )[itl::tsk::interleave].exec();
+	(*modulator   )[mdm::tsk::modulate  ].exec();
+	(*framer      )[frm::tsk::generate  ].exec();
+	(*pl_scrambler)[scr::tsk::scramble  ].exec();
+
+	std::copy( (float*)((*pl_scrambler)  [scr::sck::scramble::X_N2 ].get_dataptr()),
+	          ((float*)((*pl_scrambler)  [scr::sck::scramble::X_N2 ].get_dataptr())) + (2 * params.PL_FRAME_SIZE), 
+	          shaping_in.data());
+
+	(*shaping_filter)[flt::tsk::filter  ].exec();
+
+	std::copy((float*)((*shaping_filter)  [flt::sck::filter  ::Y_N2 ].get_dataptr()) + (params.GRP_DELAY                       ) * params.OSF * 2, 
+	          (float*)((*shaping_filter)  [flt::sck::filter  ::Y_N2 ].get_dataptr()) + (params.GRP_DELAY + params.PL_FRAME_SIZE) * params.OSF * 2,
+	          shaping_cut.data());
+	
 	sink_to_matlab.push_vector(shaping_cut , true);
 
 	return 0;

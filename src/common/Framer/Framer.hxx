@@ -49,21 +49,21 @@ Framer(const int XFEC_FRAME_SIZE, const int PL_FRAME_SIZE, const std::string MOD
 	}
 
 	auto &p1 = this->create_task("generate");
-	auto &p1s_XFEC_frame = this->template create_socket_out<B>(p1, "XFEC_frame", this->XFEC_FRAME_SIZE * this->n_frames);
-	auto &p1s_PL_frame   = this->template create_socket_out<B>(p1, "PL_frame"  , this->PL_FRAME_SIZE   * this->n_frames);
-	this->create_codelet(p1, [this, &p1s_XFEC_frame, &p1s_PL_frame]() -> int
+	auto &p1s_Y_N1 = this->template create_socket_out<B>(p1, "Y_N1", this->XFEC_FRAME_SIZE * this->n_frames);
+	auto &p1s_Y_N2 = this->template create_socket_out<B>(p1, "Y_N2", this->PL_FRAME_SIZE   * this->n_frames);
+	this->create_codelet(p1, [this, &p1s_Y_N1, &p1s_Y_N2]() -> int
 	{
-		this->generate(static_cast<B*>(p1s_XFEC_frame.get_dataptr()), static_cast<B*>(p1s_PL_frame.get_dataptr()));
+		this->generate(static_cast<B*>(p1s_Y_N1.get_dataptr()), static_cast<B*>(p1s_Y_N2.get_dataptr()));
 
 		return 0;
 	});
 
 	auto &p2 = this->create_task("remove_plh");
-	auto &p2s_PL_frame   = this->template create_socket_out<B>(p2, "PL_frame"  , this->PL_FRAME_SIZE   * this->n_frames);
-	auto &p2s_XFEC_frame = this->template create_socket_out<B>(p2, "XFEC_frame", this->XFEC_FRAME_SIZE * this->n_frames);
-	this->create_codelet(p2, [this, &p2s_PL_frame, &p2s_XFEC_frame]() -> int
+	auto &p2s_Y_N1 = this->template create_socket_out<B>(p2, "Y_N1", this->PL_FRAME_SIZE   * this->n_frames);
+	auto &p2s_Y_N2 = this->template create_socket_out<B>(p2, "Y_N2", this->XFEC_FRAME_SIZE * this->n_frames);
+	this->create_codelet(p2, [this, &p2s_Y_N1, &p2s_Y_N2]() -> int
 	{
-		this->remove_plh(static_cast<B*>(p2s_PL_frame.get_dataptr()), static_cast<B*>(p2s_XFEC_frame.get_dataptr()));
+		this->remove_plh(static_cast<B*>(p2s_Y_N1.get_dataptr()), static_cast<B*>(p2s_Y_N2.get_dataptr()));
 
 		return 0;
 	});
@@ -184,48 +184,48 @@ generate_PLH( void )
 template <typename B>
 template <class A>
 void Framer<B>::
-generate(std::vector<B,A>& XFEC_frame, std::vector<B,A>& PL_frame, const int frame_id)
+generate(std::vector<B,A>& Y_N1, std::vector<B,A>& Y_N2, const int frame_id)
 {
-	if (this->XFEC_FRAME_SIZE * this->n_frames != (int)XFEC_frame.size())
+	if (this->XFEC_FRAME_SIZE * this->n_frames != (int)Y_N1.size())
 	{
 		std::stringstream message;
-		message << "'XFEC_frame.size()' has to be equal to 'XFEC_FRAME_SIZE' * 'n_frames' ('XFEC_frame.size()' = " << XFEC_frame.size()
+		message << "'Y_N1.size()' has to be equal to 'XFEC_FRAME_SIZE' * 'n_frames' ('Y_N1.size()' = " << Y_N1.size()
 		        << ", 'XFEC_FRAME_SIZE' = " << this->XFEC_FRAME_SIZE << ", 'n_frames' = " << this->n_frames << ").";
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
-	if (this->PL_FRAME_SIZE * this->n_frames != (int)PL_frame.size())
+	if (this->PL_FRAME_SIZE * this->n_frames != (int)Y_N2.size())
 	{
 		std::stringstream message;
-		message << "'PL_frame.size()' has to be equal to 'PL_FRAME_SIZE' * 'n_frames' ('PL_frame.size()' = " << PL_frame.size()
+		message << "'Y_N2.size()' has to be equal to 'PL_FRAME_SIZE' * 'n_frames' ('Y_N2.size()' = " << Y_N2.size()
 		        << ", 'PL_FRAME_SIZE' = " << this->PL_FRAME_SIZE << ", 'n_frames' = " << this->n_frames << ").";
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->generate(XFEC_frame.data(), PL_frame.data(), frame_id);
+	this->generate(Y_N1.data(), Y_N2.data(), frame_id);
 }
 
 template <typename B>
 void Framer<B>::
-generate(B *XFEC_frame, B *PL_frame, const int frame_id)
+generate(B *Y_N1, B *Y_N2, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_generate(XFEC_frame + f * this->XFEC_FRAME_SIZE, PL_frame + f * this->PL_FRAME_SIZE, f);
+		this->_generate(Y_N1 + f * this->XFEC_FRAME_SIZE, Y_N2 + f * this->PL_FRAME_SIZE, f);
 }
 
 template <typename B>
 void Framer<B>::
-_generate(B *XFEC_frame, B *PL_frame, const int frame_id)
+_generate(B *Y_N1, B *Y_N2, const int frame_id)
 {
 
 	std::vector <std::complex<float> > Cx_XFEC_frame(this->XFEC_FRAME_SIZE/2);
 	
 	for (unsigned int i = 0; i < Cx_XFEC_frame.size(); i++)
 	{
-		Cx_XFEC_frame[i].real(XFEC_frame[2*i]);
-		Cx_XFEC_frame[i].imag(XFEC_frame[2*i+1]);
+		Cx_XFEC_frame[i].real(Y_N1[2*i]);
+		Cx_XFEC_frame[i].imag(Y_N1[2*i+1]);
 	}
 
 	////////////////////////////////////////////////////
@@ -257,7 +257,7 @@ _generate(B *XFEC_frame, B *PL_frame, const int frame_id)
 	Cx_data_it = Cx_XFEC_frame.begin();
 
 	std::vector<std::complex<float> > Cx_data_slice(16*this->M);
-	std::vector<std::complex<float> > Cx_data_remainder( this->XFEC_FRAME_SIZE/2 - (16*this->M*this->N_PILOTS) ); // remaining data at the end of the XFEC_frame
+	std::vector<std::complex<float> > Cx_data_remainder( this->XFEC_FRAME_SIZE/2 - (16*this->M*this->N_PILOTS) ); // remaining data at the end of the Y_N1
 
 	for(int i = 0; i < this->N_PILOTS; i++)
 	{
@@ -273,8 +273,8 @@ _generate(B *XFEC_frame, B *PL_frame, const int frame_id)
 
 	for (unsigned int i = 0; i < Cx_PL_FRAME.size(); i++)
 	{
-		PL_frame[2*i] = Cx_PL_FRAME[i].real();
-		PL_frame[2*i+1] = Cx_PL_FRAME[i].imag();
+		Y_N2[2*i] = Cx_PL_FRAME[i].real();
+		Y_N2[2*i+1] = Cx_PL_FRAME[i].imag();
 	}
 }
 
@@ -282,50 +282,50 @@ _generate(B *XFEC_frame, B *PL_frame, const int frame_id)
 template <typename B>
 template <class A>
 void Framer<B>::
-remove_plh(std::vector<B,A>& PL_frame, std::vector<B,A>& XFEC_frame, const int frame_id)
+remove_plh(std::vector<B,A>& Y_N1, std::vector<B,A>& Y_N2, const int frame_id)
 {
-	if (this->XFEC_FRAME_SIZE * this->n_frames != (int)XFEC_frame.size())
+	if (this->XFEC_FRAME_SIZE * this->n_frames != (int)Y_N2.size())
 	{
 		std::stringstream message;
-		message << "'XFEC_frame.size()' has to be equal to 'XFEC_FRAME_SIZE' * 'n_frames' ('XFEC_frame.size()' = " << XFEC_frame.size()
+		message << "'Y_N2.size()' has to be equal to 'XFEC_FRAME_SIZE' * 'n_frames' ('Y_N2.size()' = " << Y_N2.size()
 		        << ", 'XFEC_FRAME_SIZE' = " << this->XFEC_FRAME_SIZE << ", 'n_frames' = " << this->n_frames << ").";
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
-	if (this->PL_FRAME_SIZE * this->n_frames != (int)PL_frame.size())
+	if (this->PL_FRAME_SIZE * this->n_frames != (int)Y_N1.size())
 	{
 		std::stringstream message;
-		message << "'PL_frame.size()' has to be equal to 'PL_FRAME_SIZE' * 'n_frames' ('PL_frame.size()' = " << PL_frame.size()
+		message << "'PL_frame.size()' has to be equal to 'PL_FRAME_SIZE' * 'n_frames' ('PL_frame.size()' = " << Y_N1.size()
 		        << ", 'PL_FRAME_SIZE' = " << this->PL_FRAME_SIZE << ", 'n_frames' = " << this->n_frames << ").";
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->remove_plh(PL_frame.data(), XFEC_frame.data(), frame_id);
+	this->remove_plh(Y_N1.data(), Y_N2.data(), frame_id);
 }
 
 template <typename B>
 void Framer<B>::
-remove_plh(B *PL_frame, B *XFEC_frame, const int frame_id)
+remove_plh(B *Y_N1, B *Y_N2, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_remove_plh(PL_frame + f * this->PL_FRAME_SIZE, XFEC_frame + f * this->XFEC_FRAME_SIZE, f);
+		this->_remove_plh(Y_N1 + f * this->PL_FRAME_SIZE, Y_N2 + f * this->XFEC_FRAME_SIZE, f);
 }
 
 template <typename B>
 void Framer<B>::
-_remove_plh(B *PL_frame, B *XFEC_frame, const int frame_id)
+_remove_plh(B *Y_N1, B *Y_N2, const int frame_id)
 {
 	std::vector<B> pl_frame_tmp(PL_FRAME_SIZE);
-	std::copy(PL_frame, PL_frame + PL_FRAME_SIZE, pl_frame_tmp.data());
+	std::copy(Y_N1, Y_N1 + PL_FRAME_SIZE, pl_frame_tmp.data());
 	pl_frame_tmp.erase(pl_frame_tmp.begin(), pl_frame_tmp.begin() + 2 * this->M); // erase the PLHEADER
 	for( int i = 1; i < this->N_PILOTS +1; i++)
 	{
 		pl_frame_tmp.erase(pl_frame_tmp.begin()+(i * this->M * 16 * 2),
 		                   pl_frame_tmp.begin()+(i * this->M * 16 * 2) + (this->P * 2));
 	}
-	std::copy(pl_frame_tmp.data(), pl_frame_tmp.data() + XFEC_FRAME_SIZE, XFEC_frame);
+	std::copy(pl_frame_tmp.data(), pl_frame_tmp.data() + XFEC_FRAME_SIZE, Y_N2);
 }
 
 }

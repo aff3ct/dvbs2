@@ -112,17 +112,17 @@ _estimate(R *X_N, R *H_N, const int frame_id)
 	moment2 /= this->N / 2;
 	moment4 /= this->N / 2;
 
-	float Se      = sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
+	float Se      = std::sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
 	float Ne      = std::abs( moment2 - Se );
-	float SNR_est = 10 * log10(Se / Ne);
-	// SNR_est = 15.8;
-	// std::cout << "(WW) SNR Estimation is manually set." << std::endl;
+	float SNR_est = 10 * std::log10(Se / Ne);
+	SNR_est = 15.8;
+	std::cout << "(WW) SNR Estimation is manually set." << std::endl;
 	pow_tot = moment2;
 
-	pow_sig_util = pow_tot / (1+(pow(10, (-1 * SNR_est/10))));
+	pow_sig_util = pow_tot / (1+(std::pow(10, (-1 * SNR_est/10))));
 	this->sigma_n2 = pow_tot - pow_sig_util;
 
-	float H = sqrt(pow_sig_util);
+	float H = std::sqrt(pow_sig_util);
 
 	for (int i = 0; i < this->N / 2; i++)
 	{
