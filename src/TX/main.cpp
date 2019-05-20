@@ -81,14 +81,14 @@ int main(int argc, char** argv)
 	(*framer      )[frm::tsk::generate  ].exec();
 	(*pl_scrambler)[scr::tsk::scramble  ].exec();
 
-	std::copy( (float*)((*pl_scrambler)  [scr::sck::scramble::X_N2 ].get_dataptr()),
-	          ((float*)((*pl_scrambler)  [scr::sck::scramble::X_N2 ].get_dataptr())) + (2 * params.PL_FRAME_SIZE), 
+	std::copy( (float*)((*pl_scrambler)  [scr::sck::scramble::X_N2].get_dataptr()),
+	          ((float*)((*pl_scrambler)  [scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.PL_FRAME_SIZE), 
 	          shaping_in.data());
 
 	(*shaping_filter)[flt::tsk::filter  ].exec();
 
-	std::copy((float*)((*shaping_filter)  [flt::sck::filter  ::Y_N2 ].get_dataptr()) + (params.GRP_DELAY                       ) * params.OSF * 2, 
-	          (float*)((*shaping_filter)  [flt::sck::filter  ::Y_N2 ].get_dataptr()) + (params.GRP_DELAY + params.PL_FRAME_SIZE) * params.OSF * 2,
+	std::copy((float*)((*shaping_filter) [flt::sck::filter  ::Y_N2].get_dataptr()) + (params.GRP_DELAY                       ) * params.OSF * 2, 
+	          (float*)((*shaping_filter) [flt::sck::filter  ::Y_N2].get_dataptr()) + (params.GRP_DELAY + params.PL_FRAME_SIZE) * params.OSF * 2,
 	          shaping_cut.data());
 	
 	sink_to_matlab.push_vector(shaping_cut , true);
