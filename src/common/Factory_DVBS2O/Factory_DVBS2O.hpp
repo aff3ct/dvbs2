@@ -12,9 +12,12 @@
 
 struct Factory_DVBS2O {
 	template <typename B = int>
+	static module::Source<B>* build_source(Params_DVBS2O& params);
+	
+	template <typename B = int>
 	static module::Encoder_BCH<B>* build_bch_encoder(Params_DVBS2O& params,
 	                                                 tools::BCH_polynomial_generator<B>& poly_gen);
-
+	
 	template <typename B = int, typename Q = float>
 	static module::Decoder_BCH_std<B,Q>* build_bch_decoder(Params_DVBS2O& params,
 	                                                       tools::BCH_polynomial_generator<B>& poly_gen);
@@ -46,6 +49,10 @@ struct Factory_DVBS2O {
 
 	template <typename R = float>	
 	static module::Estimator<R>* build_estimator(Params_DVBS2O& params);
+
+	template <typename B = int>
+	static module::Monitor_BFER<B>* build_monitor(Params_DVBS2O& params);
+
 };
 
 #endif /* FACTORY_DVBS2O_HPP */

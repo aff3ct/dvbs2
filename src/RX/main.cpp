@@ -21,19 +21,19 @@ int main(int argc, char** argv)
 	tools::BCH_polynomial_generator<B> poly_gen (params.N_BCH_unshortened, 12);
 	std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
 
-	std::vector<float> matlab_input      (2 * params.PL_FRAME_SIZE);
-	std::vector<int>   matlab_output     (params.K_BCH);	
+	std::vector<float> matlab_input (2 * params.PL_FRAME_SIZE);
+	std::vector<int>   matlab_output(params.K_BCH);	
 
 	Sink sink_to_matlab    (params.mat2aff_file_name, params.aff2mat_file_name);
-	std::unique_ptr<module::Scrambler       <>> bb_scrambler  (Factory_DVBS2O::build_bb_scrambler<> (params                         ));
-	std::unique_ptr<module::Scrambler  <float>> pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<> (params                         ));
-	std::unique_ptr<module::Codec_LDPC      <>> LDPC_cdc      (Factory_DVBS2O::build_ldpc_cdc    <> (params                         ));
-	std::unique_ptr<module::Decoder_BCH_std <>> BCH_decoder   (Factory_DVBS2O::build_bch_decoder <> (params, poly_gen               ));
-	std::unique_ptr<module::Modem           <>> modulator     (Factory_DVBS2O::build_modem       <> (params, std::move(cstl)        ));
-	std::unique_ptr<tools ::Interleaver_core<>> itl_core      (Factory_DVBS2O::build_itl_core    <> (params                         ));
-	std::unique_ptr<module::Interleaver<float,uint32_t>> itl  (Factory_DVBS2O::build_itl         <float,uint32_t> (params, *itl_core));
-	std::unique_ptr<module::Estimator       <>> estimator     (Factory_DVBS2O::build_estimator   <> (params                         ));
-	std::unique_ptr<module::Framer          <>> framer        (Factory_DVBS2O::build_framer      <> (params                 ));
+	std::unique_ptr<module::Scrambler<>                > bb_scrambler  (Factory_DVBS2O::build_bb_scrambler<> (params                         ));
+	std::unique_ptr<module::Scrambler<float>           > pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<> (params                         ));
+	std::unique_ptr<module::Codec_LDPC<>               > LDPC_cdc      (Factory_DVBS2O::build_ldpc_cdc    <> (params                         ));
+	std::unique_ptr<module::Decoder_BCH_std<>          > BCH_decoder   (Factory_DVBS2O::build_bch_decoder <> (params, poly_gen               ));
+	std::unique_ptr<module::Modem<>                    > modulator     (Factory_DVBS2O::build_modem       <> (params, std::move(cstl)        ));
+	std::unique_ptr<tools ::Interleaver_core<>         > itl_core      (Factory_DVBS2O::build_itl_core    <> (params                         ));
+	std::unique_ptr<module::Interleaver<float,uint32_t>> itl           (Factory_DVBS2O::build_itl         <float,uint32_t> (params, *itl_core));
+	std::unique_ptr<module::Estimator<>                > estimator     (Factory_DVBS2O::build_estimator   <> (params                         ));
+	std::unique_ptr<module::Framer<>                   > framer        (Factory_DVBS2O::build_framer      <> (params                         ));
 	auto& LDPC_decoder    = LDPC_cdc->get_decoder_siho();
 
 	// initialization
@@ -59,13 +59,13 @@ int main(int argc, char** argv)
 		}
 
 	(*framer)      [frm::sck::remove_plh   ::Y_N1].bind(matlab_input);
-	(*estimator)   [est::sck::estimate     ::Y_N ].bind((*framer)[frm::sck::remove_plh::Y_N2]);
-	(*modulator)   [mdm::sck::demodulate_wg::H_N ].bind((*estimator)[est::sck::estimate::H_N]);
-	(*modulator)   [mdm::sck::demodulate_wg::Y_N1].bind((*framer)[frm::sck::remove_plh::Y_N2]);
-	(*itl)         [itl::sck::deinterleave ::itl ].bind((*modulator)[mdm::sck::demodulate_wg::Y_N2]);
-	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl)[itl::sck::deinterleave::nat]);
-	(*BCH_decoder) [dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho::V_K]);
-	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder)[dec::sck::decode_hiho::V_K]);
+	(*estimator)   [est::sck::estimate     ::Y_N ].bind((*framer)      [frm::sck::remove_plh   ::Y_N2]);
+	(*modulator)   [mdm::sck::demodulate_wg::H_N ].bind((*estimator)   [est::sck::estimate     ::H_N ]);
+	(*modulator)   [mdm::sck::demodulate_wg::Y_N1].bind((*framer)      [frm::sck::remove_plh   ::Y_N2]);
+	(*itl)         [itl::sck::deinterleave ::itl ].bind((*modulator)   [mdm::sck::demodulate_wg::Y_N2]);
+	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl)         [itl::sck::deinterleave ::nat ]);
+	(*BCH_decoder) [dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
+	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder) [dec::sck::decode_hiho  ::V_K ]);
 
 
 	sink_to_matlab.pull_vector(matlab_input);

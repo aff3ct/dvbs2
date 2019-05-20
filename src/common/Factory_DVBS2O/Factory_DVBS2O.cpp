@@ -4,15 +4,22 @@
 #include "../Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
 
 template <typename B>
+module::Source<B>* Factory_DVBS2O
+::build_source(Params_DVBS2O& params)
+{
+	return new module::Source_random_fast<B>(params.K_BCH);
+}
+
+template <typename B>
 module::Encoder_BCH<B>* Factory_DVBS2O
-::build_bch_encoder(Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen) 
+::build_bch_encoder(Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen)
 {
 	return new module::Encoder_BCH_DVBS2O<B>(params.K_BCH, params.N_BCH, poly_gen, 1);
 }
 
 template <typename B,typename Q>
 module::Decoder_BCH_std<B,Q>* Factory_DVBS2O
-::build_bch_decoder(Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen) 
+::build_bch_decoder(Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen)
 {
 	return new module::Decoder_BCH_DVBS2O<B,Q>(params.K_BCH, params.N_BCH, poly_gen, 1);
 }
@@ -64,7 +71,7 @@ module::Interleaver<D,T>* Factory_DVBS2O
 
 template <typename B, typename R, typename Q, tools::proto_max<Q> MAX>
 module::Modem_generic<B,R,Q,MAX>* Factory_DVBS2O
-::build_modem(Params_DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl) 
+::build_modem(Params_DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl)
 {
 	 return new module::Modem_generic<B,R,Q,MAX>(params.N_LDPC, std::move(cstl), tools::Sigma<R >(1.0), false, 1);
 }
@@ -108,6 +115,16 @@ module::Estimator<R>* Factory_DVBS2O
 }
 
 
+template <typename B>
+module::Monitor_BFER<B>* Factory_DVBS2O
+::build_monitor(Params_DVBS2O& params)
+{
+	return new module::Monitor_BFER<B>(params.K_BCH, params.MAX_FE);
+}
+
+
+
+template aff3ct::module::Source<B>*                            Factory_DVBS2O::build_source<B>             (Params_DVBS2O& params);
 template aff3ct::module::Encoder_BCH<B>*                       Factory_DVBS2O::build_bch_encoder<B>        (Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
 template aff3ct::module::Decoder_BCH_std<B>*                   Factory_DVBS2O::build_bch_decoder<B>        (Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
 template aff3ct::module::Codec_LDPC<B,Q>*                      Factory_DVBS2O::build_ldpc_cdc<B,Q>         (Params_DVBS2O& params);
@@ -120,3 +137,4 @@ template aff3ct::module::Scrambler_BB<B>*                      Factory_DVBS2O::b
 template aff3ct::module::Scrambler_PL<R>*                      Factory_DVBS2O::build_pl_scrambler<R>       (Params_DVBS2O& params);
 template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            Factory_DVBS2O::build_uprrc_filter<R>       (Params_DVBS2O& params);
 template aff3ct::module::Estimator<R>*                         Factory_DVBS2O::build_estimator<R>          (Params_DVBS2O& params);
+template aff3ct::module::Monitor_BFER<B>*                      Factory_DVBS2O::build_monitor<B>            (Params_DVBS2O& params);

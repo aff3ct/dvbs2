@@ -28,15 +28,15 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
 
 	Sink                                        sink_to_matlab(params.mat2aff_file_name, params.aff2mat_file_name);
-	std::unique_ptr<module::Scrambler       <>> bb_scrambler  (Factory_DVBS2O::build_bb_scrambler<> (params                 ));
-	std::unique_ptr<module::Encoder         <>> BCH_encoder   (Factory_DVBS2O::build_bch_encoder <> (params, poly_gen       ));
-	std::unique_ptr<module::Codec           <>> LDPC_cdc      (Factory_DVBS2O::build_ldpc_cdc    <> (params                 ));
+	std::unique_ptr<module::Scrambler<>       > bb_scrambler  (Factory_DVBS2O::build_bb_scrambler<> (params                 ));
+	std::unique_ptr<module::Encoder<>         > BCH_encoder   (Factory_DVBS2O::build_bch_encoder <> (params, poly_gen       ));
+	std::unique_ptr<module::Codec<>           > LDPC_cdc      (Factory_DVBS2O::build_ldpc_cdc    <> (params                 ));
 	std::unique_ptr<tools ::Interleaver_core<>> itl_core      (Factory_DVBS2O::build_itl_core    <> (params                 ));
-	std::unique_ptr<module::Interleaver     <>> itl           (Factory_DVBS2O::build_itl         <> (params, *itl_core      ));
-	std::unique_ptr<module::Modem           <>> modulator     (Factory_DVBS2O::build_modem       <> (params, std::move(cstl)));
-	std::unique_ptr<module::Framer          <>> framer        (Factory_DVBS2O::build_framer      <> (params                 ));
-	std::unique_ptr<module::Scrambler  <float>> pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<> (params                 ));
-    std::unique_ptr<module::Filter          <>> shaping_filter(Factory_DVBS2O::build_uprrc_filter<> (params                 ));
+	std::unique_ptr<module::Interleaver<>     > itl           (Factory_DVBS2O::build_itl         <> (params, *itl_core      ));
+	std::unique_ptr<module::Modem<>           > modulator     (Factory_DVBS2O::build_modem       <> (params, std::move(cstl)));
+	std::unique_ptr<module::Framer<>          > framer        (Factory_DVBS2O::build_framer      <> (params                 ));
+	std::unique_ptr<module::Scrambler<float>  > pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<> (params                 ));
+    std::unique_ptr<module::Filter<>          > shaping_filter(Factory_DVBS2O::build_uprrc_filter<> (params                 ));
 	
 	auto& LDPC_encoder    = LDPC_cdc->get_encoder();
 

@@ -8,6 +8,8 @@ using namespace aff3ct;
 class Params_DVBS2O
 {
 public:
+	int MAX_FE;                    // max number of frame errors per SNR point
+	int MAX_N_FRAMES;              // max number of simulated frames per SNR point
 	int K_BCH;
 	int N_BCH;
 	int N_BCH_unshortened;

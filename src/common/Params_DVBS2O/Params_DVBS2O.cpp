@@ -9,6 +9,12 @@ Params_DVBS2O(int argc, char** argv)
 	Argument_map_value arg_vals;
 	get_arguments(argc, argv, arg_vals);
 
+	// initialize max fe
+	if (arg_vals.exist({"max-fe","e"}))
+		MAX_FE = arg_vals.to_int({"max-fe","e"});
+	else
+		MAX_FE = 100;
+
 	// initialize MODCOD
 	if (arg_vals.exist({"mod-cod"}))
 		MODCOD = arg_vals.at({"mod-cod"});
@@ -99,6 +105,7 @@ get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 		// add possible argument inputs
 		auto modcod_format = tools::Text(tools::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
 		args.add({"mod-cod"}, modcod_format, "Modulation and coding scheme.");
+		args.add({"max-fe","e"}, tools::Integer(tools::Positive(), tools::Non_zero()), "Modulation and coding scheme.");
 
 		// parse user arguments
 		arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);
