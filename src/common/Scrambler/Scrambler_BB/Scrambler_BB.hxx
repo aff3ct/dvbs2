@@ -33,7 +33,7 @@ template <typename D>
 void Scrambler_BB<D>::
 init_lfsr()
 {
-	for( int i = 0; i < 14; i++ )
+	for( int i = 0; i < 15; i++ )
 		lfsr[i] = lfsr_init[i];
 };
 

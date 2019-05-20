@@ -83,9 +83,11 @@ int main(int argc, char** argv)
 	itl_core->init();
 
 	// bind
+	(*bb_scrambler)[scr::sck::scramble  ::X_N1].bind((*source )[src::sck::generate   ::U_K ]);
+	(*bb_scrambler)[scr::sck::descramble::Y_N1].bind((*bb_scrambler)[scr::sck::scramble  ::X_N2]);
 
-	(*monitor)[mnt::sck::check_errors::U   ].bind((*source )[src::sck::generate   ::U_K ]);
-	(*monitor)[mnt::sck::check_errors::V   ].bind((*source )[src::sck::generate   ::U_K ]);
+	(*monitor)     [mnt::sck::check_errors::U ].bind((*source )[src::sck::generate   ::U_K ]);
+	(*monitor)     [mnt::sck::check_errors::V ].bind((*bb_scrambler)[scr::sck::descramble::Y_N2]);
 
 
 	// // reset the memory of the decoder after the end of each communication
@@ -114,8 +116,10 @@ int main(int argc, char** argv)
 		// exec
 		while (!monitor->fe_limit_achieved() && !terminal->is_interrupt())
 		{
-			(*source )[src::tsk::generate    ].exec();
-			(*monitor)[mnt::tsk::check_errors].exec();
+			(*source )[src::tsk::generate       ].exec();
+			(*bb_scrambler)[scr::tsk::scramble  ].exec();
+			(*bb_scrambler)[scr::tsk::descramble].exec();
+			(*monitor)[mnt::tsk::check_errors   ].exec();
 		}
 
 		// display the performance (BER and FER) in the terminal
