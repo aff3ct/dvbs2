@@ -84,7 +84,10 @@ int main(int argc, char** argv)
 
 	// bind
 	(*bb_scrambler)[scr::sck::scramble  ::X_N1].bind((*source )[src::sck::generate   ::U_K ]);
-	(*bb_scrambler)[scr::sck::descramble::Y_N1].bind((*bb_scrambler)[scr::sck::scramble  ::X_N2]);
+	(*BCH_encoder) [enc::sck::encode::U_K     ].bind((*bb_scrambler)[scr::sck::scramble  ::X_N2]);
+	(*BCH_decoder) [dec::sck::decode_hiho  ::Y_N ].bind((*BCH_encoder )[enc::sck::encode    ::X_N ]);
+	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder) [dec::sck::decode_hiho  ::V_K ]);
+
 
 	(*monitor)     [mnt::sck::check_errors::U ].bind((*source )[src::sck::generate   ::U_K ]);
 	(*monitor)     [mnt::sck::check_errors::V ].bind((*bb_scrambler)[scr::sck::descramble::Y_N2]);
@@ -116,10 +119,12 @@ int main(int argc, char** argv)
 		// exec
 		while (!monitor->fe_limit_achieved() && !terminal->is_interrupt())
 		{
-			(*source )[src::tsk::generate       ].exec();
-			(*bb_scrambler)[scr::tsk::scramble  ].exec();
-			(*bb_scrambler)[scr::tsk::descramble].exec();
-			(*monitor)[mnt::tsk::check_errors   ].exec();
+			(*source )[src::tsk::generate        ].exec();
+			(*bb_scrambler)[scr::tsk::scramble   ].exec();
+			(*BCH_encoder )[enc::tsk::encode     ].exec();
+			(*BCH_decoder) [dec::tsk::decode_hiho].exec();
+			(*bb_scrambler)[scr::tsk::descramble ].exec();
+			(*monitor)[mnt::tsk::check_errors    ].exec();
 		}
 
 		// display the performance (BER and FER) in the terminal
