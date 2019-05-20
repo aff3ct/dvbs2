@@ -22,19 +22,25 @@ module::Codec_LDPC<B,Q>* Factory_DVBS2O
 ::build_ldpc_cdc(Params_DVBS2O& params) 
 {
 	factory::Codec_LDPC::parameters p_cdc;
+	auto enc_ldpc = dynamic_cast<factory::Encoder_LDPC::parameters*>(p_cdc.enc.get());
+	auto dec_ldpc = dynamic_cast<factory::Decoder_LDPC::parameters*>(p_cdc.dec.get());
 
 	// store parameters
-	p_cdc.enc->type     = "LDPC_DVBS2";
-	p_cdc.enc->N_cw     = params.N_LDPC;
-	p_cdc.enc->K        = params.N_BCH;
-	p_cdc.dec->N_cw     = p_cdc.enc->N_cw;
-	p_cdc.dec->K        = p_cdc.enc->K;
-	p_cdc.dec->n_frames = p_cdc.enc->n_frames;
-	p_cdc.enc->R        = (float)p_cdc.enc->K / (float)p_cdc.enc->N_cw;
-	p_cdc.dec->R        = (float)p_cdc.dec->K / (float)p_cdc.dec->N_cw;
-	p_cdc.K             = p_cdc.enc->K;
-	p_cdc.N_cw          = p_cdc.enc->N_cw;
-	p_cdc.N             = p_cdc.N_cw;
+	enc_ldpc->type          = "LDPC_DVBS2";
+	dec_ldpc->type          = "BP_HORIZONTAL_LAYERED";
+	dec_ldpc->simd_strategy = "INTER";
+	dec_ldpc->implem        = "MS";
+	enc_ldpc->N_cw          = params.N_LDPC;
+	enc_ldpc->K             = params.N_BCH;
+	dec_ldpc->N_cw          = p_cdc.enc->N_cw;
+	dec_ldpc->K             = p_cdc.enc->K;
+	dec_ldpc->n_frames      = p_cdc.enc->n_frames;
+	enc_ldpc->R             = (float)p_cdc.enc->K / (float)p_cdc.enc->N_cw;
+	dec_ldpc->R             = (float)p_cdc.dec->K / (float)p_cdc.dec->N_cw;
+	dec_ldpc->n_ite         = 200;
+	p_cdc.K                 = p_cdc.enc->K;
+	p_cdc.N_cw              = p_cdc.enc->N_cw;
+	p_cdc.N                 = p_cdc.N_cw;
 	// build ldpc codec
 	return p_cdc.build();
 }
