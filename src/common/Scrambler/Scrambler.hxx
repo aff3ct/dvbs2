@@ -37,7 +37,7 @@ Scrambler(const int N, const int n_frames)
 	}
 	
 	auto &p1 = this->create_task("scramble");
-	auto &p1s_X_N1 = this->template create_socket_out<D>(p1, "X_N1", this->N * this->n_frames);
+	auto &p1s_X_N1 = this->template create_socket_in <D>(p1, "X_N1", this->N * this->n_frames);
 	auto &p1s_X_N2 = this->template create_socket_out<D>(p1, "X_N2", this->N * this->n_frames);
 	this->create_codelet(p1, [this, &p1s_X_N1, &p1s_X_N2]() -> int
 	{
@@ -120,7 +120,7 @@ descramble(std::vector<D,A>& Y_N1, std::vector<D,A>& Y_N2, const int frame_id)
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->scramble(Y_N1.data(), Y_N2.data(), frame_id);
+	this->descramble(Y_N1.data(), Y_N2.data(), frame_id);
 }
 
 template <typename D>
@@ -131,7 +131,7 @@ descramble(D *Y_N1, D *Y_N2, const int frame_id)
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_scramble(Y_N1 + f * this->N, Y_N2 + f * this->N, f);
+		this->_descramble(Y_N1 + f * this->N, Y_N2 + f * this->N, f);
 }
 
 template <typename D>

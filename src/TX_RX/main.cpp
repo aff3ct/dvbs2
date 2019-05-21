@@ -95,9 +95,9 @@ int main(int argc, char** argv)
 	(*itl_tx)      [itl::sck::interleave  ::nat ].bind((*LDPC_encoder)[enc::sck::encode      ::X_N ]);
 	(*modem)       [mdm::sck::modulate    ::X_N1].bind((*itl_tx      )[itl::sck::interleave  ::itl ]);
 	(*framer      )[frm::sck::generate    ::Y_N1].bind((*modem       )[mdm::sck::modulate    ::X_N2]);
-	// (*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
-	// (*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
-	(*framer)      [frm::sck::remove_plh  ::Y_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
+	(*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
+	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
+	(*framer)      [frm::sck::remove_plh  ::Y_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
 	(*modem)       [mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
 	(*itl_rx)      [itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
 	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
@@ -141,8 +141,8 @@ int main(int argc, char** argv)
 			(*itl_tx      )[itl::tsk::interleave  ].exec();
 			(*modem       )[mdm::tsk::modulate    ].exec();
 			(*framer      )[frm::tsk::generate    ].exec();
-			// (*pl_scrambler)[scr::tsk::scramble    ].exec();
-			// (*pl_scrambler)[scr::tsk::descramble  ].exec();
+			(*pl_scrambler)[scr::tsk::scramble    ].exec();
+			(*pl_scrambler)[scr::tsk::descramble  ].exec();
 			(*framer)      [frm::tsk::remove_plh  ].exec();
 			(*modem       )[mdm::tsk::demodulate  ].exec();
 			(*itl_rx      )[itl::tsk::deinterleave].exec();

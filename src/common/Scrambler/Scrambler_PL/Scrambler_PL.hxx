@@ -57,7 +57,7 @@ __scramble(D *X_N1, D *X_N2, bool scr_flag, const int frame_id)
 		int R_lsb     = this->PL_RAND_SEQ[i] % 2;
 		int R_msb     = this->PL_RAND_SEQ[i] / 2;
 		int R_real    = (1 - R_lsb) * (-2 * R_msb +1); // real part
-		int R_imag    = R_lsb * (-2 * R_msb +1); // imag part
+		int R_imag    = R_lsb       * (-2 * R_msb +1); // imag part
 		R_imag        = (2 * scr_flag -1) * R_imag; // conjugate if scr_flag == false, i.e. descrambling
 		float D_real  = X_N1[2 * i];
 		float D_imag  = X_N1[2 * i +1];
