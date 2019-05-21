@@ -10,21 +10,25 @@ Params_DVBS2O(int argc, char** argv)
 	get_arguments(argc, argv, arg_vals);
 
 	// initialize max fe
-	if (arg_vals.exist({"--sim-noise-min","m"}))
+	if (arg_vals.exist({"sim-noise-min","m"}))
 		ebn0_min = arg_vals.to_float({"--sim-noise-min","m"});
 	else
 		ebn0_min = 3.2f;
 		// initialize max fe
-	if (arg_vals.exist({"--sim-noise-max","M"}))
+	if (arg_vals.exist({"sim-noise-max","M"}))
 		ebn0_max = arg_vals.to_float({"--sim-noise-min","M"});
 	else
 		ebn0_max = 6.f;
 		// initialize max fe
-	if (arg_vals.exist({"--sim-noise-step","s"}))
+	if (arg_vals.exist({"sim-noise-step","s"}))
 		ebn0_step = arg_vals.to_float({"--sim-noise-step","s"});
 	else
 		ebn0_step = .1f;
 
+	if (arg_vals.exist({"sim-stats"}))
+		stats = true;
+	else
+		stats = false;
 
 	// initialize max fe
 	if (arg_vals.exist({"max-fe","e"}))
@@ -123,9 +127,10 @@ get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 		auto modcod_format = tools::Text(tools::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
 		args.add({"mod-cod"}, modcod_format, "Modulation and coding scheme.");
 		args.add({"max-fe","e"}, tools::Integer(tools::Positive(), tools::Non_zero()), "Modulation and coding scheme.");
-		args.add({"--sim-noise-min","m"}, tools::Real(),  "Min Eb/N0");
-		args.add({"--sim-noise-min","M"}, tools::Real(),  "Max Eb/N0");
-		args.add({"--sim-noise-step","s"}, tools::Real(), "Step Eb/N0");
+		args.add({"sim-noise-min","m"}, tools::Real(),  "Min Eb/N0");
+		args.add({"sim-noise-min","M"}, tools::Real(),  "Max Eb/N0");
+		args.add({"sim-noise-step","s"}, tools::Real(), "Step Eb/N0");
+		args.add({"sim-stats"}, tools::None(), "Con ta mère");
 
 		// parse user arguments
 		arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);

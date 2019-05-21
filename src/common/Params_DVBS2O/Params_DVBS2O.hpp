@@ -11,6 +11,7 @@ public:
 	float ebn0_min;
 	float ebn0_max;
 	float ebn0_step;
+	bool stats;
 	int MAX_FE;                    // max number of frame errors per SNR point
 	int MAX_N_FRAMES;              // max number of simulated frames per SNR point
 	int K_BCH;

@@ -19,9 +19,9 @@ int main(int argc, char** argv)
 	auto params = Params_DVBS2O(argc, argv);
 
 	// buffers to store the data
-	std::vector<int>   scrambler_in      (params.K_BCH);
-	std::vector<float> shaping_in        ((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2, 0.0f);
-	std::vector<float> shaping_cut       (params.PL_FRAME_SIZE * 2 * params.OSF);
+	std::vector<int>   scrambler_in(params.K_BCH);
+	std::vector<float> shaping_in  ((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2, 0.0f);
+	std::vector<float> shaping_cut (params.PL_FRAME_SIZE * 2 * params.OSF);
 
 	// construct modules
 	tools::BCH_polynomial_generator<B> poly_gen (params.N_BCH_unshortened, 12);
@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Codec<>           > LDPC_cdc      (Factory_DVBS2O::build_ldpc_cdc    <> (params                 ));
 	std::unique_ptr<tools ::Interleaver_core<>> itl_core      (Factory_DVBS2O::build_itl_core    <> (params                 ));
 	std::unique_ptr<module::Interleaver<>     > itl           (Factory_DVBS2O::build_itl         <> (params, *itl_core      ));
-	std::unique_ptr<module::Modem<>           > modem     (Factory_DVBS2O::build_modem       <> (params, std::move(cstl)));
+	std::unique_ptr<module::Modem<>           > modem         (Factory_DVBS2O::build_modem       <> (params, std::move(cstl)));
 	std::unique_ptr<module::Framer<>          > framer        (Factory_DVBS2O::build_framer      <> (params                 ));
 	std::unique_ptr<module::Scrambler<float>  > pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<> (params                 ));
     std::unique_ptr<module::Filter<>          > shaping_filter(Factory_DVBS2O::build_uprrc_filter<> (params                 ));
@@ -63,14 +63,14 @@ int main(int argc, char** argv)
 		}
 
 	// execution
-	(*bb_scrambler  )[scr::sck::scramble::X_N1 ].bind(scrambler_in);
-	(*BCH_encoder   )[enc::sck::encode::U_K    ].bind((*bb_scrambler)[scr::sck::scramble  ::X_N2]);
-	(*LDPC_encoder  )[enc::sck::encode::U_K    ].bind((*BCH_encoder )[enc::sck::encode    ::X_N ]);
-	(*itl           )[itl::sck::interleave::nat].bind((*LDPC_encoder)[enc::sck::encode    ::X_N ]);
-	(*modem         )[mdm::sck::modulate::X_N1 ].bind((*itl         )[itl::sck::interleave::itl ]);
-	(*framer        )[frm::sck::generate::Y_N1 ].bind((*modem       )[mdm::sck::modulate  ::X_N2]);
-	(*pl_scrambler  )[scr::sck::scramble::X_N1 ].bind((*framer      )[frm::sck::generate  ::Y_N2]);
-	(*shaping_filter)[flt::sck::filter  ::X_N1 ].bind(shaping_in);
+	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind(scrambler_in);
+	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler)[scr::sck::scramble  ::X_N2]);
+	(*LDPC_encoder  )[enc::sck::encode    ::U_K ].bind((*BCH_encoder )[enc::sck::encode    ::X_N ]);
+	(*itl           )[itl::sck::interleave::nat ].bind((*LDPC_encoder)[enc::sck::encode    ::X_N ]);
+	(*modem         )[mdm::sck::modulate  ::X_N1].bind((*itl         )[itl::sck::interleave::itl ]);
+	(*framer        )[frm::sck::generate  ::Y_N1].bind((*modem       )[mdm::sck::modulate  ::X_N2]);
+	(*pl_scrambler  )[scr::sck::scramble  ::X_N1].bind((*framer      )[frm::sck::generate  ::Y_N2]);
+	(*shaping_filter)[flt::sck::filter    ::X_N1].bind(shaping_in);
 
 	sink_to_matlab.pull_vector(scrambler_in);
 	(*bb_scrambler)[scr::tsk::scramble  ].exec();
@@ -81,14 +81,14 @@ int main(int argc, char** argv)
 	(*framer      )[frm::tsk::generate  ].exec();
 	(*pl_scrambler)[scr::tsk::scramble  ].exec();
 
-	std::copy( (float*)((*pl_scrambler)  [scr::sck::scramble::X_N2].get_dataptr()),
-	          ((float*)((*pl_scrambler)  [scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.PL_FRAME_SIZE), 
+	std::copy( (float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr()),
+	          ((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.PL_FRAME_SIZE), 
 	          shaping_in.data());
 
 	(*shaping_filter)[flt::tsk::filter  ].exec();
 
-	std::copy((float*)((*shaping_filter) [flt::sck::filter  ::Y_N2].get_dataptr()) + (params.GRP_DELAY                       ) * params.OSF * 2, 
-	          (float*)((*shaping_filter) [flt::sck::filter  ::Y_N2].get_dataptr()) + (params.GRP_DELAY + params.PL_FRAME_SIZE) * params.OSF * 2,
+	std::copy((float*)((*shaping_filter)[flt::sck::filter::Y_N2].get_dataptr()) + (params.GRP_DELAY                       ) * params.OSF * 2, 
+	          (float*)((*shaping_filter)[flt::sck::filter::Y_N2].get_dataptr()) + (params.GRP_DELAY + params.PL_FRAME_SIZE) * params.OSF * 2,
 	          shaping_cut.data());
 	
 	sink_to_matlab.push_vector(shaping_cut , true);
