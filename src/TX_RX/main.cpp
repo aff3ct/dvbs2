@@ -14,9 +14,6 @@
 
 using namespace aff3ct;
 
-constexpr float ebn0_min  =  3.2f;
-constexpr float ebn0_max  =  4.5f;
-constexpr float ebn0_step =  .1f;
 
 int main(int argc, char** argv)
 {
@@ -121,7 +118,7 @@ int main(int argc, char** argv)
 	// a loop over the various SNRs
 	const float R = (float)params.K_BCH / (float)params.N_LDPC; // compute the code rate
 
-	for (auto ebn0 = ebn0_min; ebn0 < ebn0_max; ebn0 += ebn0_step)
+	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
 	{
 		// compute the current sigma for the channel noise
 		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.BPS);
