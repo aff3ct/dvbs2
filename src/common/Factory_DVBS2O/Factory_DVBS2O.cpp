@@ -44,7 +44,7 @@ module::Codec_LDPC<B,Q>* Factory_DVBS2O
 	dec_ldpc->n_frames      = p_cdc.enc->n_frames;
 	enc_ldpc->R             = (float)p_cdc.enc->K / (float)p_cdc.enc->N_cw;
 	dec_ldpc->R             = (float)p_cdc.dec->K / (float)p_cdc.dec->N_cw;
-	dec_ldpc->n_ite         = 200;
+	dec_ldpc->n_ite         = 30;
 	p_cdc.K                 = p_cdc.enc->K;
 	p_cdc.N_cw              = p_cdc.enc->N_cw;
 	p_cdc.N                 = p_cdc.N_cw;
@@ -114,7 +114,6 @@ module::Estimator<R>* Factory_DVBS2O
 	return new module::Estimator<R>(2 * params.N_XFEC_FRAME);
 }
 
-
 template <typename B>
 module::Monitor_BFER<B>* Factory_DVBS2O
 ::build_monitor(Params_DVBS2O& params)
@@ -122,7 +121,14 @@ module::Monitor_BFER<B>* Factory_DVBS2O
 	return new module::Monitor_BFER<B>(params.K_BCH, params.MAX_FE);
 }
 
-
+template <typename R>
+module::Channel<R>* Factory_DVBS2O
+::build_channel(Params_DVBS2O& params)
+{
+	std::unique_ptr<tools::Gaussian_noise_generator<R>> n = nullptr;
+	n.reset(new tools::Gaussian_noise_generator_fast<R>());
+	return new module::Channel_AWGN_LLR<R>(2*params.PL_FRAME_SIZE, std::move(n));
+}
 
 template aff3ct::module::Source<B>*                            Factory_DVBS2O::build_source<B>             (Params_DVBS2O& params);
 template aff3ct::module::Encoder_BCH<B>*                       Factory_DVBS2O::build_bch_encoder<B>        (Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
@@ -138,3 +144,4 @@ template aff3ct::module::Scrambler_PL<R>*                      Factory_DVBS2O::b
 template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            Factory_DVBS2O::build_uprrc_filter<R>       (Params_DVBS2O& params);
 template aff3ct::module::Estimator<R>*                         Factory_DVBS2O::build_estimator<R>          (Params_DVBS2O& params);
 template aff3ct::module::Monitor_BFER<B>*                      Factory_DVBS2O::build_monitor<B>            (Params_DVBS2O& params);
+template aff3ct::module::Channel<R>*                           Factory_DVBS2O::build_channel<R>            (Params_DVBS2O& params);

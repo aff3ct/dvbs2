@@ -35,6 +35,10 @@ struct Factory_DVBS2O {
 	template <typename B = int, typename R = float, typename Q = R, tools::proto_max<Q> MAX = tools::max_star>
 	static module::Modem_generic<B,R,Q,MAX>* build_modem(Params_DVBS2O& params,
 	                                                     std::unique_ptr<tools::Constellation<R>> cstl);
+
+	template <typename R = float>
+	static module::Channel<R>* build_channel(Params_DVBS2O& params);
+
 	template <typename R = float>
 	static module::Framer<R>* build_framer(Params_DVBS2O& params);
 

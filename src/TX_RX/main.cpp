@@ -14,8 +14,9 @@
 
 using namespace aff3ct;
 
-constexpr float ebn0_min =  15.8f;
-constexpr float ebn0_max = 16.f;
+constexpr float ebn0_min  =  3.2f;
+constexpr float ebn0_max  =  4.5f;
+constexpr float ebn0_step =  .1f;
 
 int main(int argc, char** argv)
 {
@@ -35,12 +36,17 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Interleaver<>              > itl_tx      (Factory_DVBS2O::build_itl         <>               (params, *itl_core      ));
 	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (Factory_DVBS2O::build_itl         <float,uint32_t> (params, *itl_core));
 	std::unique_ptr<module::Modem<>                    > modem       (Factory_DVBS2O::build_modem       <>               (params, std::move(cstl)));
+	std::unique_ptr<module::Channel<>                  > channel     (Factory_DVBS2O::build_channel     <>               (params                 ));
 	std::unique_ptr<module::Framer<>                   > framer      (Factory_DVBS2O::build_framer      <>               (params                 ));
 	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(Factory_DVBS2O::build_pl_scrambler<>               (params                 ));
-	std::unique_ptr<module::Monitor_BFER<B>            > monitor     (Factory_DVBS2O::build_monitor      <>              (params                 ));
+	std::unique_ptr<module::Monitor_BFER<B>            > monitor     (Factory_DVBS2O::build_monitor     <>               (params                 ));
 
 	auto& LDPC_encoder    = LDPC_cdc->get_encoder();
 	auto& LDPC_decoder    = LDPC_cdc->get_decoder_siho();
+	LDPC_encoder->set_short_name("LDPC Encoder");
+	LDPC_decoder->set_short_name("LDPC Decoder");
+	BCH_encoder ->set_short_name("BCH Encoder" );
+	BCH_decoder ->set_short_name("BCH Decoder" );
 
 	// create reporters to display results in the terminal
 	std::vector<tools::Reporter*> reporters =
@@ -64,7 +70,7 @@ int main(int argc, char** argv)
 	std::vector<const module::Module*> modules = {bb_scrambler.get(), BCH_encoder.get(), BCH_decoder.get(),
 	                                              LDPC_encoder.get(), LDPC_decoder.get(), itl_tx.get(), itl_rx.get(),
 	                                              modem.get(), framer.get(), pl_scrambler.get(), source.get(),
-	                                              monitor.get()};
+	                                              monitor.get(), channel.get()};
 	for (auto& m : modules)
 		for (auto& t : m->tasks)
 		{
@@ -96,7 +102,8 @@ int main(int argc, char** argv)
 	(*modem)       [mdm::sck::modulate    ::X_N1].bind((*itl_tx      )[itl::sck::interleave  ::itl ]);
 	(*framer      )[frm::sck::generate    ::Y_N1].bind((*modem       )[mdm::sck::modulate    ::X_N2]);
 	(*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
-	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
+	(*channel     )[chn::sck::add_noise   ::X_N ].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
+	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*channel     )[chn::sck::add_noise   ::Y_N ]);
 	(*framer)      [frm::sck::remove_plh  ::Y_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
 	(*modem)       [mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
 	(*itl_rx)      [itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
@@ -111,14 +118,13 @@ int main(int argc, char** argv)
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 	// monitor->add_handler_check(std::bind(&module::Decoder::reset, BCH_decoder));
 
-
-
 	// a loop over the various SNRs
 	const float R = (float)params.K_BCH / (float)params.N_LDPC; // compute the code rate
-	for (auto ebn0 = ebn0_min; ebn0 < ebn0_max; ebn0 += 1.f)
+
+	for (auto ebn0 = ebn0_min; ebn0 < ebn0_max; ebn0 += ebn0_step)
 	{
 		// compute the current sigma for the channel noise
-		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R);
+		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.BPS);
 		const auto sigma = tools::esn0_to_sigma(esn0   );
 
 		noise.set_noise(sigma, ebn0, esn0);
@@ -126,7 +132,7 @@ int main(int argc, char** argv)
 		// update the sigma of the modem and the channel
 		LDPC_cdc->set_noise(noise);
 		modem   ->set_noise(noise);
-		// channel->set_noise(noise);
+		channel ->set_noise(noise);
 
 		// display the performance (BER and FER) in real time (in a separate thread)
 		terminal->start_temp_report();
@@ -142,6 +148,7 @@ int main(int argc, char** argv)
 			(*modem       )[mdm::tsk::modulate    ].exec();
 			(*framer      )[frm::tsk::generate    ].exec();
 			(*pl_scrambler)[scr::tsk::scramble    ].exec();
+			(*channel     )[chn::tsk::add_noise   ].exec();
 			(*pl_scrambler)[scr::tsk::descramble  ].exec();
 			(*framer)      [frm::tsk::remove_plh  ].exec();
 			(*modem       )[mdm::tsk::demodulate  ].exec();
