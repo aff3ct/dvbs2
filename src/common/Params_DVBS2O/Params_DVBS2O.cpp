@@ -11,17 +11,17 @@ Params_DVBS2O(int argc, char** argv)
 
 	// initialize max fe
 	if (arg_vals.exist({"sim-noise-min","m"}))
-		ebn0_min = arg_vals.to_float({"--sim-noise-min","m"});
+		ebn0_min = arg_vals.to_float({"sim-noise-min","m"});
 	else
 		ebn0_min = 3.2f;
 		// initialize max fe
 	if (arg_vals.exist({"sim-noise-max","M"}))
-		ebn0_max = arg_vals.to_float({"--sim-noise-min","M"});
+		ebn0_max = arg_vals.to_float({"sim-noise-min","M"});
 	else
 		ebn0_max = 6.f;
 		// initialize max fe
 	if (arg_vals.exist({"sim-noise-step","s"}))
-		ebn0_step = arg_vals.to_float({"--sim-noise-step","s"});
+		ebn0_step = arg_vals.to_float({"sim-noise-step","s"});
 	else
 		ebn0_step = .1f;
 
