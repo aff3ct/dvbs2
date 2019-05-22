@@ -17,25 +17,26 @@ int main(int argc, char** argv)
 {
 	auto params = Params_DVBS2O(argc, argv);
 
-	// buffers to store the data
+	// buffers to load/store the data
 	std::vector<int>   scrambler_in(params.K_BCH);
 	std::vector<float> shaping_in  ((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2, 0.0f);
 	std::vector<float> shaping_cut (params.PL_FRAME_SIZE * 2 * params.OSF);
 
-	// construct modules
+	// construct tools
 	tools::BCH_polynomial_generator<B> poly_gen (params.N_BCH_unshortened, 12);
 	std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
+	Sink sink_to_matlab(params.mat2aff_file_name, params.aff2mat_file_name);
 
-	Sink                                        sink_to_matlab(params.mat2aff_file_name, params.aff2mat_file_name);
-	std::unique_ptr<module::Scrambler<>       > bb_scrambler  (Factory_DVBS2O::build_bb_scrambler<> (params                 ));
-	std::unique_ptr<module::Encoder<>         > BCH_encoder   (Factory_DVBS2O::build_bch_encoder <> (params, poly_gen       ));
-	std::unique_ptr<module::Codec<>           > LDPC_cdc      (Factory_DVBS2O::build_ldpc_cdc    <> (params                 ));
-	std::unique_ptr<tools ::Interleaver_core<>> itl_core      (Factory_DVBS2O::build_itl_core    <> (params                 ));
-	std::unique_ptr<module::Interleaver<>     > itl           (Factory_DVBS2O::build_itl         <> (params, *itl_core      ));
-	std::unique_ptr<module::Modem<>           > modem         (Factory_DVBS2O::build_modem       <> (params, std::move(cstl)));
-	std::unique_ptr<module::Framer<>          > framer        (Factory_DVBS2O::build_framer      <> (params                 ));
-	std::unique_ptr<module::Scrambler<float>  > pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<> (params                 ));
-	std::unique_ptr<module::Filter<>          > shaping_filter(Factory_DVBS2O::build_uprrc_filter<> (params                 ));
+	// construct modules
+	std::unique_ptr<module::Scrambler<>       > bb_scrambler  (Factory_DVBS2O::build_bb_scrambler<>(params                 ));
+	std::unique_ptr<module::Encoder<>         > BCH_encoder   (Factory_DVBS2O::build_bch_encoder <>(params, poly_gen       ));
+	std::unique_ptr<module::Codec<>           > LDPC_cdc      (Factory_DVBS2O::build_ldpc_cdc    <>(params                 ));
+	std::unique_ptr<tools ::Interleaver_core<>> itl_core      (Factory_DVBS2O::build_itl_core    <>(params                 ));
+	std::unique_ptr<module::Interleaver<>     > itl           (Factory_DVBS2O::build_itl         <>(params, *itl_core      ));
+	std::unique_ptr<module::Modem<>           > modem         (Factory_DVBS2O::build_modem       <>(params, std::move(cstl)));
+	std::unique_ptr<module::Framer<>          > framer        (Factory_DVBS2O::build_framer      <>(params                 ));
+	std::unique_ptr<module::Scrambler<float>  > pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<>(params                 ));
+	std::unique_ptr<module::Filter<>          > shaping_filter(Factory_DVBS2O::build_uprrc_filter<>(params                 ));
 
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 
@@ -71,8 +72,9 @@ int main(int argc, char** argv)
 	(*pl_scrambler  )[scr::sck::scramble  ::X_N1].bind((*framer      )[frm::sck::generate  ::Y_N2]);
 	(*shaping_filter)[flt::sck::filter    ::X_N1].bind(shaping_in);
 
-	// tasks execution
 	sink_to_matlab.pull_vector(scrambler_in);
+
+	// tasks execution
 	(*bb_scrambler)[scr::tsk::scramble  ].exec();
 	(*BCH_encoder )[enc::tsk::encode    ].exec();
 	(*LDPC_encoder)[enc::tsk::encode    ].exec();
