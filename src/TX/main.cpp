@@ -11,7 +11,6 @@
 #include "Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "Sink/Sink.hpp"
 
-
 using namespace aff3ct;
 
 int main(int argc, char** argv)
@@ -36,19 +35,17 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Modem<>           > modem         (Factory_DVBS2O::build_modem       <> (params, std::move(cstl)));
 	std::unique_ptr<module::Framer<>          > framer        (Factory_DVBS2O::build_framer      <> (params                 ));
 	std::unique_ptr<module::Scrambler<float>  > pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<> (params                 ));
-    std::unique_ptr<module::Filter<>          > shaping_filter(Factory_DVBS2O::build_uprrc_filter<> (params                 ));
-	
-	auto& LDPC_encoder    = LDPC_cdc->get_encoder();
+	std::unique_ptr<module::Filter<>          > shaping_filter(Factory_DVBS2O::build_uprrc_filter<> (params                 ));
+
+	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 
 	// initialization
 	poly_gen.set_g(params.BCH_gen_poly);
 	itl_core->init();
 
-	using namespace module;
 	// configuration of the module tasks
 	std::vector<const module::Module*> modules = {bb_scrambler.get(), BCH_encoder.get(), LDPC_encoder.get(), itl.get(),
-	                                              modem.get(), framer.get(), pl_scrambler.get(), 
-	                                              shaping_filter.get()};
+	                                              modem.get(), framer.get(), pl_scrambler.get(), shaping_filter.get()};
 	for (auto& m : modules)
 		for (auto& t : m->tasks)
 		{
@@ -62,7 +59,9 @@ int main(int argc, char** argv)
 			t->set_fast(!t->is_debug() && !t->is_stats());
 		}
 
-	// execution
+	using namespace module;
+
+	// socket binding
 	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind(scrambler_in);
 	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler)[scr::sck::scramble  ::X_N2]);
 	(*LDPC_encoder  )[enc::sck::encode    ::U_K ].bind((*BCH_encoder )[enc::sck::encode    ::X_N ]);
@@ -72,6 +71,7 @@ int main(int argc, char** argv)
 	(*pl_scrambler  )[scr::sck::scramble  ::X_N1].bind((*framer      )[frm::sck::generate  ::Y_N2]);
 	(*shaping_filter)[flt::sck::filter    ::X_N1].bind(shaping_in);
 
+	// tasks execution
 	sink_to_matlab.pull_vector(scrambler_in);
 	(*bb_scrambler)[scr::tsk::scramble  ].exec();
 	(*BCH_encoder )[enc::tsk::encode    ].exec();
@@ -82,15 +82,15 @@ int main(int argc, char** argv)
 	(*pl_scrambler)[scr::tsk::scramble  ].exec();
 
 	std::copy( (float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr()),
-	          ((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.PL_FRAME_SIZE), 
+	          ((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.PL_FRAME_SIZE),
 	          shaping_in.data());
 
 	(*shaping_filter)[flt::tsk::filter  ].exec();
 
-	std::copy((float*)((*shaping_filter)[flt::sck::filter::Y_N2].get_dataptr()) + (params.GRP_DELAY                       ) * params.OSF * 2, 
+	std::copy((float*)((*shaping_filter)[flt::sck::filter::Y_N2].get_dataptr()) + (params.GRP_DELAY                       ) * params.OSF * 2,
 	          (float*)((*shaping_filter)[flt::sck::filter::Y_N2].get_dataptr()) + (params.GRP_DELAY + params.PL_FRAME_SIZE) * params.OSF * 2,
 	          shaping_cut.data());
-	
+
 	sink_to_matlab.push_vector(shaping_cut , true);
 
 	return 0;

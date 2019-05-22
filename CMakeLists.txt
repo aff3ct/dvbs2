@@ -43,6 +43,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/)
 
 # Link with AFF3CT
 target_link_libraries(dvbs2_optique_common PRIVATE aff3ct-static-lib)
-target_link_libraries(dvbs2_optique_tx     PRIVATE aff3ct-static-lib)
-target_link_libraries(dvbs2_optique_rx     PRIVATE aff3ct-static-lib)
-target_link_libraries(dvbs2_optique_tx_rx     PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_tx PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_rx PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_tx_rx PRIVATE aff3ct-static-lib)
