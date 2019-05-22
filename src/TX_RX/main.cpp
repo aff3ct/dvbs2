@@ -13,38 +13,59 @@
 
 using namespace aff3ct;
 
+constexpr size_t n_threads = 1;
+
 int main(int argc, char** argv)
 {
 	auto params = Params_DVBS2O(argc, argv);
 
-	// construct tools
-	std::unique_ptr<tools::Constellation           <R>> cstl    (new tools::Constellation_user<R>(params.constellation_file));
-	std::unique_ptr<tools::Interleaver_core        < >> itl_core(Factory_DVBS2O::build_itl_core<>(params                   ));
-	                tools::BCH_polynomial_generator<B > poly_gen(params.N_BCH_unshortened, 12                               );
-	                tools::Sigma                   <  > noise;
+	std::vector<std::unique_ptr<module::Source<>                   >> source      (n_threads);
+	std::vector<std::unique_ptr<module::Scrambler<>                >> bb_scrambler(n_threads);
+	std::vector<std::unique_ptr<module::Encoder<>                  >> BCH_encoder (n_threads);
+	std::vector<std::unique_ptr<module::Decoder_HIHO<>             >> BCH_decoder (n_threads);
+	std::vector<std::unique_ptr<module::Codec_SIHO<>               >> LDPC_cdc    (n_threads);
+	std::vector<std::unique_ptr<module::Encoder<>                  >> LDPC_encoder(n_threads);
+	std::vector<std::unique_ptr<module::Decoder_SIHO<>             >> LDPC_decoder(n_threads);
+	std::vector<std::unique_ptr<module::Interleaver<>              >> itl_tx      (n_threads);
+	std::vector<std::unique_ptr<module::Interleaver<float,uint32_t>>> itl_rx      (n_threads);
+	std::vector<std::unique_ptr<module::Modem<>                    >> modem       (n_threads);
+	std::vector<std::unique_ptr<module::Channel<>                  >> channel     (n_threads);
+	std::vector<std::unique_ptr<module::Framer<>                   >> framer      (n_threads);
+	std::vector<std::unique_ptr<module::Scrambler<float>           >> pl_scrambler(n_threads);
+	std::vector<std::unique_ptr<module::Monitor_BFER<B>            >> monitor     (n_threads);
 
-	// construct modules
-	std::unique_ptr<module::Source<>                   > source      (Factory_DVBS2O::build_source           <>(params                 ));
-	std::unique_ptr<module::Scrambler<>                > bb_scrambler(Factory_DVBS2O::build_bb_scrambler     <>(params                 ));
-	std::unique_ptr<module::Encoder<>                  > BCH_encoder (Factory_DVBS2O::build_bch_encoder      <>(params, poly_gen       ));
-	std::unique_ptr<module::Decoder_HIHO<>             > BCH_decoder (Factory_DVBS2O::build_bch_decoder      <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec_SIHO<>               > LDPC_cdc    (Factory_DVBS2O::build_ldpc_cdc         <>(params                 ));
-	std::unique_ptr<module::Interleaver<>              > itl_tx      (Factory_DVBS2O::build_itl              <>(params, *itl_core      ));
-	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (Factory_DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
-	std::unique_ptr<module::Modem<>                    > modem       (Factory_DVBS2O::build_modem            <>(params, std::move(cstl)));
-	std::unique_ptr<module::Channel<>                  > channel     (Factory_DVBS2O::build_channel          <>(params                 ));
-	std::unique_ptr<module::Framer<>                   > framer      (Factory_DVBS2O::build_framer           <>(params                 ));
-	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(Factory_DVBS2O::build_pl_scrambler     <>(params                 ));
-	std::unique_ptr<module::Monitor_BFER<B>            > monitor     (Factory_DVBS2O::build_monitor          <>(params                 ));
+	std::unique_ptr<tools::Interleaver_core        < >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
+	                tools::BCH_polynomial_generator<B > poly_gen(params.N_BCH_unshortened, 12            );
 
-	auto& LDPC_encoder = LDPC_cdc->get_encoder();
-	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
-	LDPC_encoder->set_short_name("LDPC Encoder");
-	LDPC_decoder->set_short_name("LDPC Decoder");
-	BCH_encoder ->set_short_name("BCH Encoder" );
-	BCH_decoder ->set_short_name("BCH Decoder" );
+	for (size_t t = 0; t < n_threads; t++)
+	{
+		// construct tools
+		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
+
+		// construct modules
+		source      [t] = std::unique_ptr<module::Source<>                   (Factory_DVBS2O::build_source           <>(params                 ));
+		bb_scrambler[t] = std::unique_ptr<module::Scrambler<>                (Factory_DVBS2O::build_bb_scrambler     <>(params                 ));
+		BCH_encoder [t] = std::unique_ptr<module::Encoder<>                  (Factory_DVBS2O::build_bch_encoder      <>(params, poly_gen       ));
+		BCH_decoder [t] = std::unique_ptr<module::Decoder_HIHO<>             (Factory_DVBS2O::build_bch_decoder      <>(params, poly_gen       ));
+		LDPC_cdc    [t] = std::unique_ptr<module::Codec_SIHO<>               (Factory_DVBS2O::build_ldpc_cdc         <>(params                 ));
+		itl_tx      [t] = std::unique_ptr<module::Interleaver<>              (Factory_DVBS2O::build_itl              <>(params, *itl_core      ));
+		itl_rx      [t] = std::unique_ptr<module::Interleaver<float,uint32_t>(Factory_DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
+		modem       [t] = std::unique_ptr<module::Modem<>                    (Factory_DVBS2O::build_modem            <>(params, std::move(cstl)));
+		channel     [t] = std::unique_ptr<module::Channel<>                  (Factory_DVBS2O::build_channel          <>(params                 ));
+		framer      [t] = std::unique_ptr<module::Framer<>                   (Factory_DVBS2O::build_framer           <>(params                 ));
+		pl_scrambler[t] = std::unique_ptr<module::Scrambler<float>           (Factory_DVBS2O::build_pl_scrambler     <>(params                 ));
+		monitor     [t] = std::unique_ptr<module::Monitor_BFER<B>            (Factory_DVBS2O::build_monitor          <>(params                 ));
+
+		LDPC_encoder[t] = LDPC_cdc[t]->get_encoder();
+		LDPC_decoder[t] = LDPC_cdc[t]->get_decoder_siho();
+		LDPC_encoder[t]->set_short_name("LDPC Encoder");
+		LDPC_decoder[t]->set_short_name("LDPC Decoder");
+		BCH_encoder [t]->set_short_name("BCH Encoder" );
+		BCH_decoder [t]->set_short_name("BCH Decoder" );
+	}
 
 	// create reporters to display results in the terminal
+	tools::Sigma<> noise;
 	std::vector<tools::Reporter*> reporters =
 	{
 		new tools::Reporter_noise     <>(noise   ), // report the noise values (Es/N0 and Eb/N0)
@@ -61,23 +82,27 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
-	// configuration of the module tasks
-	std::vector<const module::Module*> modules = {bb_scrambler.get(), BCH_encoder.get(), BCH_decoder.get(),
-	                                              LDPC_encoder.get(), LDPC_decoder.get(), itl_tx.get(), itl_rx.get(),
-	                                              modem.get(), framer.get(), pl_scrambler.get(), source.get(),
-	                                              monitor.get(), channel.get()};
-	for (auto& m : modules)
-		for (auto& t : m->tasks)
-		{
-			t->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
-			t->set_autoexec   (false       ); // disable the auto execution mode of the tasks
-			t->set_debug      (false       ); // disable the debug mode
-			t->set_debug_limit(16          ); // display only the 16 first bits if the debug mode is enabled
-			t->set_stats      (params.stats); // enable the statistics
+	for (size_t t = 0; t < n_threads; t++)
+	{
+		// configuration of the module tasks
+		std::vector<const module::Module*> modules = {bb_scrambler[t].get(), BCH_encoder[t].get(), BCH_decoder[t].get(),
+		                                              LDPC_encoder[t].get(), LDPC_decoder[t].get(), itl_tx[t].get(),
+		                                              itl_rx[t].get(), modem[t].get(), framer[t].get(),
+		                                              pl_scrambler[t].get(), source[t].get(), monitor[t].get(),
+		                                              channel[t].get()};
+		for (auto& m : modules)
+			for (auto& ta : m->tasks)
+			{
+				ta->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
+				ta->set_autoexec   (false       ); // disable the auto execution mode of the tasks
+				ta->set_debug      (false       ); // disable the debug mode
+				ta->set_debug_limit(16          ); // display only the 16 first bits if the debug mode is enabled
+				ta->set_stats      (params.stats); // enable the statistics
 
-			// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
-			t->set_fast(!t->is_debug() && !t->is_stats());
-		}
+				// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
+				ta->set_fast(!ta->is_debug() && !ta->is_stats());
+			}
+	}
 
 	// initialization
 	poly_gen.set_g(params.BCH_gen_poly);
@@ -85,28 +110,31 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
-	// socket binding
-	(*bb_scrambler)[scr::sck::scramble    ::X_N1].bind((*source      )[src::sck::generate    ::U_K ]);
-	(*BCH_encoder )[enc::sck::encode      ::U_K ].bind((*bb_scrambler)[scr::sck::scramble    ::X_N2]);
-	(*LDPC_encoder)[enc::sck::encode      ::U_K ].bind((*BCH_encoder )[enc::sck::encode      ::X_N ]);
-	(*itl_tx      )[itl::sck::interleave  ::nat ].bind((*LDPC_encoder)[enc::sck::encode      ::X_N ]);
-	(*modem       )[mdm::sck::modulate    ::X_N1].bind((*itl_tx      )[itl::sck::interleave  ::itl ]);
-	(*framer      )[frm::sck::generate    ::Y_N1].bind((*modem       )[mdm::sck::modulate    ::X_N2]);
-	(*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
-	(*channel     )[chn::sck::add_noise   ::X_N ].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
-	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*channel     )[chn::sck::add_noise   ::Y_N ]);
-	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
-	(*itl_rx      )[itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
-	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
-	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho ::V_K ]);
-	(*bb_scrambler)[scr::sck::descramble  ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K ]);
-	(*monitor     )[mnt::sck::check_errors::U   ].bind((*source      )[src::sck::generate    ::U_K ]);
-	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
+	for (size_t t = 0; t < n_threads; t++)
+	{
+		// socket binding
+		(*bb_scrambler[t])[scr::sck::scramble    ::X_N1].bind((*source      [t])[src::sck::generate    ::U_K ]);
+		(*BCH_encoder [t])[enc::sck::encode      ::U_K ].bind((*bb_scrambler[t])[scr::sck::scramble    ::X_N2]);
+		(*LDPC_encoder[t])[enc::sck::encode      ::U_K ].bind((*BCH_encoder [t])[enc::sck::encode      ::X_N ]);
+		(*itl_tx      [t])[itl::sck::interleave  ::nat ].bind((*LDPC_encoder[t])[enc::sck::encode      ::X_N ]);
+		(*modem       [t])[mdm::sck::modulate    ::X_N1].bind((*itl_tx      [t])[itl::sck::interleave  ::itl ]);
+		(*framer      [t])[frm::sck::generate    ::Y_N1].bind((*modem       [t])[mdm::sck::modulate    ::X_N2]);
+		(*pl_scrambler[t])[scr::sck::scramble    ::X_N1].bind((*framer      [t])[frm::sck::generate    ::Y_N2]);
+		(*channel     [t])[chn::sck::add_noise   ::X_N ].bind((*pl_scrambler[t])[scr::sck::scramble    ::X_N2]);
+		(*pl_scrambler[t])[scr::sck::descramble  ::Y_N1].bind((*channel     [t])[chn::sck::add_noise   ::Y_N ]);
+		(*framer      [t])[frm::sck::remove_plh  ::Y_N1].bind((*pl_scrambler[t])[scr::sck::descramble  ::Y_N2]);
+		(*modem       [t])[mdm::sck::demodulate  ::Y_N1].bind((*framer      [t])[frm::sck::remove_plh  ::Y_N2]);
+		(*itl_rx      [t])[itl::sck::deinterleave::itl ].bind((*modem       [t])[mdm::sck::demodulate  ::Y_N2]);
+		(*LDPC_decoder[t])[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      [t])[itl::sck::deinterleave::nat ]);
+		(*BCH_decoder [t])[dec::sck::decode_hiho ::Y_N ].bind((*LDPC_decoder[t])[dec::sck::decode_siho ::V_K ]);
+		(*bb_scrambler[t])[scr::sck::descramble  ::Y_N1].bind((*BCH_decoder [t])[dec::sck::decode_hiho ::V_K ]);
+		(*monitor     [t])[mnt::sck::check_errors::U   ].bind((*source      [t])[src::sck::generate    ::U_K ]);
+		(*monitor     [t])[mnt::sck::check_errors::V   ].bind((*bb_scrambler[t])[scr::sck::descramble  ::Y_N2]);
 
-	// reset the memory of the decoder after the end of each communication
-	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
-	// monitor->add_handler_check(std::bind(&module::Decoder::reset, BCH_decoder));
+		// reset the memory of the decoder after the end of each communication
+		monitor[t]->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder[t]));
+		// monitor[t]->add_handler_check(std::bind(&module::Decoder::reset, BCH_decoder[t]));
+	}
 
 	// a loop over the various SNRs
 	const float R = (float)params.K_BCH / (float)params.N_LDPC; // compute the code rate
@@ -119,34 +147,40 @@ int main(int argc, char** argv)
 
 		noise.set_noise(sigma, ebn0, esn0);
 
-		// update the sigma of the modem and the channel
-		LDPC_cdc->set_noise(noise);
-		modem   ->set_noise(noise);
-		channel ->set_noise(noise);
+		for (size_t t = 0; t < n_threads; t++)
+		{
+			// update the sigma of the modem and the channel
+			LDPC_cdc[t]->set_noise(noise);
+			modem   [t]->set_noise(noise);
+			channel [t]->set_noise(noise);
+		}
 
 		// display the performance (BER and FER) in real time (in a separate thread)
 		terminal->start_temp_report();
 
-		// tasks execution
-		while (!monitor->fe_limit_achieved() && !terminal->is_interrupt())
+		for (size_t t = 0; t < n_threads; t++)
 		{
-			(*source      )[src::tsk::generate    ].exec();
-			(*bb_scrambler)[scr::tsk::scramble    ].exec();
-			(*BCH_encoder )[enc::tsk::encode      ].exec();
-			(*LDPC_encoder)[enc::tsk::encode      ].exec();
-			(*itl_tx      )[itl::tsk::interleave  ].exec();
-			(*modem       )[mdm::tsk::modulate    ].exec();
-			(*framer      )[frm::tsk::generate    ].exec();
-			(*pl_scrambler)[scr::tsk::scramble    ].exec();
-			(*channel     )[chn::tsk::add_noise   ].exec();
-			(*pl_scrambler)[scr::tsk::descramble  ].exec();
-			(*framer)      [frm::tsk::remove_plh  ].exec();
-			(*modem       )[mdm::tsk::demodulate  ].exec();
-			(*itl_rx      )[itl::tsk::deinterleave].exec();
-			(*LDPC_decoder)[dec::tsk::decode_siho ].exec();
-			(*BCH_decoder )[dec::tsk::decode_hiho ].exec();
-			(*bb_scrambler)[scr::tsk::descramble  ].exec();
-			(*monitor     )[mnt::tsk::check_errors].exec();
+			// tasks execution
+			while (!monitor->fe_limit_achieved() && !terminal->is_interrupt())
+			{
+				(*source      [t])[src::tsk::generate    ].exec();
+				(*bb_scrambler[t])[scr::tsk::scramble    ].exec();
+				(*BCH_encoder [t])[enc::tsk::encode      ].exec();
+				(*LDPC_encoder[t])[enc::tsk::encode      ].exec();
+				(*itl_tx      [t])[itl::tsk::interleave  ].exec();
+				(*modem       [t])[mdm::tsk::modulate    ].exec();
+				(*framer      [t])[frm::tsk::generate    ].exec();
+				(*pl_scrambler[t])[scr::tsk::scramble    ].exec();
+				(*channel     [t])[chn::tsk::add_noise   ].exec();
+				(*pl_scrambler[t])[scr::tsk::descramble  ].exec();
+				(*framer)     [t] [frm::tsk::remove_plh  ].exec();
+				(*modem       [t])[mdm::tsk::demodulate  ].exec();
+				(*itl_rx      [t])[itl::tsk::deinterleave].exec();
+				(*LDPC_decoder[t])[dec::tsk::decode_siho ].exec();
+				(*BCH_decoder [t])[dec::tsk::decode_hiho ].exec();
+				(*bb_scrambler[t])[scr::tsk::descramble  ].exec();
+				(*monitor     [t])[mnt::tsk::check_errors].exec();
+			}
 		}
 
 		// display the performance (BER and FER) in the terminal
