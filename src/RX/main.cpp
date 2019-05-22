@@ -24,9 +24,10 @@ int main(int argc, char** argv)
 	std::vector<int>   matlab_output(params.K_BCH);
 
 	// construct tools
-	tools::BCH_polynomial_generator<B> poly_gen(params.N_BCH_unshortened, 12);
-	std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
-	Sink sink_to_matlab(params.mat2aff_file_name, params.aff2mat_file_name);
+	std::unique_ptr<tools::Constellation           <R>> cstl          (new tools::Constellation_user<R>(params.constellation_file));
+	std::unique_ptr<tools::Interleaver_core        < >> itl_core      (Factory_DVBS2O::build_itl_core<>(params                   ));
+	                tools::BCH_polynomial_generator<B > poly_gen      (params.N_BCH_unshortened, 12                               );
+	                       Sink                         sink_to_matlab(params.mat2aff_file_name, params.aff2mat_file_name         );
 
 	// construct modules
 	std::unique_ptr<module::Scrambler<>                > bb_scrambler(Factory_DVBS2O::build_bb_scrambler<>(params                         ));
@@ -34,7 +35,6 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Codec_SIHO<>               > LDPC_cdc    (Factory_DVBS2O::build_ldpc_cdc    <>(params                         ));
 	std::unique_ptr<module::Decoder_HIHO<>             > BCH_decoder (Factory_DVBS2O::build_bch_decoder <>(params, poly_gen               ));
 	std::unique_ptr<module::Modem<>                    > modem       (Factory_DVBS2O::build_modem       <>(params, std::move(cstl)        ));
-	std::unique_ptr<tools ::Interleaver_core<>         > itl_core    (Factory_DVBS2O::build_itl_core    <>(params                         ));
 	std::unique_ptr<module::Interleaver<float,uint32_t>> itl         (Factory_DVBS2O::build_itl         <float,uint32_t>(params, *itl_core));
 	std::unique_ptr<module::Estimator<>                > estimator   (Factory_DVBS2O::build_estimator   <>(params                         ));
 	std::unique_ptr<module::Framer<>                   > framer      (Factory_DVBS2O::build_framer      <>(params                         ));
@@ -79,7 +79,7 @@ int main(int argc, char** argv)
 	// tasks execution
 	(*framer)      [frm::tsk::remove_plh   ].exec();
 	(*estimator)   [est::tsk::estimate     ].exec();
-	modem->set_noise(tools::Sigma<float>(std::sqrt(estimator->get_sigma_n2()/2), 0, 0));
+	modem->set_noise(tools::Sigma<float>(std::sqrt(estimator->get_sigma_n2()/2.f), 0, 0));
 	(*modem)       [mdm::tsk::demodulate_wg].exec();
 	(*itl)         [itl::tsk::deinterleave ].exec();
 	(*LDPC_decoder)[dec::tsk::decode_siho  ].exec();
@@ -92,5 +92,5 @@ int main(int argc, char** argv)
 
 	sink_to_matlab.push_vector(matlab_output, false);
 
-	return 0;
+	return EXIT_SUCCESS;
 }

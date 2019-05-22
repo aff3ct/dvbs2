@@ -11,25 +11,24 @@
 #include "Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "Sink/Sink.hpp"
 
-
 using namespace aff3ct;
-
 
 int main(int argc, char** argv)
 {
 	auto params = Params_DVBS2O(argc, argv);
 
-	tools::BCH_polynomial_generator<B> poly_gen (params.N_BCH_unshortened, 12);
-	std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
+	// construct tools
+	std::unique_ptr<tools::Constellation           <R>> cstl    (new tools::Constellation_user<R>(params.constellation_file));
+	std::unique_ptr<tools::Interleaver_core        < >> itl_core(Factory_DVBS2O::build_itl_core<>(params                   ));
+	                tools::BCH_polynomial_generator<B > poly_gen(params.N_BCH_unshortened, 12                               );
+	                tools::Sigma                   <  > noise;
 
-	tools::Sigma<> noise;
-
+	// construct modules
 	std::unique_ptr<module::Source<>                   > source      (Factory_DVBS2O::build_source           <>(params                 ));
 	std::unique_ptr<module::Scrambler<>                > bb_scrambler(Factory_DVBS2O::build_bb_scrambler     <>(params                 ));
 	std::unique_ptr<module::Encoder<>                  > BCH_encoder (Factory_DVBS2O::build_bch_encoder      <>(params, poly_gen       ));
-	std::unique_ptr<module::Decoder_BCH_std<>          > BCH_decoder (Factory_DVBS2O::build_bch_decoder      <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec_LDPC<>               > LDPC_cdc    (Factory_DVBS2O::build_ldpc_cdc         <>(params                 ));
-	std::unique_ptr<tools ::Interleaver_core<>         > itl_core    (Factory_DVBS2O::build_itl_core         <>(params                 ));
+	std::unique_ptr<module::Decoder_HIHO<>             > BCH_decoder (Factory_DVBS2O::build_bch_decoder      <>(params, poly_gen       ));
+	std::unique_ptr<module::Codec_SIHO<>               > LDPC_cdc    (Factory_DVBS2O::build_ldpc_cdc         <>(params                 ));
 	std::unique_ptr<module::Interleaver<>              > itl_tx      (Factory_DVBS2O::build_itl              <>(params, *itl_core      ));
 	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (Factory_DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
 	std::unique_ptr<module::Modem<>                    > modem       (Factory_DVBS2O::build_modem            <>(params, std::move(cstl)));
@@ -38,8 +37,8 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(Factory_DVBS2O::build_pl_scrambler     <>(params                 ));
 	std::unique_ptr<module::Monitor_BFER<B>            > monitor     (Factory_DVBS2O::build_monitor          <>(params                 ));
 
-	auto& LDPC_encoder    = LDPC_cdc->get_encoder();
-	auto& LDPC_decoder    = LDPC_cdc->get_decoder_siho();
+	auto& LDPC_encoder = LDPC_cdc->get_encoder();
+	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
 	LDPC_encoder->set_short_name("LDPC Encoder");
 	LDPC_decoder->set_short_name("LDPC Decoder");
 	BCH_encoder ->set_short_name("BCH Encoder" );
@@ -62,7 +61,6 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
-	using namespace module;
 	// configuration of the module tasks
 	std::vector<const module::Module*> modules = {bb_scrambler.get(), BCH_encoder.get(), BCH_decoder.get(),
 	                                              LDPC_encoder.get(), LDPC_decoder.get(), itl_tx.get(), itl_rx.get(),
@@ -85,7 +83,9 @@ int main(int argc, char** argv)
 	poly_gen.set_g(params.BCH_gen_poly);
 	itl_core->init();
 
-	// bind
+	using namespace module;
+
+	// socket binding
 	(*bb_scrambler)[scr::sck::scramble    ::X_N1].bind((*source      )[src::sck::generate    ::U_K ]);
 	(*BCH_encoder )[enc::sck::encode      ::U_K ].bind((*bb_scrambler)[scr::sck::scramble    ::X_N2]);
 	(*LDPC_encoder)[enc::sck::encode      ::U_K ].bind((*BCH_encoder )[enc::sck::encode      ::X_N ]);
@@ -104,8 +104,7 @@ int main(int argc, char** argv)
 	(*monitor     )[mnt::sck::check_errors::U   ].bind((*source      )[src::sck::generate    ::U_K ]);
 	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
 
-
-	// // reset the memory of the decoder after the end of each communication
+	// reset the memory of the decoder after the end of each communication
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 	// monitor->add_handler_check(std::bind(&module::Decoder::reset, BCH_decoder));
 
@@ -116,7 +115,7 @@ int main(int argc, char** argv)
 	{
 		// compute the current sigma for the channel noise
 		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.BPS);
-		const auto sigma = tools::esn0_to_sigma(esn0   );
+		const auto sigma = tools::esn0_to_sigma(esn0);
 
 		noise.set_noise(sigma, ebn0, esn0);
 
@@ -127,8 +126,8 @@ int main(int argc, char** argv)
 
 		// display the performance (BER and FER) in real time (in a separate thread)
 		terminal->start_temp_report();
-		
-		// exec
+
+		// tasks execution
 		while (!monitor->fe_limit_achieved() && !terminal->is_interrupt())
 		{
 			(*source      )[src::tsk::generate    ].exec();
@@ -164,12 +163,11 @@ int main(int argc, char** argv)
 		if (params.stats)
 		{
 			auto ordered = true;
-			tools::Stats::show(modules, ordered);			
+			tools::Stats::show(modules, ordered);
 		}
 	}
 
 	std::cout << "#" << std::endl;
-
 	std::cout << "# End of the simulation" << std::endl;
 
 	return EXIT_SUCCESS;

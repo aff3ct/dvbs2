@@ -23,15 +23,15 @@ int main(int argc, char** argv)
 	std::vector<float> shaping_cut (params.PL_FRAME_SIZE * 2 * params.OSF);
 
 	// construct tools
-	tools::BCH_polynomial_generator<B> poly_gen (params.N_BCH_unshortened, 12);
-	std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
-	Sink sink_to_matlab(params.mat2aff_file_name, params.aff2mat_file_name);
+	std::unique_ptr<tools::Constellation           <R>> cstl          (new tools::Constellation_user<R>(params.constellation_file));
+	std::unique_ptr<tools::Interleaver_core        < >> itl_core      (Factory_DVBS2O::build_itl_core<>(params                   ));
+	                tools::BCH_polynomial_generator<B > poly_gen      (params.N_BCH_unshortened, 12                               );
+	                       Sink                         sink_to_matlab(params.mat2aff_file_name, params.aff2mat_file_name         );
 
 	// construct modules
 	std::unique_ptr<module::Scrambler<>       > bb_scrambler  (Factory_DVBS2O::build_bb_scrambler<>(params                 ));
 	std::unique_ptr<module::Encoder<>         > BCH_encoder   (Factory_DVBS2O::build_bch_encoder <>(params, poly_gen       ));
 	std::unique_ptr<module::Codec<>           > LDPC_cdc      (Factory_DVBS2O::build_ldpc_cdc    <>(params                 ));
-	std::unique_ptr<tools ::Interleaver_core<>> itl_core      (Factory_DVBS2O::build_itl_core    <>(params                 ));
 	std::unique_ptr<module::Interleaver<>     > itl           (Factory_DVBS2O::build_itl         <>(params, *itl_core      ));
 	std::unique_ptr<module::Modem<>           > modem         (Factory_DVBS2O::build_modem       <>(params, std::move(cstl)));
 	std::unique_ptr<module::Framer<>          > framer        (Factory_DVBS2O::build_framer      <>(params                 ));
@@ -95,5 +95,5 @@ int main(int argc, char** argv)
 
 	sink_to_matlab.push_vector(shaping_cut , true);
 
-	return 0;
+	return EXIT_SUCCESS;
 }
