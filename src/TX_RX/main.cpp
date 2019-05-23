@@ -1,6 +1,9 @@
 #include <vector>
 #include <numeric>
 #include <iostream>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include <aff3ct.hpp>
 
@@ -12,13 +15,11 @@
 #include "Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "Sink/Sink.hpp"
 
-#ifdef _OPENMP
-#include <omp.h>
-#else
+using namespace aff3ct;
+
+#ifndef _OPENMP
 inline int omp_get_max_threads() { return 1; }
 #endif
-
-using namespace aff3ct;
 
 int main(int argc, char** argv)
 {
@@ -83,8 +84,8 @@ int main(int argc, char** argv)
 
 	// construct a common monitor module to reduce all the monitors
 	module::Monitor_reduction_M<module::Monitor_BFER<>> monitor_red(monitor);
-	module::Monitor_reduction::set_reduce_frequency(std::chrono::milliseconds(500));
-	module::Monitor_reduction::check_reducible();
+	monitor_red.set_reduce_frequency(std::chrono::milliseconds(500));
+	monitor_red.check_reducible();
 
 	// create reporters to display results in the terminal
 	tools::Sigma<> noise;
@@ -183,14 +184,6 @@ int main(int argc, char** argv)
 
 		noise.set_noise(sigma, ebn0, esn0);
 
-		for (int t = 0; t < n_threads; t++)
-		{
-			// update the sigma of the modem and the channel
-			LDPC_cdc[t]->set_noise(noise);
-			modem   [t]->set_noise(noise);
-			channel [t]->set_noise(noise);
-		}
-
 		// display the performance (BER and FER) in real time (in a separate thread)
 		terminal->start_temp_report();
 
@@ -198,11 +191,16 @@ int main(int argc, char** argv)
 #pragma omp parallel for schedule(static, 1)
 		for (int t = 0; t < n_threads; t++)
 		{
+			// update the sigma of the modem and the channel
+			LDPC_cdc[t]->set_noise(noise);
+			modem   [t]->set_noise(noise);
+			channel [t]->set_noise(noise);
+
 			auto& LDPC_encoder = LDPC_cdc[t].get()->get_encoder();
 			auto& LDPC_decoder = LDPC_cdc[t].get()->get_decoder_siho();
 
 			// tasks execution
-			while (!module::Monitor_reduction::is_done_all() && !terminal->is_interrupt())
+			while (!monitor_red.is_done_all() && !terminal->is_interrupt())
 			{
 				(*source      [t])[src::tsk::generate    ].exec();
 				(*bb_scrambler[t])[scr::tsk::scramble    ].exec();
@@ -226,7 +224,7 @@ int main(int argc, char** argv)
 
 		// final reduction
 		const bool fully = true, final = true;
-		module::Monitor_reduction::is_done_all(fully, final);
+		monitor_red.is_done_all(fully, final);
 
 		// display the performance (BER and FER) in the terminal
 		terminal->final_report();
@@ -235,7 +233,7 @@ int main(int argc, char** argv)
 		if (terminal->is_over()) break;
 
 		// reset the monitors and the terminal for the next SNR
-		module::Monitor_reduction::reset_all();
+		monitor_red.reset_all();
 		terminal->reset();
 
 		// display the statistics of the tasks (if enabled)
@@ -245,8 +243,21 @@ int main(int argc, char** argv)
 			for (size_t m = 0; m < modules[0].size(); m++)
 				for (int t = 0; t < n_threads; t++)
 					modules_stats[m].push_back(modules[t][m]);
-			auto ordered = true;
+
+			const auto ordered = true;
+			std::cout << "#" << std::endl;
 			tools::Stats::show(modules_stats, ordered);
+
+			for (size_t m = 0; m < modules[0].size(); m++)
+				for (int t = 0; t < n_threads; t++)
+					for (auto &ta : modules_stats[m][t]->tasks)
+						ta->reset_stats();
+
+			if (ebn0 + params.ebn0_step < params.ebn0_max)
+			{
+				std::cout << "#" << std::endl;
+				terminal->legend();
+			}
 		}
 	}
 
