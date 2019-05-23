@@ -1,4 +1,5 @@
 #include <vector>
+#include <numeric>
 #include <iostream>
 
 #include <aff3ct.hpp>
@@ -22,9 +23,10 @@ using namespace aff3ct;
 int main(int argc, char** argv)
 {
 	// get the number of available threads from OpenMP
-	size_t n_threads = (size_t)omp_get_max_threads();
+	const size_t n_threads = (size_t)omp_get_max_threads();
 
-	auto params = Params_DVBS2O(argc, argv);
+	// get the parameter to configure the tools and modules
+	const auto params = Params_DVBS2O(argc, argv);
 
 	// declare vectors of module for multi-threaded Monte-Carlo simulation
 	std::vector<std::unique_ptr<module::Source<>                   >> source      (n_threads);
@@ -44,6 +46,11 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools::Interleaver_core        < >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<B > poly_gen(params.N_BCH_unshortened, 12            );
 
+	// generate the seeds
+	std::vector<std::vector<int>> seeds(n_threads, std::vector<int>(2));
+	for (size_t t = 0; t < n_threads; t++)
+		std::iota(seeds[t].begin(), seeds[t].end(), t * n_threads);
+
 	// need to parallelize this loop in order to allocate the data on the right NUMA memory bank
 #pragma omp parallel for schedule(static, 1)
 	for (size_t t = 0; t < n_threads; t++)
@@ -52,7 +59,7 @@ int main(int argc, char** argv)
 		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
 
 		// construct modules
-		source      [t] = std::unique_ptr<module::Source<>                   >(Factory_DVBS2O::build_source           <>(params                 ));
+		source      [t] = std::unique_ptr<module::Source<>                   >(Factory_DVBS2O::build_source           <>(params, seeds[t][0]    ));
 		bb_scrambler[t] = std::unique_ptr<module::Scrambler<>                >(Factory_DVBS2O::build_bb_scrambler     <>(params                 ));
 		BCH_encoder [t] = std::unique_ptr<module::Encoder<>                  >(Factory_DVBS2O::build_bch_encoder      <>(params, poly_gen       ));
 		BCH_decoder [t] = std::unique_ptr<module::Decoder_HIHO<>             >(Factory_DVBS2O::build_bch_decoder      <>(params, poly_gen       ));
@@ -60,7 +67,7 @@ int main(int argc, char** argv)
 		itl_tx      [t] = std::unique_ptr<module::Interleaver<>              >(Factory_DVBS2O::build_itl              <>(params, *itl_core      ));
 		itl_rx      [t] = std::unique_ptr<module::Interleaver<float,uint32_t>>(Factory_DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
 		modem       [t] = std::unique_ptr<module::Modem<>                    >(Factory_DVBS2O::build_modem            <>(params, std::move(cstl)));
-		channel     [t] = std::unique_ptr<module::Channel<>                  >(Factory_DVBS2O::build_channel          <>(params                 ));
+		channel     [t] = std::unique_ptr<module::Channel<>                  >(Factory_DVBS2O::build_channel          <>(params, seeds[t][1]    ));
 		framer      [t] = std::unique_ptr<module::Framer<>                   >(Factory_DVBS2O::build_framer           <>(params                 ));
 		pl_scrambler[t] = std::unique_ptr<module::Scrambler<float>           >(Factory_DVBS2O::build_pl_scrambler     <>(params                 ));
 		monitor     [t] = std::unique_ptr<module::Monitor_BFER<B>            >(Factory_DVBS2O::build_monitor          <>(params                 ));
