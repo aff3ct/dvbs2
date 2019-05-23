@@ -11,12 +11,19 @@
 #include "Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "Sink/Sink.hpp"
 
-using namespace aff3ct;
+#ifdef _OPENMP
+#include <omp.h>
+#else
+inline int omp_get_max_threads() { return 1; }
+#endif
 
-constexpr size_t n_threads = 1;
+using namespace aff3ct;
 
 int main(int argc, char** argv)
 {
+	// get the number of available threads from OpenMP
+	size_t n_threads = (size_t)omp_get_max_threads();
+
 	auto params = Params_DVBS2O(argc, argv);
 
 	// declare vectors of module for multi-threaded Monte-Carlo simulation
@@ -37,6 +44,8 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools::Interleaver_core        < >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<B > poly_gen(params.N_BCH_unshortened, 12            );
 
+	// need to parallelize this loop in order to allocate the data on the right NUMA memory bank
+#pragma omp parallel for schedule(static, 1)
 	for (size_t t = 0; t < n_threads; t++)
 	{
 		// construct specific tools
@@ -88,6 +97,8 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
+	// not very important to parallelize this loop
+#pragma omp parallel for schedule(static, 1)
 	for (size_t t = 0; t < n_threads; t++)
 	{
 		auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
@@ -129,6 +140,8 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
+	// not very important to parallelize this loop
+#pragma omp parallel for schedule(static, 1)
 	for (size_t t = 0; t < n_threads; t++)
 	{
 		auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
@@ -180,6 +193,8 @@ int main(int argc, char** argv)
 		// display the performance (BER and FER) in real time (in a separate thread)
 		terminal->start_temp_report();
 
+        // very important to parallelize this loop, this is the compute intensive loop!
+#pragma omp parallel for schedule(static, 1)
 		for (size_t t = 0; t < n_threads; t++)
 		{
 			auto& LDPC_encoder = LDPC_cdc[t].get()->get_encoder();
