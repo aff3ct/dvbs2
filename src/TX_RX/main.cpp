@@ -23,7 +23,7 @@ using namespace aff3ct;
 int main(int argc, char** argv)
 {
 	// get the number of available threads from OpenMP
-	const size_t n_threads = (size_t)omp_get_max_threads();
+	const unsigned n_threads = (unsigned)omp_get_max_threads();
 
 	// get the parameter to configure the tools and modules
 	const auto params = Params_DVBS2O(argc, argv);
@@ -48,12 +48,12 @@ int main(int argc, char** argv)
 
 	// generate the seeds
 	std::vector<std::vector<int>> seeds(n_threads, std::vector<int>(2));
-	for (size_t t = 0; t < n_threads; t++)
+	for (unsigned t = 0; t < n_threads; t++)
 		std::iota(seeds[t].begin(), seeds[t].end(), t * 2);
 
 	// need to parallelize this loop in order to allocate the data on the right NUMA memory bank
 #pragma omp parallel for schedule(static, 1)
-	for (size_t t = 0; t < n_threads; t++)
+	for (unsigned t = 0; t < n_threads; t++)
 	{
 		// construct specific tools
 		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 
 	// need to parallelize this loop in order to allocate the data on the right NUMA memory bank
 #pragma omp parallel for schedule(static, 1)
-	for (size_t t = 0; t < n_threads; t++)
+	for (unsigned t = 0; t < n_threads; t++)
 	{
 		auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
 		auto& LDPC_decoder = LDPC_cdc[t]->get_decoder_siho();
@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 
 	// not very important to parallelize this loop
 #pragma omp parallel for schedule(static, 1)
-	for (size_t t = 0; t < n_threads; t++)
+	for (unsigned t = 0; t < n_threads; t++)
 	{
 		auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
 		auto& LDPC_decoder = LDPC_cdc[t]->get_decoder_siho();
@@ -189,7 +189,7 @@ int main(int argc, char** argv)
 
 		noise.set_noise(sigma, ebn0, esn0);
 
-		for (size_t t = 0; t < n_threads; t++)
+		for (unsigned t = 0; t < n_threads; t++)
 		{
 			// update the sigma of the modem and the channel
 			LDPC_cdc[t]->set_noise(noise);
@@ -202,7 +202,7 @@ int main(int argc, char** argv)
 
 		// very important to parallelize this loop, this is the compute intensive loop!
 #pragma omp parallel for schedule(static, 1)
-		for (size_t t = 0; t < n_threads; t++)
+		for (unsigned t = 0; t < n_threads; t++)
 		{
 			auto& LDPC_encoder = LDPC_cdc[t].get()->get_encoder();
 			auto& LDPC_decoder = LDPC_cdc[t].get()->get_decoder_siho();
@@ -248,7 +248,7 @@ int main(int argc, char** argv)
 		if (params.stats)
 		{
 			std::vector<std::vector<const module::Module*>> modules(13);
-			for (size_t t = 0; t < n_threads; t++)
+			for (unsigned t = 0; t < n_threads; t++)
 			{
 				auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
 				auto& LDPC_decoder = LDPC_cdc[t]->get_decoder_siho();
