@@ -119,7 +119,7 @@ int main(int argc, char** argv)
 		modules[t] = { bb_scrambler[t].get(), BCH_encoder [t].get(), BCH_decoder[t].get(), LDPC_encoder   .get(),
 		               LDPC_decoder   .get(), itl_tx      [t].get(), itl_rx     [t].get(), modem       [t].get(),
 		               framer      [t].get(), pl_scrambler[t].get(), source     [t].get(), monitor     [t].get(),
-		               channel     [t].get()                                                                     };
+		               channel     [t].get()                                                                      };
 
 		// configuration of the module tasks
 		for (auto& m : modules[t])
