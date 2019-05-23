@@ -23,7 +23,7 @@ using namespace aff3ct;
 int main(int argc, char** argv)
 {
 	// get the number of available threads from OpenMP
-	const unsigned n_threads = (unsigned)omp_get_max_threads();
+	const int n_threads = omp_get_max_threads();
 
 	// get the parameter to configure the tools and modules
 	const auto params = Params_DVBS2O(argc, argv);
@@ -48,12 +48,12 @@ int main(int argc, char** argv)
 
 	// generate the seeds
 	std::vector<std::vector<int>> seeds(n_threads, std::vector<int>(2));
-	for (unsigned t = 0; t < n_threads; t++)
+	for (int t = 0; t < n_threads; t++)
 		std::iota(seeds[t].begin(), seeds[t].end(), t * 2);
 
 	// need to parallelize this loop in order to allocate the data on the right NUMA memory bank
 #pragma omp parallel for schedule(static, 1)
-	for (unsigned t = 0; t < n_threads; t++)
+	for (int t = 0; t < n_threads; t++)
 	{
 		// construct specific tools
 		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
@@ -104,30 +104,24 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
+	// the module list
+	std::vector<std::vector<const module::Module*>> modules(n_threads);
+
 	// need to parallelize this loop in order to allocate the data on the right NUMA memory bank
 #pragma omp parallel for schedule(static, 1)
-	for (unsigned t = 0; t < n_threads; t++)
+	for (int t = 0; t < n_threads; t++)
 	{
 		auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
 		auto& LDPC_decoder = LDPC_cdc[t]->get_decoder_siho();
 
 		// build a list of modules
-		std::vector<const module::Module*> modules = { bb_scrambler[t].get(),
-		                                               BCH_encoder [t].get(),
-		                                               BCH_decoder [t].get(),
-		                                               LDPC_encoder   .get(),
-		                                               LDPC_decoder   .get(),
-		                                               itl_tx      [t].get(),
-		                                               itl_rx      [t].get(),
-		                                               modem       [t].get(),
-		                                               framer      [t].get(),
-		                                               pl_scrambler[t].get(),
-		                                               source      [t].get(),
-		                                               monitor     [t].get(),
-		                                               channel     [t].get() };
+		modules[t] = { bb_scrambler[t].get(), BCH_encoder [t].get(), BCH_decoder[t].get(), LDPC_encoder   .get(),
+		               LDPC_decoder   .get(), itl_tx      [t].get(), itl_rx     [t].get(), modem       [t].get(),
+		               framer      [t].get(), pl_scrambler[t].get(), source     [t].get(), monitor     [t].get(),
+		               channel     [t].get()                                                                     };
 
 		// configuration of the module tasks
-		for (auto& m : modules)
+		for (auto& m : modules[t])
 			for (auto& ta : m->tasks)
 			{
 				ta->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
@@ -149,7 +143,7 @@ int main(int argc, char** argv)
 
 	// not very important to parallelize this loop
 #pragma omp parallel for schedule(static, 1)
-	for (unsigned t = 0; t < n_threads; t++)
+	for (int t = 0; t < n_threads; t++)
 	{
 		auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
 		auto& LDPC_decoder = LDPC_cdc[t]->get_decoder_siho();
@@ -189,7 +183,7 @@ int main(int argc, char** argv)
 
 		noise.set_noise(sigma, ebn0, esn0);
 
-		for (unsigned t = 0; t < n_threads; t++)
+		for (int t = 0; t < n_threads; t++)
 		{
 			// update the sigma of the modem and the channel
 			LDPC_cdc[t]->set_noise(noise);
@@ -202,7 +196,7 @@ int main(int argc, char** argv)
 
 		// very important to parallelize this loop, this is the compute intensive loop!
 #pragma omp parallel for schedule(static, 1)
-		for (unsigned t = 0; t < n_threads; t++)
+		for (int t = 0; t < n_threads; t++)
 		{
 			auto& LDPC_encoder = LDPC_cdc[t].get()->get_encoder();
 			auto& LDPC_decoder = LDPC_cdc[t].get()->get_decoder_siho();
@@ -247,30 +241,12 @@ int main(int argc, char** argv)
 		// display the statistics of the tasks (if enabled)
 		if (params.stats)
 		{
-			std::vector<std::vector<const module::Module*>> modules(13);
-			for (unsigned t = 0; t < n_threads; t++)
-			{
-				auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
-				auto& LDPC_decoder = LDPC_cdc[t]->get_decoder_siho();
-
-				modules[ 0].push_back(bb_scrambler[t].get());
-				modules[ 1].push_back(BCH_encoder [t].get());
-				modules[ 2].push_back(BCH_decoder [t].get());
-				modules[ 3].push_back(LDPC_encoder   .get());
-				modules[ 4].push_back(LDPC_decoder   .get());
-				modules[ 5].push_back(itl_tx      [t].get());
-				modules[ 6].push_back(itl_rx      [t].get());
-				modules[ 7].push_back(modem       [t].get());
-				modules[ 8].push_back(framer      [t].get());
-				modules[ 9].push_back(pl_scrambler[t].get());
-				modules[10].push_back(source      [t].get());
-				modules[11].push_back(monitor     [t].get());
-				modules[12].push_back(channel     [t].get());
-
-			}
-
+			std::vector<std::vector<const module::Module*>> modules_stats(modules[0].size());
+			for (size_t m = 0; m < modules[0].size(); m++)
+				for (int t = 0; t < n_threads; t++)
+					modules_stats[m].push_back(modules[t][m]);
 			auto ordered = true;
-			tools::Stats::show(modules, ordered);
+			tools::Stats::show(modules_stats, ordered);
 		}
 	}
 
