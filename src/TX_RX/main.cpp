@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 	// generate the seeds
 	std::vector<std::vector<int>> seeds(n_threads, std::vector<int>(2));
 	for (size_t t = 0; t < n_threads; t++)
-		std::iota(seeds[t].begin(), seeds[t].end(), t * n_threads);
+		std::iota(seeds[t].begin(), seeds[t].end(), t * 2);
 
 	// need to parallelize this loop in order to allocate the data on the right NUMA memory bank
 #pragma omp parallel for schedule(static, 1)
