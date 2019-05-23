@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
-	// not very important to parallelize this loop
+	// need to parallelize this loop in order to allocate the data on the right NUMA memory bank
 #pragma omp parallel for schedule(static, 1)
 	for (size_t t = 0; t < n_threads; t++)
 	{
@@ -200,7 +200,7 @@ int main(int argc, char** argv)
 		// display the performance (BER and FER) in real time (in a separate thread)
 		terminal->start_temp_report();
 
-        // very important to parallelize this loop, this is the compute intensive loop!
+		// very important to parallelize this loop, this is the compute intensive loop!
 #pragma omp parallel for schedule(static, 1)
 		for (size_t t = 0; t < n_threads; t++)
 		{
