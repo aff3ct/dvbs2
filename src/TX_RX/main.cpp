@@ -65,13 +65,18 @@ int main(int argc, char** argv)
 		BCH_decoder[t]->set_short_name("BCH Decoder" );
 	}
 
+	// construct a common monitor module to reduce all the monitors
+	module::Monitor_reduction_M<module::Monitor_BFER<>> monitor_red(monitor);
+	module::Monitor_reduction::set_reduce_frequency(std::chrono::milliseconds(500));
+	module::Monitor_reduction::check_reducible();
+
 	// create reporters to display results in the terminal
 	tools::Sigma<> noise;
 	std::vector<tools::Reporter*> reporters =
 	{
 		new tools::Reporter_noise     <>(noise      ), // report the noise values (Es/N0 and Eb/N0)
-		new tools::Reporter_BFER      <>(*monitor[0]), // report the bit/frame error rates
-		new tools::Reporter_throughput<>(*monitor[0])  // report the simulation throughputs
+		new tools::Reporter_BFER      <>(monitor_red), // report the bit/frame error rates
+		new tools::Reporter_throughput<>(monitor_red)  // report the simulation throughputs
 	};
 	// convert the vector of reporter pointers into a vector of smart pointers
 	std::vector<std::unique_ptr<tools::Reporter>> reporters_uptr;
@@ -181,7 +186,7 @@ int main(int argc, char** argv)
 			auto& LDPC_decoder = LDPC_cdc[t].get()->get_decoder_siho();
 
 			// tasks execution
-			while (!monitor[0]->fe_limit_achieved() && !terminal->is_interrupt())
+			while (!module::Monitor_reduction::is_done_all() && !terminal->is_interrupt())
 			{
 				(*source      [t])[src::tsk::generate    ].exec();
 				(*bb_scrambler[t])[scr::tsk::scramble    ].exec();
@@ -203,14 +208,18 @@ int main(int argc, char** argv)
 			}
 		}
 
+		// final reduction
+		const bool fully = true, final = true;
+		module::Monitor_reduction::is_done_all(fully, final);
+
 		// display the performance (BER and FER) in the terminal
 		terminal->final_report();
 
 		// if user pressed Ctrl+c twice, exit the SNRs loop
 		if (terminal->is_over()) break;
 
-		// reset the monitor and the terminal for the next SNR
-		monitor[0]->reset();
+		// reset the monitors and the terminal for the next SNR
+		module::Monitor_reduction::reset_all();
 		terminal->reset();
 
 		// display the statistics of the tasks (if enabled)
