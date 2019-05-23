@@ -19,6 +19,7 @@ int main(int argc, char** argv)
 {
 	auto params = Params_DVBS2O(argc, argv);
 
+	// declare vectors of module for multi-threaded Monte-Carlo simulation
 	std::vector<std::unique_ptr<module::Source<>                   >> source      (n_threads);
 	std::vector<std::unique_ptr<module::Scrambler<>                >> bb_scrambler(n_threads);
 	std::vector<std::unique_ptr<module::Encoder<>                  >> BCH_encoder (n_threads);
@@ -32,12 +33,13 @@ int main(int argc, char** argv)
 	std::vector<std::unique_ptr<module::Scrambler<float>           >> pl_scrambler(n_threads);
 	std::vector<std::unique_ptr<module::Monitor_BFER<B>            >> monitor     (n_threads);
 
+	// construct common tools
 	std::unique_ptr<tools::Interleaver_core        < >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<B > poly_gen(params.N_BCH_unshortened, 12            );
 
 	for (size_t t = 0; t < n_threads; t++)
 	{
-		// construct tools
+		// construct specific tools
 		std::unique_ptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
 
 		// construct modules
@@ -86,12 +88,22 @@ int main(int argc, char** argv)
 		auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
 		auto& LDPC_decoder = LDPC_cdc[t]->get_decoder_siho();
 
+		// build a list of modules
+		std::vector<const module::Module*> modules = { bb_scrambler[t].get(),
+		                                               BCH_encoder [t].get(),
+		                                               BCH_decoder [t].get(),
+		                                               LDPC_encoder   .get(),
+		                                               LDPC_decoder   .get(),
+		                                               itl_tx      [t].get(),
+		                                               itl_rx      [t].get(),
+		                                               modem       [t].get(),
+		                                               framer      [t].get(),
+		                                               pl_scrambler[t].get(),
+		                                               source      [t].get(),
+		                                               monitor     [t].get(),
+		                                               channel     [t].get() };
+
 		// configuration of the module tasks
-		std::vector<const module::Module*> modules = {bb_scrambler[t].get(), BCH_encoder[t].get(), BCH_decoder[t].get(),
-		                                              LDPC_encoder.get(), LDPC_decoder.get(), itl_tx[t].get(),
-		                                              itl_rx[t].get(), modem[t].get(), framer[t].get(),
-		                                              pl_scrambler[t].get(), source[t].get(), monitor[t].get(),
-		                                              channel[t].get()};
 		for (auto& m : modules)
 			for (auto& ta : m->tasks)
 			{
