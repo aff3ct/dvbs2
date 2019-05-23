@@ -57,10 +57,10 @@ int main(int argc, char** argv)
 		auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
 		auto& LDPC_decoder = LDPC_cdc[t]->get_decoder_siho();
 
-		LDPC_encoder   ->set_short_name("LDPC Encoder");
-		LDPC_decoder   ->set_short_name("LDPC Decoder");
-		BCH_encoder [t]->set_short_name("BCH Encoder" );
-		BCH_decoder [t]->set_short_name("BCH Decoder" );
+		LDPC_encoder  ->set_short_name("LDPC Encoder");
+		LDPC_decoder  ->set_short_name("LDPC Decoder");
+		BCH_encoder[t]->set_short_name("BCH Encoder" );
+		BCH_decoder[t]->set_short_name("BCH Decoder" );
 	}
 
 	// create reporters to display results in the terminal
@@ -202,11 +202,33 @@ int main(int argc, char** argv)
 		terminal->reset();
 
 		// display the statistics of the tasks (if enabled)
-		// if (params.stats)
-		// {
-		// 	auto ordered = true;
-		// 	tools::Stats::show(modules, ordered);
-		// }
+		if (params.stats)
+		{
+			std::vector<std::vector<const module::Module*>> modules(13);
+			for (size_t t = 0; t < n_threads; t++)
+			{
+				auto& LDPC_encoder = LDPC_cdc[t]->get_encoder();
+				auto& LDPC_decoder = LDPC_cdc[t]->get_decoder_siho();
+
+				modules[ 0].push_back(bb_scrambler[t].get());
+				modules[ 1].push_back(BCH_encoder [t].get());
+				modules[ 2].push_back(BCH_decoder [t].get());
+				modules[ 3].push_back(LDPC_encoder   .get());
+				modules[ 4].push_back(LDPC_decoder   .get());
+				modules[ 5].push_back(itl_tx      [t].get());
+				modules[ 6].push_back(itl_rx      [t].get());
+				modules[ 7].push_back(modem       [t].get());
+				modules[ 8].push_back(framer      [t].get());
+				modules[ 9].push_back(pl_scrambler[t].get());
+				modules[10].push_back(source      [t].get());
+				modules[11].push_back(monitor     [t].get());
+				modules[12].push_back(channel     [t].get());
+
+			}
+
+			auto ordered = true;
+			tools::Stats::show(modules, ordered);
+		}
 	}
 
 	std::cout << "#" << std::endl;
