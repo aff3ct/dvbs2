@@ -22,9 +22,9 @@ inline int omp_get_thread_num () { return 0; }
 inline int omp_get_num_threads() { return 1; }
 #endif
 
-namespace aff3ct::module {
+namespace aff3ct { namespace module {
 using Monitor_BFER_reduction = Monitor_reduction_M<Monitor_BFER<>>;
-}
+} }
 
 int main(int argc, char** argv)
 {
