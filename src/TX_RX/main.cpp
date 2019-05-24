@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 #pragma omp single
 {
 	// get the number of available threads from OpenMP
-	size_t n_threads = (size_t)omp_get_num_threads();
+	const size_t n_threads = (size_t)omp_get_num_threads();
 	monitors.resize(n_threads);
 	modules .resize(n_threads);
 }
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 	BCH_encoder ->set_short_name("BCH Encoder" );
 	BCH_decoder ->set_short_name("BCH Decoder" );
 
-// wait until all the monitors have been allocated in order to allocate the monitor_reduction object
+// wait until all the 'monitors' have been allocated in order to allocate the 'monitor_red' object
 #pragma omp barrier
 
 #pragma omp single nowait
@@ -98,9 +98,9 @@ int main(int argc, char** argv)
 	monitor_red->check_reducible();
 
 	// allocate reporters to display results in the terminal
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>(noise             ))); // report the noise values (Es/N0 and Eb/N0)
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor_red.get()))); // report the bit/frame error rates
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor_red.get()))); // report the simulation throughputs
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>(noise       ))); // report the noise values (Es/N0 and Eb/N0)
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor_red))); // report the bit/frame error rates
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor_red))); // report the simulation throughputs
 
 	// allocate a terminal that will display the collected data from the reporters
 	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
@@ -200,7 +200,7 @@ int main(int argc, char** argv)
 			(*monitor     )[mnt::tsk::check_errors].exec();
 		}
 
-// need to wait all the threads here before to reset the monitors and terminal states
+// need to wait all the threads here before to reset the 'monitors' and 'terminal' states
 #pragma omp barrier
 
 #pragma omp single
@@ -224,8 +224,8 @@ int main(int argc, char** argv)
 				for (size_t t = 0; t < modules.size(); t++)
 					modules_stats[m].push_back(modules[t][m]);
 
-			const auto ordered = true;
 			std::cout << "#" << std::endl;
+			const auto ordered = true;
 			tools::Stats::show(modules_stats, ordered);
 
 			for (size_t m = 0; m < modules[0].size(); m++)
