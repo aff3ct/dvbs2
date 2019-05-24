@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 	const auto params = Params_DVBS2O(argc, argv);
 
 	// declare shared modules and tools
-	std::vector<std::unique_ptr<module::Monitor_BFER<B>>>       monitors;
+	std::vector<std::unique_ptr<module::Monitor_BFER<>>>        monitors;
 	            std::unique_ptr<module::Monitor_BFER_reduction> monitor_red;
 	std::vector<std::unique_ptr<tools ::Reporter>>              reporters;
 	            std::unique_ptr<tools ::Terminal>               terminal;
@@ -56,9 +56,9 @@ int main(int argc, char** argv)
 // end of #pragma omp single
 
 	// construct tools
-	std::unique_ptr<tools::Constellation           <R>> cstl    (new tools::Constellation_user<R>(params.constellation_file));
-	std::unique_ptr<tools::Interleaver_core        < >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
-	                tools::BCH_polynomial_generator<B > poly_gen(params.N_BCH_unshortened, 12);
+	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
+	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
+	                tools::BCH_polynomial_generator<      > poly_gen(params.N_BCH_unshortened, 12);
 
 	// initialize the tools
 	itl_core->init();
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Channel<>                  > channel     (Factory_DVBS2O::build_channel          <>(params, tid*2+1        ));
 	std::unique_ptr<module::Framer<>                   > framer      (Factory_DVBS2O::build_framer           <>(params                 ));
 	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(Factory_DVBS2O::build_pl_scrambler     <>(params                 ));
-	monitors[tid] = std::unique_ptr<module::Monitor_BFER<B>>         (Factory_DVBS2O::build_monitor          <>(params                 ));
+	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (Factory_DVBS2O::build_monitor          <>(params                 ));
 
 	auto& monitor = monitors[tid];
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
