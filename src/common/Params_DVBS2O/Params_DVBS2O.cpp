@@ -16,7 +16,7 @@ Params_DVBS2O(int argc, char** argv)
 		ebn0_min = 3.2f;
 		// initialize max fe
 	if (arg_vals.exist({"sim-noise-max","M"}))
-		ebn0_max = arg_vals.to_float({"sim-noise-min","M"});
+		ebn0_max = arg_vals.to_float({"sim-noise-max","M"});
 	else
 		ebn0_max = 6.f;
 		// initialize max fe
@@ -128,7 +128,7 @@ get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 		args.add({"mod-cod"},            modcod_format,                                        "Modulation and coding scheme."       );
 		args.add({"max-fe","e"},         tools::Integer(tools::Positive(), tools::Non_zero()), "Modulation and coding scheme."       );
 		args.add({"sim-noise-min","m"},  tools::Real(),                                        "Min Eb/N0"                           );
-		args.add({"sim-noise-min","M"},  tools::Real(),                                        "Max Eb/N0"                           );
+		args.add({"sim-noise-max","M"},  tools::Real(),                                        "Max Eb/N0"                           );
 		args.add({"sim-noise-step","s"}, tools::Real(),                                        "Step Eb/N0"                          );
 		args.add({"sim-stats"},          tools::None(),                                        "Display stats."                      );
 
