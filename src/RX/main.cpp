@@ -17,7 +17,7 @@ using namespace aff3ct;
 
 int main(int argc, char** argv)
 {
-	auto params = Params_DVBS2O(argc, argv);
+	const auto params = Params_DVBS2O(argc, argv);
 
 	// buffers to load/store the data
 	std::vector<float> matlab_input (2 * params.PL_FRAME_SIZE);
