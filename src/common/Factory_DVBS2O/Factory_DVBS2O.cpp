@@ -35,8 +35,8 @@ module::Codec_LDPC<B,Q>* Factory_DVBS2O
 	// store parameters
 	enc_ldpc->type          = "LDPC_DVBS2";
 	dec_ldpc->type          = "BP_HORIZONTAL_LAYERED";
-	dec_ldpc->simd_strategy = "INTER";
-	dec_ldpc->implem        = "MS";
+	dec_ldpc->simd_strategy = params.LDPC_SIMD;
+	dec_ldpc->implem        = params.LDPC_IMPLEM;
 	enc_ldpc->N_cw          = params.N_LDPC;
 	enc_ldpc->K             = params.N_BCH;
 	dec_ldpc->N_cw          = p_cdc.enc->N_cw;
@@ -44,7 +44,7 @@ module::Codec_LDPC<B,Q>* Factory_DVBS2O
 	dec_ldpc->n_frames      = p_cdc.enc->n_frames;
 	enc_ldpc->R             = (float)p_cdc.enc->K / (float)p_cdc.enc->N_cw;
 	dec_ldpc->R             = (float)p_cdc.dec->K / (float)p_cdc.dec->N_cw;
-	dec_ldpc->n_ite         = 30;
+	dec_ldpc->n_ite         = params.LDPC_NITE;
 	p_cdc.K                 = p_cdc.enc->K;
 	p_cdc.N_cw              = p_cdc.enc->N_cw;
 	p_cdc.N                 = p_cdc.N_cw;

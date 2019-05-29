@@ -18,12 +18,15 @@ public:
 	int N_BCH;
 	int N_BCH_unshortened;
 	int K_LDPC;
+	int LDPC_NITE;
 	int BPS;
 	int N_XFEC_FRAME;              // number of complex symbols
 	int N_PILOTS;
 	int S;                         // number of slots
 	int PL_FRAME_SIZE;
 	int ITL_N_COLS;
+	std::string LDPC_IMPLEM;
+	std::string LDPC_SIMD;
 	std::string READ_ORDER;
 	std::string MODCOD;
 	std::string MOD;

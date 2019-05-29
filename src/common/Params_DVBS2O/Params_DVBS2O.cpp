@@ -30,6 +30,21 @@ Params_DVBS2O(int argc, char** argv)
 	else
 		stats = false;
 
+	if (arg_vals.exist({"dec-ite"}))
+		LDPC_NITE = arg_vals.to_int({"dec-ite"});
+	else
+		LDPC_NITE = 50;
+
+	if (arg_vals.exist({"dec-implem"}))
+		LDPC_IMPLEM = arg_vals.at({"dec-implem"});
+	else
+		LDPC_IMPLEM = "SPA";
+
+	if (arg_vals.exist({"dec-simd"}))
+		LDPC_SIMD = arg_vals.at({"dec-simd"});
+	else
+		LDPC_SIMD = "";
+
 	// initialize max fe
 	if (arg_vals.exist({"max-fe","e"}))
 		MAX_FE = arg_vals.to_int({"max-fe","e"});
@@ -131,6 +146,9 @@ get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 		args.add({"sim-noise-max","M"},  tools::Real(),                                        "Max Eb/N0"                           );
 		args.add({"sim-noise-step","s"}, tools::Real(),                                        "Step Eb/N0"                          );
 		args.add({"sim-stats"},          tools::None(),                                        "Display stats."                      );
+		args.add({"dec-ite"},            tools::Integer(tools::Positive(), tools::Non_zero()), "LDPC number of iterations"           );
+		args.add({"dec-implem"},         tools::Text(tools::Including_set("SPA", "MS")),       "LDPC Implem "                        );
+		args.add({"dec-simd"},           tools::Text(tools::Including_set("INTER", "")),       "Display stats."                      );
 
 		// parse user arguments
 		arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);

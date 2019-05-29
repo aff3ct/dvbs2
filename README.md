@@ -39,7 +39,7 @@ The compiled binaries are:
 - `build/bin/dvbs2_optique_rx`: the receiver,
 - `build/bin/dvbs2_optique_tx_rx`: the Monte-Carlo simulation of the transmitter and the receiver.
 
-## Run
+# Run
 
 To select the number of threads used by openmp, run the binary while setting the `OMP_NUM_THREADS` variable : 
 ```bash 
