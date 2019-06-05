@@ -58,11 +58,10 @@ int main(int argc, char** argv)
 	// construct tools
 	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
-	                tools::BCH_polynomial_generator<      > poly_gen(params.N_BCH_unshortened, 12);
+	                tools::BCH_polynomial_generator<      > poly_gen(params.N_BCH_unshortened, 12, params.bch_prim_poly);
 
 	// initialize the tools
 	itl_core->init();
-	poly_gen.set_g(params.BCH_gen_poly);
 
 	// construct modules
 	std::unique_ptr<module::Source<>                   > source      (Factory_DVBS2O::build_source           <>(params, tid*2+0        ));

@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	// construct tools
 	std::unique_ptr<tools::Constellation           <R>> cstl          (new tools::Constellation_user<R>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core        < >> itl_core      (Factory_DVBS2O::build_itl_core<>(params                   ));
-	                tools::BCH_polynomial_generator<B > poly_gen      (params.N_BCH_unshortened, 12                               );
+	                tools::BCH_polynomial_generator<B > poly_gen      (params.N_BCH_unshortened, 12, params.bch_prim_poly         );
 	                       Sink                         sink_to_matlab(params.mat2aff_file_name, params.aff2mat_file_name         );
 
 	// construct modules
@@ -41,7 +41,6 @@ int main(int argc, char** argv)
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 
 	// initialization
-	poly_gen.set_g(params.BCH_gen_poly);
 	itl_core->init();
 
 	// configuration of the module tasks
