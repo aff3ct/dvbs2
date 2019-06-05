@@ -82,20 +82,20 @@ generate_PLH( void )
 {
 	this->PLH.resize(2*90);
 	std::vector<std::vector<int> > G_32_7 { { 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
-												{ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1},
-												{ 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1},
-												{ 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1},
-												{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},
-												{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-												{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
+	                                        { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1},
+	                                        { 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1},
+	                                        { 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1},
+	                                        { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},
+	                                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+	                                        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
 
 	const std::vector<int> PLS_scrambler_sequence{0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0};
 	
 	std::vector <int > mod_cod(7);
-	const std::vector <int > mod_cod_Q_8_9{0, 0, 1, 0, 1, 0, 1};
-	const std::vector <int > mod_cod_Q_3_5{0, 0, 0, 1, 0, 1, 1};
-	const std::vector <int > mod_cod_8_3_5{0, 0, 1, 1, 0, 0, 1};
-	const std::vector <int > mod_cod_8_8_9{0, 1, 0, 0, 0, 0, 1};
+	const std::vector <int > mod_cod_Q_8_9 {0, 0, 1, 0, 1, 0, 1};
+	const std::vector <int > mod_cod_Q_3_5 {0, 0, 0, 1, 0, 1, 1};
+	const std::vector <int > mod_cod_8_3_5 {0, 0, 1, 1, 0, 0, 1};
+	const std::vector <int > mod_cod_8_8_9 {0, 1, 0, 0, 0, 0, 1};
 	const std::vector <int > mod_cod_16_8_9{0, 1, 0, 1, 1, 0, 1};
 
 	if(MODCOD == "QPSK-S_8/9")
@@ -121,21 +121,19 @@ generate_PLH( void )
 	std::vector<int > SOF_bpsk(26);
 
 	std::vector<float > SOF_mod(52);
-	std::vector<std::complex<float> > Cx_SOF_mod(26);
 
 	std::vector<int > final_PLS_bpsk(64);
 	std::vector<float > final_PLS_mod(128);
-	std::vector<std::complex<float> > Cx_final_PLS_mod(64);
 
 	for( int i = 0; i < 26; i++)
 		SOF_bpsk[i] = (1 - 2*SOF_bin[i]);
 
 	for( int i = 0; i < 13; i++)
 	{
-		SOF_mod[4*i    ] =      (1/sqrt(2)) * SOF_bpsk[2*i]; // real part of the even symbols (starting index = 0)
-		SOF_mod[4*i + 1] =      (1/sqrt(2)) * SOF_bpsk[2*i]; // imag part of the even symbols
-		SOF_mod[4*i + 2] = -1 * (1/sqrt(2)) * SOF_bpsk[2*i+1]; // real part of the odd symbols
-		SOF_mod[4*i + 3] =      (1/sqrt(2)) * SOF_bpsk[2*i+1]; // imag part of the odd symbols
+		SOF_mod[4*i    ] =      (1/std::sqrt(2)) * SOF_bpsk[2*i]; // real part of the even symbols (starting index = 0)
+		SOF_mod[4*i + 1] =      (1/std::sqrt(2)) * SOF_bpsk[2*i]; // imag part of the even symbols
+		SOF_mod[4*i + 2] = -1 * (1/std::sqrt(2)) * SOF_bpsk[2*i+1]; // real part of the odd symbols
+		SOF_mod[4*i + 3] =      (1/std::sqrt(2)) * SOF_bpsk[2*i+1]; // imag part of the odd symbols
 	}
 
 	for(int col=0; col<32 ; col++)
@@ -162,18 +160,18 @@ generate_PLH( void )
 	if(mod_cod[0] == 0)
 		for( int i = 0; i < 32; i++)
 		{
-			final_PLS_mod[4*i    ] =      (1/sqrt(2)) * final_PLS_bpsk[2*i]; // real part of the even symbols (starting index = 0)
-			final_PLS_mod[4*i + 1] =      (1/sqrt(2)) * final_PLS_bpsk[2*i]; // imag part of the even symbols
-			final_PLS_mod[4*i + 2] = -1 * (1/sqrt(2)) * final_PLS_bpsk[2*i+1]; // real part of the odd symbols
-			final_PLS_mod[4*i + 3] =      (1/sqrt(2)) * final_PLS_bpsk[2*i+1]; // imag part of the odd symbols
+			final_PLS_mod[4*i    ] =      (1/std::sqrt(2)) * final_PLS_bpsk[2*i]; // real part of the even symbols (starting index = 0)
+			final_PLS_mod[4*i + 1] =      (1/std::sqrt(2)) * final_PLS_bpsk[2*i]; // imag part of the even symbols
+			final_PLS_mod[4*i + 2] = -1 * (1/std::sqrt(2)) * final_PLS_bpsk[2*i+1]; // real part of the odd symbols
+			final_PLS_mod[4*i + 3] =      (1/std::sqrt(2)) * final_PLS_bpsk[2*i+1]; // imag part of the odd symbols
 		}
 	else // include pi/2 jump if b_0 == 1 (See note 2 p.44, DVBS2X)
 		for( int i = 0; i < 32; i++)
 		{
-			final_PLS_mod[4*i    ] = -1 * (1/sqrt(2)) * final_PLS_bpsk[2*i]; // real part of the even symbols (starting index = 0)
-			final_PLS_mod[4*i + 1] =      (1/sqrt(2)) * final_PLS_bpsk[2*i]; // imag part of the even symbols
-			final_PLS_mod[4*i + 2] = -1 * (1/sqrt(2)) * final_PLS_bpsk[2*i+1]; // real part of the odd symbols
-			final_PLS_mod[4*i + 3] = -1 * (1/sqrt(2)) * final_PLS_bpsk[2*i+1]; // imag part of the odd symbols
+			final_PLS_mod[4*i    ] = -1 * (1/std::sqrt(2)) * final_PLS_bpsk[2*i]; // real part of the even symbols (starting index = 0)
+			final_PLS_mod[4*i + 1] =      (1/std::sqrt(2)) * final_PLS_bpsk[2*i]; // imag part of the even symbols
+			final_PLS_mod[4*i + 2] = -1 * (1/std::sqrt(2)) * final_PLS_bpsk[2*i+1]; // real part of the odd symbols
+			final_PLS_mod[4*i + 3] = -1 * (1/std::sqrt(2)) * final_PLS_bpsk[2*i+1]; // imag part of the odd symbols
 		}
 
 	this->PLH = SOF_mod; // assign SOF
@@ -232,12 +230,12 @@ _generate(B *Y_N1, B *Y_N2, const int frame_id)
 	// Pilot generation
 	////////////////////////////////////////////////////
 
-	std::vector <std::complex<float> > Cx_pilot_mod(36);//, (1/sqrt(2), 1/sqrt(2)) );
+	std::vector <std::complex<float> > Cx_pilot_mod(36);//, (1/std::sqrt(2), 1/std::sqrt(2)) );
 	
 	for (unsigned int i = 0; i < Cx_pilot_mod.size(); i++)
 	{
-		Cx_pilot_mod[i].real(1/sqrt(2));
-		Cx_pilot_mod[i].imag(1/sqrt(2));
+		Cx_pilot_mod[i].real(1/std::sqrt(2));
+		Cx_pilot_mod[i].imag(1/std::sqrt(2));
 	}
 
 	////////////////////////////////////////////////////
