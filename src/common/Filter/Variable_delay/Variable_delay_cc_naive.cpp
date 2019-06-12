@@ -9,7 +9,7 @@ using namespace aff3ct::module;
 template <typename R>
 Variable_delay_cc_naive<R>
 ::Variable_delay_cc_naive(const int N, const int delay, const int max_delay)
-: Filter<R>(N,N), d(d), buff(2*(max_delay+1), std::complex<R>(R(0))), head(0), size(max_delay+1)
+: Filter<R>(N,N), delay(delay), buff(2*(max_delay+1), std::complex<R>(R(0))), head(0), size(max_delay+1)
 {
 	assert(size > 0);
 }
