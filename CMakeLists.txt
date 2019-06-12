@@ -46,3 +46,17 @@ target_link_libraries(dvbs2_optique_common PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_tx PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_rx PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_tx_rx PRIVATE aff3ct-static-lib)
+
+# Link with OpenMP
+find_package(OpenMP)
+if (OpenMP_FOUND)
+    # good way to link with OpenMP in the CMake3 style
+    if(${CMAKE_VERSION} VERSION_EQUAL "3.9" OR ${CMAKE_VERSION} VERSION_GREATER "3.9")
+        target_link_libraries(dvbs2_optique_tx_rx PRIVATE OpenMP::OpenMP_CXX)
+    # old an ugly way to link with OpenMP, may not work with all the comiler
+    else()
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+    endif()
+endif(OpenMP_FOUND)

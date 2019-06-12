@@ -1,5 +1,9 @@
 #include <vector>
+#include <numeric>
 #include <iostream>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include <aff3ct.hpp>
 
@@ -13,18 +17,54 @@
 
 using namespace aff3ct;
 
+#ifndef _OPENMP
+inline int omp_get_thread_num () { return 0; }
+inline int omp_get_num_threads() { return 1; }
+#endif
+
+namespace aff3ct { namespace module {
+using Monitor_BFER_reduction = Monitor_reduction_M<Monitor_BFER<>>;
+} }
+
 int main(int argc, char** argv)
 {
-	auto params = Params_DVBS2O(argc, argv);
+	// get the parameter to configure the tools and modules
+	const auto params = Params_DVBS2O(argc, argv);
+
+	// declare shared modules and tools
+	std::vector<std::unique_ptr<module::Monitor_BFER<>>>        monitors;
+	            std::unique_ptr<module::Monitor_BFER_reduction> monitor_red;
+	std::vector<std::unique_ptr<tools ::Reporter>>              reporters;
+	            std::unique_ptr<tools ::Terminal>               terminal;
+	                            tools ::Sigma<>                 noise;
+
+	// the list of the allocated modules for the simulation
+	std::vector<std::vector<const module::Module*>> modules;
+
+#pragma omp parallel
+{
+	// get the thread id from OpenMP
+	const int tid = omp_get_thread_num();
+
+#pragma omp single
+{
+	// get the number of available threads from OpenMP
+	const size_t n_threads = (size_t)omp_get_num_threads();
+	monitors.resize(n_threads);
+	modules .resize(n_threads);
+}
+// end of #pragma omp single
 
 	// construct tools
-	std::unique_ptr<tools::Constellation           <R>> cstl    (new tools::Constellation_user<R>(params.constellation_file));
-	std::unique_ptr<tools::Interleaver_core        < >> itl_core(Factory_DVBS2O::build_itl_core<>(params                   ));
-	                tools::BCH_polynomial_generator<B > poly_gen(params.N_BCH_unshortened, 12                               );
-	                tools::Sigma                   <  > noise;
+	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
+	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
+	                tools::BCH_polynomial_generator<      > poly_gen(params.N_BCH_unshortened, 12, params.bch_prim_poly);
+
+	// initialize the tools
+	itl_core->init();
 
 	// construct modules
-	std::unique_ptr<module::Source<>                   > source      (Factory_DVBS2O::build_source           <>(params                 ));
+	std::unique_ptr<module::Source<>                   > source      (Factory_DVBS2O::build_source           <>(params, tid*2+0        ));
 	std::unique_ptr<module::Scrambler<>                > bb_scrambler(Factory_DVBS2O::build_bb_scrambler     <>(params                 ));
 	std::unique_ptr<module::Encoder<>                  > BCH_encoder (Factory_DVBS2O::build_bch_encoder      <>(params, poly_gen       ));
 	std::unique_ptr<module::Decoder_HIHO<>             > BCH_decoder (Factory_DVBS2O::build_bch_decoder      <>(params, poly_gen       ));
@@ -32,56 +72,62 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Interleaver<>              > itl_tx      (Factory_DVBS2O::build_itl              <>(params, *itl_core      ));
 	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (Factory_DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
 	std::unique_ptr<module::Modem<>                    > modem       (Factory_DVBS2O::build_modem            <>(params, std::move(cstl)));
-	std::unique_ptr<module::Channel<>                  > channel     (Factory_DVBS2O::build_channel          <>(params                 ));
+	std::unique_ptr<module::Channel<>                  > channel     (Factory_DVBS2O::build_channel          <>(params, tid*2+1        ));
 	std::unique_ptr<module::Framer<>                   > framer      (Factory_DVBS2O::build_framer           <>(params                 ));
 	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(Factory_DVBS2O::build_pl_scrambler     <>(params                 ));
-	std::unique_ptr<module::Monitor_BFER<B>            > monitor     (Factory_DVBS2O::build_monitor          <>(params                 ));
+	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (Factory_DVBS2O::build_monitor          <>(params                 ));
 
+	auto& monitor = monitors[tid];
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
+
 	LDPC_encoder->set_short_name("LDPC Encoder");
 	LDPC_decoder->set_short_name("LDPC Decoder");
 	BCH_encoder ->set_short_name("BCH Encoder" );
 	BCH_decoder ->set_short_name("BCH Decoder" );
 
-	// create reporters to display results in the terminal
-	std::vector<tools::Reporter*> reporters =
-	{
-		new tools::Reporter_noise     <>(noise   ), // report the noise values (Es/N0 and Eb/N0)
-		new tools::Reporter_BFER      <>(*monitor), // report the bit/frame error rates
-		new tools::Reporter_throughput<>(*monitor)  // report the simulation throughputs
-	};
-	// convert the vector of reporter pointers into a vector of smart pointers
-	std::vector<std::unique_ptr<tools::Reporter>> reporters_uptr;
-	for (auto rep : reporters) reporters_uptr.push_back(std::unique_ptr<tools::Reporter>(rep));
+// wait until all the 'monitors' have been allocated in order to allocate the 'monitor_red' object
+#pragma omp barrier
 
-	// create a terminal that will display the collected data from the reporters
-	std::unique_ptr<tools::Terminal> terminal(new tools::Terminal_std(reporters_uptr));
+#pragma omp single nowait
+{
+	// allocate a common monitor module to reduce all the monitors
+	monitor_red = std::unique_ptr<module::Monitor_BFER_reduction>(new module::Monitor_BFER_reduction(monitors));
+	monitor_red->set_reduce_frequency(std::chrono::milliseconds(500));
+	monitor_red->check_reducible();
+
+	// allocate reporters to display results in the terminal
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>(noise       ))); // report the noise values (Es/N0 and Eb/N0)
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor_red))); // report the bit/frame error rates
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor_red))); // report the simulation throughputs
+
+	// allocate a terminal that will display the collected data from the reporters
+	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
 
 	// display the legend in the terminal
 	terminal->legend();
+}
+// end of #pragma omp single
+
+	// fulfill the list of modules
+	modules[tid] = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder.get(), LDPC_encoder.get(),
+	                 LDPC_decoder.get(), itl_tx      .get(), itl_rx     .get(), modem       .get(),
+	                 framer      .get(), pl_scrambler.get(), source     .get(), monitor     .get(),
+	                 channel     .get()                                                             };
 
 	// configuration of the module tasks
-	std::vector<const module::Module*> modules = {bb_scrambler.get(), BCH_encoder.get(), BCH_decoder.get(),
-	                                              LDPC_encoder.get(), LDPC_decoder.get(), itl_tx.get(), itl_rx.get(),
-	                                              modem.get(), framer.get(), pl_scrambler.get(), source.get(),
-	                                              monitor.get(), channel.get()};
-	for (auto& m : modules)
-		for (auto& t : m->tasks)
+	for (auto& m : modules[tid])
+		for (auto& ta : m->tasks)
 		{
-			t->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
-			t->set_autoexec   (false       ); // disable the auto execution mode of the tasks
-			t->set_debug      (false       ); // disable the debug mode
-			t->set_debug_limit(16          ); // display only the 16 first bits if the debug mode is enabled
-			t->set_stats      (params.stats); // enable the statistics
+			ta->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
+			ta->set_autoexec   (false       ); // disable the auto execution mode of the tasks
+			ta->set_debug      (false       ); // disable the debug mode
+			ta->set_debug_limit(16          ); // display only the 16 first bits if the debug mode is enabled
+			ta->set_stats      (params.stats); // enable the statistics
 
 			// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
-			t->set_fast(!t->is_debug() && !t->is_stats());
+			ta->set_fast(!ta->is_debug() && !ta->is_stats());
 		}
-
-	// initialization
-	poly_gen.set_g(params.BCH_gen_poly);
-	itl_core->init();
 
 	using namespace module;
 
@@ -106,29 +152,33 @@ int main(int argc, char** argv)
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
-	// monitor->add_handler_check(std::bind(&module::Decoder::reset, BCH_decoder));
 
 	// a loop over the various SNRs
-	const float R = (float)params.K_BCH / (float)params.N_LDPC; // compute the code rate
-
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
 	{
+		// compute the code rate
+		const float R = (float)params.K_BCH / (float)params.N_LDPC;
+
 		// compute the current sigma for the channel noise
 		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.BPS);
 		const auto sigma = tools::esn0_to_sigma(esn0);
 
+#pragma omp single
+{
 		noise.set_noise(sigma, ebn0, esn0);
+
+		// display the performance (BER and FER) in real time (in a separate thread)
+		terminal->start_temp_report();
+}
+// end of #pragma omp single
 
 		// update the sigma of the modem and the channel
 		LDPC_cdc->set_noise(noise);
 		modem   ->set_noise(noise);
 		channel ->set_noise(noise);
 
-		// display the performance (BER and FER) in real time (in a separate thread)
-		terminal->start_temp_report();
-
 		// tasks execution
-		while (!monitor->fe_limit_achieved() && !terminal->is_interrupt())
+		while (!monitor_red->is_done_all() && !terminal->is_interrupt())
 		{
 			(*source      )[src::tsk::generate    ].exec();
 			(*bb_scrambler)[scr::tsk::scramble    ].exec();
@@ -140,7 +190,7 @@ int main(int argc, char** argv)
 			(*pl_scrambler)[scr::tsk::scramble    ].exec();
 			(*channel     )[chn::tsk::add_noise   ].exec();
 			(*pl_scrambler)[scr::tsk::descramble  ].exec();
-			(*framer)      [frm::tsk::remove_plh  ].exec();
+			(*framer      )[frm::tsk::remove_plh  ].exec();
 			(*modem       )[mdm::tsk::demodulate  ].exec();
 			(*itl_rx      )[itl::tsk::deinterleave].exec();
 			(*LDPC_decoder)[dec::tsk::decode_siho ].exec();
@@ -149,23 +199,53 @@ int main(int argc, char** argv)
 			(*monitor     )[mnt::tsk::check_errors].exec();
 		}
 
+// need to wait all the threads here before to reset the 'monitors' and 'terminal' states
+#pragma omp barrier
+
+#pragma omp single
+{
+		// final reduction
+		const bool fully = true, final = true;
+		monitor_red->is_done_all(fully, final);
+
 		// display the performance (BER and FER) in the terminal
 		terminal->final_report();
 
-		// if user pressed Ctrl+c twice, exit the SNRs loop
-		if (terminal->is_over()) break;
-
-		// reset the monitor and the terminal for the next SNR
-		monitor->reset();
+		// reset the monitors and the terminal for the next SNR
+		monitor_red->reset_all();
 		terminal->reset();
 
 		// display the statistics of the tasks (if enabled)
 		if (params.stats)
 		{
-			auto ordered = true;
-			tools::Stats::show(modules, ordered);
+			std::vector<std::vector<const module::Module*>> modules_stats(modules[0].size());
+			for (size_t m = 0; m < modules[0].size(); m++)
+				for (size_t t = 0; t < modules.size(); t++)
+					modules_stats[m].push_back(modules[t][m]);
+
+			std::cout << "#" << std::endl;
+			const auto ordered = true;
+			tools::Stats::show(modules_stats, ordered);
+
+			for (size_t m = 0; m < modules[0].size(); m++)
+				for (size_t t = 0; t < modules.size(); t++)
+					for (auto &ta : modules_stats[m][t]->tasks)
+						ta->reset_stats();
+
+			if (ebn0 + params.ebn0_step < params.ebn0_max)
+			{
+				std::cout << "#" << std::endl;
+				terminal->legend();
+			}
 		}
+}
+// end of #pragma omp single
+
+		// if user pressed Ctrl+c twice, exit the SNRs loop
+		if (terminal->is_over()) break;
 	}
+}
+// end of #pragma omp parallel
 
 	std::cout << "#" << std::endl;
 	std::cout << "# End of the simulation" << std::endl;

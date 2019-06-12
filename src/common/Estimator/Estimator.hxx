@@ -118,7 +118,7 @@ _estimate(R *X_N, R *H_N, const int frame_id)
 
 	SNR_est = 15.8;
 
-	std::cout << "(WW) SNR Estimation is manually set." << std::endl;
+	// std::cout << "(WW) SNR Estimation is manually set." << std::endl;
 	pow_tot = moment2;
 
 	pow_sig_util = pow_tot / (1+(std::pow(10, (-1 * SNR_est/10))));
