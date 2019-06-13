@@ -32,7 +32,7 @@ Synchronizer(const int N_in, const int N_out, const int n_frames)
 	this->set_name(name);
 	this->set_short_name(name);
 
-	if (N <= 0)
+	if (N_in <= 0)
 	{
 		std::stringstream message;
 		message << "'N_in' has to be greater than 0 ('N_in' = " << N_in << ").";
@@ -53,13 +53,13 @@ template <typename R>
 void Synchronizer<R>::
 init_processes()
 {
-	auto &p2 = this->create_task("synchronize");
-	auto &p2s_X_N1 = this->template create_socket_in <R>(p2, "X_N1", this->N_in  * this->n_frames);
-	auto &p2s_Y_N2 = this->template create_socket_out<R>(p2, "Y_N2", this->N_out * this->n_frames);
-	this->create_codelet(p2, [this, &p2s_X_N1, &p2s_Y_N2]() -> int
+	auto &p1 = this->create_task("synchronize");
+	auto &p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", this->N_in  * this->n_frames);
+	auto &p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N_out * this->n_frames);
+	this->create_codelet(p1, [this, &p1s_X_N1, &p1s_Y_N2]() -> int
 	{
-		this->synchronizer(static_cast<R*>(p2s_X_N1.get_dataptr()),
-		                   static_cast<R*>(p2s_Y_N2.get_dataptr()));
+		this->synchronize(static_cast<R*>(p1s_X_N1.get_dataptr()),
+		                  static_cast<R*>(p1s_Y_N2.get_dataptr()));
 
 		return 0;
 	});
@@ -106,7 +106,7 @@ synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int fr
 
 template <typename R>
 void Synchronizer<R>::
-Synchronizer(const R *X_N1, R *Y_N2, const int frame_id)
+synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;

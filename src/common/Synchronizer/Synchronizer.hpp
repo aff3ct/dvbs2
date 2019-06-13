@@ -41,7 +41,7 @@ class Synchronizer : public Module
 {
 public:
 	inline Task&   operator[](const syn::tsk                 t) { return Module::operator[]((int)t);                                }
-	inline Socket& operator[](const syn::sck::filter         s) { return Module::operator[]((int)syn::tsk::synchronize        )[(int)s]; }
+	inline Socket& operator[](const syn::sck::synchronize         s) { return Module::operator[]((int)syn::tsk::synchronize        )[(int)s]; }
 
 protected:
 	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */
