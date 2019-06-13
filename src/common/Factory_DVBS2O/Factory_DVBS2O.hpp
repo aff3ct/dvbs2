@@ -8,6 +8,8 @@
 #include "../Scrambler/Scrambler_BB/Scrambler_BB.hpp"
 #include "../Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "../Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
+#include "../Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
+#include "../Synchronizer/Synchronizer_LR_cc_naive.hpp"
 #include "../Estimator/Estimator.hpp"
 
 struct Factory_DVBS2O {
@@ -37,6 +39,9 @@ struct Factory_DVBS2O {
 	                                                     std::unique_ptr<tools::Constellation<R>> cstl);
 
 	template <typename R = float>
+	static module::Multiplier_sine_ccc_naive<R>* build_freq_shift(const Params_DVBS2O& params);
+
+	template <typename R = float>
 	static module::Channel<R>* build_channel(const Params_DVBS2O& params, const int seed = 0);
 
 	template <typename R = float>
@@ -53,6 +58,9 @@ struct Factory_DVBS2O {
 
 	template <typename R = float>
 	static module::Estimator<R>* build_estimator(const Params_DVBS2O& params);
+	
+	template <typename R = float>
+	static module::Synchronizer_LR_cc_naive<R>* build_synchronizer_lr(const Params_DVBS2O& params);
 
 	template <typename B = int>
 	static module::Monitor_BFER<B>* build_monitor(const Params_DVBS2O& params);
