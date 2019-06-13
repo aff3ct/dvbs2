@@ -68,7 +68,8 @@ void Synchronizer_LR_cc_naive<R>
 	
 	R est_reduced_freq = std::atan2(this->R_l[1], this->R_l[0]);
 	est_reduced_freq /= (Lp/2 + 1) * M_PI;
-	std::cout << "# {INTERNAL} hat_nu = "<< est_reduced_freq << " " << std::endl;
+	
+	//std::cout << "# {INTERNAL} hat_nu = "<< est_reduced_freq << " " << std::endl;
 	for (int n = 0 ; n < this->N_in/2 ; n++)
 	{
 		float t = (R)(2 * n) / (R)this->N_in;
