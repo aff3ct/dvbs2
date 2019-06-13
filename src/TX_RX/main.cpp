@@ -12,6 +12,8 @@
 #include "Factory_DVBS2O/Factory_DVBS2O.hpp"
 #include "Framer/Framer.hpp"
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
+#include "Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
+#include "Synchronizer/Synchronizer_LR_cc_naive.hpp"
 #include "Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "Sink/Sink.hpp"
 
@@ -72,7 +74,9 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Interleaver<>              > itl_tx      (Factory_DVBS2O::build_itl              <>(params, *itl_core      ));
 	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (Factory_DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
 	std::unique_ptr<module::Modem<>                    > modem       (Factory_DVBS2O::build_modem            <>(params, std::move(cstl)));
+	std::unique_ptr<module::Multiplier_sine_ccc_naive<>> freq_shift  (Factory_DVBS2O::build_freq_shift       <>(params)                 );
 	std::unique_ptr<module::Channel<>                  > channel     (Factory_DVBS2O::build_channel          <>(params, tid*2+1        ));
+	std::unique_ptr<module::Synchronizer_LR_cc_naive<> > lr_sync     (Factory_DVBS2O::build_synchronizer_lr  <>(params                 ));
 	std::unique_ptr<module::Framer<>                   > framer      (Factory_DVBS2O::build_framer           <>(params                 ));
 	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(Factory_DVBS2O::build_pl_scrambler     <>(params                 ));
 	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (Factory_DVBS2O::build_monitor          <>(params                 ));
@@ -113,22 +117,22 @@ int main(int argc, char** argv)
 	modules[tid] = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder.get(), LDPC_encoder.get(),
 	                 LDPC_decoder.get(), itl_tx      .get(), itl_rx     .get(), modem       .get(),
 	                 framer      .get(), pl_scrambler.get(), source     .get(), monitor     .get(),
-	                 channel     .get()                                                             };
-
+	                 channel     .get(), freq_shift  .get(), lr_sync    .get()                     };
+	
 	// configuration of the module tasks
 	for (auto& m : modules[tid])
 		for (auto& ta : m->tasks)
 		{
 			ta->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
 			ta->set_autoexec   (false       ); // disable the auto execution mode of the tasks
-			ta->set_debug      (false       ); // disable the debug mode
-			ta->set_debug_limit(16          ); // display only the 16 first bits if the debug mode is enabled
+			ta->set_debug      (true       ); // disable the debug mode
+			ta->set_debug_limit(-1          ); // display only the 16 first bits if the debug mode is enabled
+			ta->set_debug_precision(8          );
 			ta->set_stats      (params.stats); // enable the statistics
 
 			// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
 			ta->set_fast(!ta->is_debug() && !ta->is_stats());
 		}
-
 	using namespace module;
 
 	// socket binding
@@ -139,9 +143,11 @@ int main(int argc, char** argv)
 	(*modem       )[mdm::sck::modulate    ::X_N1].bind((*itl_tx      )[itl::sck::interleave  ::itl ]);
 	(*framer      )[frm::sck::generate    ::Y_N1].bind((*modem       )[mdm::sck::modulate    ::X_N2]);
 	(*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
-	(*channel     )[chn::sck::add_noise   ::X_N ].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
+	(*freq_shift  )[mlt::sck::imultiply   ::X_N ].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
+	(*channel     )[chn::sck::add_noise   ::X_N ].bind((*freq_shift)  [mlt::sck::imultiply   ::Z_N ]);
 	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*channel     )[chn::sck::add_noise   ::Y_N ]);
-	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
+	(*lr_sync     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
+	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*lr_sync     )[syn::sck::synchronize ::Y_N2]);
 	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
 	(*itl_rx      )[itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
 	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
@@ -149,7 +155,7 @@ int main(int argc, char** argv)
 	(*bb_scrambler)[scr::sck::descramble  ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K ]);
 	(*monitor     )[mnt::sck::check_errors::U   ].bind((*source      )[src::sck::generate    ::U_K ]);
 	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
-
+	
 	// reset the memory of the decoder after the end of each communication
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 
@@ -177,6 +183,33 @@ int main(int argc, char** argv)
 		modem   ->set_noise(noise);
 		channel ->set_noise(noise);
 
+		// Reset the synchronization device
+		lr_sync->reset();
+		// tasks execution
+		for (int m = 0; m < 200; m++)
+		{
+			(*source      )[src::tsk::generate    ].exec();
+			(*bb_scrambler)[scr::tsk::scramble    ].exec();
+			(*BCH_encoder )[enc::tsk::encode      ].exec();
+			(*LDPC_encoder)[enc::tsk::encode      ].exec();
+			(*itl_tx      )[itl::tsk::interleave  ].exec();
+			(*modem       )[mdm::tsk::modulate    ].exec();
+			(*framer      )[frm::tsk::generate    ].exec();
+			(*pl_scrambler)[scr::tsk::scramble    ].exec();
+			(*freq_shift)  [mlt::tsk::imultiply   ].exec();
+			(*channel     )[chn::tsk::add_noise   ].exec();
+			(*pl_scrambler)[scr::tsk::descramble  ].exec();
+			(*lr_sync     )[syn::tsk::synchronize ].exec();
+			(*framer      )[frm::tsk::remove_plh  ].exec();
+			(*modem       )[mdm::tsk::demodulate  ].exec();
+			(*itl_rx      )[itl::tsk::deinterleave].exec();
+			(*LDPC_decoder)[dec::tsk::decode_siho ].exec();
+			(*BCH_decoder )[dec::tsk::decode_hiho ].exec();
+			(*bb_scrambler)[scr::tsk::descramble  ].exec();
+			//(*monitor     )[mnt::tsk::check_errors].exec();
+			freq_shift->reset_time();
+		}
+
 		// tasks execution
 		while (!monitor_red->is_done_all() && !terminal->is_interrupt())
 		{
@@ -188,8 +221,10 @@ int main(int argc, char** argv)
 			(*modem       )[mdm::tsk::modulate    ].exec();
 			(*framer      )[frm::tsk::generate    ].exec();
 			(*pl_scrambler)[scr::tsk::scramble    ].exec();
+			(*freq_shift)  [mlt::tsk::imultiply   ].exec();
 			(*channel     )[chn::tsk::add_noise   ].exec();
 			(*pl_scrambler)[scr::tsk::descramble  ].exec();
+			(*lr_sync     )[syn::tsk::synchronize ].exec();
 			(*framer      )[frm::tsk::remove_plh  ].exec();
 			(*modem       )[mdm::tsk::demodulate  ].exec();
 			(*itl_rx      )[itl::tsk::deinterleave].exec();
@@ -197,6 +232,7 @@ int main(int argc, char** argv)
 			(*BCH_decoder )[dec::tsk::decode_hiho ].exec();
 			(*bb_scrambler)[scr::tsk::descramble  ].exec();
 			(*monitor     )[mnt::tsk::check_errors].exec();
+			freq_shift->reset_time();
 		}
 
 // need to wait all the threads here before to reset the 'monitors' and 'terminal' states
