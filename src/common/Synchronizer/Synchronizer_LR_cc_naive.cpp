@@ -17,9 +17,9 @@ Synchronizer_LR_cc_naive<R>
 ::Synchronizer_LR_cc_naive(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
 : Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), R_l(2,(R)0.0)
 {
-	assert(pilots_sz > 0);
 	assert(pilot_size > 0);
-	assert(N > pilot_start[pilot_nbr-1] + pilots_sz - 1);
+	assert(pilot_nbr > 0);
+	assert(N > pilot_start[pilot_nbr-1] + pilot_size - 1);
 }
 
 template <typename R>
@@ -33,7 +33,7 @@ void Synchronizer_LR_cc_naive<R>
 {
 	int P = this->pilot_nbr;
 	int Lp = this->pilot_size/2;
-	
+	int Lp_2 = Lp/2;
 	for  (int p = 0 ; p<P ; p++)
 	{
 		//std::cout << this->pilot_start[p] << std::endl;
@@ -49,7 +49,7 @@ void Synchronizer_LR_cc_naive<R>
 					   //std::cout << "(" << X_N1[2*i +   + 2*this->pilot_start[p]] << " " << X_N1[2*i + 1  + 2*this->pilot_start[p]] << ")";
 		}
 		
-		for (int m = 1 ; m < Lp/2 + 1 ; m++)
+		for (int m = 1 ; m < Lp_2 + 1 ; m++)
 		{
 			std::vector<float  > sum_xcorr_z(2, 0.0f);
 
@@ -67,17 +67,18 @@ void Synchronizer_LR_cc_naive<R>
 	}
 	
 	R est_reduced_freq = std::atan2(this->R_l[1], this->R_l[0]);
-	est_reduced_freq /= (Lp/2 + 1) * M_PI;
+	est_reduced_freq /= (Lp_2 + 1) * M_PI;
 	
 	//std::cout << "# {INTERNAL} hat_nu = "<< est_reduced_freq << " " << std::endl;
 	for (int n = 0 ; n < this->N_in/2 ; n++)
 	{
-		float t = (R)(2 * n) / (R)this->N_in;
-		Y_N2[2*n]   = X_N1[2*n]     * std::cos( 2*M_PI * est_reduced_freq * n) 
-		            + X_N1[2*n + 1] * std::sin( 2*M_PI * est_reduced_freq * n);
+		R theta = 2 * M_PI * est_reduced_freq * (R)n;
 
-		Y_N2[2*n+1] = X_N1[2*n + 1] * std::cos( 2*M_PI * est_reduced_freq * n)
-		            - X_N1[2*n]     * std::sin( 2*M_PI * est_reduced_freq * n);
+		Y_N2[2*n    ] = X_N1[2*n    ] * std::cos(theta) 
+		              + X_N1[2*n + 1] * std::sin(theta);
+
+		Y_N2[2*n + 1] = X_N1[2*n + 1] * std::cos(theta)
+		              - X_N1[2*n    ] * std::sin(theta);
 	}
 }
 
@@ -85,8 +86,8 @@ template <typename R>
 void Synchronizer_LR_cc_naive<R>
 ::reset()
 {
-	this->R_l[0] = (R)0;
-	this->R_l[1] = (R)0;
+	this->R_l[0] = (R)0.0;
+	this->R_l[1] = (R)0.0;
 } 
 
 // ==================================================================================== explicit template instantiation
