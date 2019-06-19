@@ -10,6 +10,7 @@
 #include "../Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
 #include "../Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 #include "../Synchronizer/Synchronizer_LR_cc_naive.hpp"
+#include "../Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
 #include "../Estimator/Estimator.hpp"
 
 struct Factory_DVBS2O {
@@ -61,6 +62,9 @@ struct Factory_DVBS2O {
 	
 	template <typename R = float>
 	static module::Synchronizer_LR_cc_naive<R>* build_synchronizer_lr(const Params_DVBS2O& params);
+
+	template <typename R = float>
+	static module::Synchronizer_fine_pf_cc_DVBS2O<R>* build_synchronizer_fine_pf(const Params_DVBS2O& params);	
 
 	template <typename B = int>
 	static module::Monitor_BFER<B>* build_monitor(const Params_DVBS2O& params);
