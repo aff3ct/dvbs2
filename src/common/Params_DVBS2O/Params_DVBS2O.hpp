@@ -40,6 +40,11 @@ public:
 	const int   OSF       = 4;
 	const int   GRP_DELAY = 50;
 
+	float MAX_FREQ_SHIFT;
+
+	const std::vector<float  > pilot_values = std::vector<float  > (P*2, std::sqrt(2.0f)/2.0f);
+	const std::vector<int    > pilot_start  = {1530, 3006, 4482, 5958, 7434};
+
 	const std::string mat2aff_file_name = "../build/matlab_to_aff3ct.txt";
 	const std::string aff2mat_file_name = "../build/aff3ct_to_matlab.txt";
 

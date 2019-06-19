@@ -51,6 +51,11 @@ Params_DVBS2O(int argc, char** argv)
 	else
 		MAX_FE = 100;
 
+	// initialize max fe
+	if (arg_vals.exist({"chn-max-freq-shift"}))
+		MAX_FREQ_SHIFT = arg_vals.to_float({"chn-max-freq-shift"});
+	else
+		MAX_FREQ_SHIFT = 0.0f;
 	// initialize MODCOD
 	if (arg_vals.exist({"mod-cod"}))
 		MODCOD = arg_vals.at({"mod-cod"});
@@ -141,6 +146,7 @@ get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 		// add possible argument inputs
 		auto modcod_format = tools::Text(tools::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
 		args.add({"mod-cod"},            modcod_format,                                        "Modulation and coding scheme."       );
+		args.add({"chn-max-freq-shift"},            tools::Real(),                                        "Maximum Doppler shift."       );
 		args.add({"max-fe","e"},         tools::Integer(tools::Positive(), tools::Non_zero()), "Modulation and coding scheme."       );
 		args.add({"sim-noise-min","m"},  tools::Real(),                                        "Min Eb/N0"                           );
 		args.add({"sim-noise-max","M"},  tools::Real(),                                        "Max Eb/N0"                           );

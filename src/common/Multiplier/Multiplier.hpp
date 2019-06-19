@@ -21,12 +21,12 @@ namespace module
 {
 	namespace mlt
 	{
-		enum class tsk : uint8_t { multiply, imultiply, SIZE };
+		enum class tsk : uint8_t { imultiply, multiply, SIZE };
 
 		namespace sck
 		{
-			enum class multiply       : uint8_t { X_N, Y_N, Z_N, SIZE };
 			enum class imultiply      : uint8_t { X_N, Z_N, SIZE };
+			enum class multiply       : uint8_t { X_N, Y_N, Z_N, SIZE };
 		}
 	}
 

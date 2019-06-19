@@ -14,41 +14,52 @@
 
 using namespace aff3ct::module;
 
-Multiplier_sine_ccc_naive
-::Multiplier_sine_ccc_naive(const int N, const float f, const float Fs, const int n_frames)
-: Multiplier<float>(N, n_frames), n(0.0f), f(f), omega(2 * M_PI * f/Fs), Fs(Fs)
+template <typename R>
+Multiplier_sine_ccc_naive<R>
+::Multiplier_sine_ccc_naive(const int N, const R f, const R Fs, const int n_frames)
+: Multiplier<R>(N, n_frames), n(0.0f), f(f), omega(2 * M_PI * f/Fs), Fs(Fs)
 {}
 
-Multiplier_sine_ccc_naive
+template <typename R>
+Multiplier_sine_ccc_naive<R>
 ::~Multiplier_sine_ccc_naive()
 {}
 
-void Multiplier_sine_ccc_naive
-::set_f(float f)
+template <typename R>
+void Multiplier_sine_ccc_naive<R>
+::set_f(R f)
 {
 	this-> f = f;
 	this->omega = 2 * M_PI * f/this->Fs;
 }
 
-void Multiplier_sine_ccc_naive
+template <typename R>
+void Multiplier_sine_ccc_naive<R>
 ::reset_time()
 {
 	this->n = 0.0f;
 }
 
-inline void Multiplier_sine_ccc_naive
-::step(const std::complex<float>* x_elt, std::complex<float>* y_elt)
+template <typename R>
+inline void Multiplier_sine_ccc_naive<R>
+::step(const std::complex<R>* x_elt, std::complex<R>* y_elt)
 {
-	float phase(this->omega * this->n);
-	*y_elt = *x_elt * std::complex<float>(std::cos(phase), std::sin(phase));
+	R phase(this->omega * this->n);
+	*y_elt = *x_elt * std::complex<R>(std::cos(phase), std::sin(phase));
 	this->n += 1.0f;
 }
 
-void Multiplier_sine_ccc_naive
-::_imultiply(const float *X_N,  float *Z_N, const int frame_id)
+template <typename R>
+void Multiplier_sine_ccc_naive<R>
+::_imultiply(const R *X_N,  R *Z_N, const int frame_id)
 {
-	const std::complex<float>* cX_N = reinterpret_cast<const std::complex<float>* >(X_N);
-	std::complex<float>* cZ_N = reinterpret_cast<std::complex<float>* >(Z_N);
+	const std::complex<R>* cX_N = reinterpret_cast<const std::complex<R>* >(X_N);
+	std::complex<R>* cZ_N = reinterpret_cast<std::complex<R>* >(Z_N);
 	for (auto i = 0 ; i < this->N/2 ; i++)
 		this->step(&cX_N[i], &cZ_N[i]);
 }
+
+// ==================================================================================== explicit template instantiation
+template class aff3ct::module::Multiplier_sine_ccc_naive<float>;
+template class aff3ct::module::Multiplier_sine_ccc_naive<double>;
+// ==================================================================================== explicit template instantiation

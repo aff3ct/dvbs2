@@ -12,22 +12,23 @@ namespace aff3ct
 {
 namespace module
 {
-class Multiplier_sine_ccc_naive : public Multiplier<float>
+template <typename R = float>
+class Multiplier_sine_ccc_naive : public Multiplier<R>
 {
 private:
-	float n;        // Current time instant
-	float f;        //Current frequency in Hz
-	float omega;    // Current reduced pulsation [0 2pi]
-	const float Fs; // Sampling frequency
+	R n;        // Current time instant
+	R f;        //Current frequency in Hz
+	R omega;    // Current reduced pulsation [0 2pi]
+	const R Fs; // Sampling frequency
 	
-	void _imultiply(const float *X_N,  float *Z_N, const int frame_id);
+	void _imultiply(const R *X_N,  R *Z_N, const int frame_id);
 
 public:
-	Multiplier_sine_ccc_naive (const int N, const float f, const float Fs = 1.0f, const int n_frames = 1);
+	Multiplier_sine_ccc_naive (const int N, const R f, const R Fs = 1.0f, const int n_frames = 1);
 	void reset_time();
-	void set_f (float f);
+	void set_f (R f);
 	virtual ~Multiplier_sine_ccc_naive();
-	void step      (const std::complex<float>* x_elt, std::complex<float>* y_elt);
+	void step      (const std::complex<R>* x_elt, std::complex<R>* y_elt);
 
 };
 }
