@@ -146,15 +146,15 @@ get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 		// add possible argument inputs
 		auto modcod_format = tools::Text(tools::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
 		args.add({"mod-cod"},            modcod_format,                                        "Modulation and coding scheme."       );
-		args.add({"chn-max-freq-shift"},            tools::Real(),                                        "Maximum Doppler shift."       );
+		args.add({"chn-max-freq-shift"}, tools::Real(),                                        "Maximum Doppler shift."              );
 		args.add({"max-fe","e"},         tools::Integer(tools::Positive(), tools::Non_zero()), "Modulation and coding scheme."       );
 		args.add({"sim-noise-min","m"},  tools::Real(),                                        "Min Eb/N0"                           );
 		args.add({"sim-noise-max","M"},  tools::Real(),                                        "Max Eb/N0"                           );
 		args.add({"sim-noise-step","s"}, tools::Real(),                                        "Step Eb/N0"                          );
 		args.add({"sim-stats"},          tools::None(),                                        "Display stats."                      );
 		args.add({"dec-ite"},            tools::Integer(tools::Positive(), tools::Non_zero()), "LDPC number of iterations"           );
-		args.add({"dec-implem"},         tools::Text(tools::Including_set("SPA", "MS")),       "LDPC Implem "                        );
-		args.add({"dec-simd"},           tools::Text(tools::Including_set("INTER", "")),       "Display stats."                      );
+		args.add({"dec-implem"},         tools::Text(tools::Including_set("SPA", "MS", "NMS")),"LDPC Implem "                        );
+		args.add({"dec-simd"},           tools::Text(tools::Including_set("INTER", "INTRA")),  "Display stats."                      );
 
 		// parse user arguments
 		arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);
