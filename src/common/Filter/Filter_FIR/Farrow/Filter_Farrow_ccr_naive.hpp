@@ -29,6 +29,7 @@ public:
 	void set_mu(R mu);
 	void step(const std::complex<R>* x_elt, std::complex<R>* y_elt);
 	void _filter(const R *X_N1,  R *Y_N2, const int frame_id);
+	void reset();
 };
 }
 }
