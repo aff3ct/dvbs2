@@ -101,10 +101,28 @@ template <typename R>
 module::Filter_UPRRC_ccr_naive<R>* Factory_DVBS2O
 ::build_uprrc_filter(const Params_DVBS2O& params)
 {
-	return new module::Filter_UPRRC_ccr_naive<float>((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2,
-	                                                  params.ROLLOFF,
-	                                                  params.OSF,
-	                                                  params.GRP_DELAY);
+	return new module::Filter_UPRRC_ccr_naive<float>(params.PL_FRAME_SIZE * 2,
+	                                                 params.ROLLOFF,
+	                                                 params.OSF,
+	                                                 params.GRP_DELAY);
+}
+
+template <typename R>
+module::Filter_Farrow_ccr_naive<R>* Factory_DVBS2O
+::build_channel_delay(const Params_DVBS2O& params)
+{
+	return new module::Filter_Farrow_ccr_naive <float>(params.PL_FRAME_SIZE * 2 * params.OSF,
+	                                                   params.MAX_DELAY);
+}
+
+template <typename R>
+module::Filter_RRC_ccr_naive<R>* Factory_DVBS2O
+::build_matched_filter(const Params_DVBS2O& params)
+{
+	return new module::Filter_RRC_ccr_naive<float>(params.OSF * params.PL_FRAME_SIZE * 2,
+	                                               params.ROLLOFF,
+	                                               params.OSF,
+	                                               params.GRP_DELAY);
 }
 
 template <typename R>
@@ -129,14 +147,14 @@ module::Channel<R>* Factory_DVBS2O
 {
 	std::unique_ptr<tools::Gaussian_noise_generator<R>> n = nullptr;
 	n.reset(new tools::Gaussian_noise_generator_fast<R>(seed));
-	return new module::Channel_AWGN_LLR<R>(2*params.PL_FRAME_SIZE, std::move(n));
+	return new module::Channel_AWGN_LLR<R>(2*params.PL_FRAME_SIZE * params.OSF, std::move(n));
 }
 
 template <typename R>
 module::Multiplier_sine_ccc_naive<R>* Factory_DVBS2O
 ::build_freq_shift(const Params_DVBS2O& params)
 {
-	return new module::Multiplier_sine_ccc_naive<R>(2*params.PL_FRAME_SIZE, params.MAX_FREQ_SHIFT);
+	return new module::Multiplier_sine_ccc_naive<R>(2*params.PL_FRAME_SIZE * params.OSF, params.MAX_FREQ_SHIFT);
 }
 
 template <typename R>
@@ -153,6 +171,13 @@ module::Synchronizer_fine_pf_cc_DVBS2O<R>* Factory_DVBS2O
 	return new module::Synchronizer_fine_pf_cc_DVBS2O<R>(2 * params.PL_FRAME_SIZE, params.pilot_values, params.pilot_start);
 }
 
+template <typename R>
+module::Synchronizer_Gardner_cc_naive<R>* Factory_DVBS2O
+::build_synchronize_gardner(const Params_DVBS2O& params)
+{
+	return new module::Synchronizer_Gardner_cc_naive<R>(2 * params.PL_FRAME_SIZE * params.OSF, params.OSF);
+}
+
 template aff3ct::module::Source<B>*                            Factory_DVBS2O::build_source<B>               (const Params_DVBS2O& params, const int seed);
 template aff3ct::module::Encoder_BCH<B>*                       Factory_DVBS2O::build_bch_encoder<B>          (const Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
 template aff3ct::module::Decoder_BCH_std<B>*                   Factory_DVBS2O::build_bch_decoder<B>          (const Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
@@ -165,9 +190,12 @@ template aff3ct::module::Framer<R>*                            Factory_DVBS2O::b
 template aff3ct::module::Scrambler_BB<B>*                      Factory_DVBS2O::build_bb_scrambler<B>         (const Params_DVBS2O& params);
 template aff3ct::module::Scrambler_PL<R>*                      Factory_DVBS2O::build_pl_scrambler<R>         (const Params_DVBS2O& params);
 template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            Factory_DVBS2O::build_uprrc_filter<R>         (const Params_DVBS2O& params);
+template aff3ct::module::Filter_Farrow_ccr_naive<R>*           Factory_DVBS2O::build_channel_delay<R>         (const Params_DVBS2O& params);
+template aff3ct::module::Filter_RRC_ccr_naive<R>*              Factory_DVBS2O::build_matched_filter<R>       (const Params_DVBS2O& params);
 template aff3ct::module::Estimator<R>*                         Factory_DVBS2O::build_estimator<R>            (const Params_DVBS2O& params);
 template aff3ct::module::Monitor_BFER<B>*                      Factory_DVBS2O::build_monitor<B>              (const Params_DVBS2O& params);
 template aff3ct::module::Channel<R>*                           Factory_DVBS2O::build_channel<R>              (const Params_DVBS2O& params, const int seed);
 template aff3ct::module::Multiplier_sine_ccc_naive<R>*         Factory_DVBS2O::build_freq_shift<R>           (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_LR_cc_naive<R>*          Factory_DVBS2O::build_synchronizer_lr<R>      (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_fine_pf_cc_DVBS2O<R>*    Factory_DVBS2O::build_synchronizer_fine_pf<R> (const Params_DVBS2O& params);
+template aff3ct::module::Synchronizer_Gardner_cc_naive<R>*     Factory_DVBS2O::build_synchronize_gardner<R>  (const Params_DVBS2O& params);
