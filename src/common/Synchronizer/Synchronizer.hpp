@@ -40,7 +40,7 @@ template <typename R = float>
 class Synchronizer : public Module
 {
 public:
-	inline Task&   operator[](const syn::tsk                 t) { return Module::operator[]((int)t);                                }
+	inline Task&   operator[](const syn::tsk                      t) { return Module::operator[]((int)t);                                     }
 	inline Socket& operator[](const syn::sck::synchronize         s) { return Module::operator[]((int)syn::tsk::synchronize        )[(int)s]; }
 
 protected:
