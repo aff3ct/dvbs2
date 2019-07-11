@@ -27,6 +27,8 @@ public:
 	Multiplier_sine_ccc_naive (const int N, const R f, const R Fs = 1.0f, const int n_frames = 1);
 	void reset_time();
 	void set_f (R f);
+	R get_nu ();
+	
 	virtual ~Multiplier_sine_ccc_naive();
 	void step      (const std::complex<R>* x_elt, std::complex<R>* y_elt);
 

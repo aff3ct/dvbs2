@@ -34,6 +34,13 @@ void Multiplier_sine_ccc_naive<R>
 }
 
 template <typename R>
+R Multiplier_sine_ccc_naive<R>
+::get_nu()
+{
+	return this->f/this->Fs;
+}
+
+template <typename R>
 void Multiplier_sine_ccc_naive<R>
 ::reset_time()
 {
