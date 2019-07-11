@@ -18,11 +18,14 @@ private:
 	const int                pilot_nbr;
 	const std::vector<R>     pilot_values;
 	const std::vector<int>   pilot_start;
+
+	R est_reduced_freq;
 	
 public:
 	Synchronizer_fine_pf_cc_DVBS2O (const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start);
 	virtual ~Synchronizer_fine_pf_cc_DVBS2O();
 	void reset();
+	R get_est_reduced_freq();
 
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
