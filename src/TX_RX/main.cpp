@@ -75,8 +75,12 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Interleaver<>                    > itl_tx      (Factory_DVBS2O::build_itl                   <>(params, *itl_core      ));
 	std::unique_ptr<module::Interleaver<float,uint32_t>      > itl_rx      (Factory_DVBS2O::build_itl<float,uint32_t>     (params, *itl_core      ));
 	std::unique_ptr<module::Modem<>                          > modem       (Factory_DVBS2O::build_modem                 <>(params, std::move(cstl)));
+	std::unique_ptr<module::Filter_UPRRC_ccr_naive<>         > shaping_flt (Factory_DVBS2O::build_uprrc_filter          <>(params)                 );
 	std::unique_ptr<module::Multiplier_sine_ccc_naive<>      > freq_shift  (Factory_DVBS2O::build_freq_shift            <>(params)                 );
+	std::unique_ptr<module::Filter_Farrow_ccr_naive<>        > chn_delay   (Factory_DVBS2O::build_channel_delay         <>(params)                 );
 	std::unique_ptr<module::Channel<>                        > channel     (Factory_DVBS2O::build_channel               <>(params, tid*2+1        ));
+	std::unique_ptr<module::Filter_RRC_ccr_naive<>           > matched_flt (Factory_DVBS2O::build_matched_filter        <>(params)                 );
+	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<>  > sync_gardner(Factory_DVBS2O::build_synchronize_gardner   <>(params)                 );
 	std::unique_ptr<module::Synchronizer_LR_cc_naive<>       > sync_lr     (Factory_DVBS2O::build_synchronizer_lr       <>(params                 ));
 	std::unique_ptr<module::Synchronizer_fine_pf_cc_DVBS2O<> > sync_fine_pf(Factory_DVBS2O::build_synchronizer_fine_pf  <>(params                 ));
 	std::unique_ptr<module::Framer<>                         > framer      (Factory_DVBS2O::build_framer                <>(params                 ));
@@ -93,6 +97,8 @@ int main(int argc, char** argv)
 	BCH_decoder ->set_short_name("BCH Decoder" );
 	sync_lr     ->set_short_name("L&R F Syn");
 	sync_fine_pf->set_short_name("Fine P/F Syn");
+	matched_flt ->set_short_name("Matched Flt");
+	shaping_flt ->set_short_name("Shaping Flt");
 
 // wait until all the 'monitors' have been allocated in order to allocate the 'monitor_red' object
 #pragma omp barrier
@@ -118,10 +124,11 @@ int main(int argc, char** argv)
 // end of #pragma omp single
 
 	// fulfill the list of modules
-	modules[tid] = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder.get(), LDPC_encoder.get(),
-	                 LDPC_decoder.get(), itl_tx      .get(), itl_rx     .get(), modem       .get(),
-	                 framer      .get(), pl_scrambler.get(), source     .get(), monitor     .get(),
-	                 channel     .get(), freq_shift  .get(), sync_lr    .get(), sync_fine_pf.get()  };
+	modules[tid] = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder .get(), LDPC_encoder.get(),
+	                 LDPC_decoder.get(), itl_tx      .get(), itl_rx      .get(), modem       .get(),
+	                 framer      .get(), pl_scrambler.get(), source      .get(), monitor     .get(),
+	                 channel     .get(), freq_shift  .get(), sync_lr     .get(), sync_fine_pf.get(), 
+	                 matched_flt .get(), shaping_flt .get(), sync_gardner.get(), chn_delay.get()};
 	
 	// configuration of the module tasks
 	for (auto& m : modules[tid])
@@ -140,11 +147,13 @@ int main(int argc, char** argv)
 
 	
 	using namespace module;
-	
+	(*freq_shift)  [mlt::tsk::imultiply]   .set_debug(false);
 	(*sync_lr)     [syn::tsk::synchronize ].set_debug(false);
 	(*sync_fine_pf)[syn::tsk::synchronize ].set_debug(false);
+	(*sync_gardner)[syn::tsk::synchronize ].set_debug(false);
 	
 	// socket binding
+	// TX
 	(*bb_scrambler)[scr::sck::scramble    ::X_N1].bind((*source      )[src::sck::generate    ::U_K ]);
 	(*BCH_encoder )[enc::sck::encode      ::U_K ].bind((*bb_scrambler)[scr::sck::scramble    ::X_N2]);
 	(*LDPC_encoder)[enc::sck::encode      ::U_K ].bind((*BCH_encoder )[enc::sck::encode      ::X_N ]);
@@ -152,9 +161,18 @@ int main(int argc, char** argv)
 	(*modem       )[mdm::sck::modulate    ::X_N1].bind((*itl_tx      )[itl::sck::interleave  ::itl ]);
 	(*framer      )[frm::sck::generate    ::Y_N1].bind((*modem       )[mdm::sck::modulate    ::X_N2]);
 	(*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
-	(*freq_shift  )[mlt::sck::imultiply   ::X_N ].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
+	(*shaping_flt )[flt::sck::filter      ::X_N1].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
+	
+	// Channel
+	(*chn_delay   )[flt::sck::filter      ::X_N1].bind((*shaping_flt )[flt::sck::filter      ::Y_N2]);
+	(*freq_shift  )[mlt::sck::imultiply   ::X_N ].bind((*chn_delay   )[flt::sck::filter      ::Y_N2]);
+	//(*freq_shift  )[mlt::sck::imultiply   ::X_N ].bind((*shaping_flt )[flt::sck::filter      ::Y_N2]);
 	(*channel     )[chn::sck::add_noise   ::X_N ].bind((*freq_shift)  [mlt::sck::imultiply   ::Z_N ]);
-	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*channel     )[chn::sck::add_noise   ::Y_N ]);
+	// RX
+	
+	(*matched_flt )[flt::sck::filter      ::X_N1].bind((*channel     )[chn::sck::add_noise   ::Y_N ]);
+	(*sync_gardner)[syn::sck::synchronize ::X_N1].bind((*matched_flt )[flt::sck::filter      ::Y_N2]);
+	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*sync_gardner)[syn::sck::synchronize ::Y_N2]);
 	(*sync_lr     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
 	(*sync_fine_pf)[syn::sck::synchronize ::X_N1].bind((*sync_lr     )[syn::sck::synchronize ::Y_N2]);
 	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*sync_fine_pf)[syn::sck::synchronize ::Y_N2]);
@@ -182,9 +200,9 @@ int main(int argc, char** argv)
 #pragma omp single
 {
 		noise.set_noise(sigma, ebn0, esn0);
+		std::cout << "Learning phase..." << "\r";
+		std::cout.flush();
 
-		// display the performance (BER and FER) in real time (in a separate thread)
-		terminal->start_temp_report();
 }
 // end of #pragma omp single
 
@@ -196,7 +214,7 @@ int main(int argc, char** argv)
 		// Reset the synchronization device
 		sync_lr->reset();
 		// tasks execution
-		for (int m = 0; m < 200; m++)
+		for (int m = 0; m < 600; m++)
 		{
 			(*source      )[src::tsk::generate    ].exec();
 			(*bb_scrambler)[scr::tsk::scramble    ].exec();
@@ -206,8 +224,12 @@ int main(int argc, char** argv)
 			(*modem       )[mdm::tsk::modulate    ].exec();
 			(*framer      )[frm::tsk::generate    ].exec();
 			(*pl_scrambler)[scr::tsk::scramble    ].exec();
+			(*shaping_flt )[flt::tsk::filter      ].exec();
+			(*chn_delay   )[flt::tsk::filter      ].exec();
 			(*freq_shift)  [mlt::tsk::imultiply   ].exec();
 			(*channel     )[chn::tsk::add_noise   ].exec();
+			(*matched_flt )[flt::tsk::filter      ].exec();
+			(*sync_gardner)[syn::tsk::synchronize ].exec();
 			(*pl_scrambler)[scr::tsk::descramble  ].exec();
 			(*sync_lr     )[syn::tsk::synchronize ].exec();
 			(*sync_fine_pf)[syn::tsk::synchronize ].exec();
@@ -217,10 +239,11 @@ int main(int argc, char** argv)
 			(*LDPC_decoder)[dec::tsk::decode_siho ].exec();
 			(*BCH_decoder )[dec::tsk::decode_hiho ].exec();
 			(*bb_scrambler)[scr::tsk::descramble  ].exec();
-			//(*monitor     )[mnt::tsk::check_errors].exec();
+			(*monitor     )[mnt::tsk::check_errors].exec();
 			freq_shift->reset_time();
 		}
-
+		//std::cout << freq_shift->get_nu()  << " | "<< freq_shift->get_nu() - sync_lr->get_est_reduced_freq() << " | "<< freq_shift->get_nu() - (sync_lr->get_est_reduced_freq() + sync_fine_pf->get_est_reduced_freq()) << std::endl;
+		
 		if (params.stats)
 		{
 			std::vector<std::vector<const module::Module*>> modules_stats(modules[0].size());
@@ -236,6 +259,10 @@ int main(int argc, char** argv)
 		(*monitor     )[mnt::tsk::check_errors].exec();
 		monitor_red->reset_all();
 
+#pragma omp single
+		// display the performance (BER and FER) in real time (in a separate thread)
+		terminal->start_temp_report();
+
 		// tasks execution
 		while (!monitor_red->is_done_all() && !terminal->is_interrupt())
 		{
@@ -247,8 +274,12 @@ int main(int argc, char** argv)
 			(*modem       )[mdm::tsk::modulate    ].exec();
 			(*framer      )[frm::tsk::generate    ].exec();
 			(*pl_scrambler)[scr::tsk::scramble    ].exec();
+			(*shaping_flt )[flt::tsk::filter      ].exec();
+			(*chn_delay   )[flt::tsk::filter      ].exec();
 			(*freq_shift)  [mlt::tsk::imultiply   ].exec();
 			(*channel     )[chn::tsk::add_noise   ].exec();
+			(*matched_flt )[flt::tsk::filter      ].exec();
+			(*sync_gardner)[syn::tsk::synchronize ].exec();
 			(*pl_scrambler)[scr::tsk::descramble  ].exec();
 			(*sync_lr     )[syn::tsk::synchronize ].exec();
 			(*sync_fine_pf)[syn::tsk::synchronize ].exec();
