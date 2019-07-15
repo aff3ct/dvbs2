@@ -20,8 +20,6 @@ OSF(OSF),
 POW_OSF(1<<OSF),
 INV_OSF((R)1.0/ (R)OSF),
 last_symbol(0,0),
-symbols_buffer(2*N, std::complex<R>(0,0)),
-N_symbol(0),
 mu(0),
 farrow_flt(N,(R)0),
 strobe_history(0),
@@ -100,6 +98,24 @@ template <typename R>
 void Synchronizer_Gardner_cc_naive<R>
 ::reset()
 {
+	this->farrow_flt.reset();
+
+	for (auto i = 0; i<this->OSF ; i++)
+		this->TED_buffer[i] = std::complex<R>(0,0);
+
+	this->last_symbol      = std::complex<R> (0,0);
+	this->mu               = (R)0;
+	this->strobe_history   = 0;
+	this->is_strobe        = 0;
+	this->TED_error        = (R)0;
+	this->TED_head_pos     = OSF - 1;
+	this->TED_mid_pos      = (OSF - 1 - OSF / 2) % OSF;
+	this->TED_old_head_pos = 0;
+	this->lf_prev_in       = (R)0;
+	this->lf_filter_state  = (R)0;
+	this->lf_output        = (R)0;
+	this->NCO_counter      = (R)0;
+
 }
 
 template <typename R>

@@ -15,7 +15,7 @@ using namespace aff3ct::module;
 template <typename R>
 Synchronizer_LR_cc_naive<R>
 ::Synchronizer_LR_cc_naive(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
-: Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), R_l(2,(R)0.0), est_reduced_freq(0)
+: Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), est_reduced_freq(0), R_l(2,(R)0.0)
 {
 	assert(pilot_size > 0);
 	assert(pilot_nbr > 0);
@@ -65,7 +65,6 @@ void Synchronizer_LR_cc_naive<R>
 			this->R_l[1] += sum_xcorr_z[1] / (R)(Lp-m);
 		}
 	}
-	
 	this->est_reduced_freq = std::atan2(this->R_l[1], this->R_l[0]);
 	this->est_reduced_freq /= (Lp_2 + 1) * M_PI;
 	

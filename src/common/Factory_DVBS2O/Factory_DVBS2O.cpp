@@ -173,9 +173,16 @@ module::Synchronizer_fine_pf_cc_DVBS2O<R>* Factory_DVBS2O
 
 template <typename R>
 module::Synchronizer_Gardner_cc_naive<R>* Factory_DVBS2O
-::build_synchronize_gardner(const Params_DVBS2O& params)
+::build_synchronizer_gardner(const Params_DVBS2O& params)
 {
 	return new module::Synchronizer_Gardner_cc_naive<R>(2 * params.PL_FRAME_SIZE * params.OSF, params.OSF);
+}
+
+template <typename R>
+module::Synchronizer_frame_cc_naive<R>* Factory_DVBS2O
+::build_synchronizer_frame(const Params_DVBS2O& params)
+{
+	return new module::Synchronizer_frame_cc_naive<R>(2 * params.PL_FRAME_SIZE);
 }
 
 template aff3ct::module::Source<B>*                            Factory_DVBS2O::build_source<B>               (const Params_DVBS2O& params, const int seed);
@@ -190,7 +197,7 @@ template aff3ct::module::Framer<R>*                            Factory_DVBS2O::b
 template aff3ct::module::Scrambler_BB<B>*                      Factory_DVBS2O::build_bb_scrambler<B>         (const Params_DVBS2O& params);
 template aff3ct::module::Scrambler_PL<R>*                      Factory_DVBS2O::build_pl_scrambler<R>         (const Params_DVBS2O& params);
 template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            Factory_DVBS2O::build_uprrc_filter<R>         (const Params_DVBS2O& params);
-template aff3ct::module::Filter_Farrow_ccr_naive<R>*           Factory_DVBS2O::build_channel_delay<R>         (const Params_DVBS2O& params);
+template aff3ct::module::Filter_Farrow_ccr_naive<R>*           Factory_DVBS2O::build_channel_delay<R>        (const Params_DVBS2O& params);
 template aff3ct::module::Filter_RRC_ccr_naive<R>*              Factory_DVBS2O::build_matched_filter<R>       (const Params_DVBS2O& params);
 template aff3ct::module::Estimator<R>*                         Factory_DVBS2O::build_estimator<R>            (const Params_DVBS2O& params);
 template aff3ct::module::Monitor_BFER<B>*                      Factory_DVBS2O::build_monitor<B>              (const Params_DVBS2O& params);
@@ -198,4 +205,5 @@ template aff3ct::module::Channel<R>*                           Factory_DVBS2O::b
 template aff3ct::module::Multiplier_sine_ccc_naive<R>*         Factory_DVBS2O::build_freq_shift<R>           (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_LR_cc_naive<R>*          Factory_DVBS2O::build_synchronizer_lr<R>      (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_fine_pf_cc_DVBS2O<R>*    Factory_DVBS2O::build_synchronizer_fine_pf<R> (const Params_DVBS2O& params);
-template aff3ct::module::Synchronizer_Gardner_cc_naive<R>*     Factory_DVBS2O::build_synchronize_gardner<R>  (const Params_DVBS2O& params);
+template aff3ct::module::Synchronizer_Gardner_cc_naive<R>*     Factory_DVBS2O::build_synchronizer_gardner<R> (const Params_DVBS2O& params);
+template aff3ct::module::Synchronizer_frame_cc_naive<R>*       Factory_DVBS2O::build_synchronizer_frame<R>   (const Params_DVBS2O& params);

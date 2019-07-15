@@ -20,9 +20,7 @@ private:
 	const R   INV_OSF;
 
 	std::complex<R> last_symbol;
-	std::vector<std::complex<R> > symbols_buffer;
-	int N_symbol;
-
+	
 	// Interpolation parametes
 	R mu;
 	Filter_Farrow_ccr_naive <R>   farrow_flt;

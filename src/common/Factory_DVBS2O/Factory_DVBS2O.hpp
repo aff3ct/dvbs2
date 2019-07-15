@@ -14,6 +14,7 @@
 #include "../Synchronizer/Synchronizer_LR_cc_naive.hpp"
 #include "../Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
 #include "../Synchronizer/Synchronizer_Gardner_cc_naive.hpp"
+#include "../Synchronizer/Synchronizer_frame_cc_naive.hpp"
 #include "../Estimator/Estimator.hpp"
 
 struct Factory_DVBS2O {
@@ -76,7 +77,10 @@ struct Factory_DVBS2O {
 	static module::Synchronizer_fine_pf_cc_DVBS2O<R>* build_synchronizer_fine_pf(const Params_DVBS2O& params);	
 
 	template <typename R = float>
-	static module::Synchronizer_Gardner_cc_naive<R>* build_synchronize_gardner (const Params_DVBS2O& params);	
+	static module::Synchronizer_Gardner_cc_naive<R>* build_synchronizer_gardner (const Params_DVBS2O& params);	
+
+	template <typename R = float>
+	static module::Synchronizer_frame_cc_naive<R>* build_synchronizer_frame (const Params_DVBS2O& params);	
 
 	template <typename B = int>
 	static module::Monitor_BFER<B>* build_monitor(const Params_DVBS2O& params);
