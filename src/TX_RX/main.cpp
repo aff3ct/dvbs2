@@ -12,6 +12,7 @@
 #include "Factory_DVBS2O/Factory_DVBS2O.hpp"
 #include "Framer/Framer.hpp"
 #include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
+#include "Filter/Filter_unit_delay/Filter_unit_delay.hpp"
 #include "Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 #include "Synchronizer/Synchronizer_LR_cc_naive.hpp"
 #include "Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
@@ -86,6 +87,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Synchronizer_fine_pf_cc_DVBS2O<> > sync_fine_pf(Factory_DVBS2O::build_synchronizer_fine_pf  <>(params                 ));
 	std::unique_ptr<module::Framer<>                         > framer      (Factory_DVBS2O::build_framer                <>(params                 ));
 	std::unique_ptr<module::Scrambler<float>                 > pl_scrambler(Factory_DVBS2O::build_pl_scrambler          <>(params                 ));
+	std::unique_ptr<module::Filter_unit_delay<>              > delay       (Factory_DVBS2O::build_unit_delay            <>(params                 ));	
 	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (Factory_DVBS2O::build_monitor                     <>(params                 ));
 
 	auto& monitor = monitors[tid];
@@ -98,6 +100,8 @@ int main(int argc, char** argv)
 	BCH_decoder ->set_short_name("BCH Decoder" );
 	sync_lr     ->set_short_name("L&R F Syn");
 	sync_fine_pf->set_short_name("Fine P/F Syn");
+	sync_gardner->set_short_name("Gardner Syn");
+	sync_frame->set_short_name("Frame Syn");
 	matched_flt ->set_short_name("Matched Flt");
 	shaping_flt ->set_short_name("Shaping Flt");
 
@@ -130,7 +134,7 @@ int main(int argc, char** argv)
 	                 framer      .get(), pl_scrambler.get(), source      .get(), monitor     .get(),
 	                 channel     .get(), freq_shift  .get(), sync_lr     .get(), sync_fine_pf.get(), 
 	                 matched_flt .get(), shaping_flt .get(), sync_gardner.get(), chn_delay.get(),
-					 sync_frame.get()};
+					 sync_frame.get(), delay.get()};
 	
 	// configuration of the module tasks
 	for (auto& m : modules[tid])
@@ -153,7 +157,8 @@ int main(int argc, char** argv)
 	(*sync_lr)     [syn::tsk::synchronize ].set_debug(false);
 	(*sync_fine_pf)[syn::tsk::synchronize ].set_debug(false);
 	(*sync_gardner)[syn::tsk::synchronize ].set_debug(false);
-	(*sync_frame)  [syn::tsk::synchronize ].set_debug(true);
+	(*sync_frame)  [syn::tsk::synchronize ].set_debug(false);
+	(*monitor)     [mnt::tsk::check_errors].set_debug(false);
 	
 	// socket binding
 	// TX
@@ -176,7 +181,6 @@ int main(int argc, char** argv)
 	(*sync_gardner)[syn::sck::synchronize ::X_N1].bind((*matched_flt )[flt::sck::filter      ::Y_N2]);
 	(*sync_frame  )[syn::sck::synchronize ::X_N1].bind((*sync_gardner)[syn::sck::synchronize ::Y_N2]);
 	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*sync_frame  )[syn::sck::synchronize ::Y_N2]);
-	//(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*sync_gardner)[syn::sck::synchronize ::Y_N2]);
 	(*sync_lr     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
 	(*sync_fine_pf)[syn::sck::synchronize ::X_N1].bind((*sync_lr     )[syn::sck::synchronize ::Y_N2]);
 	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*sync_fine_pf)[syn::sck::synchronize ::Y_N2]);
@@ -185,7 +189,9 @@ int main(int argc, char** argv)
 	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
 	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho ::V_K ]);
 	(*bb_scrambler)[scr::sck::descramble  ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K ]);
-	(*monitor     )[mnt::sck::check_errors::U   ].bind((*source      )[src::sck::generate    ::U_K ]);
+
+	(*delay       )[flt::sck::filter::X_N1      ].bind((*source      )[src::sck::generate    ::U_K ]);
+	(*monitor     )[mnt::sck::check_errors::U   ].bind((*delay       )[flt::sck::filter      ::Y_N2]);
 	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
 	
 	// reset the memory of the decoder after the end of each communication
@@ -235,25 +241,16 @@ int main(int argc, char** argv)
 			(*matched_flt )[flt::tsk::filter      ].exec();
 			(*sync_gardner)[syn::tsk::synchronize ].exec();
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
-			std::cout << "Hi before descrambler" << std::endl;
 			(*pl_scrambler)[scr::tsk::descramble  ].exec();
-			std::cout << "Hi before LR" << std::endl;
 			(*sync_lr     )[syn::tsk::synchronize ].exec();
-			std::cout << "Hi before fine" << std::endl;
 			(*sync_fine_pf)[syn::tsk::synchronize ].exec();
-			std::cout << "Hi before framer" << std::endl;
 			(*framer      )[frm::tsk::remove_plh  ].exec();
-			std::cout << "Hi before demod" << std::endl;
 			(*modem       )[mdm::tsk::demodulate  ].exec();
-			std::cout << "Hi before deitl" << std::endl;
 			(*itl_rx      )[itl::tsk::deinterleave].exec();
-			std::cout << "Hi before LDPC dec" << std::endl;
 			(*LDPC_decoder)[dec::tsk::decode_siho ].exec();
-			std::cout << "Hi before BCH dec" << std::endl;
 			(*BCH_decoder )[dec::tsk::decode_hiho ].exec();
-			std::cout << "Hi before scr" << std::endl;
 			(*bb_scrambler)[scr::tsk::descramble  ].exec();
-			
+			(*delay       )[flt::tsk::filter      ].exec();
 			(*monitor     )[mnt::tsk::check_errors].exec();
 			freq_shift->reset_time();
 		}
@@ -305,6 +302,7 @@ int main(int argc, char** argv)
 			(*LDPC_decoder)[dec::tsk::decode_siho ].exec();
 			(*BCH_decoder )[dec::tsk::decode_hiho ].exec();
 			(*bb_scrambler)[scr::tsk::descramble  ].exec();
+			(*delay       )[flt::tsk::filter      ].exec();
 			(*monitor     )[mnt::tsk::check_errors].exec();
 			freq_shift->reset_time();
 		}
