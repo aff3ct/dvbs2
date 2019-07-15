@@ -126,6 +126,11 @@ Params_DVBS2O(int argc, char** argv)
 		N_BCH_unshortened = 16383;
 	}
 	
+	if (arg_vals.exist({"section"}))
+		section = arg_vals.at({"section"});
+	else
+		section = "";
+
 	ITL_N_COLS        = BPS;
 	K_LDPC            = N_BCH;
 	N_XFEC_FRAME      = N_LDPC / BPS;
@@ -155,6 +160,7 @@ get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 		args.add({"dec-ite"},            tools::Integer(tools::Positive(), tools::Non_zero()), "LDPC number of iterations"           );
 		args.add({"dec-implem"},         tools::Text(tools::Including_set("SPA", "MS", "NMS")),"LDPC Implem "                        );
 		args.add({"dec-simd"},           tools::Text(tools::Including_set("INTER", "INTRA")),  "Display stats."                      );
+		args.add({"section"},            tools::Text()                                      ,  "Section to be used in bridge binary.");
 
 		// parse user arguments
 		arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);
