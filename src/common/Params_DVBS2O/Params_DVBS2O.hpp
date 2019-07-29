@@ -32,7 +32,8 @@ public:
 	std::string MOD;
 	std::string COD;
 	std::string constellation_file;
-	
+	std::string section;
+
 	const int   N_LDPC    = 16200;
 	const int   M         = 90;    // number of symbols per slot
 	const int   P         = 36;    // number of symbols per pilot
