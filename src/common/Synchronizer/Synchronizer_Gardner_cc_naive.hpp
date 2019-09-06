@@ -56,6 +56,9 @@ public:
 
 	void step(const std::complex<R> *X_N1);
 	R get_mu() {return this->mu;};
+	int get_is_strobe() {return this->is_strobe;};
+	std::complex<R> get_last_symbol() {return this->last_symbol;};
+	
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
 
