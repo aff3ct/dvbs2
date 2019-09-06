@@ -15,7 +15,7 @@ using namespace aff3ct::module;
 template <typename R>
 Synchronizer_frame_cc_naive<R>
 ::Synchronizer_frame_cc_naive(const int N)
-: Synchronizer<R>(N,N), reg_channel(std::complex<R>(1,0)),conj_SOF_PLSC(), sec_SOF_sz(25), sec_PLSC_sz(64), corr_buff(89*2, std::complex<R>(0,0)), head(0), size(89), output_delay(N, N/2, N/2)
+: Synchronizer<R>(N,N), reg_channel(std::complex<R>(1,0)),conj_SOF_PLSC(), sec_SOF_sz(25), sec_PLSC_sz(64), corr_buff(89*2, std::complex<R>(0,0)), head(0), size(89), delay(0), output_delay(N, N/2, N/2)
 {
 	this->conj_SOF_PLSC = {std::complex<R>(0,1), std::complex<R>(0,1), std::complex<R>(0,1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1)};
 }
@@ -56,11 +56,10 @@ void Synchronizer_frame_cc_naive<R>
 		}
 	}
 	this->reg_channel = cX_N1[cplx_in_sz - 1];
-
-	//std::cout << "Hi befor delay" << std::endl;
-	int delay = (cplx_in_sz - max_idx + this->size)%(cplx_in_sz);
+		//std::cout << "Hi befor delay" << std::endl;
+	this->delay = (cplx_in_sz - max_idx + this->size)%(cplx_in_sz);
 	//std::cout << "delay : " << delay<< std::endl;
-	this->output_delay.set_delay(delay);
+	this->output_delay.set_delay(this->delay);
 	//std::cout << "Delay set" <<std::endl;
 	this->output_delay.filter(X_N1,Y_N2);
 	//std::cout << "Compute output"<< std::endl;
