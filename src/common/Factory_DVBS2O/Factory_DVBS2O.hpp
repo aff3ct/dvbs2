@@ -12,7 +12,7 @@
 #include "../Synchronizer/Synchronizer_LR_cc_naive.hpp"
 #include "../Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
 #include "../Estimator/Estimator.hpp"
-
+#include "../Radio/Radio_USRP/Radio_USRP.hpp"
 struct Factory_DVBS2O {
 	template <typename B = int>
 	static module::Source<B>* build_source(const Params_DVBS2O& params, const int seed = 0);

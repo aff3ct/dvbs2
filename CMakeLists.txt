@@ -65,3 +65,17 @@ if (OpenMP_FOUND)
         set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
     endif()
 endif(OpenMP_FOUND)
+
+# Link with UHD
+find_package (UHD)
+if    (UHD_FOUND)
+    include_directories(${UHD_INCLUDE_DIRS})
+    target_link_libraries(dvbs2_optique_common PRIVATE ${UHD_LIBRARIES})
+endif (UHD_FOUND)
+
+# Link with Boost
+find_package(Boost COMPONENTS system filesystem REQUIRED)
+if (Boost_FOUND)
+	target_link_libraries(dvbs2_optique_common PRIVATE ${Boost_FILESYSTEM_LIBRARY}
+	                                                   ${Boost_SYSTEM_LIBRARY})
+endif (Boost_FOUND)
