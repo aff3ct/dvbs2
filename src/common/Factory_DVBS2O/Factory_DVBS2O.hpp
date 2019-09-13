@@ -69,6 +69,8 @@ struct Factory_DVBS2O {
 	template <typename B = int>
 	static module::Monitor_BFER<B>* build_monitor(const Params_DVBS2O& params);
 
+	template <typename R = float>
+	static module::Radio<R>* build_radio (const Params_DVBS2O& params);	
 };
 
 #endif /* FACTORY_DVBS2O_HPP */
