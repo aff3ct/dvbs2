@@ -45,3 +45,11 @@ To select the number of threads used by openmp, run the binary while setting the
 ```bash 
 OMP_NUM_THREADS=8 ./bin/dvbs2_optique_tx_rx
 ```
+
+# UHD
+
+Info at [https://kb.ettus.com/USRP_N300/N310/N320/N321_Getting_Started_Guide].
+Add the following in `~/.bashrc`:
+```bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+```
