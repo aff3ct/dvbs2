@@ -71,7 +71,7 @@ send(D *X_N1, const int frame_id)
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_send(X_N1 + f * this->N, f);
+		this->_send(X_N1 + f * this->N * 2, f);
 }
 
 template <typename D>
@@ -90,7 +90,7 @@ receive(D *Y_N1, const int frame_id)
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_receive(Y_N1 + f * this->N, f);
+		this->_receive(Y_N1 + f * this->N * 2, f);
 }
 
 }

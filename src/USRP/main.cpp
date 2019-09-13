@@ -16,7 +16,7 @@ int main(int argc, char** argv)
 	// the list of the allocated modules for the simulation
 	std::vector<const module::Module*> modules;
 
-	std::unique_ptr<module::Radio<>> radio(Factory_DVBS2O::build_radio<>(params));
+	std::unique_ptr<module::Radio<double>> radio(Factory_DVBS2O::build_radio<>(params));
 
 	modules = { radio.get()};
 	

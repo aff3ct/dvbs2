@@ -25,11 +25,14 @@ namespace module
  * \tparam D: type of the data to send or receive.
  *
  */
-template <typename D = float>
+template <typename D = double>
 class Radio_USRP : public Radio<D>
 {
 private:
 	uhd::usrp::multi_usrp::sptr usrp;
+	uhd::stream_args_t          stream_args;
+	uhd::rx_streamer::sptr      rx_stream;
+	uhd::rx_metadata_t          md;
 
 public:
 	/*!
