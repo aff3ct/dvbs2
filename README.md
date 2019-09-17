@@ -49,7 +49,8 @@ OMP_NUM_THREADS=8 ./bin/dvbs2_optique_tx_rx
 # UHD
 
 Info at [https://kb.ettus.com/USRP_N300/N310/N320/N321_Getting_Started_Guide].
-Add the following in `~/.bashrc`:
+Add the following in `~/.bashrc` or `/etc/profile`:
 ```bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+export UHD_LOG_FILE="./usrp.log"
 ```

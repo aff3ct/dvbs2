@@ -1,3 +1,5 @@
+#include "Factory/Module/Radio/Radio_USRP/Radio_USRP.hpp"
+
 #include "Params_DVBS2O.hpp"
 
 using namespace aff3ct;
@@ -148,6 +150,8 @@ get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 		tools::Argument_map_info args;
 		std::vector<std::string> cmd_warn, cmd_error;
 
+		p_rad.get_description(args);
+
 		// add possible argument inputs
 		auto modcod_format = tools::Text(tools::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
 		args.add({"mod-cod"},            modcod_format,                                        "Modulation and coding scheme."       );
@@ -164,6 +168,8 @@ get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 
 		// parse user arguments
 		arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);
+
+		p_rad.store(arg_vals);
 
 		// exit on wrong args
 		if (cmd_error.size())

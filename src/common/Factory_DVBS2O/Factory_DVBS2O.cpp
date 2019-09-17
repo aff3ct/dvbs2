@@ -157,7 +157,7 @@ template <typename R>
 module::Radio<R>* Factory_DVBS2O
 ::build_radio (const Params_DVBS2O& params)
 {
-	return new module::Radio_USRP<R>(16000);
+	return params.p_rad.build();
 }
 
 
