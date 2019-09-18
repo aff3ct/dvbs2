@@ -22,8 +22,9 @@ struct Radio_USRP : Factory
 		// required parameters
 
 		// optional parameters
-		int         N           = 0;
-		double master_clock_rate;
+		int N                      = 0;
+		int n_frames               = 1;
+		double clk_rate            = 125e6;
 
 		std::string rx_subdev_spec = "A:0";
 		double rx_rate             = 8e6;

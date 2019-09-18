@@ -27,80 +27,72 @@ void Radio_USRP::parameters
 	tools::add_arg(args, p, class_name+"p+fra-size,N",
 	               tools::Integer(tools::Positive(), tools::Non_zero()));	
 
+	tools::add_arg(args, p, class_name+"p+fra,F",
+		tools::Integer(tools::Positive(), tools::Non_zero()));
+
 	tools::add_arg(args, p, class_name+"p+clk-rate",
 		tools::Real(tools::Positive(), tools::Non_zero()));
 
-	tools::add_arg(args, p, class_name+"p+rx_subdev_spec,",
+	tools::add_arg(args, p, class_name+"p+rx-subdev-spec",
 		tools::Text());
 
-	tools::add_arg(args, p, class_name+"p+rx-rate,",
+	tools::add_arg(args, p, class_name+"p+rx-rate",
 		tools::Real(tools::Positive(), tools::Non_zero()));
 
-	tools::add_arg(args, p, class_name+"p+rx-freq,",
+	tools::add_arg(args, p, class_name+"p+rx-freq",
 		tools::Real(tools::Positive(), tools::Non_zero()));
 
-	tools::add_arg(args, p, class_name+"p+rx-gain,",
+	tools::add_arg(args, p, class_name+"p+rx-gain",
 		tools::Real(tools::Positive(), tools::Non_zero()));
 
-	tools::add_arg(args, p, class_name+"p+tx_subdev_spec,",
+	tools::add_arg(args, p, class_name+"p+tx-subdev-spec",
 		tools::Text());
 
-	tools::add_arg(args, p, class_name+"p+tx-rate,",
+	tools::add_arg(args, p, class_name+"p+tx-rate",
 		tools::Real(tools::Positive(), tools::Non_zero()));
 
-	tools::add_arg(args, p, class_name+"p+tx-freq,",
+	tools::add_arg(args, p, class_name+"p+tx-freq",
 		tools::Real(tools::Positive(), tools::Non_zero()));
 
-	tools::add_arg(args, p, class_name+"p+tx-gain,",
+	tools::add_arg(args, p, class_name+"p+tx-gain",
 		tools::Real(tools::Positive(), tools::Non_zero()));
 
+	tools::add_arg(args, p, class_name+"p+ip-addr",
+		tools::Text());
 }
 
 void Radio_USRP::parameters
 ::store(const tools::Argument_map_value &vals)
 {
-	// auto p = this->get_prefix();
+	auto p = this->get_prefix();
 
-	// if(vals.exist({p+"-info-bits",  "K"})) this->K        = vals.to_int({p+"-info-bits",  "K"});
-	// if(vals.exist({p+"-fra",        "F"})) this->n_frames = vals.to_int({p+"-fra",        "F"});
-	// if(vals.exist({p+"-type", p+"-poly"})) this->type     = vals.at    ({p+"-type", p+"-poly"});
-	// if(vals.exist({p+"-implem"         })) this->implem   = vals.at    ({p+"-implem"         });
-	// if(vals.exist({p+"-size"           })) this->size     = vals.to_int({p+"-size"           });
-
-	// if (this->type != "NO" && !this->type.empty() && !this->size)
-	// 	this->size = module::CRC_polynomial<B>::get_size(this->type);
+	if(vals.exist({p+"-fra-size",  "N"})) this->N              = vals.to_int  ({p+"-fra-size",  "N"});
+	if(vals.exist({p+"-clk-rate"      })) this->clk_rate       = vals.to_float({p+"-clk-rate"      });
+	if(vals.exist({p+"-rx-subdev-spec"})) this->rx_subdev_spec = vals.at      ({p+"-rx-subdev-spec"});
+	if(vals.exist({p+"-rx-rate"       })) this->rx_rate        = vals.to_float({p+"-rx-rate"       });
+	if(vals.exist({p+"-rx-freq"       })) this->rx_freq        = vals.to_float({p+"-rx-freq"       });
+	if(vals.exist({p+"-rx-gain"       })) this->rx_gain        = vals.to_float({p+"-rx-gain"       });
+	if(vals.exist({p+"-tx-subdev-spec"})) this->tx_subdev_spec = vals.at      ({p+"-tx-subdev-spec"});
+	if(vals.exist({p+"-tx-rate"       })) this->tx_rate        = vals.to_float({p+"-tx-rate"       });
+	if(vals.exist({p+"-tx-freq"       })) this->tx_freq        = vals.to_float({p+"-tx-freq"       });
+	if(vals.exist({p+"-tx-gain"       })) this->tx_gain        = vals.to_float({p+"-tx-gain"       });
+	if(vals.exist({p+"-ip-addr"       })) this->usrp_addr      = vals.at      ({p+"-ip-addr"       });
+	if(vals.exist({p+"-fra",       "F"})) this->n_frames       = vals.to_int  ({p+"-fra",       "F"});
 }
 
 void Radio_USRP::parameters
 ::get_headers(std::map<std::string,header_list>& headers, const bool full) const
 {
-	// auto p = this->get_prefix();
+	auto p = this->get_prefix();
 
-	// if (this->type != "NO" && !this->type.empty())
-	// {
-	// 	auto poly_name = module::CRC_polynomial<B>::get_name(this->type);
-	// 	if (!poly_name.empty())
-	// 		headers[p].push_back(std::make_pair("Type", poly_name));
-	// 	else
-	// 	{
-	// 		std::stringstream poly_val;
-	// 		poly_val << "0x" << std::hex << module::CRC_polynomial<B>::get_value(this->type);
-	// 		headers[p].push_back(std::make_pair("Type", poly_val.str()));
-	// 	}
-	// 	std::stringstream poly_val;
-	// 	poly_val << "0x" << std::hex << module::CRC_polynomial<B>::get_value(this->type);
-	// 	headers[p].push_back(std::make_pair("Polynomial (hexadecimal)", poly_val.str()));
-
-	// 	auto poly_size = module::CRC_polynomial<B>::get_size(this->type);
-	// 	headers[p].push_back(std::make_pair("Size (in bit)", std::to_string(poly_size ? poly_size : this->size)));
-	// }
-	// else
-	// 	headers[p].push_back(std::make_pair("Type", "NO"));
-
-	// headers[p].push_back(std::make_pair("Implementation", this->implem));
-
-	// if (full) headers[p].push_back(std::make_pair("Info. bits (K)", std::to_string(this->K)));
-	// if (full) headers[p].push_back(std::make_pair("Inter frame level", std::to_string(this->n_frames)));
+	headers[p].push_back(std::make_pair("N. cw  (N)", std::to_string(this->N)));
+	headers[p].push_back(std::make_pair("Clk rate  ", std::to_string(this->clk_rate)));
+	headers[p].push_back(std::make_pair("Rx rate   ", std::to_string(this->rx_rate)));
+	headers[p].push_back(std::make_pair("Rx freq   ", std::to_string(this->rx_freq)));
+	headers[p].push_back(std::make_pair("Rx gain   ", std::to_string(this->rx_gain)));
+	headers[p].push_back(std::make_pair("Tx rate   ", std::to_string(this->tx_rate)));
+	headers[p].push_back(std::make_pair("Tx freq   ", std::to_string(this->tx_freq)));
+	headers[p].push_back(std::make_pair("Tx gain   ", std::to_string(this->tx_gain)));
 }
 
 template <typename D>
@@ -108,8 +100,9 @@ module::Radio<D>* Radio_USRP::parameters
 ::build() const
 {
 
-	// return new module::CRC_polynomial      <B>(K, poly, size, n_frames);
-
+	return new module::Radio_USRP<D> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
+	                                  this->rx_subdev_spec,this->tx_rate, this->tx_freq, this->tx_subdev_spec,
+	                                  this->n_frames);
 	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }
 
