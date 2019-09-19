@@ -32,7 +32,7 @@ private:
 	uhd::usrp::multi_usrp::sptr usrp;
 	uhd::stream_args_t          stream_args;
 	uhd::rx_streamer::sptr      rx_stream;
-	uhd::rx_metadata_t          md;
+	uhd::tx_streamer::sptr      tx_stream;
 
 public:
 	/*!
