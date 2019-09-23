@@ -40,11 +40,11 @@ void Synchronizer_LR_cc_naive<R>
 		std::vector<R> z(2*Lp, (R)0.0);
 		for (int i = 0 ; i<Lp ; i++)
 		{
-			z[2*i]     = X_N1[2*i +   + 2*this->pilot_start[p]] * pilot_values[2*i    ] 
-			           + X_N1[2*i + 1 + 2*this->pilot_start[p]] * pilot_values[2*i + 1];
+			z[2*i    ] = X_N1[2*i + 2*this->pilot_start[p]    ] * pilot_values[2*i    ] 
+			           + X_N1[2*i + 2*this->pilot_start[p] + 1] * pilot_values[2*i + 1];
 
-			z[2*i + 1] = X_N1[2*i + 1 + 2*this->pilot_start[p]] * pilot_values[2*i    ] 
-			           - X_N1[2*i     + 2*this->pilot_start[p]] * pilot_values[2*i + 1];
+			z[2*i + 1] = X_N1[2*i + 2*this->pilot_start[p] + 1] * pilot_values[2*i    ] 
+			           - X_N1[2*i + 2*this->pilot_start[p]    ] * pilot_values[2*i + 1];
 
 					   //std::cout << "(" << X_N1[2*i +   + 2*this->pilot_start[p]] << " " << X_N1[2*i + 1  + 2*this->pilot_start[p]] << ")";
 		}
@@ -67,8 +67,12 @@ void Synchronizer_LR_cc_naive<R>
 	}
 	this->est_reduced_freq = std::atan2(this->R_l[1], this->R_l[0]);
 	this->est_reduced_freq /= (Lp_2 + 1) * M_PI;
-	
-	// std::cout << "# {INTERNAL} hat_nu = "<< est_reduced_freq << " " << std::endl;
+
+	if((*this)[syn::tsk::synchronize].is_debug())
+	{
+		std::cout << "# {INTERNAL} hat_nu = "<< this->est_reduced_freq << " " << std::endl;
+	}
+
 	for (int n = 0 ; n < this->N_in/2 ; n++)
 	{
 		R theta = 2 * M_PI * this->est_reduced_freq * (R)n;
@@ -89,6 +93,7 @@ void Synchronizer_LR_cc_naive<R>
 {
 	this->R_l[0] = (R)0.0;
 	this->R_l[1] = (R)0.0;
+	this->est_reduced_freq = 0.0;
 } 
 
 template <typename R>
