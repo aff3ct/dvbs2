@@ -155,13 +155,16 @@ int main(int argc, char** argv)
 
 	
 	using namespace module;
-	(*freq_shift)  [mlt::tsk::imultiply]   .set_debug(false);
-	(*sync_lr)     [syn::tsk::synchronize ].set_debug(false);
+	(*freq_shift  )[mlt::tsk::imultiply   ].set_debug(false);
+	(*sync_lr     )[syn::tsk::synchronize ].set_debug(false);
 	(*sync_fine_pf)[syn::tsk::synchronize ].set_debug(false);
 	(*sync_gardner)[syn::tsk::synchronize ].set_debug(false);
-	(*sync_frame)  [syn::tsk::synchronize ].set_debug(false);
-	(*monitor)     [mnt::tsk::check_errors].set_debug(false);
+	sync_gardner->set_name("Gardner_Synch");
+	(*sync_frame  )[syn::tsk::synchronize ].set_debug(false);
+	sync_frame->set_name("Frame_Synch");
+	(*monitor     )[mnt::tsk::check_errors].set_debug(false);
 	(*channel     )[chn::tsk::add_noise   ].set_debug(false);
+	(*pl_scrambler)[scr::tsk::descramble  ].set_debug(false);
 	
 	// socket binding
 	// TX
@@ -215,6 +218,7 @@ int main(int argc, char** argv)
 		// compute the current sigma for the channel noise
 		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.BPS);
 		const auto sigma = tools::esn0_to_sigma(esn0);
+		std::cerr << "EbN0 " << ebn0 << " EsN0 " << esn0 << std::endl;
 
 #pragma omp single
 {
@@ -232,22 +236,31 @@ int main(int argc, char** argv)
 
 		// Reset the synchronization device
 		sync_lr->reset();
+		sync_coarse_f->reset();
 		sync_coarse_f->disable_update();
+		sync_gardner->reset();
+		sync_frame->reset();
+		sync_fine_pf->reset();
+		matched_flt->reset();
+		chn_delay->reset();
+		shaping_flt->reset();
+		freq_shift->reset_time();
+
 		// tasks execution
 		for (int m = 0; m < 150; m++)
 		{
-			(*source      )[src::tsk::generate    ].exec();
-			(*bb_scrambler)[scr::tsk::scramble    ].exec();
-			(*BCH_encoder )[enc::tsk::encode      ].exec();
-			(*LDPC_encoder)[enc::tsk::encode      ].exec();
-			(*itl_tx      )[itl::tsk::interleave  ].exec();
-			(*modem       )[mdm::tsk::modulate    ].exec();
-			(*framer      )[frm::tsk::generate    ].exec();
-			(*pl_scrambler)[scr::tsk::scramble    ].exec();
-			(*shaping_flt )[flt::tsk::filter      ].exec();
-			(*chn_delay   )[flt::tsk::filter      ].exec();
-			(*freq_shift)  [mlt::tsk::imultiply   ].exec();
-			(*channel     )[chn::tsk::add_noise   ].exec();
+			(*source      )[src::tsk::generate  ].exec();
+			(*bb_scrambler)[scr::tsk::scramble  ].exec();
+			(*BCH_encoder )[enc::tsk::encode    ].exec();
+			(*LDPC_encoder)[enc::tsk::encode    ].exec();
+			(*itl_tx      )[itl::tsk::interleave].exec();
+			(*modem       )[mdm::tsk::modulate  ].exec();
+			(*framer      )[frm::tsk::generate  ].exec();
+			(*pl_scrambler)[scr::tsk::scramble  ].exec();
+			(*shaping_flt )[flt::tsk::filter    ].exec();
+			(*chn_delay   )[flt::tsk::filter    ].exec();
+			(*freq_shift  )[mlt::tsk::imultiply ].exec();
+			(*channel     )[chn::tsk::add_noise ].exec();
 
 			std::vector<float> channel_out(channel->get_N(),0.0f);
 			std::copy((float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()), 
@@ -264,7 +277,6 @@ int main(int argc, char** argv)
 				sync_coarse_f->step(&sync_coarse_f_in,&sync_coarse_f_out);
 				matched_flt  ->step(&sync_coarse_f_out, &matched_filter_out);
 				
-				
 				if (sync_gardner->get_is_strobe() == 1)
 				{
 					sync_gardner ->step(&matched_filter_out);
@@ -280,10 +292,16 @@ int main(int argc, char** argv)
 				else
 					sync_gardner ->step(&matched_filter_out);
 			}
+			if (sym_idx > sync_frame->get_N_in()/2)
+				std::cerr << "overflow" << std::endl;
+			else if (sym_idx < sync_frame->get_N_in()/2)
+				std::cerr << "underflow" << std::endl;
 			
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
-			sync_coarse_f->enable_update();
+			//sync_coarse_f->enable_update(); 
 			sync_coarse_f->set_curr_idx(sync_frame->get_delay()-1);
+			//std::cerr << m << " : " << sync_frame->get_delay() << " " << sync_gardner->get_mu() << std::endl;
+			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 		}
 
 		#pragma omp single
@@ -297,18 +315,18 @@ int main(int argc, char** argv)
 		
 		for (int m = 0; m < 150; m++)
 		{
-			(*source      )[src::tsk::generate    ].exec();
-			(*bb_scrambler)[scr::tsk::scramble    ].exec();
-			(*BCH_encoder )[enc::tsk::encode      ].exec();
-			(*LDPC_encoder)[enc::tsk::encode      ].exec();
-			(*itl_tx      )[itl::tsk::interleave  ].exec();
-			(*modem       )[mdm::tsk::modulate    ].exec();
-			(*framer      )[frm::tsk::generate    ].exec();
-			(*pl_scrambler)[scr::tsk::scramble    ].exec();
-			(*shaping_flt )[flt::tsk::filter      ].exec();
-			(*chn_delay   )[flt::tsk::filter      ].exec();
-			(*freq_shift)  [mlt::tsk::imultiply   ].exec();
-			(*channel     )[chn::tsk::add_noise   ].exec();
+			(*source      )[src::tsk::generate  ].exec();
+			(*bb_scrambler)[scr::tsk::scramble  ].exec();
+			(*BCH_encoder )[enc::tsk::encode    ].exec();
+			(*LDPC_encoder)[enc::tsk::encode    ].exec();
+			(*itl_tx      )[itl::tsk::interleave].exec();
+			(*modem       )[mdm::tsk::modulate  ].exec();
+			(*framer      )[frm::tsk::generate  ].exec();
+			(*pl_scrambler)[scr::tsk::scramble  ].exec();
+			(*shaping_flt )[flt::tsk::filter    ].exec();
+			(*chn_delay   )[flt::tsk::filter    ].exec();
+			(*freq_shift  )[mlt::tsk::imultiply ].exec();
+			(*channel     )[chn::tsk::add_noise ].exec();
 
 			std::vector<float> channel_out(channel->get_N(),0.0f);
 			std::copy((float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()), 
@@ -324,8 +342,7 @@ int main(int argc, char** argv)
 				
 				sync_coarse_f->step(&sync_coarse_f_in,&sync_coarse_f_out);
 				matched_flt  ->step(&sync_coarse_f_out, &matched_filter_out);
-				
-				
+
 				if (sync_gardner->get_is_strobe() == 1)
 				{
 					sync_gardner ->step(&matched_filter_out);
@@ -341,11 +358,17 @@ int main(int argc, char** argv)
 				else
 					sync_gardner ->step(&matched_filter_out);
 			}
-			
+			if (sym_idx > sync_frame->get_N_in()/2)
+				std::cerr << "overflow" << std::endl;
+			else if (sym_idx < sync_frame->get_N_in()/2)
+				std::cerr << "underflow" << std::endl;
+
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
 			sync_coarse_f->set_curr_idx(sync_frame->get_delay()-1);
+			(*pl_scrambler )[scr::tsk::descramble  ].exec();
+			//std::cerr << m + 150 << " : " << sync_frame->get_delay() << " " << sync_gardner->get_mu() << std::endl;
 		}
-
+		
 		#pragma omp single
 		{
 			std::cout << "Learning phase 3..." << "\r";
@@ -358,8 +381,7 @@ int main(int argc, char** argv)
 		(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
 
 		sync_coarse_f->disable_update();
-		(*sync_frame)  [syn::tsk::synchronize ].set_debug(false);
-		(*sync_fine_pf)[syn::tsk::synchronize ].set_debug(false);
+		
 		for (int m = 0; m < 200; m++)
 		{
 			(*source       )[src::tsk::generate    ].exec();
@@ -378,10 +400,11 @@ int main(int argc, char** argv)
 			(*matched_flt  )[flt::tsk::filter      ].exec();
 			(*sync_gardner )[syn::tsk::synchronize ].exec();
 			(*sync_frame   )[syn::tsk::synchronize ].exec();
-			sync_coarse_f->enable_update();
+			sync_coarse_f->enable_update(); 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
 			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
+			//std::cerr << m + 300 << " : " << sync_frame->get_delay() << " " << sync_gardner->get_mu() << std::endl;
 			(*framer       )[frm::tsk::remove_plh  ].exec();
 			(*modem        )[mdm::tsk::demodulate  ].exec();
 			(*itl_rx       )[itl::tsk::deinterleave].exec();
@@ -405,7 +428,6 @@ int main(int argc, char** argv)
 						ta->reset_stats();
 		}
 		(*monitor     )[mnt::tsk::check_errors].exec();
-		
 		monitor_red->reset_all();
 
 		#pragma omp single
@@ -413,10 +435,11 @@ int main(int argc, char** argv)
 		// display the performance (BER and FER) in real time (in a separate thread)
 			terminal->start_temp_report();
 		}
-
+		//int m =0;
 		// tasks execution
 		while (!monitor_red->is_done_all() && !terminal->is_interrupt())
 		{
+
 			(*source       )[src::tsk::generate    ].exec();
 			(*bb_scrambler )[scr::tsk::scramble    ].exec();
 			(*BCH_encoder  )[enc::tsk::encode      ].exec();
@@ -437,6 +460,7 @@ int main(int argc, char** argv)
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
 			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
 			(*framer       )[frm::tsk::remove_plh  ].exec();
+			////std::cerr << (m++) + 500 << " : " << sync_frame->get_delay() << " " << sync_gardner->get_mu() << std::endl;
 			(*modem        )[mdm::tsk::demodulate  ].exec();
 			(*itl_rx       )[itl::tsk::deinterleave].exec();
 			(*LDPC_decoder )[dec::tsk::decode_siho ].exec();

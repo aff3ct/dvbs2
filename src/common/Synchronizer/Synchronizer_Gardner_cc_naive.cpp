@@ -52,15 +52,14 @@ void Synchronizer_Gardner_cc_naive<R>
 	
 	int n_in = 0;
 	int n_out = 0;
-	if((*this)[syn::tsk::synchronize].is_debug())
-		std::cout << "# {DEBUG} Mu = [" << this->get_mu() << "]"<< std::endl;
-		
+			
 	for (auto i = 0; i < this->N_in/2 ; i++)
 	{
 		n_in += 2;
 		if (this->is_strobe == 1)
 		{
 			this->step(&cX_N1[i]);
+
 			if (2*n_out < this->N_out)
 			{
 				Y_N2[2 * n_out    ] = std::real(this->last_symbol);
@@ -73,6 +72,11 @@ void Synchronizer_Gardner_cc_naive<R>
 			this->step(&cX_N1[i]);
 		}
 	}
+
+	if (n_out > this->N_out/2)
+		std::cerr << "overflow" << std::endl;
+	else if (n_out < this->N_out/2)
+		std::cerr << "underflow" << std::endl;
 	//std::cerr << "N_in "<< n_in << " / " << this->N_in << "\n" << "N_out "<< 2*n_out << " / " << this->N_out << std::endl;
 }
 
@@ -92,6 +96,8 @@ void Synchronizer_Gardner_cc_naive<R>
 	this->loop_filter();
 	
 	this->interpolation_control();
+
+	
 }
 
 template <typename R>
@@ -115,7 +121,6 @@ void Synchronizer_Gardner_cc_naive<R>
 	this->lf_filter_state  = (R)0;
 	this->lf_output        = (R)0;
 	this->NCO_counter      = (R)0;
-
 }
 
 template <typename R>
