@@ -60,7 +60,6 @@ template <typename R>
 void Filter_Farrow_ccr_naive<R>
 ::reset()
 {
-	this->mu = (R)0;
 	this->xn_2 = std::complex<R>(0,0); 
 	this->xn_1 = std::complex<R>(0,0);
 	
