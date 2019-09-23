@@ -33,9 +33,11 @@ void Synchronizer_frame_cc_naive<R>
 	R y_corr = 0;
 	const std::complex<R>* cX_N1 = reinterpret_cast<const std::complex<R>* > (X_N1);
 	std::complex<R>  symb_diff = this->reg_channel * std::conj(cX_N1[0]);
+	
 	this->step(&symb_diff, &y_corr);
 	
-//	std::cout << "# {OUT} CORR = [ " << y_corr << ", ";
+	if((*this)[syn::tsk::synchronize].is_debug())
+		std::cout << "# {INTERNAL} CORR = [ " << y_corr << " ";
 
 	R max_corr = y_corr;
 	int max_idx  = 0;
@@ -45,10 +47,14 @@ void Synchronizer_frame_cc_naive<R>
 		symb_diff = cX_N1[i-1] * std::conj(cX_N1[i]);
 
 		this->step(&symb_diff, &y_corr);
-//		if (i < cplx_in_sz -1)
-//			std::cout << y_corr << ", ";
-//		else
-//			std::cout << y_corr << "]"<< std::endl;
+		if((*this)[syn::tsk::synchronize].is_debug())
+		{
+			if (i < cplx_in_sz -1)
+				std::cout << y_corr << " ";
+			else
+				std::cout << y_corr << "]"<< std::endl;
+		}
+		
 		if (y_corr > max_corr)
 		{
 			max_corr = y_corr;
@@ -91,6 +97,14 @@ template <typename R>
 void Synchronizer_frame_cc_naive<R>
 ::reset()
 {
+
+	this->output_delay.reset();
+	this->reg_channel = std::complex<R>(1,0);
+	for (auto i = 0; i<this->corr_buff.size();i++)
+		this->corr_buff[i] = std::complex<R>(0,0);
+	
+	this->head = 0;
+	this->delay = 0;
 } 
 
 // ==================================================================================== explicit template instantiation
