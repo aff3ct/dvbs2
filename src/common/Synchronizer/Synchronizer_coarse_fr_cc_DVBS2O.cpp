@@ -106,6 +106,7 @@ void Synchronizer_coarse_fr_cc_DVBS2O<R>
 	this->loop_filter_state = 0;
 	this->integ_filter_state = 0;
 	this->DDS_prev_in = 0;
+	this->is_active = false;
 	this->reset_time();
 } 
 
