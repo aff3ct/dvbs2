@@ -44,10 +44,19 @@ private:
 
 	R NCO_counter;
 
+	int overflow_cnt;
+	int underflow_cnt;
+	std::vector<std::complex<R> > output_buffer;
+
+	int outbuf_head;
+	int outbuf_tail;
+	int outbuf_max_sz;
+	int outbuf_cur_sz;
+
 	void TED_update(std::complex<R> strobe);
 	void loop_filter();
 	void interpolation_control();
-	
+	void push(const std::complex<R> strobe);
 
 public:
 	Synchronizer_Gardner_cc_naive (const int N, int OSF);
@@ -58,6 +67,9 @@ public:
 	R get_mu() {return this->mu;};
 	int get_is_strobe() {return this->is_strobe;};
 	std::complex<R> get_last_symbol() {return this->last_symbol;};
+	void pop(std::complex<R> *strobe);
+	int get_overflow_cnt (){return this->overflow_cnt;};
+	int get_underflow_cnt (){return this->underflow_cnt;};
 	
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);

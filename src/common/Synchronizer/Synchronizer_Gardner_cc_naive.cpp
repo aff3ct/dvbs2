@@ -35,7 +35,14 @@ lf_integrator_gain   (-2.7777e-10),
 lf_prev_in ((R)0),
 lf_filter_state ((R)0),
 lf_output((R)0),
-NCO_counter((R)0)
+NCO_counter((R)0),
+overflow_cnt(0),
+underflow_cnt(0),
+output_buffer(N/OSF, std::complex<R>((R)0,(R)0)),
+outbuf_head  (N/OSF/20),
+outbuf_tail(0),
+outbuf_max_sz(N/OSF),
+outbuf_cur_sz(N/OSF/20)
 {
 }
 
@@ -49,11 +56,11 @@ void Synchronizer_Gardner_cc_naive<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-	
-	int n_in = 0;
-	int n_out = 0;
+	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
+	//int n_in = 0;
+	//int n_out = 0;
 			
-	for (auto i = 0; i < this->N_in/2 ; i++)
+	/*for (auto i = 0; i < this->N_in/2 ; i++)
 	{
 		n_in += 2;
 		if (this->is_strobe == 1)
@@ -72,11 +79,16 @@ void Synchronizer_Gardner_cc_naive<R>
 			this->step(&cX_N1[i]);
 		}
 	}
+	*/
+	for (auto i = 0; i < this->N_in/2 ; i++)
+	{
+		this->step(&cX_N1[i]);
+	}
 
-	if (n_out > this->N_out/2)
-		std::cerr << "overflow" << std::endl;
-	else if (n_out < this->N_out/2)
-		std::cerr << "underflow" << std::endl;
+	for (auto i = 0; i < this->N_out/2; i++)
+	{
+		this->pop(&cY_N2[i]);
+	}
 	//std::cerr << "N_in "<< n_in << " / " << this->N_in << "\n" << "N_out "<< 2*n_out << " / " << this->N_out << std::endl;
 }
 
@@ -86,18 +98,20 @@ void Synchronizer_Gardner_cc_naive<R>
 ::step(const std::complex<R> *X_N1)
 {
 	std::complex<R> farrow_output(0,0);
-	farrow_flt.step( X_N1, &farrow_output );
+	farrow_flt.step( X_N1, &farrow_output);
 	
 	if (this->is_strobe)
+	{
+		this->push(farrow_output);
 		this->last_symbol = farrow_output;
+	}
+		
 
 	this->TED_update(farrow_output);
 
 	this->loop_filter();
 	
 	this->interpolation_control();
-
-	
 }
 
 template <typename R>
@@ -105,6 +119,7 @@ void Synchronizer_Gardner_cc_naive<R>
 ::reset()
 {
 	this->farrow_flt.reset();
+	this->farrow_flt.set_mu(0);
 
 	for (auto i = 0; i<this->OSF ; i++)
 		this->TED_buffer[i] = std::complex<R>(0,0);
@@ -121,6 +136,15 @@ void Synchronizer_Gardner_cc_naive<R>
 	this->lf_filter_state  = (R)0;
 	this->lf_output        = (R)0;
 	this->NCO_counter      = (R)0;
+
+	this->overflow_cnt     = 0;
+	this->underflow_cnt    = 0;
+	for (auto i = 0; i<this->outbuf_max_sz ; i++)
+		this->output_buffer[i] = std::complex<R>((R)0,(R)0);
+
+	this->outbuf_head      = this->N_out/20;
+	this->outbuf_tail      = 0;
+	this->outbuf_cur_sz    = this->N_out/20;
 }
 
 template <typename R>
@@ -186,6 +210,39 @@ void Synchronizer_Gardner_cc_naive<R>
 			this->TED_head_pos     = (this->TED_head_pos + 2) % this->OSF;
 			this->TED_mid_pos      = (this->TED_mid_pos  + 2) % this->OSF;
 		break;
+	}
+}
+
+template <typename R>
+void Synchronizer_Gardner_cc_naive<R>
+::push(const std::complex<R> strobe)
+{
+	if (this->outbuf_cur_sz < this->outbuf_max_sz)
+	{
+		this->output_buffer[this->outbuf_head] = strobe;
+		this->outbuf_head = (this->outbuf_head + 1)%this->outbuf_max_sz;
+	}
+	else
+	{
+		this->overflow_cnt++;
+		std::cerr << "overflow" << std::endl;
+	}
+}
+
+template <typename R>
+void Synchronizer_Gardner_cc_naive<R>
+::pop(std::complex<R> *strobe)
+{
+	if	(this->outbuf_cur_sz > 0)
+	{
+		*strobe = this->output_buffer[this->outbuf_tail];
+		this->outbuf_tail = (this->outbuf_tail + 1)%this->outbuf_max_sz;
+	}
+	else
+	{
+		*strobe = std::complex<R>((R)0,(R)0);
+		this->underflow_cnt++;
+		std::cerr << "underflow" << std::endl;
 	}
 }
 
