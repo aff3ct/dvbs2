@@ -188,9 +188,7 @@ int main(int argc, char** argv)
 	//(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[mlt::sck::imultiply   ::Z_N ]);
 	//(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
 	//(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
-	std::vector<float> frame_synch_in(sync_frame->get_N_in(),0.0f);
-	(*sync_frame  )[syn::sck::synchronize ::X_N1].bind(frame_synch_in);
-	
+
 	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*sync_frame  )[syn::sck::synchronize ::Y_N2]);
 	(*sync_lr     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
 	(*sync_fine_pf)[syn::sck::synchronize ::X_N1].bind((*sync_lr     )[syn::sck::synchronize ::Y_N2]);
@@ -218,7 +216,6 @@ int main(int argc, char** argv)
 		// compute the current sigma for the channel noise
 		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.BPS);
 		const auto sigma = tools::esn0_to_sigma(esn0);
-		std::cerr << "EbN0 " << ebn0 << " EsN0 " << esn0 << std::endl;
 
 #pragma omp single
 {
@@ -234,18 +231,24 @@ int main(int argc, char** argv)
 		modem   ->set_noise(noise);
 		channel ->set_noise(noise);
 
-		// Reset the synchronization device
-		sync_lr->reset();
+		shaping_flt->reset();
+		
+		chn_delay->reset();
+		freq_shift->reset_time();
+		
 		sync_coarse_f->reset();
 		sync_coarse_f->disable_update();
+		matched_flt->reset();
 		sync_gardner->reset();
 		sync_frame->reset();
+		sync_lr->reset();
 		sync_fine_pf->reset();
-		matched_flt->reset();
-		chn_delay->reset();
-		shaping_flt->reset();
-		freq_shift->reset_time();
+				
+		delay->reset();
 
+		std::vector<float> frame_synch_in(sync_frame->get_N_in(),0.0f);
+		(*sync_frame  )[syn::sck::synchronize ::X_N1].bind(frame_synch_in);
+		std::complex<float>* cplx_fs_in = reinterpret_cast<std::complex<float>*>(frame_synch_in.data());
 		// tasks execution
 		for (int m = 0; m < 150; m++)
 		{
@@ -267,40 +270,25 @@ int main(int argc, char** argv)
 			          (float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()) + channel->get_N(),
 			          channel_out.data());
 
-			int sym_idx = 0;
 			for (int spl_idx = 0; spl_idx < channel->get_N()/2; spl_idx++)
 			{
 				std::complex<float> sync_coarse_f_in(channel_out[spl_idx*2], channel_out[spl_idx*2 + 1]);
 				std::complex<float> sync_coarse_f_out(0.0f, 0.0f);
 				std::complex<float> matched_filter_out(0.0f, 0.0f);
-				
+				int is_strobe = sync_gardner->get_is_strobe();
+
 				sync_coarse_f->step(&sync_coarse_f_in,&sync_coarse_f_out);
 				matched_flt  ->step(&sync_coarse_f_out, &matched_filter_out);
-				
-				if (sync_gardner->get_is_strobe() == 1)
-				{
-					sync_gardner ->step(&matched_filter_out);
-					if (2*sym_idx < sync_frame->get_N_in())
-					{
-						std::complex<float> gardner_out = sync_gardner->get_last_symbol();
-						frame_synch_in[sym_idx*2]   = std::real(gardner_out);
-						frame_synch_in[sym_idx*2+1] = std::imag(gardner_out);
-						sync_coarse_f->update_phase(gardner_out);
-					}
-					sym_idx ++;
-				}
-				else
-					sync_gardner ->step(&matched_filter_out);
+				sync_gardner ->step(&matched_filter_out);
+				if (is_strobe == 1)
+					sync_coarse_f->update_phase(sync_gardner->get_last_symbol());
 			}
-			if (sym_idx > sync_frame->get_N_in()/2)
-				std::cerr << "overflow" << std::endl;
-			else if (sym_idx < sync_frame->get_N_in()/2)
-				std::cerr << "underflow" << std::endl;
-			
+
+			for (auto sym_idx = 0 ; sym_idx < sync_frame->get_N_in()/2 ; sym_idx++)
+				sync_gardner->pop(&cplx_fs_in[sym_idx] );
+
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
-			//sync_coarse_f->enable_update(); 
 			sync_coarse_f->set_curr_idx(sync_frame->get_delay()-1);
-			//std::cerr << m << " : " << sync_frame->get_delay() << " " << sync_gardner->get_mu() << std::endl;
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 		}
 
@@ -333,40 +321,26 @@ int main(int argc, char** argv)
 			          (float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()) + channel->get_N(),
 			          channel_out.data());
 
-			int sym_idx = 0;
 			for (int spl_idx = 0; spl_idx < channel->get_N()/2; spl_idx++)
 			{
 				std::complex<float> sync_coarse_f_in(channel_out[spl_idx*2], channel_out[spl_idx*2 + 1]);
 				std::complex<float> sync_coarse_f_out(0.0f, 0.0f);
 				std::complex<float> matched_filter_out(0.0f, 0.0f);
-				
+				int is_strobe = sync_gardner->get_is_strobe();
+
 				sync_coarse_f->step(&sync_coarse_f_in,&sync_coarse_f_out);
 				matched_flt  ->step(&sync_coarse_f_out, &matched_filter_out);
-
-				if (sync_gardner->get_is_strobe() == 1)
-				{
-					sync_gardner ->step(&matched_filter_out);
-					if (2*sym_idx < sync_frame->get_N_in())
-					{
-						std::complex<float> gardner_out = sync_gardner->get_last_symbol();
-						frame_synch_in[sym_idx*2]   = std::real(gardner_out);
-						frame_synch_in[sym_idx*2+1] = std::imag(gardner_out);
-						sync_coarse_f->update_phase(gardner_out);
-					}
-					sym_idx ++;
-				}
-				else
-					sync_gardner ->step(&matched_filter_out);
+				sync_gardner ->step(&matched_filter_out);
+				if (is_strobe == 1)
+					sync_coarse_f->update_phase(sync_gardner->get_last_symbol());
 			}
-			if (sym_idx > sync_frame->get_N_in()/2)
-				std::cerr << "overflow" << std::endl;
-			else if (sym_idx < sync_frame->get_N_in()/2)
-				std::cerr << "underflow" << std::endl;
+
+			for (auto sym_idx = 0 ; sym_idx < sync_frame->get_N_in()/2 ; sym_idx++)
+				sync_gardner->pop(&cplx_fs_in[sym_idx] );
 
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
 			sync_coarse_f->set_curr_idx(sync_frame->get_delay()-1);
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			//std::cerr << m + 150 << " : " << sync_frame->get_delay() << " " << sync_gardner->get_mu() << std::endl;
 		}
 		
 		#pragma omp single
@@ -400,19 +374,9 @@ int main(int argc, char** argv)
 			(*matched_flt  )[flt::tsk::filter      ].exec();
 			(*sync_gardner )[syn::tsk::synchronize ].exec();
 			(*sync_frame   )[syn::tsk::synchronize ].exec();
-			sync_coarse_f->enable_update(); 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
 			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
-			//std::cerr << m + 300 << " : " << sync_frame->get_delay() << " " << sync_gardner->get_mu() << std::endl;
-			(*framer       )[frm::tsk::remove_plh  ].exec();
-			(*modem        )[mdm::tsk::demodulate  ].exec();
-			(*itl_rx       )[itl::tsk::deinterleave].exec();
-			(*LDPC_decoder )[dec::tsk::decode_siho ].exec();
-			(*BCH_decoder  )[dec::tsk::decode_hiho ].exec();
-			(*bb_scrambler )[scr::tsk::descramble  ].exec();
-			(*delay        )[flt::tsk::filter      ].exec();
-			(*monitor      )[mnt::tsk::check_errors].exec();			
 		}
 		
 		if (params.stats)
@@ -427,6 +391,8 @@ int main(int argc, char** argv)
 					for (auto &ta : modules_stats[m][t]->tasks)
 						ta->reset_stats();
 		}
+
+		(*delay        )[flt::tsk::filter      ].exec();
 		(*monitor     )[mnt::tsk::check_errors].exec();
 		monitor_red->reset_all();
 
@@ -435,7 +401,7 @@ int main(int argc, char** argv)
 		// display the performance (BER and FER) in real time (in a separate thread)
 			terminal->start_temp_report();
 		}
-		//int m =0;
+		
 		// tasks execution
 		while (!monitor_red->is_done_all() && !terminal->is_interrupt())
 		{
@@ -460,7 +426,6 @@ int main(int argc, char** argv)
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
 			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
 			(*framer       )[frm::tsk::remove_plh  ].exec();
-			////std::cerr << (m++) + 500 << " : " << sync_frame->get_delay() << " " << sync_gardner->get_mu() << std::endl;
 			(*modem        )[mdm::tsk::demodulate  ].exec();
 			(*itl_rx       )[itl::tsk::deinterleave].exec();
 			(*LDPC_decoder )[dec::tsk::decode_siho ].exec();
