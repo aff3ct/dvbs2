@@ -99,6 +99,7 @@ void Synchronizer_frame_cc_naive<R>
 {
 
 	this->output_delay.reset();
+	this->output_delay.set_delay(0);
 	this->reg_channel = std::complex<R>(1,0);
 	for (auto i = 0; i<this->corr_buff.size();i++)
 		this->corr_buff[i] = std::complex<R>(0,0);
