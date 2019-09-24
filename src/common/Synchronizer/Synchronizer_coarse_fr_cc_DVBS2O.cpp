@@ -97,15 +97,15 @@ template <typename R>
 void Synchronizer_coarse_fr_cc_DVBS2O<R>
 ::reset()
 {
-	this->prev_spl = std::complex<R> (0,0);
-	this->prev_prev_spl = std::complex<R> (0,0);
-	this->set_nu (0);
+	this->prev_spl = std::complex<R> ((R)0,(R)0);
+	this->prev_prev_spl = std::complex<R> ((R)0,(R)0);
+	this->set_nu ((R)0);
 
 	this->curr_idx = 8369;
 	this->prev_idx = 0;
-	this->loop_filter_state = 0;
-	this->integ_filter_state = 0;
-	this->DDS_prev_in = 0;
+	this->loop_filter_state = (R)0;
+	this->integ_filter_state = (R)0;
+	this->DDS_prev_in = (R)0;
 	this->is_active = false;
 	this->reset_time();
 } 
