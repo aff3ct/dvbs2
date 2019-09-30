@@ -12,7 +12,7 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Synchronizer_coarse_fr_cc_DVBS2O : public Multiplier_sine_ccc_naive<R>//public Synchronizer<R>,
+class Synchronizer_coarse_fr_cc_DVBS2O : public Synchronizer<R>
 {
 private:
 const std::vector<int > PL_RAND_SEQ {
@@ -4175,7 +4175,6 @@ const std::vector<int > PL_RAND_SEQ {
 	const int samples_per_symbol;
 
 	int curr_idx;
-	int prev_idx;
 	int length_max;
 
 	R proportional_gain; 
@@ -4190,6 +4189,7 @@ const std::vector<int > PL_RAND_SEQ {
 	R DDS_prev_in;
 
 	bool is_active;
+	Multiplier_sine_ccc_naive<R> mult;
 	
 public:
 	Synchronizer_coarse_fr_cc_DVBS2O(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth);
@@ -4200,6 +4200,7 @@ public:
 	void disable_update(){this->is_active = false;};
 	void set_curr_idx(int curr_idx) {this->curr_idx = curr_idx;};
 	void set_PLL_coeffs (const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth);
+	void step (const std::complex<R>* x_elt, std::complex<R>* y_elt);
 
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);

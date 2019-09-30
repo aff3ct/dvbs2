@@ -19,8 +19,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_coarse_fr_cc_DVBS2O<R>
-::Synchronizer_coarse_fr_cc_DVBS2O(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth)//Synchronizer<R>(N,N),
-:  Multiplier_sine_ccc_naive<R>(N,(R)0.0, (R)1.0, 1), scrambled_pilots(this->PL_RAND_SEQ.size(),std::complex<R>((R)0,(R)0)), samples_per_symbol(samples_per_symbol), curr_idx(8369), prev_idx(0), length_max(8370), proportional_gain((R)1.0), integrator_gain((R)1.0), digital_synthesizer_gain((R)1), prev_spl(std::complex<R>((R)0.0,(R)0.0)), prev_prev_spl(std::complex<R>((R)0.0,(R)0.0)), loop_filter_state((R)0.0),  integ_filter_state((R)0.0), DDS_prev_in((R)0.0), is_active(false)
+::Synchronizer_coarse_fr_cc_DVBS2O(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth)
+:Synchronizer<R>(N,N), scrambled_pilots(this->PL_RAND_SEQ.size(),std::complex<R>((R)0,(R)0)), samples_per_symbol(samples_per_symbol), curr_idx(8369), length_max(8370), proportional_gain((R)1.0), integrator_gain((R)1.0), digital_synthesizer_gain((R)1), prev_spl(std::complex<R>((R)0.0,(R)0.0)), prev_prev_spl(std::complex<R>((R)0.0,(R)0.0)), loop_filter_state((R)0.0),  integ_filter_state((R)0.0), DDS_prev_in((R)0.0), is_active(false), mult(N,(R)0.0, (R)1.0, 1)
 {
 	this->set_PLL_coeffs (samples_per_symbol, damping_factor, normalized_bandwidth);
 	
@@ -39,8 +39,17 @@ template <typename R>
 void Synchronizer_coarse_fr_cc_DVBS2O<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
-	this->imultiply(X_N1, Y_N2, frame_id);
+	this->mult.imultiply(X_N1, Y_N2, frame_id);
 }
+
+template <typename R>
+void Synchronizer_coarse_fr_cc_DVBS2O<R>
+::step(const std::complex<R>* x_elt, std::complex<R>* y_elt)
+{
+
+	this->mult.step(x_elt, y_elt);
+}
+
 
 template <typename R>
 void Synchronizer_coarse_fr_cc_DVBS2O<R>
@@ -52,18 +61,19 @@ void Synchronizer_coarse_fr_cc_DVBS2O<R>
 		int rem_pos = this->curr_idx % 1476;
 		if (rem_pos >= 54 && rem_pos < 90)
 		{
-			this->prev_idx = (this->curr_idx - 2)% this->length_max;
+			int prev_idx = (this->curr_idx - 2)% this->length_max;
 
-			R phase_error = std::imag( spl                 * this->scrambled_pilots[this->prev_idx] 
-			              * std::conj( this->prev_prev_spl * this->scrambled_pilots[this->curr_idx] ) 
+			R phase_error = std::imag( spl                 * this->scrambled_pilots[prev_idx      ]
+			              * std::conj( this->prev_prev_spl * this->scrambled_pilots[this->curr_idx] )
 			                         );
+
 			this->loop_filter_state += phase_error * this->integrator_gain;
                         
 			this->integ_filter_state += this->DDS_prev_in ;
 
 			this->DDS_prev_in = phase_error * this->proportional_gain + this->loop_filter_state;
             
-			this->set_nu( -this->digital_synthesizer_gain * this->integ_filter_state / this->samples_per_symbol);
+			this->mult.set_nu( -this->digital_synthesizer_gain * this->integ_filter_state / this->samples_per_symbol);
 			//std::cout << this->digital_synthesizer_gain * this->integ_filter_state / this->samples_per_symbol << std::endl;
 			this->prev_prev_spl = this->prev_spl;
 			this->prev_spl = spl;
@@ -97,17 +107,17 @@ template <typename R>
 void Synchronizer_coarse_fr_cc_DVBS2O<R>
 ::reset()
 {
-	this->prev_spl = std::complex<R> ((R)0,(R)0);
+	this->prev_spl      = std::complex<R> ((R)0,(R)0);
 	this->prev_prev_spl = std::complex<R> ((R)0,(R)0);
-	this->set_nu ((R)0);
 
-	this->curr_idx = 8369;
-	this->prev_idx = 0;
-	this->loop_filter_state = (R)0;
+	this->curr_idx           = 8369;
+	this->loop_filter_state  = (R)0;
 	this->integ_filter_state = (R)0;
-	this->DDS_prev_in = (R)0;
-	this->is_active = false;
-	this->reset_time();
+	this->DDS_prev_in        = (R)0;
+	this->is_active          = false;
+	
+	this->mult.reset_time();
+	this->mult.set_nu((R)0);
 } 
 
 // ==================================================================================== explicit template instantiation
