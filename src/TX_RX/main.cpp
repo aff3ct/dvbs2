@@ -219,8 +219,8 @@ int main(int argc, char** argv)
 #pragma omp single
 {
 		noise.set_noise(sigma, ebn0, esn0);
-		std::cout << "Learning phase 1..." << "\r";
-		std::cout.flush();
+		std::cerr << "Learning phase 1..." << "\r";
+		std::cerr.flush();
 
 }
 // end of #pragma omp single
@@ -300,8 +300,8 @@ int main(int argc, char** argv)
 
 		#pragma omp single
 		{
-		std::cout << "Learning phase 2..." << "\r";
-		std::cout.flush();
+		std::cerr << "Learning phase 2..." << "\r";
+		std::cerr.flush();
 		}
 		// end of #pragma omp single
 
@@ -357,8 +357,8 @@ int main(int argc, char** argv)
 		
 		#pragma omp single
 		{
-			std::cout << "Learning phase 3..." << "\r";
-			std::cout.flush();
+			std::cerr << "Learning phase 3..." << "\r";
+			std::cerr.flush();
 		}
 
 		(*sync_coarse_f)[syn::sck::synchronize ::X_N1 ].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
