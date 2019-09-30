@@ -183,7 +183,6 @@ int main(int argc, char** argv)
 	(*channel     )[chn::sck::add_noise   ::X_N ].bind((*freq_shift)  [mlt::sck::imultiply   ::Z_N ]);
 	
 	// RX
-
 	//(*sync_coarse_f)[mlt::sck::imultiply   ::X_N ].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
 	//(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[mlt::sck::imultiply   ::Z_N ]);
 	//(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
@@ -270,6 +269,8 @@ int main(int argc, char** argv)
 			          (float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()) + channel->get_N(),
 			          channel_out.data());
 
+			int frame_sym_sz = sync_frame->get_N_in()/2;
+			int gardner_delay = sync_gardner->get_delay()% frame_sym_sz;
 			for (int spl_idx = 0; spl_idx < channel->get_N()/2; spl_idx++)
 			{
 				std::complex<float> sync_coarse_f_in(channel_out[spl_idx*2], channel_out[spl_idx*2 + 1]);
@@ -277,18 +278,23 @@ int main(int argc, char** argv)
 				std::complex<float> matched_filter_out(0.0f, 0.0f);
 				int is_strobe = sync_gardner->get_is_strobe();
 
-				sync_coarse_f->step(&sync_coarse_f_in,&sync_coarse_f_out);
-				matched_flt  ->step(&sync_coarse_f_out, &matched_filter_out);
-				sync_gardner ->step(&matched_filter_out);
+				sync_coarse_f->step (&sync_coarse_f_in,  &sync_coarse_f_out);
+				matched_flt  ->step (&sync_coarse_f_out, &matched_filter_out);
+				sync_gardner ->step (&matched_filter_out);
 				if (is_strobe == 1)
 					sync_coarse_f->update_phase(sync_gardner->get_last_symbol());
 			}
 
-			for (auto sym_idx = 0 ; sym_idx < sync_frame->get_N_in()/2 ; sym_idx++)
-				sync_gardner->pop(&cplx_fs_in[sym_idx] );
+			for (auto sym_idx = 0 ; sym_idx < frame_sym_sz ; sym_idx++)
+				sync_gardner->pop(&cplx_fs_in[sym_idx]);
+
 
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
-			sync_coarse_f->set_curr_idx(sync_frame->get_delay()-1);
+			sync_coarse_f->enable_update();
+			
+			int delay = sync_frame->get_delay() + gardner_delay;
+			delay = delay % frame_sym_sz;
+			sync_coarse_f->set_curr_idx(delay);
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 		}
 
@@ -320,7 +326,9 @@ int main(int argc, char** argv)
 			std::copy((float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()), 
 			          (float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()) + channel->get_N(),
 			          channel_out.data());
-
+					  
+			int frame_sym_sz = sync_frame->get_N_in()/2;
+			int gardner_delay = sync_gardner->get_delay()% frame_sym_sz;
 			for (int spl_idx = 0; spl_idx < channel->get_N()/2; spl_idx++)
 			{
 				std::complex<float> sync_coarse_f_in(channel_out[spl_idx*2], channel_out[spl_idx*2 + 1]);
@@ -328,18 +336,22 @@ int main(int argc, char** argv)
 				std::complex<float> matched_filter_out(0.0f, 0.0f);
 				int is_strobe = sync_gardner->get_is_strobe();
 
-				sync_coarse_f->step(&sync_coarse_f_in,&sync_coarse_f_out);
-				matched_flt  ->step(&sync_coarse_f_out, &matched_filter_out);
-				sync_gardner ->step(&matched_filter_out);
+				sync_coarse_f->step (&sync_coarse_f_in,  &sync_coarse_f_out);
+				matched_flt  ->step (&sync_coarse_f_out, &matched_filter_out);
+				sync_gardner ->step (&matched_filter_out);
 				if (is_strobe == 1)
 					sync_coarse_f->update_phase(sync_gardner->get_last_symbol());
 			}
 
-			for (auto sym_idx = 0 ; sym_idx < sync_frame->get_N_in()/2 ; sym_idx++)
-				sync_gardner->pop(&cplx_fs_in[sym_idx] );
+			for (auto sym_idx = 0 ; sym_idx < frame_sym_sz ; sym_idx++)
+				sync_gardner->pop(&cplx_fs_in[sym_idx]);
+
 
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
-			sync_coarse_f->set_curr_idx(sync_frame->get_delay()-1);
+			
+			int delay = sync_frame->get_delay() + gardner_delay;
+			delay = delay % frame_sym_sz;
+			sync_coarse_f->set_curr_idx(delay);
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 		}
 		
@@ -349,8 +361,8 @@ int main(int argc, char** argv)
 			std::cout.flush();
 		}
 
-		(*sync_coarse_f)[mlt::sck::imultiply   ::X_N ].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
-		(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[mlt::sck::imultiply   ::Z_N ]);
+		(*sync_coarse_f)[syn::sck::synchronize ::X_N1 ].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
+		(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2 ]);
 		(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
 		(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
 
@@ -370,7 +382,7 @@ int main(int argc, char** argv)
 			(*chn_delay    )[flt::tsk::filter      ].exec();
 			(*freq_shift   )[mlt::tsk::imultiply   ].exec();
 			(*channel      )[chn::tsk::add_noise   ].exec();
-			(*sync_coarse_f)[mlt::tsk::imultiply   ].exec();
+			(*sync_coarse_f)[syn::tsk::synchronize ].exec();
 			(*matched_flt  )[flt::tsk::filter      ].exec();
 			(*sync_gardner )[syn::tsk::synchronize ].exec();
 			(*sync_frame   )[syn::tsk::synchronize ].exec();
@@ -401,7 +413,7 @@ int main(int argc, char** argv)
 		// display the performance (BER and FER) in real time (in a separate thread)
 			terminal->start_temp_report();
 		}
-		
+
 		// tasks execution
 		while (!monitor_red->is_done_all() && !terminal->is_interrupt())
 		{
@@ -418,7 +430,7 @@ int main(int argc, char** argv)
 			(*chn_delay    )[flt::tsk::filter      ].exec();
 			(*freq_shift   )[mlt::tsk::imultiply   ].exec();
 			(*channel      )[chn::tsk::add_noise   ].exec();
-			(*sync_coarse_f)[mlt::tsk::imultiply   ].exec();
+			(*sync_coarse_f)[syn::tsk::synchronize ].exec();
 			(*matched_flt  )[flt::tsk::filter      ].exec();
 			(*sync_gardner )[syn::tsk::synchronize ].exec();
 			(*sync_frame   )[syn::tsk::synchronize ].exec();
