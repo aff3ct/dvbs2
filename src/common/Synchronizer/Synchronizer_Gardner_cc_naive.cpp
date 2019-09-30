@@ -99,18 +99,14 @@ void Synchronizer_Gardner_cc_naive<R>
 {
 	std::complex<R> farrow_output(0,0);
 	farrow_flt.step( X_N1, &farrow_output);
-	
 	if (this->is_strobe)
 	{
 		this->push(farrow_output);
 		this->last_symbol = farrow_output;
 	}
-		
 
 	this->TED_update(farrow_output);
-
 	this->loop_filter();
-	
 	this->interpolation_control();
 }
 
@@ -225,7 +221,6 @@ void Synchronizer_Gardner_cc_naive<R>
 	else
 	{
 		this->overflow_cnt++;
-		std::cerr << "overflow" << std::endl;
 	}
 }
 
@@ -242,8 +237,14 @@ void Synchronizer_Gardner_cc_naive<R>
 	{
 		*strobe = std::complex<R>((R)0,(R)0);
 		this->underflow_cnt++;
-		std::cerr << "underflow" << std::endl;
 	}
+}
+
+template <typename R>
+int Synchronizer_Gardner_cc_naive<R>
+::get_delay()
+{
+	return this->outbuf_cur_sz;
 }
 
 // ==================================================================================== explicit template instantiation

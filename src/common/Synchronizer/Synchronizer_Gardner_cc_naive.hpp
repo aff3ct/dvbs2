@@ -70,6 +70,7 @@ public:
 	void pop(std::complex<R> *strobe);
 	int get_overflow_cnt (){return this->overflow_cnt;};
 	int get_underflow_cnt (){return this->underflow_cnt;};
+	int get_delay();
 	
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
