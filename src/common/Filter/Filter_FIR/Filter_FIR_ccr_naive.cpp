@@ -38,7 +38,7 @@ void Filter_FIR_ccr_naive<R>
 ::reset()
 {
 	for (size_t i = 0; i<this->buff.size(); i++)
-		this->buff[i] = std::complex<R>(R(0));
+		this->buff[i] = std::complex<R>(R(0),R(0));
 
 	this->head = 0;
 }

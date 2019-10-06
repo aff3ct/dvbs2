@@ -153,7 +153,7 @@ template <typename R>
 void Synchronizer_fine_pf_cc_DVBS2O<R>
 ::reset()
 {
-	this->est_reduced_freq = 0;
+	this->est_reduced_freq = (R)0;
 } 
 
 template <typename R>

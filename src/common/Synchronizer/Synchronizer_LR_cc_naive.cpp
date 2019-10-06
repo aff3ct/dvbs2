@@ -93,7 +93,7 @@ void Synchronizer_LR_cc_naive<R>
 {
 	this->R_l[0] = (R)0.0;
 	this->R_l[1] = (R)0.0;
-	this->est_reduced_freq = 0.0;
+	this->est_reduced_freq = (R)0.0;
 } 
 
 template <typename R>

@@ -4195,6 +4195,7 @@ public:
 	Synchronizer_coarse_fr_cc_DVBS2O(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth);
 	virtual ~Synchronizer_coarse_fr_cc_DVBS2O();
 	void reset();
+	
 	void update_phase(const std::complex<R> spl);
 	void enable_update (){this->is_active = true; };
 	void disable_update(){this->is_active = false;};

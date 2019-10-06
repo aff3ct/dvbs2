@@ -25,7 +25,7 @@ farrow_flt(N,(R)0),
 strobe_history(0),
 is_strobe(0),
 TED_error((R)0),
-TED_buffer(OSF, std::complex<R>(0,0)),
+TED_buffer(OSF, std::complex<R>((R)0,(R)0)),
 TED_head_pos(OSF - 1),
 TED_mid_pos((OSF - 1 - OSF / 2) % OSF),
 TED_old_head_pos(0),
@@ -115,12 +115,12 @@ void Synchronizer_Gardner_cc_naive<R>
 ::reset()
 {
 	this->farrow_flt.reset();
-	this->farrow_flt.set_mu(0);
+	this->farrow_flt.set_mu((R)0);
 
 	for (auto i = 0; i<this->OSF ; i++)
-		this->TED_buffer[i] = std::complex<R>(0,0);
+		this->TED_buffer[i] = std::complex<R>(R(0),R(0));
 
-	this->last_symbol      = std::complex<R> (0,0);
+	this->last_symbol      = std::complex<R> (R(0),R(0));
 	this->mu               = (R)0;
 	this->strobe_history   = 0;
 	this->is_strobe        = 0;

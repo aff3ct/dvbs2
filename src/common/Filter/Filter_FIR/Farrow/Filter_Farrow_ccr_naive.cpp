@@ -10,7 +10,7 @@ using namespace aff3ct::module;
 template <typename R>
 Filter_Farrow_ccr_naive<R>
 ::Filter_Farrow_ccr_naive(const int N, const R mu)
-: Filter<R>(N,N), xnd2_1(std::complex<R>(0)), xnd2_2(std::complex<R>(0)), xnd2_3(std::complex<R>(0)), xn_1(std::complex<R>(0)), xn_2(std::complex<R>(0)), mu(mu)
+: Filter<R>(N,N), xnd2_1(std::complex<R>((R)0,(R)0)), xnd2_2(std::complex<R>((R)0,(R)0)), xnd2_3(std::complex<R>((R)0,(R)0)), xn_1(std::complex<R>((R)0,(R)0)), xn_2(std::complex<R>((R)0,(R)0)), mu(mu)
 {
 }
 
@@ -60,12 +60,12 @@ template <typename R>
 void Filter_Farrow_ccr_naive<R>
 ::reset()
 {
-	this->xn_2 = std::complex<R>(0,0); 
-	this->xn_1 = std::complex<R>(0,0);
+	this->xn_2 = std::complex<R>(R(0),R(0)); 
+	this->xn_1 = std::complex<R>(R(0),R(0));
 	
-	this->xnd2_3 = std::complex<R>(0,0);
-	this->xnd2_2 = std::complex<R>(0,0);
-	this->xnd2_1 = std::complex<R>(0,0);
+	this->xnd2_3 = std::complex<R>(R(0),R(0));
+	this->xnd2_2 = std::complex<R>(R(0),R(0));
+	this->xnd2_1 = std::complex<R>(R(0),R(0));
 }
 
 // ==================================================================================== explicit template instantiation
