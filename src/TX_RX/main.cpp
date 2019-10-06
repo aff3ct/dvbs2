@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 
 	// initialize the tools
 	itl_core->init();
-
+	std::cout << "TID = " << tid << std::endl;
 	// construct modules
 	std::unique_ptr<module::Source<>                           > source       (Factory_DVBS2O::build_source                   <>(params, tid*2+0        ));
 	std::unique_ptr<module::Scrambler<>                        > bb_scrambler (Factory_DVBS2O::build_bb_scrambler             <>(params                 ));
