@@ -138,6 +138,12 @@ template <typename B>
 module::Monitor_BFER<B>* Factory_DVBS2O
 ::build_monitor(const Params_DVBS2O& params)
 {
+	// BEGIN DEBUG: ensure that the monitor is making the reduction each time is_done_all() is called
+	// Please comment the two following line to increase the simulation throughput
+	auto freq = std::chrono::milliseconds(0);
+	module::Monitor_reduction::set_reduce_frequency(freq);
+	// END DEBUG
+
 	return new module::Monitor_BFER<B>(params.K_BCH, params.MAX_FE);
 }
 
