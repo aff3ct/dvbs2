@@ -4190,6 +4190,8 @@ const std::vector<int > PL_RAND_SEQ {
 
 	bool is_active;
 	Multiplier_sine_ccc_naive<R> mult;
+
+	R estimated_freq;
 	
 public:
 	Synchronizer_coarse_fr_cc_DVBS2O(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth);
@@ -4202,6 +4204,8 @@ public:
 	void set_curr_idx(int curr_idx) {this->curr_idx = curr_idx;};
 	void set_PLL_coeffs (const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth);
 	void step (const std::complex<R>* x_elt, std::complex<R>* y_elt);
+
+	R get_estimated_freq() {return this->estimated_freq;};
 
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
