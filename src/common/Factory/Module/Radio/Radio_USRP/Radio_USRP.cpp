@@ -102,7 +102,7 @@ module::Radio<D>* Radio_USRP::parameters
 
 	return new module::Radio_USRP<D> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
 	                                  this->rx_subdev_spec,this->tx_rate, this->tx_freq, this->tx_subdev_spec,
-	                                  this->n_frames);
+	                                  this->n_frames, this->rx_gain, this->tx_gain);
 	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }
 

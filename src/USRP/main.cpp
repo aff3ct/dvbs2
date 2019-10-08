@@ -78,23 +78,24 @@ int main(int argc, char** argv)
 
 	std::cout << shaping_filter->get_N_fil() << std::endl;
 
-	(*source)      [src::tsk::generate  ].exec();
-	(*bb_scrambler)[scr::tsk::scramble  ].exec();
-	(*BCH_encoder )[enc::tsk::encode    ].exec();
-	(*LDPC_encoder)[enc::tsk::encode    ].exec();
-	(*itl         )[itl::tsk::interleave].exec();
-	(*modem       )[mdm::tsk::modulate  ].exec();
-	(*framer      )[frm::tsk::generate  ].exec();
-	(*pl_scrambler)[scr::tsk::scramble  ].exec();
+	while(1)
+	{
+		(*source)      [src::tsk::generate  ].exec();
+		(*bb_scrambler)[scr::tsk::scramble  ].exec();
+		(*BCH_encoder )[enc::tsk::encode    ].exec();
+		(*LDPC_encoder)[enc::tsk::encode    ].exec();
+		(*itl         )[itl::tsk::interleave].exec();
+		(*modem       )[mdm::tsk::modulate  ].exec();
+		(*framer      )[frm::tsk::generate  ].exec();
+		(*pl_scrambler)[scr::tsk::scramble  ].exec();
 
-	std::copy( (float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr()),
-	          ((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.PL_FRAME_SIZE),
-	          shaping_in.data());
+		std::copy( (float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr()),
+				((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.PL_FRAME_SIZE),
+				shaping_in.data());
 
-	(*shaping_filter)[flt::tsk::filter  ].exec();
-	(*radio         )[rad::tsk::send    ].exec();
-
-	// write samples_vec to file
+		(*shaping_filter)[flt::tsk::filter  ].exec();
+		(*radio         )[rad::tsk::send    ].exec();
+	}
 
 	return EXIT_SUCCESS;
 }

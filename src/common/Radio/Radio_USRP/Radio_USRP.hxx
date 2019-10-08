@@ -9,9 +9,18 @@ template <typename D>
 Radio_USRP<D>::
 Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
            const double rx_freq, const std::string rx_subdev_spec, const double tx_rate,
-           const double tx_freq, const std::string tx_subdev_spec, const int n_frames)
-: Radio<D>(N, n_frames), stream_args("fc64")
+           const double tx_freq, const std::string tx_subdev_spec, const int n_frames, 
+		   const double rx_gain, const double tx_gain)
+: Radio<D>(N, n_frames), stream_args("fc32")
 {
+	// typeinfo
+	// if typeid(D) == typeid(float)
+	// 	stream_args = "fc32";
+	// else if typeid(D) == typeid(double)
+	// 	stream_args = "fc64";
+	// else 
+	// 	throw 
+
 	uhd::log::set_console_level(uhd::log::severity_level(3));
 	uhd::log::set_file_level   (uhd::log::severity_level(2));
 
@@ -21,16 +30,19 @@ Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const doub
 
 	usrp->set_rx_rate(rx_rate, 0); // only one channel (0) for now
 	usrp->set_rx_freq(rx_freq);
+	usrp->set_rx_gain(rx_gain, 0);
 	usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t(rx_subdev_spec));
-
+	std::cout << "Gain = " << tx_gain << std::endl;
+	std::cout << "Freq = " << tx_freq << std::endl;
 	usrp->set_tx_rate(tx_rate, 0); // only one channel (0) for now
 	usrp->set_tx_freq(tx_freq);
+	usrp->set_tx_gain(tx_gain, 0);
+	usrp->set_tx_antenna("TX/RX", 0);
+
 	usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t(tx_subdev_spec));
 
 	rx_stream = usrp->get_rx_stream(stream_args);
 	tx_stream = usrp->get_tx_stream(stream_args);
-
-
 
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 }
