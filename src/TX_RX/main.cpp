@@ -155,16 +155,16 @@ int main(int argc, char** argv)
 
 	
 	using namespace module;
-	(*freq_shift  )[mlt::tsk::imultiply   ].set_debug(false);
-	(*sync_lr     )[syn::tsk::synchronize ].set_debug(false);
-	(*sync_fine_pf)[syn::tsk::synchronize ].set_debug(false);
-	(*sync_gardner)[syn::tsk::synchronize ].set_debug(false);
-	sync_gardner->set_name("Gardner_Synch");
-	(*sync_frame  )[syn::tsk::synchronize ].set_debug(false);
-	sync_frame->set_name("Frame_Synch");
-	(*monitor     )[mnt::tsk::check_errors].set_debug(false);
-	(*channel     )[chn::tsk::add_noise   ].set_debug(false);
-	(*pl_scrambler)[scr::tsk::descramble  ].set_debug(false);
+	//(*freq_shift  )[mlt::tsk::imultiply   ].set_debug(false);
+	//(*sync_lr     )[syn::tsk::synchronize ].set_debug(false);
+	//(*sync_fine_pf)[syn::tsk::synchronize ].set_debug(false);
+	//(*sync_gardner)[syn::tsk::synchronize ].set_debug(false);
+	//sync_gardner->set_name("Gardner_Synch");
+	//(*sync_frame  )[syn::tsk::synchronize ].set_debug(false);
+	//sync_frame->set_name("Frame_Synch");
+	//(*monitor     )[mnt::tsk::check_errors].set_debug(false);
+	//(*channel     )[chn::tsk::add_noise   ].set_debug(false);
+	//(*pl_scrambler)[scr::tsk::descramble  ].set_debug(false);
 	
 	// socket binding
 	// TX
@@ -219,10 +219,8 @@ int main(int argc, char** argv)
 #pragma omp single
 {
 		noise.set_noise(sigma, ebn0, esn0);
-		std::cerr << "Learning phase 1..." << "\r";
-		std::cerr.flush();
-
 }
+
 // end of #pragma omp single
 
 		// update the sigma of the modem and the channel
@@ -244,6 +242,7 @@ int main(int argc, char** argv)
 		sync_fine_pf->reset();
 				
 		delay->reset();
+
 
 		std::vector<float> frame_synch_in(sync_frame->get_N_in(),0.0f);
 		(*sync_frame  )[syn::sck::synchronize ::X_N1].bind(frame_synch_in);
@@ -296,13 +295,15 @@ int main(int argc, char** argv)
 			delay = delay % frame_sym_sz;
 			sync_coarse_f->set_curr_idx(delay);
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
+			#pragma omp single
+			{
+				std::cerr << "\r\e[K" << std::flush;
+				std::cerr.precision(3);
+				std::cerr << std::scientific << "Phase 1 :" << m << " |  150" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq();
+				std::cerr.flush();
+			}
 		}
 
-		#pragma omp single
-		{
-		std::cerr << "Learning phase 2..." << "\r";
-		std::cerr.flush();
-		}
 		// end of #pragma omp single
 
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
@@ -353,13 +354,15 @@ int main(int argc, char** argv)
 			delay = delay % frame_sym_sz;
 			sync_coarse_f->set_curr_idx(delay);
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
+			#pragma omp single
+			{
+				std::cerr << "\r\e[K" << std::flush;
+				std::cerr.precision(3);
+				std::cerr << sync_lr->get_est_reduced_freq() << "Phase 2 :" << m << " |  150" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq();
+				std::cerr.flush();
+			}
 		}
 		
-		#pragma omp single
-		{
-			std::cerr << "Learning phase 3..." << "\r";
-			std::cerr.flush();
-		}
 
 		(*sync_coarse_f)[syn::sck::synchronize ::X_N1 ].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
 		(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2 ]);
@@ -389,6 +392,13 @@ int main(int argc, char** argv)
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
 			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
+			#pragma omp single
+			{
+				std::cerr << "\r\e[K" << std::flush;
+				std::cerr.precision(3);
+				std::cerr << sync_lr->get_est_reduced_freq() <<  "Phase 3 :" << m << " |  200" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq();
+				std::cerr.flush();
+			}		
 		}
 		
 		if (params.stats)
@@ -411,6 +421,7 @@ int main(int argc, char** argv)
 		#pragma omp single
 		{
 		// display the performance (BER and FER) in real time (in a separate thread)
+			std::cerr << "\r\e[K" << std::flush;
 			terminal->start_temp_report();
 		}
 
