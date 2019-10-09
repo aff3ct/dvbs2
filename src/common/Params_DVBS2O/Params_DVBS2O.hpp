@@ -2,13 +2,13 @@
 #define PARAMS_DVBS2O_HPP
 
 #include <aff3ct.hpp>
-#include "Factory/Module/Radio/Radio_USRP/Radio_USRP.hpp"
+#include "Factory/Module/Radio/Radio.hpp"
 using namespace aff3ct;
 
 class Params_DVBS2O
 {
 public:
-	factory::Radio_USRP::parameters p_rad;
+	factory::Radio::parameters p_rad;
 
 	float ebn0_min;
 	float ebn0_max;

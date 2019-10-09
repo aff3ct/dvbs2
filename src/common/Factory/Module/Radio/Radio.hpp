@@ -1,19 +1,19 @@
-#ifndef FACTORY_RADIO_USRP_HPP_
-#define FACTORY_RADIO_USRP_HPP_
+#ifndef FACTORY_RADIO_HPP_
+#define FACTORY_RADIO_HPP_
 
 #include <string>
 #include <memory>
 #include <aff3ct.hpp>
 
-#include "Radio/Radio_USRP/Radio_USRP.hpp"
+#include "Radio/Radio.hpp"
 
 namespace aff3ct
 {
 namespace factory
 {
-extern const std::string Radio_USRP_name;
-extern const std::string Radio_USRP_prefix;
-struct Radio_USRP : Factory
+extern const std::string Radio_name;
+extern const std::string Radio_prefix;
+struct Radio : Factory
 {
 	class parameters : public Factory::parameters
 	{
@@ -41,9 +41,9 @@ struct Radio_USRP : Factory
 		// deduced parameters
 
 		// ---------------------------------------------------------------------------------------------------- METHODS
-		explicit parameters(const std::string &prefix = Radio_USRP_prefix);
+		explicit parameters(const std::string &prefix = Radio_prefix);
 		virtual ~parameters() = default;
-		virtual Radio_USRP::parameters* clone() const;
+		virtual Radio::parameters* clone() const;
 
 		// parameters construction
 		virtual void get_description(tools::Argument_map_info &args) const;
@@ -61,5 +61,5 @@ struct Radio_USRP : Factory
 }
 }
 
-#endif /* FACTORY_RADIO_USRP_HPP_ */
+#endif /* FACTORY_RADIO_HPP_ */
 

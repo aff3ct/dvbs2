@@ -99,9 +99,3 @@ int main(int argc, char** argv)
 
 	return EXIT_SUCCESS;
 }
-
-		// (*radio)[rad::tsk::receive  ].exec();
-
-		// std::copy( (float*)((*radio)[rad::sck::receive::Y_N1].get_dataptr()),
-		//           ((float*)((*radio)[rad::sck::receive::Y_N1].get_dataptr())) + (2 * 16000),
-		//           samples_vec.data());

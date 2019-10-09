@@ -12,7 +12,7 @@
 #include "../Synchronizer/Synchronizer_LR_cc_naive.hpp"
 #include "../Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
 #include "../Estimator/Estimator.hpp"
-#include "../Radio/Radio_USRP/Radio_USRP.hpp"
+#include "../Radio/Radio.hpp"
 
 struct Factory_DVBS2O {
 	template <typename B = int>

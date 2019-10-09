@@ -1,4 +1,4 @@
-#include "Factory/Module/Radio/Radio_USRP/Radio_USRP.hpp"
+#include "Factory/Module/Radio/Radio.hpp"
 
 #include "Params_DVBS2O.hpp"
 

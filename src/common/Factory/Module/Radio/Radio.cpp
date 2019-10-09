@@ -1,28 +1,32 @@
-#include "Factory/Module/Radio/Radio_USRP/Radio_USRP.hpp"
+#include "Factory/Module/Radio/Radio.hpp"
+
+#ifdef AFF3CT_RADIO_USRP
+	#include "Radio/Radio_USRP/Radio_USRP.hpp"
+#endif
 
 using namespace aff3ct;
 using namespace aff3ct::factory;
 
-const std::string aff3ct::factory::Radio_USRP_name   = "Radio_USRP";
-const std::string aff3ct::factory::Radio_USRP_prefix = "rad";
+const std::string aff3ct::factory::Radio_name   = "Radio";
+const std::string aff3ct::factory::Radio_prefix = "rad";
 
-Radio_USRP::parameters
+Radio::parameters
 ::parameters(const std::string &prefix)
-: Factory::parameters(Radio_USRP_name, Radio_USRP_name, prefix)
+: Factory::parameters(Radio_name, Radio_name, prefix)
 {
 }
 
-Radio_USRP::parameters* Radio_USRP::parameters
+Radio::parameters* Radio::parameters
 ::clone() const
 {
-	return new Radio_USRP::parameters(*this);
+	return new Radio::parameters(*this);
 }
 
-void Radio_USRP::parameters
+void Radio::parameters
 ::get_description(tools::Argument_map_info &args) const
 {
 	auto p = this->get_prefix();
-	const std::string class_name = "factory::Radio_USRP::parameters::";
+	const std::string class_name = "factory::Radio::parameters::";
 
 	tools::add_arg(args, p, class_name+"p+fra-size,N",
 	               tools::Integer(tools::Positive(), tools::Non_zero()));	
@@ -61,7 +65,7 @@ void Radio_USRP::parameters
 		tools::Text());
 }
 
-void Radio_USRP::parameters
+void Radio::parameters
 ::store(const tools::Argument_map_value &vals)
 {
 	auto p = this->get_prefix();
@@ -80,7 +84,7 @@ void Radio_USRP::parameters
 	if(vals.exist({p+"-fra",       "F"})) this->n_frames       = vals.to_int  ({p+"-fra",       "F"});
 }
 
-void Radio_USRP::parameters
+void Radio::parameters
 ::get_headers(std::map<std::string,header_list>& headers, const bool full) const
 {
 	auto p = this->get_prefix();
@@ -96,18 +100,20 @@ void Radio_USRP::parameters
 }
 
 template <typename D>
-module::Radio<D>* Radio_USRP::parameters
+module::Radio<D>* Radio::parameters
 ::build() const
 {
-
+	#ifdef AFF3CT_RADIO_USRP
 	return new module::Radio_USRP<D> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
 	                                  this->rx_subdev_spec,this->tx_rate, this->tx_freq, this->tx_subdev_spec,
 	                                  this->n_frames, this->rx_gain, this->tx_gain);
-	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);
+	#endif
+
+	throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "A dependency is possibly missing (e.g. UHD).");
 }
 
 template <typename D>
-module::Radio<D>* Radio_USRP
+module::Radio<D>* Radio
 ::build(const parameters &params)
 {
 	return params.template build<D>();
@@ -115,8 +121,8 @@ module::Radio<D>* Radio_USRP
 
 // ==================================================================================== explicit template instantiation
 #include "Tools/types.h"
-template aff3ct::module::Radio<double>* aff3ct::factory::Radio_USRP::parameters::build<double>() const;
-template aff3ct::module::Radio<float>*  aff3ct::factory::Radio_USRP::parameters::build<float >() const;
-template aff3ct::module::Radio<double>* aff3ct::factory::Radio_USRP::build<double>(const aff3ct::factory::Radio_USRP::parameters&);
-template aff3ct::module::Radio<float>*  aff3ct::factory::Radio_USRP::build<float >(const aff3ct::factory::Radio_USRP::parameters&);
+template aff3ct::module::Radio<double>* aff3ct::factory::Radio::parameters::build<double>() const;
+template aff3ct::module::Radio<float>*  aff3ct::factory::Radio::parameters::build<float >() const;
+template aff3ct::module::Radio<double>* aff3ct::factory::Radio::build<double>(const aff3ct::factory::Radio::parameters&);
+template aff3ct::module::Radio<float>*  aff3ct::factory::Radio::build<float >(const aff3ct::factory::Radio::parameters&);
 // ==================================================================================== explicit template instantiation

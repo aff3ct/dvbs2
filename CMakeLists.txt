@@ -10,6 +10,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Specify bin path
 set (EXECUTABLE_OUTPUT_PATH bin/)
 
+# CMake options
+
 # Generate the source files lists
 file(GLOB_RECURSE SRC_FILES_CO     ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*)
 file(GLOB_RECURSE SRC_FILES_TX     ${CMAKE_CURRENT_SOURCE_DIR}/src/TX/*)
@@ -40,12 +42,13 @@ target_include_directories(dvbs2_optique_bridge PRIVATE ${CMAKE_CURRENT_SOURCE_D
 target_include_directories(dvbs2_optique_usrp   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 
 # Configure the AFF3CT library before compiling it
-option(AFF3CT_COMPILE_EXE        ""      OFF            )
-option(AFF3CT_COMPILE_STATIC_LIB ""      ON             )
-option(AFF3CT_COMPILE_SHARED_LIB ""      OFF            )
-option(AFF3CT_LINK_GSL           ""      OFF            )
-option(AFF3CT_LINK_MKL           ""      OFF            )
-set   (AFF3CT_PREC               "MULTI" CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
+option(AFF3CT_COMPILE_EXE        ""                                                   OFF            )
+option(AFF3CT_COMPILE_STATIC_LIB ""                                                   ON             )
+option(AFF3CT_COMPILE_SHARED_LIB ""                                                   OFF            )
+option(AFF3CT_LINK_GSL           ""                                                   OFF            )
+option(AFF3CT_LINK_MKL           ""                                                   OFF            )
+option(AFF3CT_LINK_UHD           "Link with the UHD library (used in the radio usrp)" OFF            )
+set   (AFF3CT_PREC               "MULTI"                                              CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
 
 # Compile the AFF3CT library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/)
@@ -72,16 +75,31 @@ if (OpenMP_FOUND)
     endif()
 endif(OpenMP_FOUND)
 
-# Link with UHD
-find_package (UHD)
-if    (UHD_FOUND)
-    include_directories(${UHD_INCLUDE_DIRS})
-    target_link_libraries(dvbs2_optique_common PRIVATE ${UHD_LIBRARIES})
-endif (UHD_FOUND)
+# Link with UHD (& boost)
+if(AFF3CT_LINK_UHD)
+    target_compile_definitions(dvbs2_optique_common PUBLIC 
+                               $<BUILD_INTERFACE:AFF3CT_RADIO_USRP>
+                               $<INSTALL_INTERFACE:AFF3CT_RADIO_USRP>)
 
-# Link with Boost
-find_package(Boost COMPONENTS system filesystem REQUIRED)
-if (Boost_FOUND)
-	target_link_libraries(dvbs2_optique_common PRIVATE ${Boost_FILESYSTEM_LIBRARY}
-	                                                   ${Boost_SYSTEM_LIBRARY})
-endif (Boost_FOUND)
+    target_compile_definitions(dvbs2_optique_common PUBLIC 
+                               $<BUILD_INTERFACE:AFF3CT_RADIO_USRP>
+                               $<INSTALL_INTERFACE:AFF3CT_RADIO_USRP>)                               
+
+    # Link UHD
+    find_package (UHD)
+    if    (UHD_FOUND)
+        include_directories(${UHD_INCLUDE_DIRS})
+        target_link_libraries(dvbs2_optique_common PRIVATE ${UHD_LIBRARIES})
+    endif (UHD_FOUND)
+
+    # Link Boost
+    find_package(Boost COMPONENTS system filesystem REQUIRED)
+    if (Boost_FOUND)
+        target_link_libraries(dvbs2_optique_common PRIVATE ${Boost_FILESYSTEM_LIBRARY}
+                                                        ${Boost_SYSTEM_LIBRARY})
+    endif (Boost_FOUND)
+    message(STATUS "AFF3CT - UHD: on")
+else()
+    message(STATUS "AFF3CT - UHD: off")
+endif(AFF3CT_LINK_UHD)
+
