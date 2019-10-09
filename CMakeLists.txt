@@ -47,7 +47,7 @@ option(AFF3CT_COMPILE_STATIC_LIB ""                                             
 option(AFF3CT_COMPILE_SHARED_LIB ""                                                   OFF            )
 option(AFF3CT_LINK_GSL           ""                                                   OFF            )
 option(AFF3CT_LINK_MKL           ""                                                   OFF            )
-option(AFF3CT_LINK_UHD           "Link with the UHD library (used in the radio usrp)" OFF            )
+option(AFF3CT_LINK_UHD           "Link with the UHD library (used in the radio usrp)" ON             )
 set   (AFF3CT_PREC               "MULTI"                                              CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
 
 # Compile the AFF3CT library
