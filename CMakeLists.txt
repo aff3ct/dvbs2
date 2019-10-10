@@ -51,7 +51,7 @@ option(AFF3CT_COMPILE_STATIC_LIB ""                                             
 option(AFF3CT_COMPILE_SHARED_LIB ""                                                   OFF            )
 option(AFF3CT_LINK_GSL           ""                                                   OFF            )
 option(AFF3CT_LINK_MKL           ""                                                   OFF            )
-option(AFF3CT_LINK_UHD           "Link with the UHD library (used in the radio usrp)" ON             )
+option(DVBS2O_LINK_UHD           "Link with the UHD library (used in the radio usrp)" ON             )
 set   (AFF3CT_PREC               "MULTI"                                              CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
 
 # Compile the AFF3CT library
@@ -82,7 +82,7 @@ if (OpenMP_FOUND)
 endif(OpenMP_FOUND)
 
 # Link with UHD (& boost)
-if(AFF3CT_LINK_UHD)
+if(DVBS2O_LINK_UHD)
     target_compile_definitions(dvbs2_optique_common PUBLIC 
                                $<BUILD_INTERFACE:AFF3CT_RADIO_USRP>
                                $<INSTALL_INTERFACE:AFF3CT_RADIO_USRP>)
@@ -95,13 +95,15 @@ if(AFF3CT_LINK_UHD)
     endif (UHD_FOUND)
 
     # Link Boost
-    find_package(Boost COMPONENTS system filesystem REQUIRED)
+    find_package(Boost QUIET COMPONENTS system filesystem REQUIRED)
     if (Boost_FOUND)
         target_link_libraries(dvbs2_optique_common PRIVATE ${Boost_FILESYSTEM_LIBRARY}
-                                                        ${Boost_SYSTEM_LIBRARY})
+                                                           ${Boost_SYSTEM_LIBRARY})
+    else()
+        message(SEND_ERROR "Unable to find Boost libraries.")
     endif (Boost_FOUND)
-    message(STATUS "AFF3CT - UHD: on")
+    message(STATUS "DVBS2O - UHD: on")
 else()
-    message(STATUS "AFF3CT - UHD: off")
-endif(AFF3CT_LINK_UHD)
+    message(STATUS "DVBS2O - UHD: off")
+endif(DVBS2O_LINK_UHD)
 

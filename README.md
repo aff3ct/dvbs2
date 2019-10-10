@@ -53,7 +53,7 @@ OMP_NUM_THREADS=8 ./bin/dvbs2_optique_tx_rx
 # UHD
 Info at [https://kb.ettus.com/USRP_N300/N310/N320/N321_Getting_Started_Guide] for installation.
 
-If no radio is needed and you don't want to link UHD library, add the followin cmake option: `-DAFF3CT_LINK_UHD=OFF`.
+If no radio is needed and you don't want to link UHD library, add the following cmake option: `-DDVBS2O_LINK_UHD=OFF`.
 
 Add the following in `~/.bashrc` or `/etc/profile`:
 ```bash
