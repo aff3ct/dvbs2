@@ -52,6 +52,7 @@ option(AFF3CT_COMPILE_SHARED_LIB ""                                             
 option(AFF3CT_LINK_GSL           ""                                                   OFF            )
 option(AFF3CT_LINK_MKL           ""                                                   OFF            )
 option(DVBS2O_LINK_UHD           "Link with the UHD library (used in the radio usrp)" ON             )
+option(DVBS2O_LINK_OPENMP        "Link with the OPENMP library                      " ON             )
 set   (AFF3CT_PREC               "MULTI"                                              CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
 
 # Compile the AFF3CT library
@@ -67,19 +68,24 @@ target_link_libraries(dvbs2_optique_bridge   PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_usrp     PRIVATE aff3ct-static-lib)
 
 # Link with OpenMP
-find_package(OpenMP)
-if (OpenMP_FOUND)
-    # good way to link with OpenMP in the CMake3 style
-    if(${CMAKE_VERSION} VERSION_EQUAL "3.9" OR ${CMAKE_VERSION} VERSION_GREATER "3.9")
-        target_link_libraries(dvbs2_optique_tx_rx    PRIVATE OpenMP::OpenMP_CXX)
-        target_link_libraries(dvbs2_optique_tx_rx_bb PRIVATE OpenMP::OpenMP_CXX)
-    # old an ugly way to link with OpenMP, may not work with all the comiler
-    else()
-        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    endif()
-endif(OpenMP_FOUND)
+if(DVBS2O_LINK_OPENMP)
+    find_package(OpenMP)
+    if (OpenMP_FOUND)
+        # good way to link with OpenMP in the CMake3 style
+        if(${CMAKE_VERSION} VERSION_EQUAL "3.9" OR ${CMAKE_VERSION} VERSION_GREATER "3.9")
+            target_link_libraries(dvbs2_optique_tx_rx    PRIVATE OpenMP::OpenMP_CXX)
+            target_link_libraries(dvbs2_optique_tx_rx_bb PRIVATE OpenMP::OpenMP_CXX)
+        # old an ugly way to link with OpenMP, may not work with all the comiler
+        else()
+            set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+            set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+        endif()
+    endif(OpenMP_FOUND)
+message(STATUS "DVBS2O - OPENMP: on")
+else()
+    message(STATUS "DVBS2O - OPENMP: off")
+endif(DVBS2O_LINK_OPENMP)
 
 # Link with UHD (& boost)
 if(DVBS2O_LINK_UHD)
