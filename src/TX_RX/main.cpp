@@ -1,9 +1,6 @@
 #include <vector>
 #include <numeric>
 #include <iostream>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include <aff3ct.hpp>
 
@@ -22,43 +19,17 @@
 
 using namespace aff3ct;
 
-#ifndef _OPENMP
-inline int omp_get_thread_num () { return 0; }
-inline int omp_get_num_threads() { return 1; }
-#endif
-
-namespace aff3ct { namespace module {
-using Monitor_BFER_reduction = Monitor_reduction_M<Monitor_BFER<>>;
-} }
-
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
 	const auto params = Params_DVBS2O(argc, argv);
 
-	// declare shared modules and tools
-	std::vector<std::unique_ptr<module::Monitor_BFER<>>>        monitors;
-	            std::unique_ptr<module::Monitor_BFER_reduction> monitor_red;
 	std::vector<std::unique_ptr<tools ::Reporter>>              reporters;
 	            std::unique_ptr<tools ::Terminal>               terminal;
 	                            tools ::Sigma<>                 noise;
 
 	// the list of the allocated modules for the simulation
-	std::vector<std::vector<const module::Module*>> modules;
-
-#pragma omp parallel
-{
-	// get the thread id from OpenMP
-	const int tid = omp_get_thread_num();
-
-#pragma omp single
-{
-	// get the number of available threads from OpenMP
-	const size_t n_threads = (size_t)omp_get_num_threads();
-	monitors.resize(n_threads);
-	modules .resize(n_threads);
-}
-// end of #pragma omp single
+	std::vector<const module::Module*> modules;
 
 	// construct tools
 	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
@@ -67,9 +38,9 @@ int main(int argc, char** argv)
 
 	// initialize the tools
 	itl_core->init();
-	std::cout << "TID = " << tid << std::endl;
+
 	// construct modules
-	std::unique_ptr<module::Source<>                           > source       (Factory_DVBS2O::build_source                   <>(params, tid*2+0        ));
+	std::unique_ptr<module::Source<>                           > source       (Factory_DVBS2O::build_source                   <>(params, 0              ));
 	std::unique_ptr<module::Scrambler<>                        > bb_scrambler (Factory_DVBS2O::build_bb_scrambler             <>(params                 ));
 	std::unique_ptr<module::Encoder<>                          > BCH_encoder  (Factory_DVBS2O::build_bch_encoder              <>(params, poly_gen       ));
 	std::unique_ptr<module::Decoder_HIHO<>                     > BCH_decoder  (Factory_DVBS2O::build_bch_decoder              <>(params, poly_gen       ));
@@ -80,7 +51,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Filter_UPRRC_ccr_naive<>           > shaping_flt  (Factory_DVBS2O::build_uprrc_filter             <>(params)                 );
 	std::unique_ptr<module::Multiplier_sine_ccc_naive<>        > freq_shift   (Factory_DVBS2O::build_freq_shift               <>(params)                 );
 	std::unique_ptr<module::Filter_Farrow_ccr_naive<>          > chn_delay    (Factory_DVBS2O::build_channel_delay            <>(params)                 );
-	std::unique_ptr<module::Channel<>                          > channel      (Factory_DVBS2O::build_channel                  <>(params, tid*2+1        ));
+	std::unique_ptr<module::Channel<>                          > channel      (Factory_DVBS2O::build_channel                  <>(params, 1              ));
 	std::unique_ptr<module::Synchronizer_frame_cc_naive<>      > sync_frame   (Factory_DVBS2O::build_synchronizer_frame       <>(params)                 );
 	std::unique_ptr<module::Synchronizer_LR_cc_naive<>         > sync_lr      (Factory_DVBS2O::build_synchronizer_lr          <>(params                 ));
 	std::unique_ptr<module::Synchronizer_fine_pf_cc_DVBS2O<>   > sync_fine_pf (Factory_DVBS2O::build_synchronizer_fine_pf     <>(params                 ));
@@ -91,59 +62,45 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Scrambler<float>                   > pl_scrambler (Factory_DVBS2O::build_pl_scrambler             <>(params                 ));
 	std::unique_ptr<module::Filter_unit_delay<>                > delay        (Factory_DVBS2O::build_unit_delay               <>(params                 ));	
 	std::unique_ptr<module::Synchronizer_step_mf_cc<>          > sync_step_mf (Factory_DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(), matched_flt.get(), sync_gardner.get()));	
-	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (Factory_DVBS2O::build_monitor                     <>(params                 ));
+	std::unique_ptr<module::Monitor_BFER<>                     > monitor       (Factory_DVBS2O::build_monitor <>(params                                 ));
 
-
-
-
-	auto& monitor = monitors[tid];
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
 
-	LDPC_encoder->set_short_name("LDPC Encoder");
-	LDPC_decoder->set_short_name("LDPC Decoder");
-	BCH_encoder ->set_short_name("BCH Encoder" );
-	BCH_decoder ->set_short_name("BCH Decoder" );
-	sync_lr     ->set_short_name("L&R F Syn");
-	sync_fine_pf->set_short_name("Fine P/F Syn");
-	sync_gardner->set_short_name("Gardner Syn");
-	sync_frame->set_short_name("Frame Syn");
-	matched_flt ->set_short_name("Matched Flt");
-	shaping_flt ->set_short_name("Shaping Flt");
-
-// wait until all the 'monitors' have been allocated in order to allocate the 'monitor_red' object
-#pragma omp barrier
-
-#pragma omp single nowait
-{
-	// allocate a common monitor module to reduce all the monitors
-	monitor_red = std::unique_ptr<module::Monitor_BFER_reduction>(new module::Monitor_BFER_reduction(monitors));
-	monitor_red->set_reduce_frequency(std::chrono::milliseconds(500));
-	monitor_red->check_reducible();
+	//LDPC_encoder->set_short_name("LDPC Encoder");
+	//LDPC_decoder->set_short_name("LDPC Decoder");
+	//BCH_encoder ->set_short_name("BCH Encoder" );
+	//BCH_decoder ->set_short_name("BCH Decoder" );
+	//sync_lr     ->set_short_name("L&R F Syn");
+	//sync_fine_pf->set_short_name("Fine P/F Syn");
+	//sync_gardner->set_short_name("Gardner Syn");
+	//sync_frame->set_short_name("Frame Syn");
+	//matched_flt ->set_short_name("Matched Flt");
+	//shaping_flt ->set_short_name("Shaping Flt");
 
 	// allocate reporters to display results in the terminal
 	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>(noise       ))); // report the noise values (Es/N0 and Eb/N0)
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor_red))); // report the bit/frame error rates
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor_red))); // report the simulation throughputs
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor))); // report the bit/frame error rates
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor))); // report the simulation throughputs
 
 	// allocate a terminal that will display the collected data from the reporters
 	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
 
 	// display the legend in the terminal
 	terminal->legend();
-}
+
 // end of #pragma omp single
 
 	// fulfill the list of modules
-	modules[tid] = { bb_scrambler.get(), BCH_encoder  .get(), BCH_decoder .get(), LDPC_encoder.get(),
-	                 LDPC_decoder.get(), itl_tx       .get(), itl_rx      .get(), modem       .get(),
-	                 framer      .get(), pl_scrambler .get(), source      .get(), monitor     .get(),
-	                 channel     .get(), freq_shift   .get(), sync_lr     .get(), sync_fine_pf.get(), 
-	                 matched_flt .get(), shaping_flt  .get(), sync_gardner.get(), chn_delay   .get(),
-					 sync_frame.get()  , sync_coarse_f.get(), delay       .get(), sync_step_mf.get()};
+	modules = { bb_scrambler.get(), BCH_encoder  .get(), BCH_decoder .get(), LDPC_encoder.get(),
+	            LDPC_decoder.get(), itl_tx       .get(), itl_rx      .get(), modem       .get(),
+	            framer      .get(), pl_scrambler .get(), source      .get(), monitor     .get(),
+	            channel     .get(), freq_shift   .get(), sync_lr     .get(), sync_fine_pf.get(), 
+	            matched_flt .get(), shaping_flt  .get(), sync_gardner.get(), chn_delay   .get(),
+			    sync_frame.get()  , sync_coarse_f.get(), delay       .get(), sync_step_mf.get()};
 	
 	// configuration of the module tasks
-	for (auto& m : modules[tid])
+	for (auto& m : modules)
 		for (auto& ta : m->tasks)
 		{
 			ta->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
@@ -217,12 +174,7 @@ int main(int argc, char** argv)
 		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.BPS);
 		const auto sigma = tools::esn0_to_sigma(esn0);
 
-#pragma omp single
-{
 		noise.set_noise(sigma, ebn0, esn0);
-}
-
-// end of #pragma omp single
 
 		// update the sigma of the modem and the channel
 		LDPC_cdc->set_noise(noise);
@@ -230,7 +182,7 @@ int main(int argc, char** argv)
 		channel ->set_noise(noise);
 
 		shaping_flt->reset();
-		
+
 		chn_delay->reset();
 		freq_shift->reset_time();
 		
@@ -244,6 +196,8 @@ int main(int argc, char** argv)
 				
 		delay->reset();
 
+		std::cerr << "Phase 1 ...\r";
+		std::cerr.flush();
 		// tasks execution
 		for (int m = 0; m < 150; m++)
 		{
@@ -267,19 +221,11 @@ int main(int argc, char** argv)
 			sync_coarse_f->set_curr_idx(delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			#pragma omp single
-			{
-				std::cerr << "\r\e[K" << std::flush;
-				std::cerr.precision(3);
-				std::cerr << std::scientific << "Phase 1 :" << m << " |  150" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << std::abs(sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq()-params.MAX_FREQ_SHIFT);
-				std::cerr.flush();
-			}
 		}
 
-		// end of #pragma omp single
-
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
-		
+		std::cerr << "Phase 2 ...\r";
+		std::cerr.flush();
 		for (int m = 0; m < 150; m++)
 		{
 			(*source      )[src::tsk::generate  ].exec();
@@ -302,13 +248,6 @@ int main(int argc, char** argv)
 			sync_coarse_f->set_curr_idx(delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			#pragma omp single
-			{
-				std::cerr << "\r\e[K" << std::flush;
-				std::cerr.precision(3);
-				std::cerr << std::scientific << "Phase 2 :" << m << " |  150" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << std::abs(sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq()-params.MAX_FREQ_SHIFT);
-				std::cerr.flush();
-			}
 		}
 		
 
@@ -318,7 +257,8 @@ int main(int argc, char** argv)
 		(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
 
 		sync_coarse_f->disable_update();
-		
+		std::cerr << "Phase 3 ...\r";
+		std::cerr.flush();
 		for (int m = 0; m < 200; m++)
 		{
 			(*source       )[src::tsk::generate    ].exec();
@@ -339,44 +279,15 @@ int main(int argc, char** argv)
 			(*sync_frame   )[syn::tsk::synchronize ].exec();
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
-			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
-			#pragma omp single
-			{
-				std::cerr << "\r\e[K" << std::flush;
-				std::cerr.precision(3);
-				std::cerr <<  "Phase 3 :" << m << " |  200" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total error : " << std::abs(sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq()-params.MAX_FREQ_SHIFT);
-				std::cerr.flush();
-			}		
-		}
-		
-		if (params.stats)
-		{
-			std::vector<std::vector<const module::Module*>> modules_stats(modules[0].size());
-			for (size_t m = 0; m < modules[0].size(); m++)
-				for (size_t t = 0; t < modules.size(); t++)
-					modules_stats[m].push_back(modules[t][m]);
-
-			for (size_t m = 0; m < modules[0].size(); m++)
-				for (size_t t = 0; t < modules.size(); t++)
-					for (auto &ta : modules_stats[m][t]->tasks)
-						ta->reset_stats();
+			(*sync_fine_pf )[syn::tsk::synchronize ].exec();	
 		}
 
-		(*delay        )[flt::tsk::filter      ].exec();
-		(*monitor     )[mnt::tsk::check_errors].exec();
-		monitor_red->reset_all();
-
-		#pragma omp single
-		{
-		// display the performance (BER and FER) in real time (in a separate thread)
-			std::cerr << "\r\e[K" << std::flush;
-			terminal->start_temp_report();
-		}
+		monitor->reset();
 
 		// tasks execution
+		int n_frames = 0;
 		while (monitor->get_n_fe() < 100)//!monitor_red->is_done_all() && !terminal->is_interrupt()
 		{
-
 			(*source       )[src::tsk::generate    ].exec();
 			(*bb_scrambler )[scr::tsk::scramble    ].exec();
 			(*BCH_encoder  )[enc::tsk::encode      ].exec();
@@ -404,56 +315,21 @@ int main(int argc, char** argv)
 			(*bb_scrambler )[scr::tsk::descramble  ].exec();
 			(*delay        )[flt::tsk::filter      ].exec();
 			(*monitor      )[mnt::tsk::check_errors].exec();
+
+			if (n_frames < 1)
+				monitor->reset();	
+
+			n_frames++;
+			terminal->temp_report();
 		}
 
-// need to wait all the threads here before to reset the 'monitors' and 'terminal' states
-#pragma omp barrier
+	// display the performance (BER and FER) in the terminal
+	terminal->final_report();
 
-#pragma omp single
-{
-		// final reduction
-		const bool fully = true, final = true;
-		monitor_red->is_done_all(fully, final);
-
-		// display the performance (BER and FER) in the terminal
-		terminal->final_report();
-
-		// reset the monitors and the terminal for the next SNR
-		monitor_red->reset_all();
-		terminal->reset();
-
-		// display the statistics of the tasks (if enabled)
-		if (params.stats)
-		{
-			std::vector<std::vector<const module::Module*>> modules_stats(modules[0].size());
-			for (size_t m = 0; m < modules[0].size(); m++)
-				for (size_t t = 0; t < modules.size(); t++)
-					modules_stats[m].push_back(modules[t][m]);
-
-			std::cout << "#" << std::endl;
-			const auto ordered = true;
-			tools::Stats::show(modules_stats, ordered);
-
-			for (size_t m = 0; m < modules[0].size(); m++)
-				for (size_t t = 0; t < modules.size(); t++)
-					for (auto &ta : modules_stats[m][t]->tasks)
-						ta->reset_stats();
-
-			if (ebn0 + params.ebn0_step < params.ebn0_max)
-			{
-				std::cout << "#" << std::endl;
-				terminal->legend();
-			}
-		}
-}
-// end of #pragma omp single
-
-		// if user pressed Ctrl+c twice, exit the SNRs loop
-		if (terminal->is_over()) break;
+	// reset the monitors and the terminal for the next SNR
+	monitor->reset();
+	terminal->reset();
 	}
-}
-// end of #pragma omp parallel
-
 	std::cout << "#" << std::endl;
 	std::cout << "# End of the simulation" << std::endl;
 
