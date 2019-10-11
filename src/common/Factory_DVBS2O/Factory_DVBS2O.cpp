@@ -214,6 +214,13 @@ module::Synchronizer_step_mf_cc<R>* Factory_DVBS2O
 	return new module::Synchronizer_step_mf_cc<R>(sync_coarse_f, matched_filter, sync_gardner);
 }
 
+template <typename R>
+module::Radio<R>* Factory_DVBS2O
+::build_radio (const Params_DVBS2O& params)
+{
+	return params.p_rad.build();
+}
+
 template aff3ct::module::Source<B>*                            Factory_DVBS2O::build_source<B>               (const Params_DVBS2O& params, const int seed);
 template aff3ct::module::Encoder_BCH<B>*                       Factory_DVBS2O::build_bch_encoder<B>          (const Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
 template aff3ct::module::Decoder_BCH_std<B>*                   Factory_DVBS2O::build_bch_decoder<B>          (const Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
@@ -242,3 +249,4 @@ template aff3ct::module::Synchronizer_step_mf_cc<R>*           Factory_DVBS2O::b
                                                   aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R> *sync_coarse_f, 
                                                   aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
                                                   aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner);
+template aff3ct::module::Radio<double>*                        Factory_DVBS2O::build_radio<double>           (const Params_DVBS2O& params);

@@ -19,6 +19,7 @@
 #include "../Synchronizer/Synchronizer_coarse_fr_cc_DVBS2O.hpp"
 #include "../Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "../Estimator/Estimator.hpp"
+#include "../Radio/Radio.hpp"
 
 struct Factory_DVBS2O {
 	template <typename B = int>
@@ -100,6 +101,8 @@ struct Factory_DVBS2O {
 	template <typename B = int>
 	static module::Monitor_BFER<B>* build_monitor(const Params_DVBS2O& params);
 
+	template <typename R = double>
+	static module::Radio<R>* build_radio (const Params_DVBS2O& params);	
 };
 
 #endif /* FACTORY_DVBS2O_HPP */
