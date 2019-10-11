@@ -81,16 +81,20 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Multiplier_sine_ccc_naive<>        > freq_shift   (Factory_DVBS2O::build_freq_shift               <>(params)                 );
 	std::unique_ptr<module::Filter_Farrow_ccr_naive<>          > chn_delay    (Factory_DVBS2O::build_channel_delay            <>(params)                 );
 	std::unique_ptr<module::Channel<>                          > channel      (Factory_DVBS2O::build_channel                  <>(params, tid*2+1        ));
-	std::unique_ptr<module::Filter_RRC_ccr_naive<>             > matched_flt  (Factory_DVBS2O::build_matched_filter           <>(params)                 );
-	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<>    > sync_gardner (Factory_DVBS2O::build_synchronizer_gardner     <>(params)                 );
 	std::unique_ptr<module::Synchronizer_frame_cc_naive<>      > sync_frame   (Factory_DVBS2O::build_synchronizer_frame       <>(params)                 );
 	std::unique_ptr<module::Synchronizer_LR_cc_naive<>         > sync_lr      (Factory_DVBS2O::build_synchronizer_lr          <>(params                 ));
 	std::unique_ptr<module::Synchronizer_fine_pf_cc_DVBS2O<>   > sync_fine_pf (Factory_DVBS2O::build_synchronizer_fine_pf     <>(params                 ));
 	std::unique_ptr<module::Synchronizer_coarse_fr_cc_DVBS2O<> > sync_coarse_f(Factory_DVBS2O::build_synchronizer_coarse_freq <>(params                 ));
+	std::unique_ptr<module::Filter_RRC_ccr_naive<>             > matched_flt  (Factory_DVBS2O::build_matched_filter           <>(params                 ));
+	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<>    > sync_gardner (Factory_DVBS2O::build_synchronizer_gardner     <>(params                 ));
 	std::unique_ptr<module::Framer<>                           > framer       (Factory_DVBS2O::build_framer                   <>(params                 ));
 	std::unique_ptr<module::Scrambler<float>                   > pl_scrambler (Factory_DVBS2O::build_pl_scrambler             <>(params                 ));
 	std::unique_ptr<module::Filter_unit_delay<>                > delay        (Factory_DVBS2O::build_unit_delay               <>(params                 ));	
+	std::unique_ptr<module::Synchronizer_step_mf_cc<>          > sync_step_mf (Factory_DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(), matched_flt.get(), sync_gardner.get()));	
 	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (Factory_DVBS2O::build_monitor                     <>(params                 ));
+
+
+
 
 	auto& monitor = monitors[tid];
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
@@ -135,8 +139,8 @@ int main(int argc, char** argv)
 	                 LDPC_decoder.get(), itl_tx       .get(), itl_rx      .get(), modem       .get(),
 	                 framer      .get(), pl_scrambler .get(), source      .get(), monitor     .get(),
 	                 channel     .get(), freq_shift   .get(), sync_lr     .get(), sync_fine_pf.get(), 
-	                 matched_flt .get(), shaping_flt  .get(), sync_gardner.get(), chn_delay.get(),
-					 sync_frame.get()  , sync_coarse_f.get(), delay.get()};
+	                 matched_flt .get(), shaping_flt  .get(), sync_gardner.get(), chn_delay   .get(),
+					 sync_frame.get()  , sync_coarse_f.get(), delay       .get(), sync_step_mf.get()};
 	
 	// configuration of the module tasks
 	for (auto& m : modules[tid])
@@ -183,11 +187,8 @@ int main(int argc, char** argv)
 	(*channel     )[chn::sck::add_noise   ::X_N ].bind((*freq_shift)  [mlt::sck::imultiply   ::Z_N ]);
 	
 	// RX
-	//(*sync_coarse_f)[mlt::sck::imultiply   ::X_N ].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
-	//(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[mlt::sck::imultiply   ::Z_N ]);
-	//(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
-	//(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
-
+	(*sync_step_mf)[syn::sck::synchronize ::X_N1 ].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
+	(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_step_mf )[syn::sck::synchronize ::Y_N2]);
 	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*sync_frame  )[syn::sck::synchronize ::Y_N2]);
 	(*sync_lr     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
 	(*sync_fine_pf)[syn::sck::synchronize ::X_N1].bind((*sync_lr     )[syn::sck::synchronize ::Y_N2]);
@@ -243,10 +244,6 @@ int main(int argc, char** argv)
 				
 		delay->reset();
 
-
-		std::vector<float> frame_synch_in(sync_frame->get_N_in(),0.0f);
-		(*sync_frame  )[syn::sck::synchronize ::X_N1].bind(frame_synch_in);
-		std::complex<float>* cplx_fs_in = reinterpret_cast<std::complex<float>*>(frame_synch_in.data());
 		// tasks execution
 		for (int m = 0; m < 150; m++)
 		{
@@ -262,44 +259,19 @@ int main(int argc, char** argv)
 			(*chn_delay   )[flt::tsk::filter    ].exec();
 			(*freq_shift  )[mlt::tsk::imultiply ].exec();
 			(*channel     )[chn::tsk::add_noise ].exec();
-
-			std::vector<float> channel_out(channel->get_N(),0.0f);
-			std::copy((float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()), 
-			          (float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()) + channel->get_N(),
-			          channel_out.data());
-
-			int frame_sym_sz = sync_frame->get_N_in()/2;
-			int gardner_delay = sync_gardner->get_delay()% frame_sym_sz;
-			for (int spl_idx = 0; spl_idx < channel->get_N()/2; spl_idx++)
-			{
-				std::complex<float> sync_coarse_f_in(channel_out[spl_idx*2], channel_out[spl_idx*2 + 1]);
-				std::complex<float> sync_coarse_f_out(0.0f, 0.0f);
-				std::complex<float> matched_filter_out(0.0f, 0.0f);
-				int is_strobe = sync_gardner->get_is_strobe();
-
-				sync_coarse_f->step (&sync_coarse_f_in,  &sync_coarse_f_out);
-				matched_flt  ->step (&sync_coarse_f_out, &matched_filter_out);
-				sync_gardner ->step (&matched_filter_out);
-				if (is_strobe == 1)
-					sync_coarse_f->update_phase(sync_gardner->get_last_symbol());
-			}
-
-			for (auto sym_idx = 0 ; sym_idx < frame_sym_sz ; sym_idx++)
-				sync_gardner->pop(&cplx_fs_in[sym_idx]);
-
-
+			(*sync_step_mf)[syn::tsk::synchronize ].exec();
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
-			sync_coarse_f->enable_update();
 			
-			int delay = sync_frame->get_delay() + gardner_delay;
-			delay = delay % frame_sym_sz;
+			sync_coarse_f->enable_update();
+			int delay = (sync_frame->get_delay() + sync_step_mf->get_delay()) %  params.PL_FRAME_SIZE;
 			sync_coarse_f->set_curr_idx(delay);
+
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			#pragma omp single
 			{
 				std::cerr << "\r\e[K" << std::flush;
 				std::cerr.precision(3);
-				std::cerr << std::scientific << "Phase 1 :" << m << " |  150" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq();
+				std::cerr << std::scientific << "Phase 1 :" << m << " |  150" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << std::abs(sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq()-params.MAX_FREQ_SHIFT);
 				std::cerr.flush();
 			}
 		}
@@ -322,49 +294,25 @@ int main(int argc, char** argv)
 			(*chn_delay   )[flt::tsk::filter    ].exec();
 			(*freq_shift  )[mlt::tsk::imultiply ].exec();
 			(*channel     )[chn::tsk::add_noise ].exec();
-
-			std::vector<float> channel_out(channel->get_N(),0.0f);
-			std::copy((float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()), 
-			          (float*)((*channel)[chn::sck::add_noise::Y_N ].get_dataptr()) + channel->get_N(),
-			          channel_out.data());
-					  
-			int frame_sym_sz = sync_frame->get_N_in()/2;
-			int gardner_delay = sync_gardner->get_delay()% frame_sym_sz;
-			for (int spl_idx = 0; spl_idx < channel->get_N()/2; spl_idx++)
-			{
-				std::complex<float> sync_coarse_f_in(channel_out[spl_idx*2], channel_out[spl_idx*2 + 1]);
-				std::complex<float> sync_coarse_f_out(0.0f, 0.0f);
-				std::complex<float> matched_filter_out(0.0f, 0.0f);
-				int is_strobe = sync_gardner->get_is_strobe();
-
-				sync_coarse_f->step (&sync_coarse_f_in,  &sync_coarse_f_out);
-				matched_flt  ->step (&sync_coarse_f_out, &matched_filter_out);
-				sync_gardner ->step (&matched_filter_out);
-				if (is_strobe == 1)
-					sync_coarse_f->update_phase(sync_gardner->get_last_symbol());
-			}
-
-			for (auto sym_idx = 0 ; sym_idx < frame_sym_sz ; sym_idx++)
-				sync_gardner->pop(&cplx_fs_in[sym_idx]);
-
-
+			(*sync_step_mf)[syn::tsk::synchronize ].exec();
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
 			
-			int delay = sync_frame->get_delay() + gardner_delay;
-			delay = delay % frame_sym_sz;
+			sync_coarse_f->enable_update();
+			int delay = (sync_frame->get_delay() + sync_step_mf->get_delay()) %  params.PL_FRAME_SIZE;
 			sync_coarse_f->set_curr_idx(delay);
+
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			#pragma omp single
 			{
 				std::cerr << "\r\e[K" << std::flush;
 				std::cerr.precision(3);
-				std::cerr << sync_lr->get_est_reduced_freq() << "Phase 2 :" << m << " |  150" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq();
+				std::cerr << std::scientific << "Phase 2 :" << m << " |  150" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << std::abs(sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq()-params.MAX_FREQ_SHIFT);
 				std::cerr.flush();
 			}
 		}
 		
 
-		(*sync_coarse_f)[syn::sck::synchronize ::X_N1 ].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
+		(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
 		(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2 ]);
 		(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
 		(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
@@ -396,7 +344,7 @@ int main(int argc, char** argv)
 			{
 				std::cerr << "\r\e[K" << std::flush;
 				std::cerr.precision(3);
-				std::cerr << sync_lr->get_est_reduced_freq() <<  "Phase 3 :" << m << " |  200" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq();
+				std::cerr <<  "Phase 3 :" << m << " |  200" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total error : " << std::abs(sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq()-params.MAX_FREQ_SHIFT);
 				std::cerr.flush();
 			}		
 		}
@@ -426,7 +374,7 @@ int main(int argc, char** argv)
 		}
 
 		// tasks execution
-		while (!monitor_red->is_done_all() && !terminal->is_interrupt())
+		while (monitor->get_n_fe() < 100)//!monitor_red->is_done_all() && !terminal->is_interrupt()
 		{
 
 			(*source       )[src::tsk::generate    ].exec();

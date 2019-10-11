@@ -205,6 +205,14 @@ module::Filter_unit_delay<B>* Factory_DVBS2O
 	return new module::Filter_unit_delay<B>(params.K_BCH);
 }
 
+template <typename R>
+module::Synchronizer_step_mf_cc<R>* Factory_DVBS2O
+::build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R> *sync_coarse_f,
+	                            aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
+	                            aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner)
+{
+	return new module::Synchronizer_step_mf_cc<R>(sync_coarse_f, matched_filter, sync_gardner);
+}
 
 template aff3ct::module::Source<B>*                            Factory_DVBS2O::build_source<B>               (const Params_DVBS2O& params, const int seed);
 template aff3ct::module::Encoder_BCH<B>*                       Factory_DVBS2O::build_bch_encoder<B>          (const Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
@@ -213,20 +221,24 @@ template aff3ct::module::Codec_LDPC<B,Q>*                      Factory_DVBS2O::b
 template aff3ct::module::Interleaver<int32_t,uint32_t>*        Factory_DVBS2O::build_itl<int32_t,uint32_t>   (const Params_DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
 template aff3ct::module::Interleaver<float,uint32_t>*          Factory_DVBS2O::build_itl<float,uint32_t>     (const Params_DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
 template aff3ct::module::Modem_generic<B,R,Q,tools::max_star>* Factory_DVBS2O::build_modem                   (const Params_DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl);
-template aff3ct::module::Framer<R>*                            Factory_DVBS2O::build_framer                  (const Params_DVBS2O& params);
-template aff3ct::module::Scrambler_BB<B>*                      Factory_DVBS2O::build_bb_scrambler<B>         (const Params_DVBS2O& params);
-template aff3ct::module::Scrambler_PL<R>*                      Factory_DVBS2O::build_pl_scrambler<R>         (const Params_DVBS2O& params);
-template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            Factory_DVBS2O::build_uprrc_filter<R>         (const Params_DVBS2O& params);
-template aff3ct::module::Filter_Farrow_ccr_naive<R>*           Factory_DVBS2O::build_channel_delay<R>        (const Params_DVBS2O& params);
-template aff3ct::module::Filter_RRC_ccr_naive<R>*              Factory_DVBS2O::build_matched_filter<R>       (const Params_DVBS2O& params);
-template aff3ct::module::Estimator<R>*                         Factory_DVBS2O::build_estimator<R>            (const Params_DVBS2O& params);
-template aff3ct::module::Monitor_BFER<B>*                      Factory_DVBS2O::build_monitor<B>              (const Params_DVBS2O& params);
-template aff3ct::module::Channel<R>*                           Factory_DVBS2O::build_channel<R>              (const Params_DVBS2O& params, const int seed);
-template aff3ct::module::Multiplier_sine_ccc_naive<R>*         Factory_DVBS2O::build_freq_shift<R>           (const Params_DVBS2O& params);
-template aff3ct::module::Synchronizer_LR_cc_naive<R>*          Factory_DVBS2O::build_synchronizer_lr<R>      (const Params_DVBS2O& params);
-template aff3ct::module::Synchronizer_fine_pf_cc_DVBS2O<R>*    Factory_DVBS2O::build_synchronizer_fine_pf<R> (const Params_DVBS2O& params);
-template aff3ct::module::Synchronizer_Gardner_cc_naive<R>*     Factory_DVBS2O::build_synchronizer_gardner<R> (const Params_DVBS2O& params);
-template aff3ct::module::Synchronizer_frame_cc_naive<R>*       Factory_DVBS2O::build_synchronizer_frame<R>   (const Params_DVBS2O& params);
-template aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R>*  Factory_DVBS2O::build_synchronizer_coarse_freq<R>   (const Params_DVBS2O& params);
-template aff3ct::module::Filter_unit_delay<B>*                 Factory_DVBS2O::build_unit_delay<B>           (const Params_DVBS2O& params);
-template aff3ct::tools ::Interleaver_core<uint32_t>*           Factory_DVBS2O::build_itl_core<uint32_t>      (const Params_DVBS2O& params);
+template aff3ct::module::Framer<R>*                            Factory_DVBS2O::build_framer                     (const Params_DVBS2O& params);
+template aff3ct::module::Scrambler_BB<B>*                      Factory_DVBS2O::build_bb_scrambler<B>            (const Params_DVBS2O& params);
+template aff3ct::module::Scrambler_PL<R>*                      Factory_DVBS2O::build_pl_scrambler<R>            (const Params_DVBS2O& params);
+template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            Factory_DVBS2O::build_uprrc_filter<R>            (const Params_DVBS2O& params);
+template aff3ct::module::Filter_Farrow_ccr_naive<R>*           Factory_DVBS2O::build_channel_delay<R>           (const Params_DVBS2O& params);
+template aff3ct::module::Filter_RRC_ccr_naive<R>*              Factory_DVBS2O::build_matched_filter<R>          (const Params_DVBS2O& params);
+template aff3ct::module::Estimator<R>*                         Factory_DVBS2O::build_estimator<R>               (const Params_DVBS2O& params);
+template aff3ct::module::Monitor_BFER<B>*                      Factory_DVBS2O::build_monitor<B>                 (const Params_DVBS2O& params);
+template aff3ct::module::Channel<R>*                           Factory_DVBS2O::build_channel<R>                 (const Params_DVBS2O& params, const int seed);
+template aff3ct::module::Multiplier_sine_ccc_naive<R>*         Factory_DVBS2O::build_freq_shift<R>              (const Params_DVBS2O& params);
+template aff3ct::module::Synchronizer_LR_cc_naive<R>*          Factory_DVBS2O::build_synchronizer_lr<R>         (const Params_DVBS2O& params);
+template aff3ct::module::Synchronizer_fine_pf_cc_DVBS2O<R>*    Factory_DVBS2O::build_synchronizer_fine_pf<R>    (const Params_DVBS2O& params);
+template aff3ct::module::Synchronizer_Gardner_cc_naive<R>*     Factory_DVBS2O::build_synchronizer_gardner<R>    (const Params_DVBS2O& params);
+template aff3ct::module::Synchronizer_frame_cc_naive<R>*       Factory_DVBS2O::build_synchronizer_frame<R>      (const Params_DVBS2O& params);
+template aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R>*  Factory_DVBS2O::build_synchronizer_coarse_freq<R>(const Params_DVBS2O& params);
+template aff3ct::module::Filter_unit_delay<B>*                 Factory_DVBS2O::build_unit_delay<B>              (const Params_DVBS2O& params);
+template aff3ct::tools ::Interleaver_core<uint32_t>*           Factory_DVBS2O::build_itl_core<uint32_t>         (const Params_DVBS2O& params);
+template aff3ct::module::Synchronizer_step_mf_cc<R>*           Factory_DVBS2O::build_synchronizer_step_mf_cc<R>(
+                                                  aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R> *sync_coarse_f, 
+                                                  aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
+                                                  aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner);

@@ -244,7 +244,7 @@ template <typename R>
 int Synchronizer_Gardner_cc_naive<R>
 ::get_delay()
 {
-	return this->outbuf_cur_sz;
+	return this->N_out/20;//this->outbuf_cur_sz;
 }
 
 // ==================================================================================== explicit template instantiation

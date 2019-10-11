@@ -17,6 +17,7 @@
 #include "../Synchronizer/Synchronizer_Gardner_cc_naive.hpp"
 #include "../Synchronizer/Synchronizer_frame_cc_naive.hpp"
 #include "../Synchronizer/Synchronizer_coarse_fr_cc_DVBS2O.hpp"
+#include "../Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "../Estimator/Estimator.hpp"
 
 struct Factory_DVBS2O {
@@ -86,6 +87,12 @@ struct Factory_DVBS2O {
 
 	template <typename R = float>
 	static module::Synchronizer_coarse_fr_cc_DVBS2O<R>* build_synchronizer_coarse_freq (const Params_DVBS2O& params);	
+
+	template <typename R = float>
+	static module::Synchronizer_step_mf_cc<R>* build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R> *sync_coarse_f,
+	                                                                         aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
+	                                                                         aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner);
+
 
 	template <typename B = int>
 	static module::Filter_unit_delay<B>* build_unit_delay(const Params_DVBS2O& params);
