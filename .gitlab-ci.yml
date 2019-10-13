@@ -31,6 +31,7 @@ build-linux-gcc:
     - gcc
     - cmake
     - x86
+    - uhd
   artifacts:
     name: build-linux-gcc
     when: always
@@ -50,6 +51,7 @@ build-linux-clang:
     - clang
     - cmake
     - x86
+    - uhd
   artifacts:
     name: build-linux-clang
     when: always
@@ -76,6 +78,7 @@ build-linux-gcc-4.8:
   script:
     - export CXX="g++-4.8"
     - export CFLAGS="-Wall -funroll-loops -msse4.2"
+    - export CMAKE_OPT="-DDVBS2O_LINK_UHD=OFF"
     - export BUILD="build_linux_gcc-4.8"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
@@ -87,6 +90,7 @@ build-linux-icpc:
     - icpc
     - cmake
     - x86
+    - uhd
   artifacts:
     name: build-linux-icpc
     when: always
@@ -113,6 +117,7 @@ build-windows-gcc:
   script:
     - set "CFLAGS=-Wall -funroll-loops -mavx"
     - set "BUILD=build_windows_gcc"
+    - set "CMAKE_OPT=-DDVBS2O_LINK_UHD=OFF"
     - call ./ci/tools/threads.bat
     - ./ci/build-windows-gcc.bat
 
@@ -130,6 +135,7 @@ build-windows-msvc:
   script:
     - set "CFLAGS=-D_CRT_SECURE_NO_DEPRECATE /EHsc /arch:AVX"
     - set "BUILD=build_windows_msvc"
+    - set "CMAKE_OPT=-DDVBS2O_LINK_UHD=OFF"
     - call ./ci/tools/threads.bat
     - ./ci/build-windows-msvc.bat
 
@@ -140,6 +146,7 @@ build-macos-clang:
     - apple-clang
     - cmake
     - x86
+    - uhd
   artifacts:
     name: build-macos-clang
     when: always
