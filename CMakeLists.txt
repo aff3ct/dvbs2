@@ -55,6 +55,7 @@ option(DVBS2O_LINK_UHD           "Link with the UHD library (used in the radio u
 option(DVBS2O_LINK_OPENMP        "Link with the OPENMP library                      " ON             )
 set   (AFF3CT_PREC               "MULTI"                                              CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
 
+
 # Compile the AFF3CT library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/)
 
