@@ -1,5 +1,6 @@
 #include <vector>
 #include <numeric>
+#include <string>
 #include <iostream>
 
 #include <aff3ct.hpp>
@@ -282,6 +283,11 @@ int main(int argc, char** argv)
 			sync_coarse_f->set_curr_idx(delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
+			#pragma omp single
+			{
+				std::cerr << "Phase 2 :" << m << " |  150" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq() << "\r";
+				std::cerr.flush();
+			}
 		}
 		
 
