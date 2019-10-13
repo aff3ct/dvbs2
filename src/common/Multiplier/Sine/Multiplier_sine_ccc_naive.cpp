@@ -71,7 +71,7 @@ template <typename R>
 void Multiplier_sine_ccc_naive<R>
 ::reset_time()
 {
-	this->n = 0;
+	this->n = (R)0.0;
 }
 
 template <typename R>
@@ -81,7 +81,7 @@ inline void Multiplier_sine_ccc_naive<R>
 	R phase(this->omega * this->n);
 	*y_elt = *x_elt * std::complex<R>(std::cos(phase), std::sin(phase));
 	
-	this->n = (this->n >= 999999) ? 0 : this->n + 1;
+	this->n = (this->n >= 999999) ? 0 : this->n + (R)1.0;
 	// std::cerr << "alive" << std::endl;
 }
 
@@ -93,7 +93,6 @@ void Multiplier_sine_ccc_naive<R>
 	std::complex<R>*       cZ_N = reinterpret_cast<      std::complex<R>* >(Z_N);
 	for (auto i = 0 ; i < this->N/2 ; i++)
 		this->step(&cX_N[i], &cZ_N[i]);
-	R phase(this->omega * (R)this->n);
 	//std::cerr << (int)this->n << "|" << phase << " | " << std::cos(phase)<< "|" << std::sin(phase)<<std::endl;
 }
 

@@ -68,10 +68,10 @@ void Synchronizer_LR_cc_naive<R>
 	this->est_reduced_freq = std::atan2(this->R_l[1], this->R_l[0]);
 	this->est_reduced_freq /= (Lp_2 + 1) * M_PI;
 
-	if((*this)[syn::tsk::synchronize].is_debug())
+	/*if((*this)[syn::tsk::synchronize].is_debug())
 	{
 		std::cout << "# {INTERNAL} hat_nu = "<< this->est_reduced_freq << " " << std::endl;
-	}
+	}*/
 
 	for (int n = 0 ; n < this->N_in/2 ; n++)
 	{

@@ -36,8 +36,8 @@ void Synchronizer_frame_cc_naive<R>
 	
 	this->step(&symb_diff, &y_corr);
 	
-	if((*this)[syn::tsk::synchronize].is_debug())
-		std::cout << "# {INTERNAL} CORR = [ " << y_corr << " ";
+	/*if((*this)[syn::tsk::synchronize].is_debug())
+		std::cout << "# {INTERNAL} CORR = [ " << y_corr << " ";*/
 
 	R max_corr = y_corr;
 	int max_idx  = 0;
@@ -47,13 +47,14 @@ void Synchronizer_frame_cc_naive<R>
 		symb_diff = cX_N1[i-1] * std::conj(cX_N1[i]);
 
 		this->step(&symb_diff, &y_corr);
-		if((*this)[syn::tsk::synchronize].is_debug())
+		/*if((*this)[syn::tsk::synchronize].is_debug())
 		{
 			if (i < cplx_in_sz -1)
 				std::cout << y_corr << " ";
 			else
 				std::cout << y_corr << "]"<< std::endl;
 		}
+		*/
 		
 		if (y_corr > max_corr)
 		{
