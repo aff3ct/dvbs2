@@ -1,3 +1,5 @@
+#include <typeinfo>
+
 #include "Radio_USRP.hpp"
 
 namespace aff3ct
@@ -5,21 +7,53 @@ namespace aff3ct
 namespace module
 {
 
-template <typename D>
-Radio_USRP<D>::
+template <typename R>
+Radio_USRP<R>::
 Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
            const double rx_freq, const std::string rx_subdev_spec, const double tx_rate,
            const double tx_freq, const std::string tx_subdev_spec, const int n_frames, 
 		   const double rx_gain, const double tx_gain)
-: Radio<D>(N, n_frames), stream_args("fc32")
+: Radio<R>(N, n_frames)
 {
 	// typeinfo
-	// if typeid(D) == typeid(float)
-	// 	stream_args = "fc32";
-	// else if typeid(D) == typeid(double)
-	// 	stream_args = "fc64";
-	// else 
-	// 	throw 
+	// type for the real numbers (before quantization)
+using R_8  = float;
+using R_16 = float;
+using R_32 = float;
+using R_64 = double;
+
+// type for the real numbers (after  quantization)
+using Q_8  = signed char;
+using Q_16 = short;
+using Q_32 = float;
+using Q_64 = double;
+
+	if (typeid(R) == typeid(R_8)  ||
+	    typeid(R) == typeid(R_16) ||
+	    typeid(R) == typeid(R_32) ||
+	    typeid(R) == typeid(Q_32)  )
+	{
+		stream_args = uhd::stream_args_t("fc32");
+	}
+	else if (typeid(R) == typeid(R_64) ||
+	         typeid(R) == typeid(Q_64)  )
+	{
+		stream_args = uhd::stream_args_t("fc64");
+	}
+	else if (typeid(R) == typeid(Q_16))
+	{
+		stream_args = uhd::stream_args_t("sc16");
+	}
+	else if (typeid(R) == typeid(Q_8))
+	{
+		stream_args = uhd::stream_args_t("sc8");
+	}
+	else
+	{
+		throw::runtime_error(__FILE__, __LINE__, __func__, 
+		                     "This data type (" + std::string(typeid(R).name()) + ") is not supported.");
+	}
+	
 
 	uhd::log::set_console_level(uhd::log::severity_level(3));
 	uhd::log::set_file_level   (uhd::log::severity_level(2));
@@ -47,16 +81,16 @@ Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const doub
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 }
 
-template <typename D>
-Radio_USRP<D>::
+template <typename R>
+Radio_USRP<R>::
 ~Radio_USRP()
 {
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
 }
 
-template <typename D>
-void Radio_USRP<D>::
-_send(D *X_N1, const int frame_id)
+template <typename R>
+void Radio_USRP<R>::
+_send(R *X_N1, const int frame_id)
 {
 	uhd::tx_metadata_t md;
     md.start_of_burst = true;
@@ -66,11 +100,11 @@ _send(D *X_N1, const int frame_id)
 	tx_stream->send(X_N1, this->N, md);
 }
 
-template <typename D>
-void Radio_USRP<D>::
-_receive(D *Y_N1, const int frame_id)
+template <typename R>
+void Radio_USRP<R>::
+_receive(R *Y_N1, const int frame_id)
 {
-	std::vector<std::complex<double>> buff(this->N);
+	std::vector<std::complex<R>> buff(this->N);
 	uhd::rx_metadata_t md;
 
 	auto num_rx_samps = 0;

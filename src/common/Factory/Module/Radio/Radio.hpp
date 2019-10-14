@@ -51,12 +51,12 @@ struct Radio : Factory
 		virtual void get_headers    (std::map<std::string,header_list>& headers, const bool full = true) const;
 
 
-		template <typename D = double>
-		module::Radio<D>* build() const;
+		template <typename R = float>
+		module::Radio<R>* build() const;
 	};
 
-	template <typename D = double>
-	static module::Radio<D>* build(const parameters &params);
+	template <typename R = float>
+	static module::Radio<R>* build(const parameters &params);
 };
 }
 }

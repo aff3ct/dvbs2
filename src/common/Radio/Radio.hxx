@@ -20,8 +20,8 @@ namespace aff3ct
 namespace module
 {
 
-template <typename D>
-Radio<D>::
+template <typename R>
+Radio<R>::
 Radio(const int N, const int n_frames)
 : Module(n_frames), N(N)
 {
@@ -37,35 +37,35 @@ Radio(const int N, const int n_frames)
 	}
 
 	auto &p1 = this->create_task("send");
-	auto &p1s_X_N1 = this->template create_socket_in <D>(p1, "X_N1", 2 * N * this->n_frames);
+	auto &p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", 2 * N * this->n_frames);
 	this->create_codelet(p1, [this, &p1s_X_N1]() -> int
 	{
-		this->send(static_cast<D*>(p1s_X_N1.get_dataptr()));
+		this->send(static_cast<R*>(p1s_X_N1.get_dataptr()));
 
 		return 0;
 	});
 
 	auto &p2 = this->create_task("receive");
-	auto &p2s_Y_N1 = this->template create_socket_out<D>(p2, "Y_N1", 2 * N  * this->n_frames);
+	auto &p2s_Y_N1 = this->template create_socket_out<R>(p2, "Y_N1", 2 * N  * this->n_frames);
 	this->create_codelet(p2, [this, &p2s_Y_N1]() -> int
 	{
-		this->receive(static_cast<D*>(p2s_Y_N1.get_dataptr()));
+		this->receive(static_cast<R*>(p2s_Y_N1.get_dataptr()));
 
 		return 0;
 	});
 }
 
-template <typename D>
+template <typename R>
 template <class A>
-void Radio<D>::
-send(std::vector<D,A>& X_N1, const int frame_id)
+void Radio<R>::
+send(std::vector<R,A>& X_N1, const int frame_id)
 {
 	this->send(X_N1.data(), frame_id);
 }
 
-template <typename D>
-void Radio<D>::
-send(D *X_N1, const int frame_id)
+template <typename R>
+void Radio<R>::
+send(R *X_N1, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
@@ -74,17 +74,17 @@ send(D *X_N1, const int frame_id)
 		this->_send(X_N1 + f * this->N * 2, f);
 }
 
-template <typename D>
+template <typename R>
 template <class A>
-void Radio<D>::
-receive(std::vector<D,A>& Y_N1, const int frame_id)
+void Radio<R>::
+receive(std::vector<R,A>& Y_N1, const int frame_id)
 {
 	this->receive(Y_N1.data(), frame_id);
 }
 
-template <typename D>
-void Radio<D>::
-receive(D *Y_N1, const int frame_id)
+template <typename R>
+void Radio<R>::
+receive(R *Y_N1, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;

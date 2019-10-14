@@ -157,7 +157,7 @@ template <typename R>
 module::Radio<R>* Factory_DVBS2O
 ::build_radio (const Params_DVBS2O& params)
 {
-	return params.p_rad.build();
+	return params.p_rad.build<R>();
 }
 
 
@@ -178,5 +178,5 @@ template aff3ct::module::Channel<R>*                           Factory_DVBS2O::b
 template aff3ct::module::Multiplier_sine_ccc_naive<R>*         Factory_DVBS2O::build_freq_shift<R>           (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_LR_cc_naive<R>*          Factory_DVBS2O::build_synchronizer_lr<R>      (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_fine_pf_cc_DVBS2O<R>*    Factory_DVBS2O::build_synchronizer_fine_pf<R> (const Params_DVBS2O& params);
-template aff3ct::module::Radio<double>*                        Factory_DVBS2O::build_radio<double>           (const Params_DVBS2O& params);
+template aff3ct::module::Radio<R>*                             Factory_DVBS2O::build_radio<R>                (const Params_DVBS2O& params);
 template aff3ct::tools ::Interleaver_core<uint32_t>*           Factory_DVBS2O::build_itl_core<uint32_t>      (const Params_DVBS2O& params);

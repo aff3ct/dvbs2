@@ -22,11 +22,11 @@ namespace module
  *
  * \brief Transmit or receive data to or from a radio module.
  *
- * \tparam D: type of the data to send or receive.
+ * \tparam R: type of the data to send or receive.
  *
  */
-template <typename D = double>
-class Radio_USRP : public Radio<D>
+template <typename R = double>
+class Radio_USRP : public Radio<R>
 {
 private:
 	uhd::usrp::multi_usrp::sptr usrp;
@@ -51,8 +51,8 @@ public:
 	 */
 	~Radio_USRP();
 protected:
-	void _send   (D *X_N1, const int frame_id);
-	void _receive(D *Y_N1, const int frame_id);
+	void _send   (R *X_N1, const int frame_id);
+	void _receive(R *Y_N1, const int frame_id);
 };
 }
 }

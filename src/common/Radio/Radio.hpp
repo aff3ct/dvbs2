@@ -32,10 +32,10 @@ namespace module
  *
  * \brief Transmit or receive data to or from a radio module.
  *
- * \tparam D: type of the data to send or receive.
+ * \tparam R: type of the data to send or receive.
  *
  */
-template <typename D = float>
+template <typename R = float>
 class Radio : public Module
 {
 public:
@@ -66,10 +66,10 @@ public:
 	 *
 	 * \param X_N1 : a vector of complex samples to send.
 	 */
-	template <class A = std::allocator<D>>
-	void send(std::vector<D,A>& X_N1, const int frame_id = -1);
+	template <class A = std::allocator<R>>
+	void send(std::vector<R,A>& X_N1, const int frame_id = -1);
 
-	virtual void send(D *X_N1, const int frame_id = -1);
+	virtual void send(R *X_N1, const int frame_id = -1);
 
 	/*!
 	 * \brief Receive a frame.
@@ -77,15 +77,15 @@ public:
 	 * \param Y_N1 : a vector of complex samples to receive.
 	 */
 
-	template <class A = std::allocator<D>>
-	void receive(std::vector<D,A>& Y_N1, const int frame_id = -1);
+	template <class A = std::allocator<R>>
+	void receive(std::vector<R,A>& Y_N1, const int frame_id = -1);
 
-	virtual void receive(D *Y_N1, const int frame_id = -1);
+	virtual void receive(R *Y_N1, const int frame_id = -1);
 
 
 protected:
-	virtual void _send   (D *X_N1, const int frame_id) = 0;
-	virtual void _receive(D *Y_N1, const int frame_id) = 0;
+	virtual void _send   (R *X_N1, const int frame_id) = 0;
+	virtual void _receive(R *Y_N1, const int frame_id) = 0;
 };
 }
 }

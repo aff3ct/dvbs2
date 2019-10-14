@@ -99,12 +99,12 @@ void Radio::parameters
 	headers[p].push_back(std::make_pair("Tx gain   ", std::to_string(this->tx_gain)));
 }
 
-template <typename D>
-module::Radio<D>* Radio::parameters
+template <typename R>
+module::Radio<R>* Radio::parameters
 ::build() const
 {
 	#ifdef AFF3CT_RADIO_USRP
-	return new module::Radio_USRP<D> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
+	return new module::Radio_USRP<R> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
 	                                  this->rx_subdev_spec,this->tx_rate, this->tx_freq, this->tx_subdev_spec,
 	                                  this->n_frames, this->rx_gain, this->tx_gain);
 	#endif
@@ -112,17 +112,21 @@ module::Radio<D>* Radio::parameters
 	throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "A dependency is possibly missing (e.g. UHD).");
 }
 
-template <typename D>
-module::Radio<D>* Radio
+template <typename R>
+module::Radio<R>* Radio
 ::build(const parameters &params)
 {
-	return params.template build<D>();
+	return params.template build<R>();
 }
 
 // ==================================================================================== explicit template instantiation
 #include "Tools/types.h"
-template aff3ct::module::Radio<double>* aff3ct::factory::Radio::parameters::build<double>() const;
-template aff3ct::module::Radio<float>*  aff3ct::factory::Radio::parameters::build<float >() const;
-template aff3ct::module::Radio<double>* aff3ct::factory::Radio::build<double>(const aff3ct::factory::Radio::parameters&);
-template aff3ct::module::Radio<float>*  aff3ct::factory::Radio::build<float >(const aff3ct::factory::Radio::parameters&);
+template aff3ct::module::Radio<double>*      aff3ct::factory::Radio::parameters::build<double     >() const;
+template aff3ct::module::Radio<float>*       aff3ct::factory::Radio::parameters::build<float      >() const;
+template aff3ct::module::Radio<short>*       aff3ct::factory::Radio::parameters::build<short      >() const;
+template aff3ct::module::Radio<signed char>* aff3ct::factory::Radio::parameters::build<signed char>() const;
+template aff3ct::module::Radio<double>*      aff3ct::factory::Radio::build<double     >(const aff3ct::factory::Radio::parameters&);
+template aff3ct::module::Radio<float>*       aff3ct::factory::Radio::build<float      >(const aff3ct::factory::Radio::parameters&);
+template aff3ct::module::Radio<short>*       aff3ct::factory::Radio::build<short      >(const aff3ct::factory::Radio::parameters&);
+template aff3ct::module::Radio<signed char>* aff3ct::factory::Radio::build<signed char>(const aff3ct::factory::Radio::parameters&);
 // ==================================================================================== explicit template instantiation

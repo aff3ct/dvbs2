@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Framer<>        > framer        (Factory_DVBS2O::build_framer      <>(params                 ));
 	std::unique_ptr<module::Scrambler<float>> pl_scrambler  (Factory_DVBS2O::build_pl_scrambler<>(params                 ));
 	std::unique_ptr<module::Filter<>        > shaping_filter(Factory_DVBS2O::build_uprrc_filter<>(params                 ));
-	std::unique_ptr<module::Radio<double>   > radio         (Factory_DVBS2O::build_radio<>       (params                 ));
+	std::unique_ptr<module::Radio<>         > radio         (Factory_DVBS2O::build_radio<>       (params                 ));
 
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 
