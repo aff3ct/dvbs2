@@ -40,9 +40,6 @@ int main(int argc, char** argv)
 
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 
-	// initialization
-	itl_core->init();
-
 	// configuration of the module tasks
 	std::vector<const module::Module*> modules = {bb_scrambler.get(), BCH_encoder.get(), LDPC_encoder.get(), itl.get(),
 	                                              modem.get(), framer.get(), pl_scrambler.get(), /*shaping_filter.get() */};

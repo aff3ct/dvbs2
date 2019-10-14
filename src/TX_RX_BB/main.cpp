@@ -60,9 +60,6 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_BCH_unshortened, 12, params.bch_prim_poly);
 
-	// initialize the tools
-	itl_core->init();
-
 	// construct modules
 	std::unique_ptr<module::Source<>                   > source      (Factory_DVBS2O::build_source           <>(params, tid*2+0        ));
 	std::unique_ptr<module::Scrambler<>                > bb_scrambler(Factory_DVBS2O::build_bb_scrambler     <>(params                 ));
@@ -81,10 +78,10 @@ int main(int argc, char** argv)
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
 
-	LDPC_encoder->set_short_name("LDPC Encoder");
-	LDPC_decoder->set_short_name("LDPC Decoder");
-	BCH_encoder ->set_short_name("BCH Encoder" );
-	BCH_decoder ->set_short_name("BCH Decoder" );
+	LDPC_encoder->set_custom_name("LDPC Encoder");
+	LDPC_decoder->set_custom_name("LDPC Decoder");
+	BCH_encoder ->set_custom_name("BCH Encoder" );
+	BCH_decoder ->set_custom_name("BCH Decoder" );
 
 // wait until all the 'monitors' have been allocated in order to allocate the 'monitor_red' object
 #pragma omp barrier

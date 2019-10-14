@@ -38,8 +38,6 @@ int main(int argc, char** argv)
 
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 
-	itl_core->init();
-
 	// the list of the allocated modules for the simulation
 	std::vector<const module::Module*> modules;
 
