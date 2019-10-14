@@ -15,7 +15,6 @@ int main(int argc, char** argv)
 	// get the parameter to configure the tools and modules
 	const auto params = Params_DVBS2O(argc, argv);
 
-
 	std::vector<float> shaping_in  ((params.PL_FRAME_SIZE + params.GRP_DELAY) * 2, 0.0f);
 	// std::vector<float> samples_vec(2 * 16000, 0.0f);
 
@@ -74,8 +73,6 @@ int main(int argc, char** argv)
 	(*shaping_filter)[flt::sck::filter    ::X_N1].bind(shaping_in);
 	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter  ::Y_N2]);
 
-	std::cout << shaping_filter->get_N_fil() << std::endl;
-
 	while(1)
 	{
 		(*source)      [src::tsk::generate  ].exec();
@@ -87,9 +84,9 @@ int main(int argc, char** argv)
 		(*framer      )[frm::tsk::generate  ].exec();
 		(*pl_scrambler)[scr::tsk::scramble  ].exec();
 
-		std::copy( (float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr()),
-				((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.PL_FRAME_SIZE),
-				shaping_in.data());
+		std::copy((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr()),
+		          ((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.PL_FRAME_SIZE),
+		          shaping_in.data());
 
 		(*shaping_filter)[flt::tsk::filter  ].exec();
 		(*radio         )[rad::tsk::send    ].exec();

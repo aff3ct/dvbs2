@@ -140,6 +140,8 @@ Params_DVBS2O(int argc, char** argv)
 	S                 = N_XFEC_FRAME / M;
 	PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
 
+	p_rad.N = (this->PL_FRAME_SIZE + this->GRP_DELAY) * 4; // 2 * N_fil
+	p_rad.store(arg_vals);
 }
 
 void Params_DVBS2O::
@@ -168,8 +170,6 @@ get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
 
 		// parse user arguments
 		arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);
-
-		p_rad.store(arg_vals);
 
 		// exit on wrong args
 		if (cmd_error.size())

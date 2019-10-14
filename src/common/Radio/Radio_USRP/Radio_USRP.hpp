@@ -41,8 +41,8 @@ public:
 	 * \param N:     Radio_USRP frame length.
 	 */
 	Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
-	           const double rx_freq, const std::string rx_subdev_spec, const double tx_rate, const double tx_freq,
-	           const std::string tx_subdev_spec, const int n_frames, const double rx_gain, const double tx_gain);
+	           const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna, const double tx_rate, const double tx_freq,
+	           const std::string tx_subdev_spec, const std::string tx_antenna, const int n_frames, const double rx_gain, const double tx_gain);
 
 	/*!
 	 * \brief Destructor.

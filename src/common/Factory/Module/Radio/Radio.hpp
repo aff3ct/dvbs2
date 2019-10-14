@@ -27,12 +27,13 @@ struct Radio : Factory
 		double clk_rate            = 125e6;
 
 		std::string rx_subdev_spec = "A:0";
+		std::string rx_antenna      = "RX2";
 		double rx_rate             = 8e6;
 		double rx_freq             = 1090e6;
 		double rx_gain             = 10;
 
-
 		std::string tx_subdev_spec = "A:0";
+		std::string tx_antenna      = "TX/RX";
 		double tx_rate             = 8e6;
 		double tx_freq             = 1090e6;
 		double tx_gain             = 10;

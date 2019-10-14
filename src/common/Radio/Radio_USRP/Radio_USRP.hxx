@@ -10,24 +10,11 @@ namespace module
 template <typename R>
 Radio_USRP<R>::
 Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
-           const double rx_freq, const std::string rx_subdev_spec, const double tx_rate,
-           const double tx_freq, const std::string tx_subdev_spec, const int n_frames, 
+           const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna, const double tx_rate,
+           const double tx_freq, const std::string tx_subdev_spec, const std::string tx_antenna, const int n_frames, 
 		   const double rx_gain, const double tx_gain)
 : Radio<R>(N, n_frames)
 {
-	// typeinfo
-	// type for the real numbers (before quantization)
-using R_8  = float;
-using R_16 = float;
-using R_32 = float;
-using R_64 = double;
-
-// type for the real numbers (after  quantization)
-using Q_8  = signed char;
-using Q_16 = short;
-using Q_32 = float;
-using Q_64 = double;
-
 	if (typeid(R) == typeid(R_8)  ||
 	    typeid(R) == typeid(R_16) ||
 	    typeid(R) == typeid(R_32) ||
@@ -54,28 +41,24 @@ using Q_64 = double;
 		                     "This data type (" + std::string(typeid(R).name()) + ") is not supported.");
 	}
 	
-
 	uhd::log::set_console_level(uhd::log::severity_level(3));
 	uhd::log::set_file_level   (uhd::log::severity_level(2));
 
 	usrp = uhd::usrp::multi_usrp::make("addr=" + usrp_addr);
-
 	usrp->set_master_clock_rate(clk_rate);
 
-	usrp->set_rx_rate(rx_rate, 0); // only one channel (0) for now
-	usrp->set_rx_freq(rx_freq);
-	usrp->set_rx_gain(rx_gain, 0);
 	usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t(rx_subdev_spec));
-	std::cout << "Gain = " << tx_gain << std::endl;
-	std::cout << "Freq = " << tx_freq << std::endl;
-	usrp->set_tx_rate(tx_rate, 0); // only one channel (0) for now
-	usrp->set_tx_freq(tx_freq);
-	usrp->set_tx_gain(tx_gain, 0);
-	usrp->set_tx_antenna("TX/RX", 0);
+	usrp->set_rx_antenna(rx_antenna);
+	usrp->set_rx_rate(rx_rate);
+	usrp->set_rx_freq(rx_freq);
+	usrp->set_rx_gain(rx_gain);
+	rx_stream = usrp->get_rx_stream(stream_args);
 
 	usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t(tx_subdev_spec));
-
-	rx_stream = usrp->get_rx_stream(stream_args);
+	usrp->set_tx_rate(tx_rate);
+	usrp->set_tx_freq(tx_freq);
+	usrp->set_tx_gain(tx_gain);
+	usrp->set_tx_antenna(tx_antenna);
 	tx_stream = usrp->get_tx_stream(stream_args);
 
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
