@@ -90,8 +90,6 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
-// end of #pragma omp single
-
 	// fulfill the list of modules
 	modules = { bb_scrambler.get(), BCH_encoder  .get(), BCH_decoder .get(), LDPC_encoder.get(),
 	            LDPC_decoder.get(), itl_tx       .get(), itl_rx      .get(), modem       .get(),
@@ -283,11 +281,6 @@ int main(int argc, char** argv)
 			sync_coarse_f->set_curr_idx(delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			#pragma omp single
-			{
-				std::cerr << "Phase 2 :" << m << " |  150" << " | Est. freq coarse : "  << sync_coarse_f->get_estimated_freq() << " | Est. freq LR : " << sync_lr->get_est_reduced_freq() << " | Est. freq fine : " << sync_fine_pf->get_estimated_freq() <<" | Est. freq total : " << sync_coarse_f->get_estimated_freq() + sync_lr->get_est_reduced_freq() + sync_fine_pf->get_estimated_freq() << "\r";
-				std::cerr.flush();
-			}
 		}
 		
 
@@ -326,7 +319,7 @@ int main(int argc, char** argv)
 
 		// tasks execution
 		int n_frames = 0;
-		while (monitor->get_n_fe() < 100 && n_frames < 1000)//!monitor_red->is_done_all() && !terminal->is_interrupt()
+		while (monitor->get_n_fe() < 100 && n_frames < 100000)//!monitor_red->is_done_all() && !terminal->is_interrupt()
 		{
 			(*source       )[src::tsk::generate    ].exec();
 			(*bb_scrambler )[scr::tsk::scramble    ].exec();
