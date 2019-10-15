@@ -38,9 +38,6 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_BCH_unshortened, 12, params.bch_prim_poly);
 
-	// initialize the tools
-	itl_core->init();
-
 	// construct modules
 	std::unique_ptr<module::Scrambler<>                        > bb_scrambler (Factory_DVBS2O::build_bb_scrambler             <>(params                 ));
 	std::unique_ptr<module::Encoder<>                          > BCH_encoder  (Factory_DVBS2O::build_bch_encoder              <>(params, poly_gen       ));
@@ -68,16 +65,20 @@ int main(int argc, char** argv)
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
 
-	//LDPC_encoder->set_short_name("LDPC Encoder");
-	//LDPC_decoder->set_short_name("LDPC Decoder");
-	//BCH_encoder ->set_short_name("BCH Encoder" );
-	//BCH_decoder ->set_short_name("BCH Decoder" );
-	//sync_lr     ->set_short_name("L&R F Syn");
-	//sync_fine_pf->set_short_name("Fine P/F Syn");
-	//sync_gardner->set_short_name("Gardner Syn");
-	//sync_frame->set_short_name("Frame Syn");
-	//matched_flt ->set_short_name("Matched Flt");
-	//shaping_flt ->set_short_name("Shaping Flt");
+	LDPC_encoder ->set_custom_name("LDPC Encoder");
+	LDPC_decoder ->set_custom_name("LDPC Decoder");
+	BCH_encoder  ->set_custom_name("BCH Encoder" );
+	BCH_decoder  ->set_custom_name("BCH Decoder" );
+	sync_lr      ->set_custom_name("L&R F Syn");
+	sync_fine_pf ->set_custom_name("Fine P/F Syn");
+	sync_gardner ->set_custom_name("Gardner Syn");
+	sync_frame   ->set_custom_name("Frame Syn");
+	matched_flt  ->set_custom_name("Matched Flt");
+	shaping_flt  ->set_custom_name("Shaping Flt");
+	sync_coarse_f->set_custom_name("Coarse_Synch");
+	sync_step_mf ->set_custom_name("MF_Synch");
+	
+
 
 	// allocate reporters to display results in the terminal
 	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>(noise       ))); // report the noise values (Es/N0 and Eb/N0)
@@ -115,10 +116,7 @@ int main(int argc, char** argv)
 
 	
 	using namespace module;
-	sync_fine_pf->set_name("Fine_synch");
-	sync_frame->set_name("Frame_Synch");
-	sync_lr->set_name("LR_Synch");
-	
+
 	// socket binding
 	// TX
 	(*BCH_encoder )[enc::sck::encode      ::U_K ].bind((*bb_scrambler)[scr::sck::scramble    ::X_N2]);
@@ -185,9 +183,6 @@ int main(int argc, char** argv)
 				ta->set_stats      (params.stats); // enable the statistics
 				ta->set_fast(false);//!ta->is_debug() && !ta->is_stats()
 			}
-		sync_gardner->set_name("Gardner_Synch");
-		sync_coarse_f->set_name("Coarse_Synch");
-		sync_step_mf->set_name("MF_Synch");
 
 		(*bb_scrambler)[scr::sck::scramble    ::X_N1].bind((*source      )[src::sck::generate    ::U_K ]);
 		(*channel     )[chn::sck::add_noise   ::X_N ].bind((*freq_shift)  [mlt::sck::imultiply   ::Z_N ]);

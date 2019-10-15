@@ -40,6 +40,9 @@ void Radio::parameters
 	tools::add_arg(args, p, class_name+"p+rx-subdev-spec",
 		tools::Text());
 
+	tools::add_arg(args, p, class_name+"p+rx-ant",
+		tools::Text());
+
 	tools::add_arg(args, p, class_name+"p+rx-rate",
 		tools::Real(tools::Positive(), tools::Non_zero()));
 
@@ -50,6 +53,9 @@ void Radio::parameters
 		tools::Real(tools::Positive(), tools::Non_zero()));
 
 	tools::add_arg(args, p, class_name+"p+tx-subdev-spec",
+		tools::Text());
+
+	tools::add_arg(args, p, class_name+"p+tx-ant",
 		tools::Text());
 
 	tools::add_arg(args, p, class_name+"p+tx-rate",
@@ -73,10 +79,12 @@ void Radio::parameters
 	if(vals.exist({p+"-fra-size",  "N"})) this->N              = vals.to_int  ({p+"-fra-size",  "N"});
 	if(vals.exist({p+"-clk-rate"      })) this->clk_rate       = vals.to_float({p+"-clk-rate"      });
 	if(vals.exist({p+"-rx-subdev-spec"})) this->rx_subdev_spec = vals.at      ({p+"-rx-subdev-spec"});
+	if(vals.exist({p+"-rx-ant"        })) this->rx_antenna     = vals.at      ({p+"-rx-ant"});
 	if(vals.exist({p+"-rx-rate"       })) this->rx_rate        = vals.to_float({p+"-rx-rate"       });
 	if(vals.exist({p+"-rx-freq"       })) this->rx_freq        = vals.to_float({p+"-rx-freq"       });
 	if(vals.exist({p+"-rx-gain"       })) this->rx_gain        = vals.to_float({p+"-rx-gain"       });
 	if(vals.exist({p+"-tx-subdev-spec"})) this->tx_subdev_spec = vals.at      ({p+"-tx-subdev-spec"});
+	if(vals.exist({p+"-Tx-ant"        })) this->tx_antenna     = vals.at      ({p+"-tx-ant"});
 	if(vals.exist({p+"-tx-rate"       })) this->tx_rate        = vals.to_float({p+"-tx-rate"       });
 	if(vals.exist({p+"-tx-freq"       })) this->tx_freq        = vals.to_float({p+"-tx-freq"       });
 	if(vals.exist({p+"-tx-gain"       })) this->tx_gain        = vals.to_float({p+"-tx-gain"       });
@@ -92,37 +100,47 @@ void Radio::parameters
 	headers[p].push_back(std::make_pair("N. cw  (N)", std::to_string(this->N)));
 	headers[p].push_back(std::make_pair("Clk rate  ", std::to_string(this->clk_rate)));
 	headers[p].push_back(std::make_pair("Rx rate   ", std::to_string(this->rx_rate)));
+	headers[p].push_back(std::make_pair("Rx subdev ", this->rx_subdev_spec));
+	headers[p].push_back(std::make_pair("Rx antenna", this->rx_antenna));
 	headers[p].push_back(std::make_pair("Rx freq   ", std::to_string(this->rx_freq)));
 	headers[p].push_back(std::make_pair("Rx gain   ", std::to_string(this->rx_gain)));
+	headers[p].push_back(std::make_pair("Tx subdev ", this->tx_subdev_spec));
+	headers[p].push_back(std::make_pair("Tx antenna", this->tx_antenna));
+	headers[p].push_back(std::make_pair("Tx rate   ", std::to_string(this->tx_rate)));
+	headers[p].push_back(std::make_pair("Tx rate   ", std::to_string(this->tx_rate)));
 	headers[p].push_back(std::make_pair("Tx rate   ", std::to_string(this->tx_rate)));
 	headers[p].push_back(std::make_pair("Tx freq   ", std::to_string(this->tx_freq)));
 	headers[p].push_back(std::make_pair("Tx gain   ", std::to_string(this->tx_gain)));
 }
 
-template <typename D>
-module::Radio<D>* Radio::parameters
+template <typename R>
+module::Radio<R>* Radio::parameters
 ::build() const
 {
 	#ifdef AFF3CT_RADIO_USRP
-	return new module::Radio_USRP<D> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
-	                                  this->rx_subdev_spec,this->tx_rate, this->tx_freq, this->tx_subdev_spec,
-	                                  this->n_frames, this->rx_gain, this->tx_gain);
+	return new module::Radio_USRP<R> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
+	                                  this->rx_subdev_spec, this->rx_antenna, this->tx_rate, this->tx_freq, this->tx_subdev_spec,
+	                                  this->tx_antenna, this->n_frames, this->rx_gain, this->tx_gain);
 	#endif
 
 	throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "A dependency is possibly missing (e.g. UHD).");
 }
 
-template <typename D>
-module::Radio<D>* Radio
+template <typename R>
+module::Radio<R>* Radio
 ::build(const parameters &params)
 {
-	return params.template build<D>();
+	return params.template build<R>();
 }
 
 // ==================================================================================== explicit template instantiation
 #include "Tools/types.h"
-template aff3ct::module::Radio<double>* aff3ct::factory::Radio::parameters::build<double>() const;
-template aff3ct::module::Radio<float>*  aff3ct::factory::Radio::parameters::build<float >() const;
-template aff3ct::module::Radio<double>* aff3ct::factory::Radio::build<double>(const aff3ct::factory::Radio::parameters&);
-template aff3ct::module::Radio<float>*  aff3ct::factory::Radio::build<float >(const aff3ct::factory::Radio::parameters&);
+template aff3ct::module::Radio<double>*      aff3ct::factory::Radio::parameters::build<double     >() const;
+template aff3ct::module::Radio<float>*       aff3ct::factory::Radio::parameters::build<float      >() const;
+template aff3ct::module::Radio<short>*       aff3ct::factory::Radio::parameters::build<short      >() const;
+template aff3ct::module::Radio<signed char>* aff3ct::factory::Radio::parameters::build<signed char>() const;
+template aff3ct::module::Radio<double>*      aff3ct::factory::Radio::build<double     >(const aff3ct::factory::Radio::parameters&);
+template aff3ct::module::Radio<float>*       aff3ct::factory::Radio::build<float      >(const aff3ct::factory::Radio::parameters&);
+template aff3ct::module::Radio<short>*       aff3ct::factory::Radio::build<short      >(const aff3ct::factory::Radio::parameters&);
+template aff3ct::module::Radio<signed char>* aff3ct::factory::Radio::build<signed char>(const aff3ct::factory::Radio::parameters&);
 // ==================================================================================== explicit template instantiation

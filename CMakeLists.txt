@@ -52,7 +52,8 @@ option(AFF3CT_COMPILE_SHARED_LIB ""      OFF            )
 option(AFF3CT_LINK_GSL           ""      OFF            )
 option(AFF3CT_LINK_MKL           ""      OFF            )
 option(DVBS2O_LINK_UHD           "Link with the UHD library (used in the radio usrp)" ON             )
-set   (AFF3CT_PREC               "MULTI" CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
+option(DVBS2O_LINK_OPENMP        "Link with the OPENMP library"                       ON             )
+set   (AFF3CT_PREC               "MULTI"                                              CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
 
 # Compile the AFF3CT library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/)
@@ -81,7 +82,7 @@ if(DVBS2O_LINK_OPENMP)
             set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
         endif()
     endif(OpenMP_FOUND)
-message(STATUS "DVBS2O - OPENMP: on")
+    message(STATUS "DVBS2O - OPENMP: on")
 else()
     message(STATUS "DVBS2O - OPENMP: off")
 endif(DVBS2O_LINK_OPENMP)

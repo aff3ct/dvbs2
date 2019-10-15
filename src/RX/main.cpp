@@ -41,9 +41,6 @@ int main(int argc, char** argv)
 
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
 
-	// initialization
-	itl_core->init();
-
 	// configuration of the module tasks
 	std::vector<const module::Module*> modules = {bb_scrambler.get(), pl_scrambler.get(), BCH_decoder.get(),
 	                                              modem.get(), itl.get(), estimator.get(), framer.get(),
