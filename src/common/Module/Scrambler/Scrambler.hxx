@@ -13,7 +13,7 @@
 
 #include "Tools/Exception/exception.hpp"
 
-#include "Scrambler.hpp"
+#include "Module/Scrambler/Scrambler.hpp"
 
 namespace aff3ct
 {

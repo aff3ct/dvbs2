@@ -16,7 +16,7 @@
 
 #include "Tools/Exception/exception.hpp"
 
-#include "Filter.hpp"
+#include "Module/Filter/Filter.hpp"
 
 namespace aff3ct
 {

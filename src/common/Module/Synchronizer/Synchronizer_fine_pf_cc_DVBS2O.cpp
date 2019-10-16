@@ -1,9 +1,7 @@
 #include <cassert>
 #include <iostream>
-#include <vector>
-#include <complex>
 
-#include "Synchronizer_fine_pf_cc_DVBS2O.hpp"
+#include "Module/Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
 #ifndef M_PI

@@ -1,10 +1,7 @@
 #include <cassert>
 #include <iostream>
-#include <vector>
-#include <complex>
 
-#include "Synchronizer_coarse_fr_cc_DVBS2O.hpp"
-#include "../Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
+#include "Module/Synchronizer/Synchronizer_coarse_fr_cc_DVBS2O.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
 #ifndef M_PI

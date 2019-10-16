@@ -3,7 +3,8 @@
 #include <vector>
 #include <complex>
 
-#include "Variable_delay_cc_naive.hpp"
+#include "Module/Filter/Variable_delay/Variable_delay_cc_naive.hpp"
+
 using namespace aff3ct::module;
 
 template <typename R>

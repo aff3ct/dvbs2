@@ -1,9 +1,9 @@
-#include "Filter_Farrow_ccr_naive.hpp"
-
 #include <cassert>
 #include <iostream>
 #include <vector>
 #include <complex>
+
+#include "Module/Filter/Filter_FIR/Farrow/Filter_Farrow_ccr_naive.hpp"
 
 using namespace aff3ct::module;
 

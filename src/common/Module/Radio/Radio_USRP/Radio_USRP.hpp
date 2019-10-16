@@ -11,7 +11,7 @@
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd.h>
 
-#include "../Radio.hpp"
+#include "Module/Radio/Radio.hpp"
 
 namespace aff3ct
 {

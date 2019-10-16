@@ -4,7 +4,7 @@
 #include <complex>
 #include <cmath>
 
-#include "Multiplier_sequence_ccc_naive.hpp"
+#include "Module/Multiplier/Sequence/Multiplier_sequence_ccc_naive.hpp"
 using namespace aff3ct::module;
 
 Multiplier_sequence_ccc_naive

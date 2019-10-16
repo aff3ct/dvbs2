@@ -4,7 +4,7 @@
 #include <vector>
 #include <complex>
 
-#include "Synchronizer.hpp"
+#include "Module/Synchronizer/Synchronizer.hpp"
 
 namespace aff3ct
 {

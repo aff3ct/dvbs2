@@ -16,8 +16,6 @@
 
 #include "Tools/Exception/exception.hpp"
 
-#include "Synchronizer.hpp"
-
 namespace aff3ct
 {
 namespace module

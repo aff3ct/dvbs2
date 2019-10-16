@@ -1,7 +1,5 @@
 #include <typeinfo>
 
-#include "Radio_USRP.hpp"
-
 namespace aff3ct
 {
 namespace module

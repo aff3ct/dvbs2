@@ -3,7 +3,7 @@
 #include <aff3ct.hpp>
 using namespace aff3ct;
 
-#include "Sink.hpp"
+#include "Sink/Sink.hpp"
 
 Sink
 ::Sink(const std::string input_filename, const std::string output_filename)

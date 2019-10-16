@@ -13,7 +13,7 @@
 
 #include "Tools/Exception/exception.hpp"
 
-#include "Radio.hpp"
+#include "Module/Radio/Radio.hpp"
 
 namespace aff3ct
 {

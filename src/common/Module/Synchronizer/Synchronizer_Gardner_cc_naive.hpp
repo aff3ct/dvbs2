@@ -4,8 +4,8 @@
 #include <vector>
 #include <complex>
 
-#include "Synchronizer.hpp"
-#include "../Filter/Filter_FIR/Farrow/Filter_Farrow_ccr_naive.hpp"
+#include "Module/Synchronizer/Synchronizer.hpp"
+#include "Module/Filter/Filter_FIR/Farrow/Filter_Farrow_ccr_naive.hpp"
 
 namespace aff3ct
 {

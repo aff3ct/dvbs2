@@ -2,7 +2,7 @@
 #include <cmath>
 #include <iostream>
 
-#include "Decoder_BCH_DVBS2O.hpp"
+#include "Module/Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::module;

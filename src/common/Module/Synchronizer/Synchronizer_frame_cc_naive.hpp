@@ -4,9 +4,8 @@
 #include <vector>
 #include <complex>
 
-#include "Synchronizer.hpp"
-
-#include "../Filter/Variable_delay/Variable_delay_cc_naive.hpp"
+#include "Module/Synchronizer/Synchronizer.hpp"
+#include "Module/Filter/Variable_delay/Variable_delay_cc_naive.hpp"
 
 namespace aff3ct
 {

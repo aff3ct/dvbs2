@@ -1,6 +1,6 @@
 #include "Factory/Module/Radio/Radio.hpp"
 
-#include "Params_DVBS2O.hpp"
+#include "Params_DVBS2O/Params_DVBS2O.hpp"
 
 using namespace aff3ct;
 

@@ -5,7 +5,7 @@
 #include <complex>
 
 #include "Synchronizer.hpp"
-#include "../Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
+#include "Module/Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 
 namespace aff3ct
 {

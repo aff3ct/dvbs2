@@ -5,12 +5,11 @@
 #include <complex>
 #include <aff3ct.hpp>
 
-#include "../../Params_DVBS2O/Params_DVBS2O.hpp"
-
-#include "Synchronizer.hpp"
-#include "Synchronizer_Gardner_cc_naive.hpp"
-#include "Synchronizer_coarse_fr_cc_DVBS2O.hpp"
-#include "../Filter/Filter_FIR/Filter_RRC/Filter_RRC_ccr_naive.hpp"
+#include "Params_DVBS2O/Params_DVBS2O.hpp"
+#include "Module/Synchronizer/Synchronizer.hpp"
+#include "Module/Synchronizer/Synchronizer_Gardner_cc_naive.hpp"
+#include "Module/Synchronizer/Synchronizer_coarse_fr_cc_DVBS2O.hpp"
+#include "Module/Filter/Filter_FIR/Filter_RRC/Filter_RRC_ccr_naive.hpp"
 
 namespace aff3ct
 {

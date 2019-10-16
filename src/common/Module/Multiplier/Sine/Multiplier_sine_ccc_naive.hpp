@@ -6,7 +6,7 @@
 #include <vector>
 #include <complex>
 
-#include "../Multiplier.hpp"
+#include "Module/Multiplier/Multiplier.hpp"
 
 namespace aff3ct
 {

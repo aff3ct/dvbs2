@@ -2,7 +2,7 @@
 #include <cmath>
 #include <iostream>
 
-#include "Encoder_BCH_DVBS2O.hpp"
+#include "Module/Encoder_BCH_DVBS2O/Encoder_BCH_DVBS2O.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::module;

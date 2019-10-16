@@ -1,7 +1,3 @@
-#include <cassert>
-#include <iostream>
-#include <vector>
-#include <complex>
 #define _USE_MATH_DEFINES // enable M_PI definition on MSVC compiler
 #include <cmath>
 
@@ -10,7 +6,7 @@
 #define M_PI 3.1415926535897932384626433832795
 #endif
 
-#include "Multiplier_sine_ccc_naive.hpp"
+#include "Module/Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 
 using namespace aff3ct::module;
 

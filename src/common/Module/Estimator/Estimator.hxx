@@ -13,7 +13,7 @@
 
 #include "Tools/Exception/exception.hpp"
 
-#include "Estimator.hpp"
+#include "Module/Estimator/Estimator.hpp"
 
 namespace aff3ct
 {

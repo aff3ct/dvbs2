@@ -1,4 +1,5 @@
-#include "Filter_UPFIR_ccr_naive.hpp"
+#include "Module/Filter/Filter_UPFIR/Filter_UPFIR_ccr_naive.hpp"
+
 using namespace aff3ct::module;
 
 template <typename R>

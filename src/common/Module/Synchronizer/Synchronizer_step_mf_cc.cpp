@@ -1,9 +1,7 @@
 #include <cassert>
 #include <iostream>
-#include <vector>
-#include <complex>
 
-#include "Synchronizer_step_mf_cc.hpp"
+#include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
 #ifndef M_PI

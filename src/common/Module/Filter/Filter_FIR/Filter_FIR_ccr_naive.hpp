@@ -4,7 +4,7 @@
 #include <vector>
 #include <complex>
 
-#include "../Filter.hpp"
+#include "Module/Filter/Filter.hpp"
 
 namespace aff3ct
 {

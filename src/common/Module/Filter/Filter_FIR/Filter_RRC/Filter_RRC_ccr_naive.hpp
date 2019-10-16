@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "../Filter_FIR_ccr_naive.hpp"
+#include "Module/Filter/Filter_FIR/Filter_FIR_ccr_naive.hpp"
 
 namespace aff3ct
 {

@@ -14,7 +14,7 @@
 
 #include "Tools/Exception/exception.hpp"
 
-#include "Multiplier.hpp"
+#include "Module/Multiplier/Multiplier.hpp"
 
 namespace aff3ct
 {

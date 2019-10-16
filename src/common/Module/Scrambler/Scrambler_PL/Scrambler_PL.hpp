@@ -12,7 +12,7 @@
 #include <string>
 #include <iostream>
 
-#include "../Scrambler.hpp"
+#include "Module/Scrambler/Scrambler.hpp"
 
 namespace aff3ct
 {

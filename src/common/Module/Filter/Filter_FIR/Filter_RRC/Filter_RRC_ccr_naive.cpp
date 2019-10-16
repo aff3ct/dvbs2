@@ -3,7 +3,7 @@
 #include <cmath>
 #include <limits>
 
-#include "Filter_RRC_ccr_naive.hpp"
+#include "Module/Filter/Filter_FIR/Filter_RRC/Filter_RRC_ccr_naive.hpp"
 using namespace aff3ct::module;
 
 #ifndef M_PI

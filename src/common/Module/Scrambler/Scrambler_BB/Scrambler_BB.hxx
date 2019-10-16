@@ -10,8 +10,6 @@
 
 #include <algorithm>
 
-#include "Scrambler_BB.hpp"
-
 namespace aff3ct
 {
 namespace module
