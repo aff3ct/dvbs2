@@ -1,7 +1,7 @@
 #include "Factory/Module/Radio/Radio.hpp"
 
 #ifdef AFF3CT_RADIO_USRP
-	#include "Radio/Radio_USRP/Radio_USRP.hpp"
+	#include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
 #endif
 
 using namespace aff3ct;

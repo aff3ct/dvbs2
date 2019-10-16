@@ -5,7 +5,7 @@
 #include <memory>
 #include <aff3ct.hpp>
 
-#include "Radio/Radio.hpp"
+#include "Module/Radio/Radio.hpp"
 
 namespace aff3ct
 {

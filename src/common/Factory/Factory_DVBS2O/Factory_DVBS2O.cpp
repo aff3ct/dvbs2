@@ -1,7 +1,7 @@
 #include "Factory_DVBS2O.hpp"
 
-#include "../Encoder_BCH_DVBS2O/Encoder_BCH_DVBS2O.hpp"
-#include "../Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
+#include "../../Module/Encoder_BCH_DVBS2O/Encoder_BCH_DVBS2O.hpp"
+#include "../../Module/Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
 
 template <typename B>
 module::Source<B>* Factory_DVBS2O

@@ -7,13 +7,7 @@
 
 #include <aff3ct.hpp>
 
-#include "Scrambler/Scrambler_BB/Scrambler_BB.hpp"
-#include "Params_DVBS2O/Params_DVBS2O.hpp"
-#include "Factory_DVBS2O/Factory_DVBS2O.hpp"
-#include "Framer/Framer.hpp"
-#include "Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
-#include "Scrambler/Scrambler_PL/Scrambler_PL.hpp"
-#include "Sink/Sink.hpp"
+#include "Factory/Factory_DVBS2O/Factory_DVBS2O.hpp"
 
 using namespace aff3ct;
 

@@ -3,7 +3,6 @@
 #include <vector>
 #include <complex>
 
-#include "../Params_DVBS2O/Params_DVBS2O.hpp"
 #include "Synchronizer_step_mf_cc.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
