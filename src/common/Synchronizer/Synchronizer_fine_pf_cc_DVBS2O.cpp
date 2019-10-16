@@ -15,7 +15,7 @@ using namespace aff3ct::module;
 template <typename R>
 Synchronizer_fine_pf_cc_DVBS2O<R>
 ::Synchronizer_fine_pf_cc_DVBS2O(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
-: Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start)
+: Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), estimated_freq(0)
 {
 	assert(pilot_size > 0);
 	assert(pilot_nbr > 0);
@@ -47,7 +47,7 @@ void Synchronizer_fine_pf_cc_DVBS2O<R>
 			sum_symb_conj_ref[1] += X_N1[2*this->pilot_start[p] + 2*i + 1] * this->pilot_values[2*i    ] 
 			                      - X_N1[2*this->pilot_start[p] + 2*i    ] * this->pilot_values[2*i + 1];
 		}
-		phase_est[p] = std::atan2(sum_symb_conj_ref[1],sum_symb_conj_ref[0]);
+		phase_est[p] = std::atan2(sum_symb_conj_ref[1], sum_symb_conj_ref[0]);
 		phase_est[p] = phase_est[p] < 0 ? phase_est[p] + 2*M_PI : phase_est[p];
 	}
 	
@@ -114,12 +114,12 @@ void Synchronizer_fine_pf_cc_DVBS2O<R>
 		sum_tt += t[p]*t[p];
 	}
 		
-	R est_reduced_freq = (this->pilot_nbr * sum_ty - sum_t * sum_y) / (this->pilot_nbr * sum_tt - sum_t * sum_t);
-	R est_phase        = (sum_y - est_reduced_freq * sum_t) / this->pilot_nbr;
+	this->estimated_freq  = (this->pilot_nbr * sum_ty - sum_t * sum_y) / (this->pilot_nbr * sum_tt - sum_t * sum_t);
+	this->estimated_phase = (sum_y - this->estimated_freq * sum_t) / this->pilot_nbr;
 
-	/*if((*this)[syn::tsk::synchronize].is_debug())
+	if((*this)[syn::tsk::synchronize].is_debug())
 	{
-		std::cout << "# {INTERNAL} t = [" << t[0] << " ";
+	/*	std::cout << "# {INTERNAL} t = [" << t[0] << " ";
 		for (int p = 1; p<this->pilot_nbr; p++)
 		{
 			std::cout << t[p] << " ";
@@ -132,13 +132,14 @@ void Synchronizer_fine_pf_cc_DVBS2O<R>
 			std::cout << y[p] << " ";
 		}
 		std::cout << "]"<< std::endl;
-		std::cout << "# {INTERNAL} hat_nu = " << est_reduced_freq << " " << std::endl;
-		std::cout << "# {INTERNAL} hat_phi = "<< est_phase << " " << std::endl;
-	}*/
+		*/
+		std::cout << "# {INTERNAL} hat_nu = " << this->estimated_freq << " " << std::endl;
+		std::cout << "# {INTERNAL} hat_phi = "<< this->estimated_phase << " " << std::endl;
+	}
 	
 	for (int n = 0 ; n < this->N_in/2 ; n++)
 	{
-		R theta = 2 * M_PI *(est_reduced_freq * (R)n + est_phase);
+		R theta = 2 * M_PI *(this->estimated_freq * (R)n + this->estimated_phase);
 
 		Y_N2[2*n    ] = X_N1[2*n    ] * std::cos(theta) 
 		              + X_N1[2*n + 1] * std::sin(theta);
@@ -152,6 +153,8 @@ template <typename R>
 void Synchronizer_fine_pf_cc_DVBS2O<R>
 ::reset()
 {
+	this->estimated_freq = (R)0;
+	this->estimated_phase = (R)0;
 } 
 
 // ==================================================================================== explicit template instantiation

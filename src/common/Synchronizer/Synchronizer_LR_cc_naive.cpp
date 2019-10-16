@@ -15,7 +15,7 @@ using namespace aff3ct::module;
 template <typename R>
 Synchronizer_LR_cc_naive<R>
 ::Synchronizer_LR_cc_naive(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
-: Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), R_l(2,(R)0.0)
+: Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), est_reduced_freq(0), R_l(2,(R)0.0)
 {
 	assert(pilot_size > 0);
 	assert(pilot_nbr > 0);
@@ -40,11 +40,11 @@ void Synchronizer_LR_cc_naive<R>
 		std::vector<R> z(2*Lp, (R)0.0);
 		for (int i = 0 ; i<Lp ; i++)
 		{
-			z[2*i]     = X_N1[2*i +   + 2*this->pilot_start[p]] * pilot_values[2*i] 
-			           + X_N1[2*i + 1 + 2*this->pilot_start[p]] * pilot_values[2*i + 1];
+			z[2*i    ] = X_N1[2*i + 2*this->pilot_start[p]    ] * pilot_values[2*i    ] 
+			           + X_N1[2*i + 2*this->pilot_start[p] + 1] * pilot_values[2*i + 1];
 
-			z[2*i + 1] = X_N1[2*i + 1 + 2*this->pilot_start[p]] * pilot_values[2*i] 
-			           - X_N1[2*i     + 2*this->pilot_start[p]] * pilot_values[2*i + 1];
+			z[2*i + 1] = X_N1[2*i + 2*this->pilot_start[p] + 1] * pilot_values[2*i    ] 
+			           - X_N1[2*i + 2*this->pilot_start[p]    ] * pilot_values[2*i + 1];
 
 					   //std::cout << "(" << X_N1[2*i +   + 2*this->pilot_start[p]] << " " << X_N1[2*i + 1  + 2*this->pilot_start[p]] << ")";
 		}
@@ -55,30 +55,35 @@ void Synchronizer_LR_cc_naive<R>
 
 			for (int k = m; k < Lp ; k++ )
 			{
-				sum_xcorr_z[0] += z[2*k]     * z[2*(k-m)] 
+				sum_xcorr_z[0] += z[2*k    ] * z[2*(k-m)    ] 
 				                + z[2*k + 1] * z[2*(k-m) + 1];
 
-				sum_xcorr_z[1] += z[2*k + 1] * z[2*(k-m)] 
-				                - z[2*k]     * z[2*(k-m) + 1];
+				sum_xcorr_z[1] += z[2*k + 1] * z[2*(k-m)    ] 
+				                - z[2*k    ] * z[2*(k-m) + 1];
 			}
 			this->R_l[0] += sum_xcorr_z[0] / (R)(Lp-m);
 			this->R_l[1] += sum_xcorr_z[1] / (R)(Lp-m);
 		}
 	}
-	
-	R est_reduced_freq = std::atan2(this->R_l[1], this->R_l[0]);
-	est_reduced_freq /= (Lp_2 + 1) * M_PI;
-	
-	//std::cout << "# {INTERNAL} hat_nu = "<< est_reduced_freq << " " << std::endl;
+	this->est_reduced_freq = std::atan2(this->R_l[1], this->R_l[0]);
+	this->est_reduced_freq /= (Lp_2 + 1) * M_PI;
+
+	/*if((*this)[syn::tsk::synchronize].is_debug())
+	{
+		std::cout << "# {INTERNAL} hat_nu = "<< this->est_reduced_freq << " " << std::endl;
+	}*/
+
 	for (int n = 0 ; n < this->N_in/2 ; n++)
 	{
-		R theta = 2 * M_PI * est_reduced_freq * (R)n;
+		R theta = 2 * M_PI * this->est_reduced_freq * (R)n;
+		R cos_theta = std::cos(theta);
+		R sin_theta = std::sin(theta);
+		
+		Y_N2[2*n    ] = X_N1[2*n    ] * cos_theta 
+		              + X_N1[2*n + 1] * sin_theta;
 
-		Y_N2[2*n    ] = X_N1[2*n    ] * std::cos(theta) 
-		              + X_N1[2*n + 1] * std::sin(theta);
-
-		Y_N2[2*n + 1] = X_N1[2*n + 1] * std::cos(theta)
-		              - X_N1[2*n    ] * std::sin(theta);
+		Y_N2[2*n + 1] = X_N1[2*n + 1] * cos_theta
+		              - X_N1[2*n    ] * sin_theta;
 	}
 }
 
@@ -88,6 +93,14 @@ void Synchronizer_LR_cc_naive<R>
 {
 	this->R_l[0] = (R)0.0;
 	this->R_l[1] = (R)0.0;
+	this->est_reduced_freq = (R)0.0;
+} 
+
+template <typename R>
+R Synchronizer_LR_cc_naive<R>
+::get_est_reduced_freq()
+{
+	return this->est_reduced_freq;
 } 
 
 // ==================================================================================== explicit template instantiation

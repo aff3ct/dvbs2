@@ -8,9 +8,16 @@
 #include "../Scrambler/Scrambler_BB/Scrambler_BB.hpp"
 #include "../Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "../Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
+#include "../Filter/Filter_unit_delay/Filter_unit_delay.hpp"
+#include "../Filter/Filter_FIR/Filter_RRC/Filter_RRC_ccr_naive.hpp"
+#include "../Filter/Filter_FIR/Farrow/Filter_Farrow_ccr_naive.hpp"
 #include "../Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 #include "../Synchronizer/Synchronizer_LR_cc_naive.hpp"
 #include "../Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
+#include "../Synchronizer/Synchronizer_Gardner_cc_naive.hpp"
+#include "../Synchronizer/Synchronizer_frame_cc_naive.hpp"
+#include "../Synchronizer/Synchronizer_coarse_fr_cc_DVBS2O.hpp"
+#include "../Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "../Estimator/Estimator.hpp"
 #include "../Radio/Radio.hpp"
 
@@ -59,6 +66,12 @@ struct Factory_DVBS2O {
 	static module::Filter_UPRRC_ccr_naive<R>* build_uprrc_filter(const Params_DVBS2O& params);
 
 	template <typename R = float>
+	static module::Filter_Farrow_ccr_naive<R>* build_channel_delay(const Params_DVBS2O& params);
+
+	template <typename R = float>
+	static module::Filter_RRC_ccr_naive<R>* build_matched_filter(const Params_DVBS2O& params);
+
+	template <typename R = float>
 	static module::Estimator<R>* build_estimator(const Params_DVBS2O& params);
 	
 	template <typename R = float>
@@ -66,6 +79,24 @@ struct Factory_DVBS2O {
 
 	template <typename R = float>
 	static module::Synchronizer_fine_pf_cc_DVBS2O<R>* build_synchronizer_fine_pf(const Params_DVBS2O& params);	
+
+	template <typename R = float>
+	static module::Synchronizer_Gardner_cc_naive<R>* build_synchronizer_gardner (const Params_DVBS2O& params);	
+
+	template <typename R = float>
+	static module::Synchronizer_frame_cc_naive<R>* build_synchronizer_frame (const Params_DVBS2O& params);	
+
+	template <typename R = float>
+	static module::Synchronizer_coarse_fr_cc_DVBS2O<R>* build_synchronizer_coarse_freq (const Params_DVBS2O& params);	
+
+	template <typename R = float>
+	static module::Synchronizer_step_mf_cc<R>* build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R> *sync_coarse_f,
+	                                                                         aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
+	                                                                         aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner);
+
+
+	template <typename B = int>
+	static module::Filter_unit_delay<B>* build_unit_delay(const Params_DVBS2O& params);
 
 	template <typename B = int>
 	static module::Monitor_BFER<B>* build_monitor(const Params_DVBS2O& params);

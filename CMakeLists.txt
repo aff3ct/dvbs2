@@ -46,11 +46,11 @@ target_include_directories(dvbs2_optique_bridge   PRIVATE ${CMAKE_CURRENT_SOURCE
 target_include_directories(dvbs2_optique_usrp     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 
 # Configure the AFF3CT library before compiling it
-option(AFF3CT_COMPILE_EXE        ""                                                   OFF            )
-option(AFF3CT_COMPILE_STATIC_LIB ""                                                   ON             )
-option(AFF3CT_COMPILE_SHARED_LIB ""                                                   OFF            )
-option(AFF3CT_LINK_GSL           ""                                                   OFF            )
-option(AFF3CT_LINK_MKL           ""                                                   OFF            )
+option(AFF3CT_COMPILE_EXE        ""      OFF            )
+option(AFF3CT_COMPILE_STATIC_LIB ""      ON             )
+option(AFF3CT_COMPILE_SHARED_LIB ""      OFF            )
+option(AFF3CT_LINK_GSL           ""      OFF            )
+option(AFF3CT_LINK_MKL           ""      OFF            )
 option(DVBS2O_LINK_UHD           "Link with the UHD library (used in the radio usrp)" ON             )
 option(DVBS2O_LINK_OPENMP        "Link with the OPENMP library"                       ON             )
 set   (AFF3CT_PREC               "MULTI"                                              CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'

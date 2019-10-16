@@ -63,7 +63,6 @@ init_processes()
 
 		return 0;
 	});
-
 }
 
 template <typename R>

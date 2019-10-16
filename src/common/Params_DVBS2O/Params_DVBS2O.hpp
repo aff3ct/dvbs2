@@ -44,6 +44,7 @@ public:
 	const int   GRP_DELAY = 50;
 
 	float MAX_FREQ_SHIFT;
+	float MAX_DELAY;
 
 	const std::vector<float  > pilot_values = std::vector<float  > (P*2, std::sqrt(2.0f)/2.0f);
 	const std::vector<int    > pilot_start  = {1530, 3006, 4482, 5958, 7434};
