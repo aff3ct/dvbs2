@@ -8,7 +8,7 @@ Params_DVBS2O::
 Params_DVBS2O(int argc, char** argv) 
 {
 	
-	Argument_map_value arg_vals;
+	cli::Argument_map_value arg_vals;
 	get_arguments(argc, argv, arg_vals);
 
 	// initialize max fe
@@ -152,29 +152,29 @@ Params_DVBS2O(int argc, char** argv)
 }
 
 void Params_DVBS2O::
-get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals)
+get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals)
 {
 			// build argument handler
-		tools::Argument_handler ah(argc, (const char**) argv);
-		tools::Argument_map_info args;
+		cli::Argument_handler ah(argc, (const char**) argv);
+		cli::Argument_map_info args;
 		std::vector<std::string> cmd_warn, cmd_error;
 
 		p_rad.get_description(args);
 
 		// add possible argument inputs
-		auto modcod_format = tools::Text(tools::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
-		args.add({"mod-cod"},            modcod_format,                                        "Modulation and coding scheme."       );
-		args.add({"chn-max-freq-shift"}, tools::Real(),                                        "Maximum Doppler shift."              );
-		args.add({"chn-max-delay"},      tools::Real(),                                        "Maximum Channel Delay."              );
-		args.add({"max-fe","e"},         tools::Integer(tools::Positive(), tools::Non_zero()), "Modulation and coding scheme."       );
-		args.add({"sim-noise-min","m"},  tools::Real(),                                        "Min Eb/N0"                           );
-		args.add({"sim-noise-max","M"},  tools::Real(),                                        "Max Eb/N0"                           );
-		args.add({"sim-noise-step","s"}, tools::Real(),                                        "Step Eb/N0"                          );
-		args.add({"sim-stats"},          tools::None(),                                        "Display stats."                      );
-		args.add({"dec-ite"},            tools::Integer(tools::Positive(), tools::Non_zero()), "LDPC number of iterations"           );
-		args.add({"dec-implem"},         tools::Text(tools::Including_set("SPA", "MS", "NMS")),"LDPC Implem "                        );
-		args.add({"dec-simd"},           tools::Text(tools::Including_set("INTER", "INTRA")),  "Display stats."                      );
-		args.add({"section"},            tools::Text()                                      ,  "Section to be used in bridge binary.");
+		auto modcod_format = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
+		args.add({"mod-cod"},            modcod_format,                                      "Modulation and coding scheme."       );
+		args.add({"chn-max-freq-shift"}, cli::Real(),                                        "Maximum Doppler shift."              );
+		args.add({"chn-max-delay"},      cli::Real(),                                        "Maximum Channel Delay."              );
+		args.add({"max-fe","e"},         cli::Integer(cli::Positive(), cli::Non_zero()),     "Modulation and coding scheme."       );
+		args.add({"sim-noise-min","m"},  cli::Real(),                                        "Min Eb/N0"                           );
+		args.add({"sim-noise-max","M"},  cli::Real(),                                        "Max Eb/N0"                           );
+		args.add({"sim-noise-step","s"}, cli::Real(),                                        "Step Eb/N0"                          );
+		args.add({"sim-stats"},          cli::None(),                                        "Display stats."                      );
+		args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),     "LDPC number of iterations"           );
+		args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")),  "LDPC Implem "                        );
+		args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),    "Display stats."                      );
+		args.add({"section"},            cli::Text(),                                        "Section to be used in bridge binary.");
 
 		// parse user arguments
 		arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);

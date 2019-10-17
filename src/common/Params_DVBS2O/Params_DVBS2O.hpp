@@ -55,7 +55,7 @@ public:
 	const std::vector<int> bch_prim_poly = {1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
 
 	Params_DVBS2O(int argc, char** argv);
-	void get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals);
+	void get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals);
 
 
 };
