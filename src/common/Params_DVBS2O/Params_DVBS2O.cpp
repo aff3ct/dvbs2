@@ -154,7 +154,7 @@ Params_DVBS2O(int argc, char** argv)
 	S                 = N_XFEC_FRAME / M;
 	PL_FRAME_SIZE     = M * (S + 1) + (N_PILOTS * P);
 
-	p_rad.N = (this->PL_FRAME_SIZE + this->GRP_DELAY) * 4; // 2 * N_fil
+	p_rad.N = (this->PL_FRAME_SIZE) * 4; // 2 * N_fil
 	p_rad.store(arg_vals);
 }
 
