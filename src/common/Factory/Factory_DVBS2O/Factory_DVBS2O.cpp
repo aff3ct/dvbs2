@@ -153,7 +153,10 @@ module::Channel<R>* Factory_DVBS2O
 {
 	std::unique_ptr<tools::Gaussian_noise_generator<R>> n = nullptr;
 	n.reset(new tools::Gaussian_noise_generator_fast<R>(seed));
-	return new module::Channel_AWGN_LLR<R>(2*params.PL_FRAME_SIZE * params.OSF, std::move(n));
+	if (params.filtered)
+		return new module::Channel_AWGN_LLR<R>(2 * params.PL_FRAME_SIZE * params.OSF, std::move(n));
+	else
+		return new module::Channel_AWGN_LLR<R>(2 * params.PL_FRAME_SIZE             , std::move(n));
 }
 
 template <typename R>

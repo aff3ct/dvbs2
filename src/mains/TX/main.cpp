@@ -41,14 +41,14 @@ int main(int argc, char** argv)
 	for (auto& m : modules)
 		for (auto& t : m->tasks)
 		{
-			t->set_autoalloc  (true ); // enable the automatic allocation of the data in the tasks
-			t->set_autoexec   (false); // disable the auto execution mode of the tasks
-			t->set_debug      (false); // disable the debug mode
-			t->set_debug_limit(16   ); // display only the 16 first bits if the debug mode is enabled
-			t->set_stats      (true ); // enable the statistics
+			t->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
+			t->set_autoexec   (false       ); // disable the auto execution mode of the tasks
+			t->set_debug      (params.debug); // disable the debug mode
+			t->set_debug_limit(16          ); // display only the 16 first bits if the debug mode is enabled
+			t->set_stats      (true        ); // enable the statistics
 
 			// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
-			t->set_fast(!t->is_debug() && !t->is_stats());
+			t->set_fast(false);
 		}
 
 	using namespace module;

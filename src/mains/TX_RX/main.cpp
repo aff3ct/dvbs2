@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Framer<>                           > framer       (Factory_DVBS2O::build_framer                   <>(params                 ));
 	std::unique_ptr<module::Scrambler<float>                   > pl_scrambler (Factory_DVBS2O::build_pl_scrambler             <>(params                 ));
 	std::unique_ptr<module::Filter_unit_delay<>                > delay        (Factory_DVBS2O::build_unit_delay               <>(params                 ));	
-	std::unique_ptr<module::Monitor_BFER<>                     > monitor       (Factory_DVBS2O::build_monitor <>(params                                 ));
+	std::unique_ptr<module::Monitor_BFER<>                     > monitor      (Factory_DVBS2O::build_monitor                  <>(params                 ));
 	std::unique_ptr<module::Filter_RRC_ccr_naive<>             > matched_flt  (Factory_DVBS2O::build_matched_filter           <>(params                 ));
 	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<>    > sync_gardner (Factory_DVBS2O::build_synchronizer_gardner     <>(params                 ));
 	std::unique_ptr<module::Synchronizer_coarse_fr_cc_DVBS2O<> > sync_coarse_f(Factory_DVBS2O::build_synchronizer_coarse_freq <>(params                 ));	
@@ -90,12 +90,12 @@ int main(int argc, char** argv)
 	for (auto& m : modules)
 		for (auto& ta : m->tasks)
 		{
-			ta->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
-			ta->set_autoexec   (false       ); // disable the auto execution mode of the tasks
-			ta->set_debug      (false       ); // disable the debug mode
-			ta->set_debug_limit(100          ); // display only the 16 first bits if the debug mode is enabled
-			ta->set_debug_precision(8          );
-			ta->set_stats      (params.stats); // enable the statistics
+			ta->set_autoalloc      (true        ); // enable the automatic allocation of the data in the tasks
+			ta->set_autoexec       (false       ); // disable the auto execution mode of the tasks
+			ta->set_debug          (params.debug); // disable the debug mode
+			ta->set_debug_limit    (         100); // display only the 16 first bits if the debug mode is enabled
+			ta->set_debug_precision(           8);
+			ta->set_stats          (params.stats); // enable the statistics
 
 			// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
 			ta->set_fast(false);//!ta->is_debug() && !ta->is_stats()

@@ -27,10 +27,17 @@ Params_DVBS2O(int argc, char** argv)
 	else
 		ebn0_step = .1f;
 
+	if (arg_vals.exist({"sim-debug","d"}))
+		debug = true;
+	else
+		debug = false;
+
 	if (arg_vals.exist({"sim-stats"}))
 		stats = true;
 	else
 		stats = false;
+
+	filtered = true;
 
 	if (arg_vals.exist({"dec-ite"}))
 		LDPC_NITE = arg_vals.to_int({"dec-ite"});
@@ -170,6 +177,7 @@ get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals)
 		args.add({"sim-noise-min","m"},  cli::Real(),                                        "Min Eb/N0"                           );
 		args.add({"sim-noise-max","M"},  cli::Real(),                                        "Max Eb/N0"                           );
 		args.add({"sim-noise-step","s"}, cli::Real(),                                        "Step Eb/N0"                          );
+		args.add({"sim-debug", "d"},     cli::None(),                                        "Display debug."                      );
 		args.add({"sim-stats"},          cli::None(),                                        "Display stats."                      );
 		args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),     "LDPC number of iterations"           );
 		args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")),  "LDPC Implem "                        );

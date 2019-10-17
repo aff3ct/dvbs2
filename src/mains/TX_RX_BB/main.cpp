@@ -23,7 +23,8 @@ using Monitor_BFER_reduction = Monitor_reduction_M<Monitor_BFER<>>;
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
-	const auto params = Params_DVBS2O(argc, argv);
+	auto params = Params_DVBS2O(argc, argv);
+	params.filtered = false;
 
 	// declare shared modules and tools
 	std::vector<std::unique_ptr<module::Monitor_BFER<>>>        monitors;
@@ -112,12 +113,12 @@ int main(int argc, char** argv)
 		{
 			ta->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
 			ta->set_autoexec   (false       ); // disable the auto execution mode of the tasks
-			ta->set_debug      (false       ); // disable the debug mode
+			ta->set_debug      (params.debug); // disable the debug mode
 			ta->set_debug_limit(16          ); // display only the 16 first bits if the debug mode is enabled
 			ta->set_stats      (params.stats); // enable the statistics
 
 			// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
-			ta->set_fast(!ta->is_debug() && !ta->is_stats());
+			ta->set_fast(false);
 		}
 
 	using namespace module;
