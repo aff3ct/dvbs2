@@ -109,8 +109,8 @@ endif(DVBS2O_LINK_OPENMP)
 if(DVBS2O_LINK_UHD)
     message(STATUS "DVBS2O - UHD: on")
     target_compile_definitions(dvbs2_optique_common PUBLIC 
-                               $<BUILD_INTERFACE:AFF3CT_RADIO_USRP>
-                               $<INSTALL_INTERFACE:AFF3CT_RADIO_USRP>)
+                               $<BUILD_INTERFACE:DVBS2O_LINK_UHD>
+                               $<INSTALL_INTERFACE:DVBS2O_LINK_UHD>)
 
     # Link UHD
     find_package (UHD)

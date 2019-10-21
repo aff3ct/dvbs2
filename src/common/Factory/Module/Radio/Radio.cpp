@@ -1,6 +1,6 @@
 #include "Factory/Module/Radio/Radio.hpp"
 
-#ifdef AFF3CT_RADIO_USRP
+#ifdef DVBS2O_LINK_UHD
 	#include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
 #endif
 
@@ -117,7 +117,7 @@ template <typename R>
 module::Radio<R>* Radio::parameters
 ::build() const
 {
-	#ifdef AFF3CT_RADIO_USRP
+	#ifdef DVBS2O_LINK_UHD
 	return new module::Radio_USRP<R> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
 	                                  this->rx_subdev_spec, this->rx_antenna, this->tx_rate, this->tx_freq, this->tx_subdev_spec,
 	                                  this->tx_antenna, this->n_frames, this->rx_gain, this->tx_gain);
