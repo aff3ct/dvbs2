@@ -7,7 +7,15 @@ template <typename B>
 module::Source<B>* Factory_DVBS2O
 ::build_source(const Params_DVBS2O& params, const int seed)
 {
-	return new module::Source_random_fast<B>(params.K_BCH, seed);
+	if (params.src_type == "RAND")
+		return new module::Source_random_fast<B>(params.K_BCH, seed);
+	else if (params.src_type == "USER")
+		return new module::Source_user<B>(params.K_BCH,params.src_path);
+	else if (params.src_type == "AZCW")
+		return new module::Source_AZCW<B>(params.K_BCH);
+	else
+		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Source type.");
+
 }
 
 template <typename B>

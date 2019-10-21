@@ -111,16 +111,16 @@ Params_DVBS2O(int argc, char** argv)
 	if( MOD == "QPSK"  )
 	{
 		BPS = 2;
-		constellation_file = "../conf/4QAM_GRAY.mod";
+		constellation_file = "../conf/mod/4QAM_GRAY.mod";
 	}
 	else if ( MOD == "8PSK"  )
 	{	
 		BPS = 3;
-		constellation_file = "../conf/8PSK.mod";
+		constellation_file = "../conf/mod/8PSK.mod";
 	}
 	else if ( MOD == "16APSK"){
 		BPS = 4;
-		constellation_file = "../conf/16APSK.mod";
+		constellation_file = "../conf/mod/16APSK.mod";
 	}	
 	else
 	{
@@ -133,18 +133,25 @@ Params_DVBS2O(int argc, char** argv)
 		K_BCH             = 9552;
 		N_BCH             = 9720;
 		N_BCH_unshortened = 16383;
+		src_path          = "../conf/src/K_9552.src";
 	}
 	else if ( COD == "8/9"  )
 	{
 		K_BCH             = 14232;
 		N_BCH             = 14400;
 		N_BCH_unshortened = 16383;
+		src_path          = "../conf/src/K_14232.src";
 	}
 	
 	if (arg_vals.exist({"section"}))
 		section = arg_vals.at({"section"});
 	else
 		section = "";
+
+	if (arg_vals.exist({"src-type"}))
+		src_type = arg_vals.at({"src-type"});
+	else
+		stats = "RAND";
 
 	ITL_N_COLS        = BPS;
 	K_LDPC            = N_BCH;
@@ -169,19 +176,20 @@ get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals)
 
 		// add possible argument inputs
 		auto modcod_format = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
-		args.add({"mod-cod"},            modcod_format,                                      "Modulation and coding scheme."       );
-		args.add({"chn-max-freq-shift"}, cli::Real(),                                        "Maximum Doppler shift."              );
-		args.add({"chn-max-delay"},      cli::Real(),                                        "Maximum Channel Delay."              );
-		args.add({"max-fe","e"},         cli::Integer(cli::Positive(), cli::Non_zero()),     "Modulation and coding scheme."       );
-		args.add({"sim-noise-min","m"},  cli::Real(),                                        "Min Eb/N0"                           );
-		args.add({"sim-noise-max","M"},  cli::Real(),                                        "Max Eb/N0"                           );
-		args.add({"sim-noise-step","s"}, cli::Real(),                                        "Step Eb/N0"                          );
-		args.add({"sim-debug", "d"},     cli::None(),                                        "Display debug."                      );
-		args.add({"sim-stats"},          cli::None(),                                        "Display stats."                      );
-		args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),     "LDPC number of iterations"           );
-		args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")),  "LDPC Implem "                        );
-		args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),    "Display stats."                      );
-		args.add({"section"},            cli::Text(),                                        "Section to be used in bridge binary.");
+		args.add({"mod-cod"},            modcod_format,                                         "Modulation and coding scheme."       );
+		args.add({"chn-max-freq-shift"}, cli::Real(),                                           "Maximum Doppler shift."              );
+		args.add({"chn-max-delay"},      cli::Real(),                                           "Maximum Channel Delay."              );
+		args.add({"max-fe","e"},         cli::Integer(cli::Positive(), cli::Non_zero()),        "Modulation and coding scheme."       );
+		args.add({"sim-noise-min","m"},  cli::Real(),                                           "Min Eb/N0"                           );
+		args.add({"sim-noise-max","M"},  cli::Real(),                                           "Max Eb/N0"                           );
+		args.add({"sim-noise-step","s"}, cli::Real(),                                           "Step Eb/N0"                          );
+		args.add({"sim-debug", "d"},     cli::None(),                                           "Display debug."                      );
+		args.add({"sim-stats"},          cli::None(),                                           "Display stats."                      );
+		args.add({"src-type"},           cli::Text(cli::Including_set("RAND", "USER", "AZCW")), "Type of the binary source"           );
+		args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),        "LDPC number of iterations"           );
+		args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")),     "LDPC Implem "                        );
+		args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),       "Display stats."                      );
+		args.add({"section"},            cli::Text(),                                           "Section to be used in bridge binary.");
 
 		// parse user arguments
 		arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);
