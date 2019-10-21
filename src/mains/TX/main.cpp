@@ -1,13 +1,29 @@
 #include <aff3ct.hpp>
 
+#include "version.h"
 #include "Factory/Factory_DVBS2O/Factory_DVBS2O.hpp"
 
 using namespace aff3ct;
+// using header_list = std::vector<std::pair<std::string,std::string>>;
 
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
-	const auto params = Params_DVBS2O(argc, argv);
+	auto params = Params_DVBS2O(argc, argv);
+
+	factory::header_list dvbs2o_header;
+	dvbs2o_header.push_back(std::pair<std::string,std::string>("Git Hash",dvbs2o_sha1()));
+	std::map<std::string,factory::header_list> headers;
+	params.p_rad.get_headers(headers);
+	auto max_n_chars = 0;
+	for (auto &h : headers)
+		factory::Header::compute_max_n_chars(h.second, max_n_chars);
+	factory::Header::compute_max_n_chars(dvbs2o_header,max_n_chars);
+
+	std::vector<factory::Factory::parameters*> param_vec;
+	param_vec.push_back(&params.p_rad);
+	factory::Header::print_parameters("DVBS2O", "DVBS2O", dvbs2o_header, max_n_chars);
+	factory::Header::print_parameters(param_vec, true, std::cout);
 
 	std::vector<float> shaping_in  ((params.PL_FRAME_SIZE) * 2, 0.0f);
 

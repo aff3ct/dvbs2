@@ -10,7 +10,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Specify bin path
 set (EXECUTABLE_OUTPUT_PATH bin/)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+
+# ------------------------------------------------------------------------------------------------------------- VERSION
+include(GetGitRevisionDescription)
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+string(SUBSTRING ${GIT_SHA1} 0 7 GIT_SHA1)
+message(STATUS "DVBS2O - Hash: ${GIT_SHA1}")
+
 # CMake options
+option(DVBS2O_LINK_UHD    "Link with the UHD library (used in the radio usrp)" ON)
+option(DVBS2O_LINK_OPENMP "Link with the OPENMP library"                       ON)
 
 # Generate the source files lists
 file(GLOB_RECURSE SRC_FILES_CO       ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*)
@@ -21,6 +31,11 @@ set(SRC_FILES_MATLAB_RX     ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/matlab/main_rx
 set(SRC_FILES_MATLAB_BRIDGE ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/matlab/main_bridge.cpp)
 set(SRC_FILES_TX_RX         ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/TX_RX/main.cpp)
 set(SRC_FILES_TX_RX_BB      ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/TX_RX_BB/main.cpp)
+
+# Auto generate a header containing the last Git SHA1
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.cpp.in"
+               "${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.cpp" @ONLY)
+list(APPEND SRC_FILES_CO "${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.cpp")
 
 # Create the executables from sources
 add_library(dvbs2_optique_common STATIC ${SRC_FILES_CO})
@@ -55,8 +70,6 @@ option(AFF3CT_COMPILE_STATIC_LIB ""      ON             )
 option(AFF3CT_COMPILE_SHARED_LIB ""      OFF            )
 option(AFF3CT_LINK_GSL           ""      OFF            )
 option(AFF3CT_LINK_MKL           ""      OFF            )
-option(DVBS2O_LINK_UHD           "Link with the UHD library (used in the radio usrp)" ON             )
-option(DVBS2O_LINK_OPENMP        "Link with the OPENMP library"                       ON             )
 set   (AFF3CT_PREC               "MULTI"                                              CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
 
 # Compile the AFF3CT library
