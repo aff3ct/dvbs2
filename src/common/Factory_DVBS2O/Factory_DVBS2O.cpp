@@ -195,7 +195,7 @@ template <typename R>
 module::Synchronizer_coarse_fr_cc_DVBS2O<R>* Factory_DVBS2O
 ::build_synchronizer_coarse_freq(const Params_DVBS2O& params)
 {
-	return new module::Synchronizer_coarse_fr_cc_DVBS2O<R>(2 * params.PL_FRAME_SIZE * params.OSF, 1, 0.707, 1e-4);
+	return new module::Synchronizer_coarse_fr_cc_DVBS2O<R>(2 * params.PL_FRAME_SIZE * params.OSF, params.OSF, 0.707, 1e-4);
 }
 
 template <typename B>

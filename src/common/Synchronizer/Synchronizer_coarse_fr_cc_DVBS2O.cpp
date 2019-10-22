@@ -22,7 +22,7 @@ Synchronizer_coarse_fr_cc_DVBS2O<R>
 ::Synchronizer_coarse_fr_cc_DVBS2O(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth)
 :Synchronizer<R>(N,N), scrambled_pilots(this->PL_RAND_SEQ.size(),std::complex<R>((R)0,(R)0)), samples_per_symbol(samples_per_symbol), curr_idx(8369), length_max(8370), proportional_gain((R)1.0), integrator_gain((R)1.0), digital_synthesizer_gain((R)1), prev_spl(std::complex<R>((R)0.0,(R)0.0)), prev_prev_spl(std::complex<R>((R)0.0,(R)0.0)), loop_filter_state((R)0.0),  integ_filter_state((R)0.0), DDS_prev_in((R)0.0), is_active(false), mult(N,(R)0.0, (R)1.0, 1), estimated_freq((R)0.0)
 {
-	this->set_PLL_coeffs (samples_per_symbol, damping_factor, normalized_bandwidth);
+	this->set_PLL_coeffs (1, damping_factor, normalized_bandwidth);
 	
 	for (auto i = 0; i < this->PL_RAND_SEQ.size(); i++)
 	{
@@ -73,7 +73,7 @@ void Synchronizer_coarse_fr_cc_DVBS2O<R>
 
 			this->DDS_prev_in = phase_error * this->proportional_gain + this->loop_filter_state;
             
-			this->estimated_freq = this->digital_synthesizer_gain * this->integ_filter_state / this->samples_per_symbol;
+			this->estimated_freq = this->digital_synthesizer_gain * this->integ_filter_state / (R)this->samples_per_symbol;
 			this->mult.set_nu(-this->estimated_freq);
 			
 			this->prev_prev_spl = this->prev_spl;
@@ -91,22 +91,22 @@ void Synchronizer_coarse_fr_cc_DVBS2O<R>
 
 template <typename R>
 void Synchronizer_coarse_fr_cc_DVBS2O<R>
-::set_PLL_coeffs (const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth)
+::set_PLL_coeffs (const int pll_sps, const R damping_factor, const R normalized_bandwidth)
 {
 	R phase_error_detector_gain = (R)2.0;
-	R phase_recovery_loop_bandwidth = normalized_bandwidth * (R)samples_per_symbol;
+	R phase_recovery_loop_bandwidth = normalized_bandwidth * (R)pll_sps;
 	
 	//K0
-	R phase_recovery_gain = samples_per_symbol;
+	R phase_recovery_gain = pll_sps;
 
-	R theta = phase_recovery_loop_bandwidth/((damping_factor + 0.25/damping_factor)*samples_per_symbol);
+	R theta = phase_recovery_loop_bandwidth/((damping_factor + 0.25/damping_factor)*pll_sps);
 	R d = (R)1.0 + (R)2.0*damping_factor*theta + theta*theta;
 	
 	//K1
-	this->proportional_gain = ((R)4*damping_factor*theta/d)/(phase_error_detector_gain*phase_recovery_gain);
+	this->proportional_gain = ((R)4.0*damping_factor*theta/d)/(phase_error_detector_gain*phase_recovery_gain);
 	
 	//K2
-	this->integrator_gain = ((R)4/samples_per_symbol*theta*theta/d)/(phase_error_detector_gain*phase_recovery_gain);
+	this->integrator_gain = ((R)4.0/pll_sps*theta*theta/d)/(phase_error_detector_gain*phase_recovery_gain);
 	
 	this->digital_synthesizer_gain = (R)1.0;
 }
