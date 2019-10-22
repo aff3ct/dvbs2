@@ -151,7 +151,7 @@ Params_DVBS2O(int argc, char** argv)
 	if (arg_vals.exist({"src-type"}))
 		src_type = arg_vals.at({"src-type"});
 	else
-		stats = "RAND";
+		src_type = "RAND";
 
 	ITL_N_COLS        = BPS;
 	K_LDPC            = N_BCH;
