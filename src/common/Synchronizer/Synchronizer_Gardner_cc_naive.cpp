@@ -26,12 +26,12 @@ strobe_history(0),
 is_strobe(0),
 TED_error((R)0),
 TED_buffer(OSF, std::complex<R>((R)0,(R)0)),
-TED_head_pos(OSF - 1),
-TED_mid_pos((OSF - 1 - OSF / 2) % OSF),
-TED_old_head_pos(0),
+TED_head_pos(0),
+TED_mid_pos (OSF / 2),//(OSF - 1 - OSF / 2) % OSF
+TED_tail_pos(0),
 set_bits_nbr(std::vector<int>{0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4}),
-lf_proportional_gain(-1.6666e-05),
-lf_integrator_gain   (-2.7777e-10),
+lf_proportional_gain( -1.6666e-05),//-4.7058e-05
+lf_integrator_gain   (-2.7777e-10),//-1.3841e-10
 lf_prev_in ((R)0),
 lf_filter_state ((R)0),
 lf_output((R)0),
@@ -39,10 +39,10 @@ NCO_counter((R)0),
 overflow_cnt(0),
 underflow_cnt(0),
 output_buffer(N/OSF, std::complex<R>((R)0,(R)0)),
-outbuf_head  (N/OSF/20),
+outbuf_head  (0),//outbuf_head  (0),//N/OSF/10
 outbuf_tail(0),
 outbuf_max_sz(N/OSF),
-outbuf_cur_sz(N/OSF/20)
+outbuf_cur_sz(0)//outbuf_cur_sz(0)//N/OSF/10
 {
 }
 
@@ -57,29 +57,7 @@ void Synchronizer_Gardner_cc_naive<R>
 {
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
 	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
-	//int n_in = 0;
-	//int n_out = 0;
-			
-	/*for (auto i = 0; i < this->N_in/2 ; i++)
-	{
-		n_in += 2;
-		if (this->is_strobe == 1)
-		{
-			this->step(&cX_N1[i]);
 
-			if (2*n_out < this->N_out)
-			{
-				Y_N2[2 * n_out    ] = std::real(this->last_symbol);
-				Y_N2[2 * n_out + 1] = std::imag(this->last_symbol);
-			}
-			n_out += 1;
-		}
-		else
-		{
-			this->step(&cX_N1[i]);
-		}
-	}
-	*/
 	for (auto i = 0; i < this->N_in/2 ; i++)
 	{
 		this->step(&cX_N1[i]);
@@ -89,7 +67,6 @@ void Synchronizer_Gardner_cc_naive<R>
 	{
 		this->pop(&cY_N2[i]);
 	}
-	//std::cerr << "N_in "<< n_in << " / " << this->N_in << "\n" << "N_out "<< 2*n_out << " / " << this->N_out << std::endl;
 }
 
 
@@ -125,9 +102,9 @@ void Synchronizer_Gardner_cc_naive<R>
 	this->strobe_history   = 0;
 	this->is_strobe        = 0;
 	this->TED_error        = (R)0;
-	this->TED_head_pos     = OSF - 1;
-	this->TED_mid_pos      = (OSF - 1 - OSF / 2) % OSF;
-	this->TED_old_head_pos = 0;
+	this->TED_head_pos     = 0;
+	this->TED_mid_pos      = OSF/2;//(OSF - 1 - OSF / 2) % OSF;
+	this->TED_tail_pos     = 0;
 	this->lf_prev_in       = (R)0;
 	this->lf_filter_state  = (R)0;
 	this->lf_output        = (R)0;
@@ -138,23 +115,23 @@ void Synchronizer_Gardner_cc_naive<R>
 	for (auto i = 0; i<this->outbuf_max_sz ; i++)
 		this->output_buffer[i] = std::complex<R>((R)0,(R)0);
 
-	this->outbuf_head      = this->N_out/20;
+	this->outbuf_head      = 0; // this->N_out/10;
 	this->outbuf_tail      = 0;
-	this->outbuf_cur_sz    = this->N_out/20;
+	this->outbuf_cur_sz    = 0; //this->N_out/10;
 }
 
 template <typename R>
 void Synchronizer_Gardner_cc_naive<R>
 ::loop_filter()
 {
-	//this->lf_filter_state += this->lf_prev_in;
-	//this->lf_output        = this->TED_error * this->lf_proportional_gain + this->lf_filter_state;
-	//this->lf_prev_in       = this->TED_error * this->lf_integrator_gain;
+	this->lf_filter_state += this->lf_prev_in;
+	this->lf_output        = this->TED_error * this->lf_proportional_gain + this->lf_filter_state;
+	this->lf_prev_in       = this->TED_error * this->lf_integrator_gain;
 	
-	R vp = this->TED_error * this->lf_proportional_gain;
-	R vi = this->lf_prev_in + this->TED_error * this->lf_integrator_gain;
-	this->lf_prev_in = vi;
-	this->lf_output = vp + vi;
+	//R vp = this->TED_error * this->lf_proportional_gain;
+	//R vi = this->lf_prev_in + this->TED_error * this->lf_integrator_gain;
+	//this->lf_prev_in = vi;
+	//this->lf_output = vp + vi;
 }
 
 template <typename R>
@@ -170,18 +147,20 @@ void Synchronizer_Gardner_cc_naive<R>
 		this->farrow_flt.set_mu(this->mu);
 	}
 		
-	this->NCO_counter -= W + std::floor(this->NCO_counter - W); // Update counter*/
+	this->NCO_counter = (this->NCO_counter - W) - std::floor(this->NCO_counter - W); // Update counter*/
 }
 
 template <typename R>
 void Synchronizer_Gardner_cc_naive<R>
 ::TED_update(std::complex<R> sample)
 {
-	this->strobe_history = (this->strobe_history << 1) % this->POW_OSF + this->is_strobe; 
+	this->strobe_history = (this->strobe_history << 1) % this->POW_OSF + this->is_strobe;
 
 	if (this->strobe_history == 1)
+	{
 		this->TED_error = std::real(this->TED_buffer[this->TED_mid_pos]) * (std::real(this->TED_buffer[this->TED_head_pos]) - std::real(sample)) + 
 		                  std::imag(this->TED_buffer[this->TED_mid_pos]) * (std::imag(this->TED_buffer[this->TED_head_pos]) - std::imag(sample));
+	}
 	else
 		this->TED_error = 0.0f;
 
@@ -193,18 +172,19 @@ void Synchronizer_Gardner_cc_naive<R>
 
 		case 1:
 			this->TED_buffer[this->TED_head_pos] = sample;
-			this->TED_old_head_pos = this->TED_head_pos;
-			this->TED_head_pos = (this->TED_head_pos + 1)%this->OSF;
-			this->TED_mid_pos  = (this->TED_mid_pos  + 1)%this->OSF;
+
+			this->TED_tail_pos = (this->TED_tail_pos - 1) % this->OSF;
+			this->TED_head_pos = (this->TED_head_pos - 1) % this->OSF;
+			this->TED_mid_pos  = (this->TED_mid_pos  - 1) % this->OSF;
 		break;
 
 		default:
-			this->TED_buffer[ this->TED_head_pos               ] = R(0.0f);
-			this->TED_buffer[(this->TED_head_pos + 1)%this->OSF] = sample;
+			this->TED_buffer[ this->TED_head_pos               ] = std::complex<R>(0.0f, 0.0f);
+			this->TED_buffer[(this->TED_head_pos - 1)%this->OSF] = sample;
 
-			this->TED_old_head_pos = (this->TED_head_pos + 1) % this->OSF;
-			this->TED_head_pos     = (this->TED_head_pos + 2) % this->OSF;
-			this->TED_mid_pos      = (this->TED_mid_pos  + 2) % this->OSF;
+			this->TED_tail_pos     = (this->TED_tail_pos - 2) % this->OSF;
+			this->TED_head_pos     = (this->TED_head_pos - 2) % this->OSF;
+			this->TED_mid_pos      = (this->TED_mid_pos  - 2) % this->OSF;
 		break;
 	}
 }
@@ -217,6 +197,7 @@ void Synchronizer_Gardner_cc_naive<R>
 	{
 		this->output_buffer[this->outbuf_head] = strobe;
 		this->outbuf_head = (this->outbuf_head + 1)%this->outbuf_max_sz;
+		this->outbuf_cur_sz++;
 	}
 	else
 	{
@@ -232,6 +213,7 @@ void Synchronizer_Gardner_cc_naive<R>
 	{
 		*strobe = this->output_buffer[this->outbuf_tail];
 		this->outbuf_tail = (this->outbuf_tail + 1)%this->outbuf_max_sz;
+		this->outbuf_cur_sz--;
 	}
 	else
 	{
@@ -244,7 +226,7 @@ template <typename R>
 int Synchronizer_Gardner_cc_naive<R>
 ::get_delay()
 {
-	return this->N_out/20;//this->outbuf_cur_sz;
+	return 0;//this->outbuf_cur_sz;//
 }
 
 // ==================================================================================== explicit template instantiation

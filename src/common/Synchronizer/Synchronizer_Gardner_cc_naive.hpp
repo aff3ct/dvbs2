@@ -32,7 +32,7 @@ private:
 	std::vector<std::complex<R> > TED_buffer;
 	int TED_head_pos;
 	int TED_mid_pos;
-	int TED_old_head_pos;
+	int TED_tail_pos;
 	const std::vector<int>  set_bits_nbr;
 
 	// Loop filter parameters
