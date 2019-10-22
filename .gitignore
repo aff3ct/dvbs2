@@ -9,6 +9,7 @@ src/common/version.cpp
 .fuse_*
 .idea/
 .vs
+.vscode/
 build*/
 cmake-build*/
 cppcheck/
