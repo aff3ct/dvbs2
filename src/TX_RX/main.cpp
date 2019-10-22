@@ -105,7 +105,7 @@ int main(int argc, char** argv)
 			ta->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
 			ta->set_autoexec   (false       ); // disable the auto execution mode of the tasks
 			ta->set_debug      (false       ); // disable the debug mode
-			ta->set_debug_limit(100          ); // display only the 16 first bits if the debug mode is enabled
+			ta->set_debug_limit(-1          ); // display only the 16 first bits if the debug mode is enabled
 			ta->set_debug_precision(8          );
 			ta->set_stats      (params.stats); // enable the statistics
 
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
 	// reset the memory of the decoder after the end of each communication
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 
-	auto ebn0_debug_trigger = 10;
+	auto ebn0_debug_trigger = 10000;
 	// a loop over the various SNRs
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
 	{
@@ -158,15 +158,12 @@ int main(int argc, char** argv)
 		{
 			for (auto& m : modules)
 				for (auto& ta : m->tasks)
-				{
 					ta->set_debug      (true       ); // disable the debug mode
-					ta->set_debug_limit(100          ); // display only the 16 first bits if the debug mode is enabled
-					ta->set_debug_precision(8          );
-				}
+
 		}
 
-		std::unique_ptr<module::Source<>                           > source       (Factory_DVBS2O::build_source                   <>(params, 0              ));
-		std::unique_ptr<module::Channel<>                          > channel      (Factory_DVBS2O::build_channel                  <>(params, 1              ));
+		std::unique_ptr<module::Source<>                           > source       (Factory_DVBS2O::build_source                   <>(params, 1              ));
+		std::unique_ptr<module::Channel<>                          > channel      (Factory_DVBS2O::build_channel                  <>(params, 2              ));
 		
 		modules_each_snr = {source.get(), channel.get()};
 		for (auto& m : modules_each_snr)
@@ -180,7 +177,7 @@ int main(int argc, char** argv)
 				else
 					ta->set_debug      (false       ); // disable the debug mode
 
-				ta->set_debug_limit(100          ); // display only the 16 first bits if the debug mode is enabled
+				ta->set_debug_limit(1000          ); // display only the 16 first bits if the debug mode is enabled
 				ta->set_debug_precision(8          );
 				ta->set_stats      (params.stats); // enable the statistics
 				ta->set_fast(false);//!ta->is_debug() && !ta->is_stats()
@@ -226,10 +223,18 @@ int main(int argc, char** argv)
 				
 		delay->reset();
 
-		std::cerr << "Phase 1 ...\r";
+		char buf[256];
+		char head_lines[]  = "#|-------|-------|-----------------|---------|-------------------|-------------------|-------------------|";
+		char heads[]  =      "#| Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       |";
+		char pattern[]  =    "#|   %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  |";
+        
+		
+		std::cerr <<head_lines <<"\n" << heads <<"\n" <<head_lines <<"\n";
 		std::cerr.flush();
-
+		//(*sync_step_mf )[syn::tsk::synchronize].set_debug(true);
+		//(*pl_scrambler )[scr::tsk::descramble].set_debug(true);
 		// tasks execution
+		int the_delay = 0;
 		for (int m = 0; m < 150; m++)
 		{
 			(*source      )[src::tsk::generate  ].exec();
@@ -244,20 +249,22 @@ int main(int argc, char** argv)
 			(*chn_delay   )[flt::tsk::filter    ].exec();
 			(*freq_shift  )[mlt::tsk::imultiply ].exec();
 			(*channel     )[chn::tsk::add_noise ].exec();
+			the_delay = sync_step_mf->get_delay();
 			(*sync_step_mf)[syn::tsk::synchronize ].exec();
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
 			
 			sync_coarse_f->enable_update();
-			int delay = (sync_frame->get_delay() + sync_step_mf->get_delay()) %  params.PL_FRAME_SIZE;
-			sync_coarse_f->set_curr_idx(delay);
+			the_delay = (sync_frame->get_delay() + the_delay) %  params.PL_FRAME_SIZE;
+			sync_coarse_f->set_curr_idx(the_delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			if (ebn0 > ebn0_debug_trigger && m > 10)
-				return(1);
+			sprintf(buf, pattern, 1, m+1, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
+			std::cerr << buf << "\r";
+			std::cerr.flush();
 		}
-		
+		std::cerr << buf << "\n";
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
-		std::cerr << "Phase 2 ...\r";
+		
 		std::cerr.flush();
 		for (int m = 0; m < 150; m++)
 		{
@@ -273,24 +280,28 @@ int main(int argc, char** argv)
 			(*chn_delay   )[flt::tsk::filter    ].exec();
 			(*freq_shift  )[mlt::tsk::imultiply ].exec();
 			(*channel     )[chn::tsk::add_noise ].exec();
+			the_delay = sync_step_mf->get_delay();
 			(*sync_step_mf)[syn::tsk::synchronize ].exec();
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
 			
 			sync_coarse_f->enable_update();
-			int delay = (sync_frame->get_delay() + sync_step_mf->get_delay()) %  params.PL_FRAME_SIZE;
-			sync_coarse_f->set_curr_idx(delay);
+			the_delay = (the_delay + sync_frame->get_delay()) %  params.PL_FRAME_SIZE;
+			sync_coarse_f->set_curr_idx(the_delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
+			
+			sprintf(buf, pattern, 2, m+151, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
+			std::cerr << buf << "\r";
+			std::cerr.flush();
 		}
 		
-
+		std::cerr << buf << "\n";
 		(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
 		(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2 ]);
 		(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
 		(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
 
 		sync_coarse_f->disable_update();
-		std::cerr << "Phase 3 ...\r";
 		std::cerr.flush();
 		for (int m = 0; m < 200; m++)
 		{
@@ -312,11 +323,15 @@ int main(int argc, char** argv)
 			(*sync_frame   )[syn::tsk::synchronize ].exec();
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
-			(*sync_fine_pf )[syn::tsk::synchronize ].exec();	
+			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
+			sprintf(buf, pattern, 3, m+301, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
+			std::cerr << buf << "\r";
+			std::cerr.flush();
 		}
-
+		std::cerr << buf << "\n";
+		std::cerr << head_lines << "\n";
 		monitor->reset();
-
+		
 		// tasks execution
 		int n_frames = 0;
 		while (monitor->get_n_fe() < 100 && n_frames < 100000)//!monitor_red->is_done_all() && !terminal->is_interrupt()
@@ -353,12 +368,16 @@ int main(int argc, char** argv)
 				monitor->reset();	
 
 			n_frames++;
-			terminal->temp_report(std::cerr);
+
+			if ((n_frames%10) == 1)
+			{
+				terminal->temp_report(std::cerr);
+			}			
 		}
 
 	// display the performance (BER and FER) in the terminal
 	terminal->final_report();
-
+	terminal->final_report(std::cerr);
 	// reset the monitors and the terminal for the next SNR
 	monitor->reset();
 	terminal->reset();
