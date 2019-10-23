@@ -224,9 +224,9 @@ int main(int argc, char** argv)
 		delay->reset();
 
 		char buf[256];
-		char head_lines[]  = "#|-------|-------|-----------------|---------|-------------------|-------------------|-------------------|";
-		char heads[]  =      "#| Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       |";
-		char pattern[]  =    "#|   %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  |";
+		char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
+		char heads[]  =      "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
+		char pattern[]  =    "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
         
 		
 		std::cerr <<head_lines <<"\n" << heads <<"\n" <<head_lines <<"\n";
