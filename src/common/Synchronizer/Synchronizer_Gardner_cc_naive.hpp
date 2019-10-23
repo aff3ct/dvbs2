@@ -15,6 +15,8 @@ template <typename R = float>
 class Synchronizer_Gardner_cc_naive : public Synchronizer<R>
 {
 private:
+	const std::vector<int>  set_bits_nbr = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
+	
 	const int OSF;
 	const int POW_OSF;
 	const R   INV_OSF;
@@ -32,8 +34,6 @@ private:
 	std::vector<std::complex<R> > TED_buffer;
 	int TED_head_pos;
 	int TED_mid_pos;
-	int TED_tail_pos;
-	const std::vector<int>  set_bits_nbr;
 
 	// Loop filter parameters
 	R lf_proportional_gain; // AIB -1.6666e-05; //  | -0.002951146572088;    // Matlab default
@@ -59,7 +59,7 @@ private:
 	void push(const std::complex<R> strobe);
 
 public:
-	Synchronizer_Gardner_cc_naive (const int N, int OSF);
+	Synchronizer_Gardner_cc_naive (const int N, int OSF, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2);
 	virtual ~Synchronizer_Gardner_cc_naive();
 	void reset();
 
@@ -71,6 +71,7 @@ public:
 	int get_overflow_cnt (){return this->overflow_cnt;};
 	int get_underflow_cnt (){return this->underflow_cnt;};
 	int get_delay();
+	void set_loop_filter_coeffs(const R damping_factor, const R normalized_bandwidth, const R detector_gain);
 	
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);

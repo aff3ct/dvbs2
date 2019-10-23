@@ -25,8 +25,8 @@ inline void Filter_Farrow_ccr_naive<R>
 {
 	std::complex<R> xnd2 = *x_elt * std::complex<R>(0.5f,0.0f);
 
-	*y_elt  = this->mu * ((xnd2 - this->xnd2_1 - this->xnd2_2 + this->xnd2_3)* this->mu 
-	               +  (this->xn_1 + this->xnd2_1 - xnd2 - this->xnd2_2 - this->xnd2_3)) + this->xn_2;
+	*y_elt  = this->xn_2 + this->mu * ((-xnd2 + this->xn_1 + this->xnd2_1 - this->xnd2_2 - this->xnd2_3)
+	                                 + ( xnd2              - this->xnd2_1 - this->xnd2_2 + this->xnd2_3) * this->mu);
 
 	this->xn_2 = this->xn_1; 
 	this->xn_1 = *x_elt;
@@ -44,9 +44,7 @@ void Filter_Farrow_ccr_naive<R>
 	auto cY_N2 = reinterpret_cast<std::complex<R>* >(Y_N2);
 
 	for (auto i=0; i < this->N/2 ; i++)
-	{
 		this->step(&cX_N1[i], &cY_N2[i]);
-	}
 }
 
 template <typename R>

@@ -258,9 +258,12 @@ int main(int argc, char** argv)
 			sync_coarse_f->set_curr_idx(the_delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			sprintf(buf, pattern, 1, m+1, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
-			std::cerr << buf << "\r";
-			std::cerr.flush();
+			if ((m%10) == 9)
+			{
+				sprintf(buf, pattern, 1, m+1, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
+				std::cerr << buf << "\r";
+				std::cerr.flush();
+			}
 		}
 		std::cerr << buf << "\n";
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
@@ -289,10 +292,13 @@ int main(int argc, char** argv)
 			sync_coarse_f->set_curr_idx(the_delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			
-			sprintf(buf, pattern, 2, m+151, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
-			std::cerr << buf << "\r";
-			std::cerr.flush();
+			if ((m%10) == 9)
+			{
+				sprintf(buf, pattern, 2, m+151, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
+				std::cerr << buf << "\r";
+				std::cerr.flush();
+			}
+
 		}
 		
 		std::cerr << buf << "\n";
@@ -324,9 +330,12 @@ int main(int argc, char** argv)
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
 			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
-			sprintf(buf, pattern, 3, m+301, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
-			std::cerr << buf << "\r";
-			std::cerr.flush();
+			if ((m%10) == 9)
+			{
+				sprintf(buf, pattern, 3, m+301, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
+				std::cerr << buf << "\r";
+				std::cerr.flush();
+			}
 		}
 		std::cerr << buf << "\n";
 		std::cerr << head_lines << "\n";
