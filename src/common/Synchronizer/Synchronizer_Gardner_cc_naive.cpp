@@ -146,7 +146,7 @@ void Synchronizer_Gardner_cc_naive<R>
 		this->mu = this->NCO_counter / W;
 		this->farrow_flt.set_mu(this->mu);
 	}
-		
+
 	this->NCO_counter = (this->NCO_counter - W) - std::floor(this->NCO_counter - W); // Update counter*/
 }
 
@@ -173,18 +173,18 @@ void Synchronizer_Gardner_cc_naive<R>
 		case 1:
 			this->TED_buffer[this->TED_head_pos] = sample;
 
-			this->TED_tail_pos = (this->TED_tail_pos - 1) % this->OSF;
-			this->TED_head_pos = (this->TED_head_pos - 1) % this->OSF;
-			this->TED_mid_pos  = (this->TED_mid_pos  - 1) % this->OSF;
+			this->TED_tail_pos = (this->TED_tail_pos + this->OSF - 1) % this->OSF;
+			this->TED_head_pos = (this->TED_head_pos + this->OSF - 1) % this->OSF;
+			this->TED_mid_pos  = (this->TED_mid_pos  + this->OSF - 1) % this->OSF;
 		break;
 
 		default:
 			this->TED_buffer[ this->TED_head_pos               ] = std::complex<R>(0.0f, 0.0f);
 			this->TED_buffer[(this->TED_head_pos - 1)%this->OSF] = sample;
 
-			this->TED_tail_pos     = (this->TED_tail_pos - 2) % this->OSF;
-			this->TED_head_pos     = (this->TED_head_pos - 2) % this->OSF;
-			this->TED_mid_pos      = (this->TED_mid_pos  - 2) % this->OSF;
+			this->TED_tail_pos     = (this->TED_tail_pos + this->OSF - 2) % this->OSF;
+			this->TED_head_pos     = (this->TED_head_pos + this->OSF - 2) % this->OSF;
+			this->TED_mid_pos      = (this->TED_mid_pos  + this->OSF - 2) % this->OSF;
 		break;
 	}
 }
