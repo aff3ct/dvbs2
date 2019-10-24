@@ -13,9 +13,11 @@ public:
 	float ebn0_min;
 	float ebn0_max;
 	float ebn0_step;
+	bool debug;
 	bool stats;
-	int MAX_FE;                    // max number of frame errors per SNR point
-	int MAX_N_FRAMES;              // max number of simulated frames per SNR point
+	bool filtered;    // filtering disabled in bb simu
+	int MAX_FE;       // max number of frame errors per SNR point
+	int MAX_N_FRAMES; // max number of simulated frames per SNR point
 	int K_BCH;
 	int N_BCH;
 	int N_BCH_unshortened;
@@ -35,6 +37,8 @@ public:
 	std::string COD;
 	std::string constellation_file;
 	std::string section;
+	std::string src_type;
+	std::string src_path;
 
 	const int   N_LDPC    = 16200;
 	const int   M         = 90;    // number of symbols per slot
@@ -55,7 +59,7 @@ public:
 	const std::vector<int> bch_prim_poly = {1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
 
 	Params_DVBS2O(int argc, char** argv);
-	void get_arguments(int argc, char** argv, tools::Argument_map_value& arg_vals);
+	void get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals);
 
 
 };

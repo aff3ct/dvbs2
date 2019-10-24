@@ -5,7 +5,7 @@
 #include <memory>
 #include <aff3ct.hpp>
 
-#include "Radio/Radio.hpp"
+#include "Module/Radio/Radio.hpp"
 
 namespace aff3ct
 {
@@ -27,12 +27,13 @@ struct Radio : Factory
 		double clk_rate            = 125e6;
 
 		std::string rx_subdev_spec = "A:0";
+		std::string rx_antenna      = "RX2";
 		double rx_rate             = 8e6;
 		double rx_freq             = 1090e6;
 		double rx_gain             = 10;
 
-
 		std::string tx_subdev_spec = "A:0";
+		std::string tx_antenna      = "TX/RX";
 		double tx_rate             = 8e6;
 		double tx_freq             = 1090e6;
 		double tx_gain             = 10;
@@ -46,17 +47,17 @@ struct Radio : Factory
 		virtual Radio::parameters* clone() const;
 
 		// parameters construction
-		virtual void get_description(tools::Argument_map_info &args) const;
-		virtual void store          (const tools::Argument_map_value &vals);
+		virtual void get_description(cli::Argument_map_info &args) const;
+		virtual void store          (const cli::Argument_map_value &vals);
 		virtual void get_headers    (std::map<std::string,header_list>& headers, const bool full = true) const;
 
 
-		template <typename D = double>
-		module::Radio<D>* build() const;
+		template <typename R = float>
+		module::Radio<R>* build() const;
 	};
 
-	template <typename D = double>
-	static module::Radio<D>* build(const parameters &params);
+	template <typename R = float>
+	static module::Radio<R>* build(const parameters &params);
 };
 }
 }

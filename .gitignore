@@ -1,5 +1,6 @@
 *.gitignore*
 
+src/common/version.cpp
 .cproject
 .project
 .pydevproject
@@ -8,6 +9,7 @@
 .fuse_*
 .idea/
 .vs
+.vscode/
 build*/
 cmake-build*/
 cppcheck/

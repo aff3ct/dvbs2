@@ -10,40 +10,59 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Specify bin path
 set (EXECUTABLE_OUTPUT_PATH bin/)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+
+# ------------------------------------------------------------------------------------------------------------- VERSION
+include(GetGitRevisionDescription)
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+string(SUBSTRING ${GIT_SHA1} 0 7 GIT_SHA1)
+message(STATUS "DVBS2O - Hash: ${GIT_SHA1}")
+
 # CMake options
+option(DVBS2O_LINK_UHD    "Link with the UHD library (used in the radio usrp)" ON)
+option(DVBS2O_LINK_OPENMP "Link with the OPENMP library"                       ON)
 
 # Generate the source files lists
 file(GLOB_RECURSE SRC_FILES_CO       ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*)
-file(GLOB_RECURSE SRC_FILES_TX       ${CMAKE_CURRENT_SOURCE_DIR}/src/TX/*)
-file(GLOB_RECURSE SRC_FILES_RX       ${CMAKE_CURRENT_SOURCE_DIR}/src/RX/*)
-file(GLOB_RECURSE SRC_FILES_TX_RX    ${CMAKE_CURRENT_SOURCE_DIR}/src/TX_RX/*)
-file(GLOB_RECURSE SRC_FILES_TX_RX_BB ${CMAKE_CURRENT_SOURCE_DIR}/src/TX_RX_BB/*)
-file(GLOB_RECURSE SRC_FILES_BRIDGE   ${CMAKE_CURRENT_SOURCE_DIR}/src/BRIDGE/*)
-file(GLOB_RECURSE SRC_FILES_USRP     ${CMAKE_CURRENT_SOURCE_DIR}/src/USRP/*)
+set(SRC_FILES_TX            ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/TX/main.cpp)
+set(SRC_FILES_RX            ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/RX/main.cpp)
+set(SRC_FILES_MATLAB_TX     ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/matlab/main_tx.cpp)
+set(SRC_FILES_MATLAB_RX     ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/matlab/main_rx.cpp)
+set(SRC_FILES_MATLAB_BRIDGE ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/matlab/main_bridge.cpp)
+set(SRC_FILES_TX_RX         ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/TX_RX/main.cpp)
+set(SRC_FILES_TX_RX_BB      ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/TX_RX_BB/main.cpp)
+
+# Auto generate a header containing the last Git SHA1
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.cpp.in"
+               "${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.cpp" @ONLY)
+list(APPEND SRC_FILES_CO "${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.cpp")
 
 # Create the executables from sources
 add_library(dvbs2_optique_common STATIC ${SRC_FILES_CO})
-add_executable(dvbs2_optique_tx        ${SRC_FILES_TX})
-add_executable(dvbs2_optique_rx        ${SRC_FILES_RX})
-add_executable(dvbs2_optique_tx_rx     ${SRC_FILES_TX_RX})
-add_executable(dvbs2_optique_tx_rx_bb  ${SRC_FILES_TX_RX_BB})
-add_executable(dvbs2_optique_bridge    ${SRC_FILES_BRIDGE})
-add_executable(dvbs2_optique_usrp      ${SRC_FILES_USRP})
+add_executable(dvbs2_optique_tx            ${SRC_FILES_TX})
+add_executable(dvbs2_optique_rx            ${SRC_FILES_RX})
+add_executable(dvbs2_optique_matlab_tx     ${SRC_FILES_MATLAB_TX})
+add_executable(dvbs2_optique_matlab_rx     ${SRC_FILES_MATLAB_RX})
+add_executable(dvbs2_optique_matlab_bridge ${SRC_FILES_MATLAB_BRIDGE})
+add_executable(dvbs2_optique_tx_rx         ${SRC_FILES_TX_RX})
+add_executable(dvbs2_optique_tx_rx_bb      ${SRC_FILES_TX_RX_BB})
 
 # Link with common sources
-target_link_libraries(dvbs2_optique_tx       PRIVATE dvbs2_optique_common)
-target_link_libraries(dvbs2_optique_rx       PRIVATE dvbs2_optique_common)
-target_link_libraries(dvbs2_optique_tx_rx    PRIVATE dvbs2_optique_common)
-target_link_libraries(dvbs2_optique_tx_rx_bb PRIVATE dvbs2_optique_common)
-target_link_libraries(dvbs2_optique_bridge   PRIVATE dvbs2_optique_common)
-target_link_libraries(dvbs2_optique_usrp     PRIVATE dvbs2_optique_common)
-target_include_directories(dvbs2_optique_common   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-target_include_directories(dvbs2_optique_tx       PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-target_include_directories(dvbs2_optique_rx       PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-target_include_directories(dvbs2_optique_tx_rx    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-target_include_directories(dvbs2_optique_tx_rx_bb PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-target_include_directories(dvbs2_optique_bridge   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-target_include_directories(dvbs2_optique_usrp     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+target_link_libraries(dvbs2_optique_tx            PRIVATE dvbs2_optique_common)
+target_link_libraries(dvbs2_optique_rx            PRIVATE dvbs2_optique_common)
+target_link_libraries(dvbs2_optique_matlab_tx     PRIVATE dvbs2_optique_common)
+target_link_libraries(dvbs2_optique_matlab_rx     PRIVATE dvbs2_optique_common)
+target_link_libraries(dvbs2_optique_matlab_bridge PRIVATE dvbs2_optique_common)
+target_link_libraries(dvbs2_optique_tx_rx         PRIVATE dvbs2_optique_common)
+target_link_libraries(dvbs2_optique_tx_rx_bb      PRIVATE dvbs2_optique_common)
+target_include_directories(dvbs2_optique_common        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+target_include_directories(dvbs2_optique_tx            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+target_include_directories(dvbs2_optique_rx            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+target_include_directories(dvbs2_optique_matlab_tx     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+target_include_directories(dvbs2_optique_matlab_rx     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+target_include_directories(dvbs2_optique_matlab_bridge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+target_include_directories(dvbs2_optique_tx_rx         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+target_include_directories(dvbs2_optique_tx_rx_bb      PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 
 # Configure the AFF3CT library before compiling it
 option(AFF3CT_COMPILE_EXE        ""      OFF            )
@@ -51,23 +70,24 @@ option(AFF3CT_COMPILE_STATIC_LIB ""      ON             )
 option(AFF3CT_COMPILE_SHARED_LIB ""      OFF            )
 option(AFF3CT_LINK_GSL           ""      OFF            )
 option(AFF3CT_LINK_MKL           ""      OFF            )
-option(DVBS2O_LINK_UHD           "Link with the UHD library (used in the radio usrp)" ON             )
-set   (AFF3CT_PREC               "MULTI" CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
+set   (AFF3CT_PREC               "MULTI"                                              CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
 
 # Compile the AFF3CT library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/)
 
 # Link with AFF3CT
 target_link_libraries(dvbs2_optique_common   PRIVATE aff3ct-static-lib)
-target_link_libraries(dvbs2_optique_tx       PRIVATE aff3ct-static-lib)
-target_link_libraries(dvbs2_optique_rx       PRIVATE aff3ct-static-lib)
-target_link_libraries(dvbs2_optique_tx_rx    PRIVATE aff3ct-static-lib)
-target_link_libraries(dvbs2_optique_tx_rx_bb PRIVATE aff3ct-static-lib)
-target_link_libraries(dvbs2_optique_bridge   PRIVATE aff3ct-static-lib)
-target_link_libraries(dvbs2_optique_usrp     PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_tx            PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_rx            PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_matlab_tx     PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_matlab_rx     PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_matlab_bridge PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_tx_rx         PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_tx_rx_bb      PRIVATE aff3ct-static-lib)
 
 # Link with OpenMP
 if(DVBS2O_LINK_OPENMP)
+    message(STATUS "DVBS2O - OPENMP: on")
     find_package(OpenMP)
     if (OpenMP_FOUND)
         # good way to link with OpenMP in the CMake3 style
@@ -81,16 +101,16 @@ if(DVBS2O_LINK_OPENMP)
             set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
         endif()
     endif(OpenMP_FOUND)
-message(STATUS "DVBS2O - OPENMP: on")
 else()
     message(STATUS "DVBS2O - OPENMP: off")
 endif(DVBS2O_LINK_OPENMP)
 
 # Link with UHD (& boost)
 if(DVBS2O_LINK_UHD)
+    message(STATUS "DVBS2O - UHD: on")
     target_compile_definitions(dvbs2_optique_common PUBLIC 
-                               $<BUILD_INTERFACE:AFF3CT_RADIO_USRP>
-                               $<INSTALL_INTERFACE:AFF3CT_RADIO_USRP>)
+                               $<BUILD_INTERFACE:DVBS2O_LINK_UHD>
+                               $<INSTALL_INTERFACE:DVBS2O_LINK_UHD>)
 
     # Link UHD
     find_package (UHD)
@@ -107,7 +127,6 @@ if(DVBS2O_LINK_UHD)
     else()
         message(SEND_ERROR "Unable to find Boost libraries.")
     endif (Boost_FOUND)
-    message(STATUS "DVBS2O - UHD: on")
 else()
     message(STATUS "DVBS2O - UHD: off")
 endif(DVBS2O_LINK_UHD)
