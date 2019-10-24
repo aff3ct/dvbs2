@@ -98,6 +98,7 @@ int main(int argc, char** argv)
 
 	
 	using namespace module;
+	// (*radio )[rad::tsk::receive].set_debug(true);
 
 	// RX
 	(*sync_lr     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
