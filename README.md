@@ -35,15 +35,17 @@ The source code of this project is in the `src/` directory:
 - `src/RX`: source code of the receiver,
 - `src/TX_RX`: source code of the Monte-Carlo simulation with the transmitter and the receiver,
 - `src/TX_RX_BB`: source code of the Monte-Carlo simulation without filters and synchro,
-- `src/USRP`: source code of the chain with USRP modules,
+- `src/matlab`: source code of the rx, tx and bridge chain to communicate with matlab,
 - `src/common`: source code common to the transmitter and the receiver.
 
 The compiled binaries are:
 - `build/bin/dvbs2_optique_tx`: the transmitter,
 - `build/bin/dvbs2_optique_rx`: the receiver,
-- `build/bin/dvbs2_optique_usrp`: the chain with USRP modules,
 - `build/bin/dvbs2_optique_tx_rx`: the Monte-Carlo simulation of the transmitter and the receiver,
-- `build/bin/dvbs2_optique_tx_rx_bb`: the Monte-Carlo simulation of the transmitter and the receiver without filters and synchro.
+- `build/bin/dvbs2_optique_tx_rx_bb`: the Monte-Carlo simulation of the transmitter and the receiver without filters and synchro,
+- `build/bin/dvbs2_optique_matlab_tx`: bridge to matlab,
+- `build/bin/dvbs2_optique_matlab_tx`: the transmitter to be launched from matlab,
+- `build/bin/dvbs2_optique_matlab_tx`: the receiver to be launched from matlab.
 
 # Run
 
