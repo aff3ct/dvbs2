@@ -98,7 +98,7 @@ int main(int argc, char** argv)
 
 	
 	using namespace module;
-	// (*radio )[rad::tsk::receive].set_debug(true);
+	//(*radio )[rad::tsk::receive].set_debug(true);
 
 	// RX
 	(*sync_lr     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
@@ -148,41 +148,61 @@ int main(int argc, char** argv)
 	sync_lr->reset();
 	sync_fine_pf->reset();
 
-	std::cerr << "Phase 1 ...\r";
-	std::cerr.flush();
-
+	char buf[256];
+	char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
+	char heads[]  =      "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
+	char pattern[]  =    "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
+		std::cerr <<head_lines <<"\n" << heads <<"\n" <<head_lines <<"\n";
+		std::cerr.flush();
 	//TODO: exec Source at least once
-
+	int the_delay = 0;
 	// tasks execution
 	for (int m = 0; m < 150; m++)
 	{
 		// TODO: Question : influence of sample rate ?
 		(*radio       )[rad::tsk::receive    ].exec();
+		the_delay = sync_step_mf->get_delay();
 		(*sync_step_mf)[syn::tsk::synchronize].exec();
 		(*sync_frame  )[syn::tsk::synchronize].exec();
 		
 		sync_coarse_f->enable_update();
-		int delay = (sync_frame->get_delay() + sync_step_mf->get_delay()) %  params.PL_FRAME_SIZE;
-		sync_coarse_f->set_curr_idx(delay);
+		the_delay = (sync_frame->get_delay() + the_delay) %  params.PL_FRAME_SIZE;
+		sync_coarse_f->set_curr_idx(the_delay);
 
 		// TODO: QUESTION: whats the use of descrambling ? 
 		(*pl_scrambler )[scr::tsk::descramble  ].exec();
+
+		//if ((m%10) == 9)
+		{
+			sprintf(buf, pattern, 1, m+1, sync_gardner->get_mu(), the_delay, sync_coarse_f->get_estimated_freq(), sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
+			std::cerr << buf << "\r";
+			std::cerr.flush();
+		}
 	}
 	
 	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
-	std::cerr << "Phase 2 ...\r";
+
+	std::cerr << buf << "\n";
 	std::cerr.flush();
 	for (int m = 0; m < 150; m++)
 	{
 		(*radio      ) [rad::tsk::receive    ].exec();
+		the_delay = sync_step_mf->get_delay();
 		(*sync_step_mf)[syn::tsk::synchronize].exec();
 		(*sync_frame  )[syn::tsk::synchronize].exec();
 		
 		sync_coarse_f->enable_update();
-		int delay = (sync_frame->get_delay() + sync_step_mf->get_delay()) %  params.PL_FRAME_SIZE;
-		sync_coarse_f->set_curr_idx(delay);
+		the_delay = (the_delay + sync_frame->get_delay()) %  params.PL_FRAME_SIZE;
+		sync_coarse_f->set_curr_idx(the_delay);
 
 		(*pl_scrambler )[scr::tsk::descramble  ].exec();
+
+		//if ((m%10) == 9)
+		{
+			sprintf(buf, pattern, 2, m+151, sync_gardner->get_mu(), the_delay, sync_coarse_f->get_estimated_freq(), sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
+			std::cerr << buf << "\r";
+			std::cerr.flush();
+		}		
 	}
 	
 
@@ -192,7 +212,7 @@ int main(int argc, char** argv)
 	(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
 
 	sync_coarse_f->disable_update();
-	std::cerr << "Phase 3 ...\r";
+	std::cerr << buf << "\n";
 	std::cerr.flush();
 	for (int m = 0; m < 200; m++)
 	{
@@ -204,7 +224,16 @@ int main(int argc, char** argv)
 		(*pl_scrambler )[scr::tsk::descramble ].exec();
 		(*sync_lr      )[syn::tsk::synchronize].exec();
 		(*sync_fine_pf )[syn::tsk::synchronize].exec();	
+		//if ((m%10) == 9)
+		{
+			sprintf(buf, pattern, 3, m+301, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
+			std::cerr << buf << "\r";
+			std::cerr.flush();
+		}		
 	}
+	std::cerr << buf << "\n";
+	std::cerr << head_lines << "\n";
+	std::cerr.flush();
 
 	monitor->reset();
 

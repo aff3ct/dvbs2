@@ -206,8 +206,8 @@ int main(int argc, char** argv)
 		char pattern[]  =    "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
         
 		
-		std::cerr <<head_lines <<"\n" << heads <<"\n" <<head_lines <<"\n";
-		std::cerr.flush();
+	std::cerr <<head_lines <<"\n" << heads <<"\n" <<head_lines <<"\n";
+	std::cerr.flush();
 		//(*sync_step_mf )[syn::tsk::synchronize].set_debug(true);
 		//(*pl_scrambler )[scr::tsk::descramble].set_debug(true);
 		// tasks execution
@@ -235,7 +235,7 @@ int main(int argc, char** argv)
 			sync_coarse_f->set_curr_idx(the_delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			if ((m%10) == 9)
+			//if ((m%10) == 9)
 			{
 				sprintf(buf, pattern, 1, m+1, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
 				std::cerr << buf << "\r";
@@ -269,7 +269,7 @@ int main(int argc, char** argv)
 			sync_coarse_f->set_curr_idx(the_delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			if ((m%10) == 9)
+			//if ((m%10) == 9)
 			{
 				sprintf(buf, pattern, 2, m+151, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
 				std::cerr << buf << "\r";
@@ -307,7 +307,7 @@ int main(int argc, char** argv)
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
 			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
-			if ((m%10) == 9)
+			//if ((m%10) == 9)
 			{
 				sprintf(buf, pattern, 3, m+301, sync_gardner->get_mu(), sync_coarse_f->get_estimated_freq(), the_delay, sync_lr->get_est_reduced_freq() / (float)params.OSF, sync_fine_pf->get_estimated_freq()/ (float)params.OSF);
 				std::cerr << buf << "\r";
