@@ -113,7 +113,7 @@ if(DVBS2O_LINK_UHD)
                                $<INSTALL_INTERFACE:DVBS2O_LINK_UHD>)
 
     # Link UHD
-    find_package (UHD)
+    find_package (UHD REQUIRED)
     if    (UHD_FOUND)
         include_directories(${UHD_INCLUDE_DIRS})
         target_link_libraries(dvbs2_optique_common PRIVATE ${UHD_LIBRARIES})
@@ -124,8 +124,6 @@ if(DVBS2O_LINK_UHD)
     if (Boost_FOUND)
         target_link_libraries(dvbs2_optique_common PRIVATE ${Boost_FILESYSTEM_LIBRARY}
                                                            ${Boost_SYSTEM_LIBRARY})
-    else()
-        message(SEND_ERROR "Unable to find Boost libraries.")
     endif (Boost_FOUND)
 else()
     message(STATUS "DVBS2O - UHD: off")
