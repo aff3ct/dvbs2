@@ -28,6 +28,8 @@ int main(int argc, char** argv)
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_BCH_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
+	std::unique_ptr<module::Source<>                        > source       (Factory_DVBS2O::build_source                   <>(params                 ));
+	std::unique_ptr<module::Channel<>                       > channel      (Factory_DVBS2O::build_channel                  <>(params                 ));
 	std::unique_ptr<module::Scrambler<>                     > bb_scrambler (Factory_DVBS2O::build_bb_scrambler             <>(params                 ));
 	std::unique_ptr<module::Encoder<>                       > BCH_encoder  (Factory_DVBS2O::build_bch_encoder              <>(params, poly_gen       ));
 	std::unique_ptr<module::Decoder_HIHO<>                  > BCH_decoder  (Factory_DVBS2O::build_bch_decoder              <>(params, poly_gen       ));
@@ -81,12 +83,13 @@ int main(int argc, char** argv)
 	terminal->legend();
 
 	// fulfill the list of modules
-		modules = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder .get(), LDPC_encoder .get(),
-	                LDPC_decoder.get(), itl_tx      .get(), itl_rx      .get(), modem        .get(),
-	                framer      .get(), pl_scrambler.get(), monitor     .get(), freq_shift   .get(),
-	                sync_lr     .get(), sync_fine_pf.get(), shaping_flt .get(), chn_delay    .get(),
-	                mult_agc    .get(), sync_frame  .get(), delay       .get(), sync_coarse_f.get(),
-	                matched_flt .get(), sync_gardner.get(), sync_step_mf.get()                      };
+	modules = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder .get(), LDPC_encoder .get(),
+	            LDPC_decoder.get(), itl_tx      .get(), itl_rx      .get(), modem        .get(),
+	            framer      .get(), pl_scrambler.get(), monitor     .get(), freq_shift   .get(),
+	            sync_lr     .get(), sync_fine_pf.get(), shaping_flt .get(), chn_delay    .get(),
+	            mult_agc    .get(), sync_frame  .get(), delay       .get(), sync_coarse_f.get(),
+	            matched_flt .get(), sync_gardner.get(), sync_step_mf.get(), source       .get(),
+	            channel     .get()                                                              };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -100,7 +103,6 @@ int main(int argc, char** argv)
 			ta->set_stats          (params.stats); // enable the statistics
 			ta->set_fast           (false       ); // disable the fast mode
 		}
-
 
 	using namespace module;
 
@@ -137,22 +139,6 @@ int main(int argc, char** argv)
 	// a loop over the various SNRs
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
 	{
-		std::unique_ptr<module::Source<> > source (Factory_DVBS2O::build_source <>(params, 1));
-		std::unique_ptr<module::Channel<>> channel(Factory_DVBS2O::build_channel<>(params, 2));
-
-		modules_each_snr = {source.get(), channel.get()};
-		for (auto& m : modules_each_snr)
-			for (auto& ta : m->tasks)
-			{
-				ta->set_autoalloc      (true        ); // enable the automatic allocation of the data in the tasks
-				ta->set_autoexec       (false       ); // disable the auto execution mode of the tasks
-				ta->set_debug          (params.debug); // disable the debug mode
-				ta->set_debug_limit    (1000        ); // display only the 16 first bits if the debug mode is enabled
-				ta->set_debug_precision(8           );
-				ta->set_stats          (params.stats); // enable the statistics
-				ta->set_fast           (false       ); //!ta->is_debug() && !ta->is_stats()
-			}
-
 		(*bb_scrambler)[scr::sck::scramble   ::X_N1].bind((*source      )[src::sck::generate   ::U_K ]);
 		(*channel     )[chn::sck::add_noise  ::X_N ].bind((*freq_shift  )[mlt::sck::imultiply  ::Z_N ]);
 		(*sync_step_mf)[syn::sck::synchronize::X_N1].bind((*channel     )[chn::sck::add_noise  ::Y_N ]);
@@ -196,8 +182,8 @@ int main(int argc, char** argv)
 		std::cerr << head_lines << "\n" << heads << "\n" <<head_lines << "\n";
 		std::cerr.flush();
 
-		//(*sync_step_mf )[syn::tsk::synchronize].set_debug(true);                                                                                                                                         
-		//(*pl_scrambler )[scr::tsk::descramble ].set_debug(true);        
+		//(*sync_step_mf )[syn::tsk::synchronize].set_debug(true);
+		//(*pl_scrambler )[scr::tsk::descramble ].set_debug(true);
 
 		// tasks execution
 		int the_delay = 0;
