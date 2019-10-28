@@ -88,7 +88,7 @@ target_link_libraries(dvbs2_optique_tx_rx_bb      PRIVATE aff3ct-static-lib)
 # Link with OpenMP
 if(DVBS2O_LINK_OPENMP)
     message(STATUS "DVBS2O - OPENMP: on")
-    find_package(OpenMP REQUIRED)
+    find_package(OpenMP)
     if (OpenMP_FOUND)
         # good way to link with OpenMP in the CMake3 style
         if(${CMAKE_VERSION} VERSION_EQUAL "3.9" OR ${CMAKE_VERSION} VERSION_GREATER "3.9")
