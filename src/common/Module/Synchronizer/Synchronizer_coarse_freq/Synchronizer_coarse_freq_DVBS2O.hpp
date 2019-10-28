@@ -4,7 +4,7 @@
 #include <vector>
 #include <complex>
 
-#include "Synchronizer.hpp"
+#include "Synchronizer_coarse_freq.hpp"
 #include "Module/Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 
 namespace aff3ct
@@ -12,7 +12,7 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Synchronizer_coarse_fr_cc_DVBS2O : public Synchronizer<R>
+class Synchronizer_coarse_freq_DVBS2O : public Synchronizer_coarse_freq<R>
 {
 private:
 const std::vector<int > PL_RAND_SEQ {
@@ -4174,7 +4174,6 @@ const std::vector<int > PL_RAND_SEQ {
 	
 	const int samples_per_symbol;
 
-	int curr_idx;
 	int length_max;
 
 	R proportional_gain; 
@@ -4188,24 +4187,17 @@ const std::vector<int > PL_RAND_SEQ {
 	R integ_filter_state;
 	R DDS_prev_in;
 
-	bool is_active;
 	Multiplier_sine_ccc_naive<R> mult;
 
-	R estimated_freq;
 	
 public:
-	Synchronizer_coarse_fr_cc_DVBS2O(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth);
-	virtual ~Synchronizer_coarse_fr_cc_DVBS2O();
+	Synchronizer_coarse_freq_DVBS2O(const int N, const int samples_per_symbol = 4, const R damping_factor = 1/std::sqrt((R)2.0), const R normalized_bandwidth = (R)1e-4);
+	virtual ~Synchronizer_coarse_freq_DVBS2O();
 	void reset();
 	
 	void update_phase(const std::complex<R> spl);
-	void enable_update (){this->is_active = true; };
-	void disable_update(){this->is_active = false;};
-	void set_curr_idx(int curr_idx) {this->curr_idx = curr_idx;};
 	void set_PLL_coeffs (const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth);
 	void step (const std::complex<R>* x_elt, std::complex<R>* y_elt);
-
-	R get_estimated_freq() {return this->estimated_freq;};
 
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);

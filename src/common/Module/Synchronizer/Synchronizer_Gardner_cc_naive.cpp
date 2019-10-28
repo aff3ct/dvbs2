@@ -40,6 +40,8 @@ outbuf_max_sz(N/OSF),
 outbuf_cur_sz(0)//outbuf_cur_sz(0)//N/OSF/10
 {
 	this->set_loop_filter_coeffs(damping_factor, normalized_bandwidth, detector_gain);
+	std::cerr << "# Gardner integrator_gain = " << this->lf_integrator_gain << std::endl;
+	std::cerr << "# Gardner proportional_gain = " << this->lf_proportional_gain << std::endl;
 }
 
 template <typename R>
@@ -73,7 +75,6 @@ void Synchronizer_Gardner_cc_naive<R>
 		this->push(farrow_output);
 		this->last_symbol = farrow_output;
 	}
-
 	this->TED_update(farrow_output);
 	this->loop_filter();
 	this->interpolation_control();
@@ -100,7 +101,6 @@ void Synchronizer_Gardner_cc_naive<R>
 	this->lf_filter_state  = (R)0;
 	this->lf_output        = (R)0;
 	this->NCO_counter      = (R)0;
-
 	this->overflow_cnt     = 0;
 	this->underflow_cnt    = 0;
 	for (auto i = 0; i<this->outbuf_max_sz ; i++)
@@ -115,14 +115,14 @@ template <typename R>
 void Synchronizer_Gardner_cc_naive<R>
 ::loop_filter()
 {
-	this->lf_filter_state += this->lf_prev_in;
-	this->lf_output        = this->TED_error * this->lf_proportional_gain + this->lf_filter_state;
-	this->lf_prev_in       = this->TED_error * this->lf_integrator_gain;
+	//this->lf_filter_state += this->lf_prev_in;
+	//this->lf_output        = this->TED_error * this->lf_proportional_gain + this->lf_filter_state;
+	//this->lf_prev_in       = this->TED_error * this->lf_integrator_gain;
 	
-	//R vp = this->TED_error * this->lf_proportional_gain;
-	//R vi = this->lf_prev_in + this->TED_error * this->lf_integrator_gain;
-	//this->lf_prev_in = vi;
-	//this->lf_output = vp + vi;
+	R vp = this->TED_error * this->lf_proportional_gain;
+	R vi = this->lf_prev_in + this->TED_error * this->lf_integrator_gain;
+	this->lf_prev_in = vi;
+	this->lf_output = vp + vi;
 }
 
 template <typename R>
@@ -146,7 +146,6 @@ void Synchronizer_Gardner_cc_naive<R>
 ::TED_update(std::complex<R> sample)
 {
 	this->strobe_history = (this->strobe_history << 1) % this->POW_OSF + this->is_strobe;
-
 	if (this->strobe_history == 1)
 	{
 		this->TED_error = std::real(this->TED_buffer[this->TED_mid_pos]) * (std::real(this->TED_buffer[this->TED_head_pos]) - std::real(sample)) + 
@@ -164,16 +163,16 @@ void Synchronizer_Gardner_cc_naive<R>
 		case 1:
 			this->TED_buffer[this->TED_head_pos] = sample;
 
-			this->TED_head_pos = (this->TED_head_pos + this->OSF - 1) % this->OSF;
-			this->TED_mid_pos  = (this->TED_mid_pos  + this->OSF - 1) % this->OSF;
+			this->TED_head_pos = (this->TED_head_pos - 1 + this->OSF) % this->OSF;
+			this->TED_mid_pos  = (this->TED_mid_pos  - 1 + this->OSF) % this->OSF;
 		break;
 
 		default:
 			this->TED_buffer[ this->TED_head_pos               ] = std::complex<R>(0.0f, 0.0f);
-			this->TED_buffer[(this->TED_head_pos - 1)%this->OSF] = sample;
+			this->TED_buffer[(this->TED_head_pos - 1 + this->OSF)%this->OSF] = sample;
 
-			this->TED_head_pos     = (this->TED_head_pos + this->OSF - 2) % this->OSF;
-			this->TED_mid_pos      = (this->TED_mid_pos  + this->OSF - 2) % this->OSF;
+			this->TED_head_pos     = (this->TED_head_pos - 2 + this->OSF) % this->OSF;
+			this->TED_mid_pos      = (this->TED_mid_pos  - 2 + this->OSF) % this->OSF;
 		break;
 	}
 }
@@ -215,7 +214,7 @@ template <typename R>
 int Synchronizer_Gardner_cc_naive<R>
 ::get_delay()
 {
-	return 0;//this->outbuf_cur_sz;//
+	return this->outbuf_cur_sz;
 }
 
 template <typename R>
@@ -223,7 +222,7 @@ void Synchronizer_Gardner_cc_naive<R>
 ::set_loop_filter_coeffs (const R damping_factor, const R normalized_bandwidth, const R detector_gain)
 {
 	R K0   = -1;
-	R theta = normalized_bandwidth/this->OSF/(damping_factor + 0.25/damping_factor);      
+	R theta = normalized_bandwidth/(R)this->OSF/(damping_factor + 0.25/damping_factor);
 	R d  = (1 + 2*damping_factor*theta + theta*theta) * K0 * detector_gain;
 	
 	this->lf_proportional_gain = (4*damping_factor*theta) /d;
