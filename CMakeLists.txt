@@ -12,7 +12,7 @@ set (EXECUTABLE_OUTPUT_PATH bin/)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
-# ------------------------------------------------------------------------------------------------------------- VERSION
+# DVBS2O Version
 include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 string(SUBSTRING ${GIT_SHA1} 0 7 GIT_SHA1)
@@ -23,12 +23,12 @@ option(DVBS2O_LINK_UHD    "Link with the UHD library (used in the radio usrp)" O
 option(DVBS2O_LINK_OPENMP "Link with the OPENMP library"                       ON)
 
 # Generate the source files lists
-file(GLOB_RECURSE SRC_FILES_CO       ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*)
+file(GLOB_RECURSE SRC_FILES_CO ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*)
 set(SRC_FILES_TX            ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/TX/main.cpp)
 set(SRC_FILES_RX            ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/RX/main.cpp)
-set(SRC_FILES_MATLAB_TX     ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/matlab/main_tx.cpp)
-set(SRC_FILES_MATLAB_RX     ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/matlab/main_rx.cpp)
-set(SRC_FILES_MATLAB_BRIDGE ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/matlab/main_bridge.cpp)
+set(SRC_FILES_MATLAB_TX     ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/MATLAB/main_tx.cpp)
+set(SRC_FILES_MATLAB_RX     ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/MATLAB/main_rx.cpp)
+set(SRC_FILES_MATLAB_BRIDGE ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/MATLAB/main_bridge.cpp)
 set(SRC_FILES_TX_RX         ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/TX_RX/main.cpp)
 set(SRC_FILES_TX_RX_BB      ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/TX_RX_BB/main.cpp)
 
@@ -70,13 +70,13 @@ option(AFF3CT_COMPILE_STATIC_LIB ""      ON             )
 option(AFF3CT_COMPILE_SHARED_LIB ""      OFF            )
 option(AFF3CT_LINK_GSL           ""      OFF            )
 option(AFF3CT_LINK_MKL           ""      OFF            )
-set   (AFF3CT_PREC               "MULTI"                                              CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
+set   (AFF3CT_PREC               "MULTI" CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
 
 # Compile the AFF3CT library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/)
 
 # Link with AFF3CT
-target_link_libraries(dvbs2_optique_common   PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_optique_common        PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_tx            PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_rx            PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_matlab_tx     PRIVATE aff3ct-static-lib)
@@ -88,7 +88,7 @@ target_link_libraries(dvbs2_optique_tx_rx_bb      PRIVATE aff3ct-static-lib)
 # Link with OpenMP
 if(DVBS2O_LINK_OPENMP)
     message(STATUS "DVBS2O - OPENMP: on")
-    find_package(OpenMP)
+    find_package(OpenMP REQUIRED)
     if (OpenMP_FOUND)
         # good way to link with OpenMP in the CMake3 style
         if(${CMAKE_VERSION} VERSION_EQUAL "3.9" OR ${CMAKE_VERSION} VERSION_GREATER "3.9")
@@ -108,7 +108,7 @@ endif(DVBS2O_LINK_OPENMP)
 # Link with UHD (& boost)
 if(DVBS2O_LINK_UHD)
     message(STATUS "DVBS2O - UHD: on")
-    target_compile_definitions(dvbs2_optique_common PUBLIC 
+    target_compile_definitions(dvbs2_optique_common PUBLIC
                                $<BUILD_INTERFACE:DVBS2O_LINK_UHD>
                                $<INSTALL_INTERFACE:DVBS2O_LINK_UHD>)
 
