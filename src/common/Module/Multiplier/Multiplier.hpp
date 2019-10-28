@@ -68,7 +68,7 @@ public:
 	virtual ~Multiplier() = default;
 
 	int get_N() const;
-	
+
 	/*!
 	 * \brief Multiply a signal by a signal produced by the multiplier.
 	 *

@@ -4169,16 +4169,16 @@ const std::vector<int > PL_RAND_SEQ {
 	3, 1, 3, 2, 3, 2, 1, 1, 1, 3, 2, 2, 1, 3, 0, 0,
 	2, 0, 1, 0
 	};
-	
+
 	std::vector<std::complex<R> > scrambled_pilots;
-	
+
 	const int samples_per_symbol;
 
 	int length_max;
 
-	R proportional_gain; 
-	R integrator_gain;   
-	R digital_synthesizer_gain;    
+	R proportional_gain;
+	R integrator_gain;
+	R digital_synthesizer_gain;
 
 	std::complex<R> prev_spl;
 	std::complex<R> prev_prev_spl;
@@ -4189,12 +4189,12 @@ const std::vector<int > PL_RAND_SEQ {
 
 	Multiplier_sine_ccc_naive<R> mult;
 
-	
+
 public:
 	Synchronizer_coarse_freq_DVBS2O(const int N, const int samples_per_symbol = 4, const R damping_factor = 1/std::sqrt((R)2.0), const R normalized_bandwidth = (R)1e-4);
 	virtual ~Synchronizer_coarse_freq_DVBS2O();
 	void reset();
-	
+
 	void update_phase(const std::complex<R> spl);
 	void set_PLL_coeffs (const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth);
 	void step (const std::complex<R>* x_elt, std::complex<R>* y_elt);

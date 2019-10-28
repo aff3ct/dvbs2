@@ -23,7 +23,7 @@ private:
 
 	R mu;
 public:
-	
+
 	Filter_Farrow_ccr_naive (const int N, const R mu);
 	virtual ~Filter_Farrow_ccr_naive();
 	void set_mu(R mu);

@@ -35,7 +35,7 @@ Scrambler(const int N, const int n_frames)
 		message << "'N' has to be greater than 0 ('N' = " << N << ").";
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
-	
+
 	auto &p1 = this->create_task("scramble");
 	auto &p1s_X_N1 = this->template create_socket_in <D>(p1, "X_N1", this->N * this->n_frames);
 	auto &p1s_X_N2 = this->template create_socket_out<D>(p1, "X_N2", this->N * this->n_frames);

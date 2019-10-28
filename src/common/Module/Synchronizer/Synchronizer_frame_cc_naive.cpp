@@ -30,9 +30,9 @@ void Synchronizer_frame_cc_naive<R>
 	R y_corr = 0;
 	const std::complex<R>* cX_N1 = reinterpret_cast<const std::complex<R>* > (X_N1);
 	std::complex<R>  symb_diff = this->reg_channel * std::conj(cX_N1[0]);
-	
+
 	this->step(&symb_diff, &y_corr);
-	
+
 	/*if((*this)[syn::tsk::synchronize].is_debug())
 		std::cout << "# {INTERNAL} CORR = [ " << y_corr << " ";*/
 	corr_vec[0] = y_corr;
@@ -54,7 +54,7 @@ void Synchronizer_frame_cc_naive<R>
 				std::cout << y_corr << "]"<< std::endl;
 		}
 		*/
-		
+
 		if (corr_vec[i] > max_corr)
 		{
 			max_corr = corr_vec[i];
@@ -64,7 +64,7 @@ void Synchronizer_frame_cc_naive<R>
 	this->reg_channel = cX_N1[cplx_in_sz - 1];
 		//std::cout << "Hi befor delay" << std::endl;
 	this->delay = (cplx_in_sz + max_idx - this->SOF_PLSC_sz)%cplx_in_sz;
-	
+
 	//std::cout << "delay : " << delay<< std::endl;
 	this->output_delay.set_delay((cplx_in_sz - this->delay)%cplx_in_sz);
 	//std::cout << "Delay set" <<std::endl;
@@ -85,7 +85,7 @@ void Synchronizer_frame_cc_naive<R>
 
 	std::complex<R> ps_PLSC(0,0);
 	for (auto i = this->sec_SOF_sz; i < this->sec_SOF_sz + this->sec_PLSC_sz ; i++)
-		ps_PLSC += this->corr_buff[this->head+1+i] * this->conj_SOF_PLSC[i];	
+		ps_PLSC += this->corr_buff[this->head+1+i] * this->conj_SOF_PLSC[i];
 
 	this->head++;
 	this->head %= this->SOF_PLSC_sz;
@@ -110,7 +110,7 @@ void Synchronizer_frame_cc_naive<R>
 
 	this->head = 0;
 	this->delay = 0;
-} 
+}
 
 // ==================================================================================== explicit template instantiation
 template class aff3ct::module::Synchronizer_frame_cc_naive<float>;

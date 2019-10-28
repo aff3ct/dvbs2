@@ -35,7 +35,7 @@ Estimator(const int N, const int n_frames)
 		message << "'N' has to be greater than 0 ('N' = " << N << ").";
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
-	
+
 	auto &p1 = this->create_task("estimate");
 	auto &p1s_X_N = this->template create_socket_out<R>(p1, "Y_N", this->N * this->n_frames);
 	auto &p1s_H_N = this->template create_socket_out<R>(p1, "H_N", this->N * this->n_frames);
@@ -99,7 +99,7 @@ get_sigma_n2()
 template <typename R>
 void Estimator<R>::
 _estimate(R *X_N, R *H_N, const int frame_id)
-{	
+{
 	float moment2 = 0, moment4 = 0;
 	float pow_tot, pow_sig_util;
 

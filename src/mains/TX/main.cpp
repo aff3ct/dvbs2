@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 	modules = { radio.get(), source.get(),bb_scrambler.get(), BCH_encoder.get(),
 	            LDPC_encoder.get(), itl.get(), modem.get(), framer.get(),
 	            pl_scrambler.get(), shaping_filter.get()};
-	
+
 	// configuration of the module tasks
 	for (auto& m : modules)
 		for (auto& ta : m->tasks)
@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 			ta->set_fast(false);
 		}
 
-	
+
 	using namespace module;
 
 	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*source      )[src::sck::generate  ::U_K ]);

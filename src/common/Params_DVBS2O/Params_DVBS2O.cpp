@@ -5,9 +5,9 @@
 using namespace aff3ct;
 
 Params_DVBS2O::
-Params_DVBS2O(int argc, char** argv) 
+Params_DVBS2O(int argc, char** argv)
 {
-	
+
 	cli::Argument_map_value arg_vals;
 	get_arguments(argc, argv, arg_vals);
 
@@ -96,7 +96,7 @@ Params_DVBS2O(int argc, char** argv)
 	{
 		MOD = "8PSK";
 		COD = "3/5";
-		READ_ORDER = "TOP_RIGHT";		
+		READ_ORDER = "TOP_RIGHT";
 	}
 	else if (MODCOD == "8PSK-S_8/9"  )
 	{
@@ -108,7 +108,7 @@ Params_DVBS2O(int argc, char** argv)
 	{
 		MOD = "16APSK";
 		COD = "8/9";
-		READ_ORDER = "TOP_LEFT";		
+		READ_ORDER = "TOP_LEFT";
 	}
 	else
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, MODCOD + " mod-cod scheme not supported.");
@@ -119,19 +119,19 @@ Params_DVBS2O(int argc, char** argv)
 		constellation_file = "../conf/mod/4QAM_GRAY.mod";
 	}
 	else if ( MOD == "8PSK"  )
-	{	
+	{
 		BPS = 3;
 		constellation_file = "../conf/mod/8PSK.mod";
 	}
 	else if ( MOD == "16APSK"){
 		BPS = 4;
 		constellation_file = "../conf/mod/16APSK.mod";
-	}	
+	}
 	else
 	{
 		BPS = 2;
 		constellation_file = "../conf/4QAM_GRAY.mod";
-	}	
+	}
 
 	if      ( COD == "3/5"  )
 	{
@@ -147,7 +147,7 @@ Params_DVBS2O(int argc, char** argv)
 		N_BCH_unshortened = 16383;
 		src_path          = "../conf/src/K_14232.src";
 	}
-	
+
 	if (arg_vals.exist({"section"}))
 		section = arg_vals.at({"section"});
 	else

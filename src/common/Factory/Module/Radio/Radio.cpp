@@ -29,7 +29,7 @@ void Radio::parameters
 	const std::string class_name = "factory::Radio::parameters::";
 
 	tools::add_arg(args, p, class_name+"p+fra-size,N",
-	               cli::Integer(cli::Positive(), cli::Non_zero()));	
+	               cli::Integer(cli::Positive(), cli::Non_zero()));
 
 	tools::add_arg(args, p, class_name+"p+fra,F",
 		cli::Integer(cli::Positive(), cli::Non_zero()));

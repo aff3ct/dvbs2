@@ -74,14 +74,14 @@ void Synchronizer_coarse_freq_DVBS2O<R>
 			// std::cerr << std::endl << "idx " << this->curr_idx << " | spl " << spl << " | scrambled_pilots[this->curr_idx] " << this->scrambled_pilots[this->curr_idx] << " | scrambled_pilots[prev_prev_idx ] " << this->scrambled_pilots[prev_prev_idx ] << " | prev_prev_spl " << this->prev_prev_spl << std::endl;
 			// std::cerr << std::endl << "Phase error : "<< phase_error << std::endl;
 			this->loop_filter_state += phase_error * this->integrator_gain;
-                        
+
 			this->integ_filter_state += this->DDS_prev_in ;
 
 			this->DDS_prev_in = phase_error * this->proportional_gain + this->loop_filter_state;
-            
+
 			this->estimated_freq = this->digital_synthesizer_gain * this->integ_filter_state / (R)this->samples_per_symbol;
 			this->mult.set_nu(-this->estimated_freq);//
-			
+
 			this->prev_prev_spl = this->prev_spl;
 			this->prev_spl = spl;
 
@@ -90,7 +90,7 @@ void Synchronizer_coarse_freq_DVBS2O<R>
 		else if (rem_pos == 90 && this->curr_idx >= 1530) // 1530
 		{
 			this->prev_prev_spl = std::complex<R>((R)0.0, (R)0.0);
-			this->prev_spl      = std::complex<R>((R)0.0, (R)0.0);			
+			this->prev_spl      = std::complex<R>((R)0.0, (R)0.0);
 		}
 	}
 }
@@ -101,16 +101,16 @@ void Synchronizer_coarse_freq_DVBS2O<R>
 {
 	R phase_error_detector_gain = (R)2.0;
 	R phase_recovery_loop_bandwidth = normalized_bandwidth * (R)pll_sps;
-	
+
 	//K0
 	R phase_recovery_gain = pll_sps;
 
 	R theta = phase_recovery_loop_bandwidth/((damping_factor + 0.25/damping_factor)*pll_sps);
 	R d = (R)1.0 + (R)2.0*damping_factor*theta + theta*theta;
-	
+
 	//K1
 	this->proportional_gain = ((R)4.0*damping_factor*theta/d)/(phase_error_detector_gain*phase_recovery_gain);
-	
+
 	//K2
 	this->integrator_gain = ((R)4.0/pll_sps*theta*theta/d)/(phase_error_detector_gain*phase_recovery_gain);
 	this->digital_synthesizer_gain = (R)1.0;

@@ -57,7 +57,7 @@ private:
 	int N_XFEC_FRAME;
 	int M;
 	int P;
-	int N_PILOTS; 
+	int N_PILOTS;
 	std::string MODCOD;
 
 public:

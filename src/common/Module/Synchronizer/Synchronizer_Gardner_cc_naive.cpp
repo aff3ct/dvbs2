@@ -118,7 +118,7 @@ void Synchronizer_Gardner_cc_naive<R>
 	//this->lf_filter_state += this->lf_prev_in;
 	//this->lf_output        = this->TED_error * this->lf_proportional_gain + this->lf_filter_state;
 	//this->lf_prev_in       = this->TED_error * this->lf_integrator_gain;
-	
+
 	R vp = this->TED_error * this->lf_proportional_gain;
 	R vi = this->lf_prev_in + this->TED_error * this->lf_integrator_gain;
 	this->lf_prev_in = vi;
@@ -148,7 +148,7 @@ void Synchronizer_Gardner_cc_naive<R>
 	this->strobe_history = (this->strobe_history << 1) % this->POW_OSF + this->is_strobe;
 	if (this->strobe_history == 1)
 	{
-		this->TED_error = std::real(this->TED_buffer[this->TED_mid_pos]) * (std::real(this->TED_buffer[this->TED_head_pos]) - std::real(sample)) + 
+		this->TED_error = std::real(this->TED_buffer[this->TED_mid_pos]) * (std::real(this->TED_buffer[this->TED_head_pos]) - std::real(sample)) +
 		                  std::imag(this->TED_buffer[this->TED_mid_pos]) * (std::imag(this->TED_buffer[this->TED_head_pos]) - std::imag(sample));
 	}
 	else
@@ -224,7 +224,7 @@ void Synchronizer_Gardner_cc_naive<R>
 	R K0   = -1;
 	R theta = normalized_bandwidth/(R)this->OSF/(damping_factor + 0.25/damping_factor);
 	R d  = (1 + 2*damping_factor*theta + theta*theta) * K0 * detector_gain;
-	
+
 	this->lf_proportional_gain = (4*damping_factor*theta) /d;
 	this->lf_integrator_gain   = (4*theta*theta)/d;
 }

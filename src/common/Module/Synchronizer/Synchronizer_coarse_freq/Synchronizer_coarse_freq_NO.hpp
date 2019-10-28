@@ -12,7 +12,7 @@ namespace module
 {
 template <typename R = float>
 class Synchronizer_coarse_freq_NO : public Synchronizer_coarse_freq<R>
-{	
+{
 public:
 	Synchronizer_coarse_freq_NO(const int N);
 	virtual ~Synchronizer_coarse_freq_NO();

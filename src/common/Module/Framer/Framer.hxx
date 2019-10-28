@@ -30,7 +30,7 @@ Framer(const int XFEC_FRAME_SIZE, const int PL_FRAME_SIZE, const std::string MOD
 	this->set_short_name(name);
 
 	this->generate_PLH();
-	
+
 	this->M = 90;
 	this->P = 36;
 	this->N_PILOTS = this->XFEC_FRAME_SIZE / (2*16*this->M);
@@ -90,7 +90,7 @@ generate_PLH( void )
 	                                        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
 
 	const std::vector<int> PLS_scrambler_sequence{0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0};
-	
+
 	std::vector <int > mod_cod(7);
 	const std::vector <int > mod_cod_Q_8_9 {0, 0, 1, 0, 1, 0, 1};
 	const std::vector <int > mod_cod_Q_3_5 {0, 0, 0, 1, 0, 1, 1};
@@ -115,7 +115,7 @@ generate_PLH( void )
 	std::vector <int > complementary_coded_PLS(32, 0);
 	std::vector <int > final_PLS(64, 0);
 
-	
+
 	// generate and modulate SOF
 	const std::vector<int > SOF_bin {0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0};
 	std::vector<int > SOF_bpsk(26);
@@ -219,7 +219,7 @@ _generate(B *Y_N1, B *Y_N2, const int frame_id)
 {
 
 	std::vector <std::complex<float> > Cx_XFEC_frame(this->XFEC_FRAME_SIZE/2);
-	
+
 	for (unsigned int i = 0; i < Cx_XFEC_frame.size(); i++)
 	{
 		Cx_XFEC_frame[i].real(Y_N1[2*i]);
@@ -231,7 +231,7 @@ _generate(B *Y_N1, B *Y_N2, const int frame_id)
 	////////////////////////////////////////////////////
 
 	std::vector <std::complex<float> > Cx_pilot_mod(36);//, (1/std::sqrt(2), 1/std::sqrt(2)) );
-	
+
 	for (unsigned int i = 0; i < Cx_pilot_mod.size(); i++)
 	{
 		Cx_pilot_mod[i].real(1/std::sqrt(2));
@@ -262,7 +262,7 @@ _generate(B *Y_N1, B *Y_N2, const int frame_id)
 		Cx_data_slice.assign(Cx_data_it, Cx_data_it+(16*this->M));
 		Cx_PL_FRAME.insert(Cx_PL_FRAME.end(), Cx_data_slice.begin(), Cx_data_slice.end()); // append 16 slots of data
 		Cx_PL_FRAME.insert(Cx_PL_FRAME.end(), Cx_pilot_mod.begin(), Cx_pilot_mod.end()); // append the pilot
-		Cx_data_it += (16*M); // update the data index to the next block of 16 slots			
+		Cx_data_it += (16*M); // update the data index to the next block of 16 slots
 	}
 
 	Cx_data_remainder.assign(Cx_XFEC_frame.begin()+(16*M*N_PILOTS), Cx_XFEC_frame.end());

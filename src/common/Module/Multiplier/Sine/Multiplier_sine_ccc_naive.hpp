@@ -21,7 +21,7 @@ private:
 	R nu;        // Current normalized frequency [0 1]
 	R omega;    // Current reduced pulsation [0 2pi]
 	const R Fs; // Sampling frequency
-	
+
 	void _imultiply(const R *X_N,  R *Z_N, const int frame_id);
 
 public:
@@ -31,7 +31,7 @@ public:
 	void set_omega (R omega);
 	void set_nu (R nu);
 	R get_nu ();
-	
+
 	virtual ~Multiplier_sine_ccc_naive();
 	void step      (const std::complex<R>* x_elt, std::complex<R>* y_elt);
 

@@ -76,7 +76,7 @@ inline void Multiplier_sine_ccc_naive<R>
 {
 	R phase(this->omega * this->n);
 	*y_elt = *x_elt * std::complex<R>(std::cos(phase), std::sin(phase));
-	
+
 	this->n = (this->n >= 999999) ? 0 : this->n + (R)1.0;
 	// std::cerr << "alive" << std::endl;
 }

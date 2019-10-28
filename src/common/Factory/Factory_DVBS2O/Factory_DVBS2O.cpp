@@ -268,7 +268,7 @@ template aff3ct::module::Synchronizer_coarse_freq<R>*          Factory_DVBS2O::b
 template aff3ct::module::Filter_unit_delay<B>*                 Factory_DVBS2O::build_unit_delay<B>              (const Params_DVBS2O& params);
 template aff3ct::tools ::Interleaver_core<uint32_t>*           Factory_DVBS2O::build_itl_core<uint32_t>         (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_step_mf_cc<R>*           Factory_DVBS2O::build_synchronizer_step_mf_cc<R>(
-                                                                        aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f, 
+                                                                        aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f,
                                                                         aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
                                                                         aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner   );
 template aff3ct::module::Radio<R>*                             Factory_DVBS2O::build_radio<R>                   (const Params_DVBS2O& params);

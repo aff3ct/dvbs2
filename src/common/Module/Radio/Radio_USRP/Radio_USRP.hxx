@@ -9,7 +9,7 @@ template <typename R>
 Radio_USRP<R>::
 Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
            const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna, const double tx_rate,
-           const double tx_freq, const std::string tx_subdev_spec, const std::string tx_antenna, const int n_frames, 
+           const double tx_freq, const std::string tx_subdev_spec, const std::string tx_antenna, const int n_frames,
 		   const double rx_gain, const double tx_gain)
 : Radio<R>(N, n_frames)
 {
@@ -35,10 +35,10 @@ Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const doub
 	}
 	else
 	{
-		throw::runtime_error(__FILE__, __LINE__, __func__, 
+		throw::runtime_error(__FILE__, __LINE__, __func__,
 		                     "This data type (" + std::string(typeid(R).name()) + ") is not supported.");
 	}
-	
+
 	uhd::log::set_console_level(uhd::log::severity_level(3));
 	uhd::log::set_file_level   (uhd::log::severity_level(2));
 

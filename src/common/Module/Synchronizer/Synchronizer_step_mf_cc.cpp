@@ -60,7 +60,7 @@ void Synchronizer_step_mf_cc<R>
 	this->matched_filter->reset();
 	this->sync_gardner  ->reset();
 	this->gardner_delay = sync_gardner->get_delay();
-} 
+}
 
 // ==================================================================================== explicit template instantiation
 template class aff3ct::module::Synchronizer_step_mf_cc<float>;

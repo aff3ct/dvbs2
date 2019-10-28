@@ -16,13 +16,13 @@ class Synchronizer_Gardner_cc_naive : public Synchronizer<R>
 {
 private:
 	const std::vector<int>  set_bits_nbr = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
-	
+
 	const int OSF;
 	const int POW_OSF;
 	const R   INV_OSF;
 
 	std::complex<R> last_symbol;
-	
+
 	// Interpolation parametes
 	R mu;
 	Filter_Farrow_ccr_naive <R>   farrow_flt;
@@ -72,7 +72,7 @@ public:
 	int get_underflow_cnt (){return this->underflow_cnt;};
 	int get_delay();
 	void set_loop_filter_coeffs(const R damping_factor, const R normalized_bandwidth, const R detector_gain);
-	
+
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
 
