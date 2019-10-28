@@ -12,11 +12,14 @@
 #include "Module/Filter/Filter_FIR/Filter_RRC/Filter_RRC_ccr_naive.hpp"
 #include "Module/Filter/Filter_FIR/Farrow/Filter_Farrow_ccr_naive.hpp"
 #include "Module/Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
+#include "Module/Multiplier/Sequence/Multiplier_AGC_cc_naive.hpp"
 #include "Module/Synchronizer/Synchronizer_LR_cc_naive.hpp"
 #include "Module/Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
 #include "Module/Synchronizer/Synchronizer_Gardner_cc_naive.hpp"
 #include "Module/Synchronizer/Synchronizer_frame_cc_naive.hpp"
-#include "Module/Synchronizer/Synchronizer_coarse_fr_cc_DVBS2O.hpp"
+#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_DVBS2O.hpp"
+#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_NO.hpp"
+#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq.hpp"
 #include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "Module/Estimator/Estimator.hpp"
 #include "Module/Radio/Radio.hpp"
@@ -100,16 +103,20 @@ struct Factory_DVBS2O {
 	build_synchronizer_gardner (const Params_DVBS2O& params);
 
 	template <typename R = float>
+	static module::Multiplier_AGC_cc_naive<R>*
+	build_agc_shift(const Params_DVBS2O& params);
+
+	template <typename R = float>
 	static module::Synchronizer_frame_cc_naive<R>*
 	build_synchronizer_frame (const Params_DVBS2O& params);
 
 	template <typename R = float>
-	static module::Synchronizer_coarse_fr_cc_DVBS2O<R>*
+	static module::Synchronizer_coarse_freq<R>*
 	build_synchronizer_coarse_freq (const Params_DVBS2O& params);
 
 	template <typename R = float>
 	static module::Synchronizer_step_mf_cc<R>*
-	build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R> *sync_coarse_f,
+	build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f,
 	                              aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
 	                              aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner  );
 

@@ -196,6 +196,13 @@ module::Synchronizer_Gardner_cc_naive<R>* Factory_DVBS2O
 }
 
 template <typename R>
+module::Multiplier_AGC_cc_naive<R>* Factory_DVBS2O
+::build_agc_shift(const Params_DVBS2O& params)
+{
+	return new module::Multiplier_AGC_cc_naive<R>(2 * params.PL_FRAME_SIZE);
+}
+
+template <typename R>
 module::Synchronizer_frame_cc_naive<R>* Factory_DVBS2O
 ::build_synchronizer_frame(const Params_DVBS2O& params)
 {
@@ -203,10 +210,13 @@ module::Synchronizer_frame_cc_naive<R>* Factory_DVBS2O
 }
 
 template <typename R>
-module::Synchronizer_coarse_fr_cc_DVBS2O<R>* Factory_DVBS2O
+module::Synchronizer_coarse_freq<R>* Factory_DVBS2O
 ::build_synchronizer_coarse_freq(const Params_DVBS2O& params)
 {
-	return new module::Synchronizer_coarse_fr_cc_DVBS2O<R>(2 * params.PL_FRAME_SIZE * params.OSF, params.OSF, 0.707, 1e-4);
+	if(params.no_pll)
+		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_NO    <R>(2 * params.PL_FRAME_SIZE * params.OSF));
+	else
+		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_DVBS2O<R>(2 * params.PL_FRAME_SIZE * params.OSF, params.OSF, 0.707, 1e-4));
 }
 
 template <typename B>
@@ -218,7 +228,7 @@ module::Filter_unit_delay<B>* Factory_DVBS2O
 
 template <typename R>
 module::Synchronizer_step_mf_cc<R>* Factory_DVBS2O
-::build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R> *sync_coarse_f,
+::build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f,
 	                            aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
 	                            aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner)
 {
@@ -252,12 +262,13 @@ template aff3ct::module::Multiplier_sine_ccc_naive<R>*         Factory_DVBS2O::b
 template aff3ct::module::Synchronizer_LR_cc_naive<R>*          Factory_DVBS2O::build_synchronizer_lr<R>         (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_fine_pf_cc_DVBS2O<R>*    Factory_DVBS2O::build_synchronizer_fine_pf<R>    (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_Gardner_cc_naive<R>*     Factory_DVBS2O::build_synchronizer_gardner<R>    (const Params_DVBS2O& params);
+template aff3ct::module::Multiplier_AGC_cc_naive<R>*           Factory_DVBS2O::build_agc_shift<R>               (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_frame_cc_naive<R>*       Factory_DVBS2O::build_synchronizer_frame<R>      (const Params_DVBS2O& params);
-template aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R>*  Factory_DVBS2O::build_synchronizer_coarse_freq<R>(const Params_DVBS2O& params);
+template aff3ct::module::Synchronizer_coarse_freq<R>*          Factory_DVBS2O::build_synchronizer_coarse_freq<R>(const Params_DVBS2O& params);
 template aff3ct::module::Filter_unit_delay<B>*                 Factory_DVBS2O::build_unit_delay<B>              (const Params_DVBS2O& params);
 template aff3ct::tools ::Interleaver_core<uint32_t>*           Factory_DVBS2O::build_itl_core<uint32_t>         (const Params_DVBS2O& params);
 template aff3ct::module::Synchronizer_step_mf_cc<R>*           Factory_DVBS2O::build_synchronizer_step_mf_cc<R>(
-                                                                        aff3ct::module::Synchronizer_coarse_fr_cc_DVBS2O<R> *sync_coarse_f, 
+                                                                        aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f, 
                                                                         aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
                                                                         aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner   );
 template aff3ct::module::Radio<R>*                             Factory_DVBS2O::build_radio<R>                   (const Params_DVBS2O& params);

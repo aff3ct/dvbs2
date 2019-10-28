@@ -47,7 +47,8 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Monitor_BFER<>                     > monitor      (Factory_DVBS2O::build_monitor                  <>(params                 ));
 	std::unique_ptr<module::Filter_RRC_ccr_naive<>             > matched_flt  (Factory_DVBS2O::build_matched_filter           <>(params                 ));
 	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<>    > sync_gardner (Factory_DVBS2O::build_synchronizer_gardner     <>(params                 ));
-	std::unique_ptr<module::Synchronizer_coarse_fr_cc_DVBS2O<> > sync_coarse_f(Factory_DVBS2O::build_synchronizer_coarse_freq <>(params                 ));	
+	std::unique_ptr<module::Multiplier_AGC_cc_naive<>          > mult_agc     (Factory_DVBS2O::build_agc_shift                <>(params                 ));
+	std::unique_ptr<module::Synchronizer_coarse_freq<>         > sync_coarse_f(Factory_DVBS2O::build_synchronizer_coarse_freq <>(params                 ));	
 	std::unique_ptr<module::Synchronizer_step_mf_cc<>          > sync_step_mf (Factory_DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(), 	
 	matched_flt.get(), sync_gardner.get()));
 
@@ -79,11 +80,11 @@ int main(int argc, char** argv)
 	terminal->legend();
 
 	// fulfill the list of modules
-	modules = { bb_scrambler.get(), BCH_encoder  .get(), BCH_decoder .get(), LDPC_encoder.get(),
+		modules = { bb_scrambler.get(), BCH_encoder  .get(), BCH_decoder .get(), LDPC_encoder.get(),
 	            LDPC_decoder.get(), itl_tx       .get(), itl_rx      .get(), modem       .get(),
 	            framer      .get(), pl_scrambler .get(), monitor     .get(),
 	            freq_shift   .get(), sync_lr     .get(), sync_fine_pf.get(), 
-	            shaping_flt  .get(), chn_delay   .get(),
+	            shaping_flt  .get(), chn_delay   .get(), mult_agc   .get(),
 			    sync_frame.get()  , delay       .get(), sync_coarse_f.get(),matched_flt.get(), sync_gardner.get(), sync_step_mf.get()};
 	
 	// configuration of the module tasks
@@ -103,7 +104,7 @@ int main(int argc, char** argv)
 
 	
 	using namespace module;
-
+	
 	// socket binding
 	// TX
 	(*BCH_encoder )[enc::sck::encode      ::U_K ].bind((*bb_scrambler)[scr::sck::scramble    ::X_N2]);
@@ -113,7 +114,6 @@ int main(int argc, char** argv)
 	(*framer      )[frm::sck::generate    ::Y_N1].bind((*modem       )[mdm::sck::modulate    ::X_N2]);
 	(*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
 	(*shaping_flt )[flt::sck::filter      ::X_N1].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
-	
 	// Channel
 	(*chn_delay   )[flt::sck::filter      ::X_N1].bind((*shaping_flt )[flt::sck::filter      ::Y_N2]);
 	(*freq_shift  )[mlt::sck::imultiply   ::X_N ].bind((*chn_delay   )[flt::sck::filter      ::Y_N2]);
@@ -162,13 +162,14 @@ int main(int argc, char** argv)
 				ta->set_stats          (params.stats); // enable the statistics
 				ta->set_fast           (false       ); //!ta->is_debug() && !ta->is_stats()
 			}
-
 		(*bb_scrambler)[scr::sck::scramble    ::X_N1].bind((*source      )[src::sck::generate    ::U_K ]);
 		(*channel     )[chn::sck::add_noise   ::X_N ].bind((*freq_shift)  [mlt::sck::imultiply   ::Z_N ]);
 		(*sync_step_mf)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
-		(*delay       )[flt::sck::filter::X_N1      ].bind((*source      )[src::sck::generate    ::U_K ]);
-		(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_step_mf )[syn::sck::synchronize ::Y_N2]);
+		(*mult_agc    )[mlt::sck::imultiply   ::X_N ].bind((*sync_step_mf)[syn::sck::synchronize  ::Y_N2]);
+		(*sync_frame  )[syn::sck::synchronize ::X_N1].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N ]);
 		(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*sync_frame  )[syn::sck::synchronize ::Y_N2]);
+
+		(*delay       )[flt::sck::filter::X_N1      ].bind((*source      )[src::sck::generate    ::U_K ]);
 		// compute the code rate
 		const float R = (float)params.K_BCH / (float)params.N_LDPC;
 
@@ -228,10 +229,11 @@ int main(int argc, char** argv)
 			(*channel     )[chn::tsk::add_noise ].exec();
 			the_delay = sync_step_mf->get_delay();
 			(*sync_step_mf)[syn::tsk::synchronize ].exec();
+			(*mult_agc    )[mlt::tsk::imultiply  ].exec();
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
 			
 			sync_coarse_f->enable_update();
-			the_delay = (sync_frame->get_delay() + the_delay) %  params.PL_FRAME_SIZE;
+			the_delay = (2*params.PL_FRAME_SIZE - sync_frame->get_delay() + the_delay) %  params.PL_FRAME_SIZE;
 			sync_coarse_f->set_curr_idx(the_delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
@@ -262,10 +264,11 @@ int main(int argc, char** argv)
 			(*channel     )[chn::tsk::add_noise ].exec();
 			the_delay = sync_step_mf->get_delay();
 			(*sync_step_mf)[syn::tsk::synchronize ].exec();
+			(*mult_agc    )[mlt::tsk::imultiply  ].exec();
 			(*sync_frame  )[syn::tsk::synchronize ].exec();
 			
 			sync_coarse_f->enable_update();
-			the_delay = (the_delay + sync_frame->get_delay()) %  params.PL_FRAME_SIZE;
+			the_delay = (2*params.PL_FRAME_SIZE - sync_frame->get_delay() + the_delay) %  params.PL_FRAME_SIZE;
 			sync_coarse_f->set_curr_idx(the_delay);
 
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
@@ -282,7 +285,8 @@ int main(int argc, char** argv)
 		(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
 		(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2 ]);
 		(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
-		(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
+		(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
+		(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
 
 		sync_coarse_f->disable_update();
 		std::cerr.flush();
@@ -303,6 +307,7 @@ int main(int argc, char** argv)
 			(*sync_coarse_f)[syn::tsk::synchronize ].exec();
 			(*matched_flt  )[flt::tsk::filter      ].exec();
 			(*sync_gardner )[syn::tsk::synchronize ].exec();
+			(*mult_agc     )[mlt::tsk::imultiply  ].exec();			
 			(*sync_frame   )[syn::tsk::synchronize ].exec();
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
@@ -337,6 +342,7 @@ int main(int argc, char** argv)
 			(*sync_coarse_f)[syn::tsk::synchronize ].exec();
 			(*matched_flt  )[flt::tsk::filter      ].exec();
 			(*sync_gardner )[syn::tsk::synchronize ].exec();
+			(*mult_agc     )[mlt::tsk::imultiply   ].exec();			
 			(*sync_frame   )[syn::tsk::synchronize ].exec();
 			(*pl_scrambler )[scr::tsk::descramble  ].exec();
 			(*sync_lr      )[syn::tsk::synchronize ].exec();

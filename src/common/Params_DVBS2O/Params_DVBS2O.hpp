@@ -16,6 +16,7 @@ public:
 	bool debug;
 	bool stats;
 	bool filtered;    // filtering disabled in bb simu
+	bool no_pll;
 	int MAX_FE;       // max number of frame errors per SNR point
 	int MAX_N_FRAMES; // max number of simulated frames per SNR point
 	int K_BCH;
@@ -43,7 +44,7 @@ public:
 	const int   N_LDPC    = 16200;
 	const int   M         = 90;    // number of symbols per slot
 	const int   P         = 36;    // number of symbols per pilot
-	const float ROLLOFF   = 0.05;
+	const float ROLLOFF   = 0.2;//DVBS2 0.05; // DVBS2-X
 	const int   OSF       = 4;
 	const int   GRP_DELAY = 50;
 

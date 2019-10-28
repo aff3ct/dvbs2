@@ -13,7 +13,7 @@ using namespace aff3ct::module;
 template <typename R>
 Synchronizer_frame_cc_naive<R>
 ::Synchronizer_frame_cc_naive(const int N)
-: Synchronizer<R>(N,N), reg_channel(std::complex<R>((R)1,(R)0)), sec_SOF_sz(25), sec_PLSC_sz(64), corr_buff(89*2, std::complex<R>((R)0,(R)0)), corr_vec(N/2, (R)0), head(0), size(89), delay(0), output_delay(N, N/2, N/2)
+: Synchronizer<R>(N,N), reg_channel(std::complex<R>((R)1,(R)0)), sec_SOF_sz(25), sec_PLSC_sz(64), corr_buff(89*2, std::complex<R>((R)0,(R)0)), corr_vec(N/2, (R)0), head(0), SOF_PLSC_sz(89), delay(0), output_delay(N, N/2, N/2)
 {
 }
 
@@ -35,7 +35,7 @@ void Synchronizer_frame_cc_naive<R>
 	
 	/*if((*this)[syn::tsk::synchronize].is_debug())
 		std::cout << "# {INTERNAL} CORR = [ " << y_corr << " ";*/
-	corr_vec[0] += y_corr;
+	corr_vec[0] = y_corr;
 	R max_corr = corr_vec[0];
 	int max_idx  = 0;
 
@@ -44,7 +44,8 @@ void Synchronizer_frame_cc_naive<R>
 		symb_diff = cX_N1[i-1] * std::conj(cX_N1[i]);
 
 		this->step(&symb_diff, &y_corr);
-		corr_vec[i] += y_corr;
+		//corr_vec[i] += y_corr;
+		corr_vec[i] = y_corr;
 		/*if((*this)[syn::tsk::synchronize].is_debug())
 		{
 			if (i < cplx_in_sz -1)
@@ -62,9 +63,10 @@ void Synchronizer_frame_cc_naive<R>
 	}
 	this->reg_channel = cX_N1[cplx_in_sz - 1];
 		//std::cout << "Hi befor delay" << std::endl;
-	this->delay = (cplx_in_sz - max_idx + this->size)%(cplx_in_sz);
+	this->delay = (cplx_in_sz + max_idx - this->SOF_PLSC_sz)%cplx_in_sz;
+	
 	//std::cout << "delay : " << delay<< std::endl;
-	this->output_delay.set_delay(this->delay);
+	this->output_delay.set_delay((cplx_in_sz - this->delay)%cplx_in_sz);
 	//std::cout << "Delay set" <<std::endl;
 	this->output_delay.filter(X_N1,Y_N2);
 	//std::cout << "Compute output"<< std::endl;
@@ -75,7 +77,7 @@ void Synchronizer_frame_cc_naive<R>
 ::step(const std::complex<R>* x_elt, R* y_corr)
 {
 	this->corr_buff[this->head] = *x_elt;
-	this->corr_buff[this->head + this->size] = *x_elt;
+	this->corr_buff[this->head + this->SOF_PLSC_sz] = *x_elt;
 
 	std::complex<R> ps_SOF(0,0);
 	for (size_t i = 0; i < this->sec_SOF_sz ; i++)
@@ -86,7 +88,7 @@ void Synchronizer_frame_cc_naive<R>
 		ps_PLSC += this->corr_buff[this->head+1+i] * this->conj_SOF_PLSC[i];	
 
 	this->head++;
-	this->head %= this->size;
+	this->head %= this->SOF_PLSC_sz;
 
 	*y_corr = std::max(std::abs(ps_SOF + ps_PLSC), std::abs(ps_SOF - ps_PLSC));
 }

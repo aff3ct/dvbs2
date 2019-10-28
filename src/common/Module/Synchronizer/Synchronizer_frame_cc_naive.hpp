@@ -24,7 +24,7 @@ private:
 	std::vector<std::complex<R> > corr_buff;
 	std::vector<R               > corr_vec;
 	int head;
-	int size;
+	int SOF_PLSC_sz;
 	int delay;
 	Variable_delay_cc_naive<R> output_delay;
 

@@ -45,7 +45,8 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Monitor_BFER<>                     > monitor      (Factory_DVBS2O::build_monitor                  <>(params                 ));
 	std::unique_ptr<module::Filter_RRC_ccr_naive<>             > matched_flt  (Factory_DVBS2O::build_matched_filter           <>(params                 ));
 	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<>    > sync_gardner (Factory_DVBS2O::build_synchronizer_gardner     <>(params                 ));
-	std::unique_ptr<module::Synchronizer_coarse_fr_cc_DVBS2O<> > sync_coarse_f(Factory_DVBS2O::build_synchronizer_coarse_freq <>(params                 ));	
+	std::unique_ptr<module::Multiplier_AGC_cc_naive<>          > mult_agc     (Factory_DVBS2O::build_agc_shift                <>(params                 ));
+	std::unique_ptr<module::Synchronizer_coarse_freq<>         > sync_coarse_f(Factory_DVBS2O::build_synchronizer_coarse_freq <>(params                 ));	
 	std::unique_ptr<module::Synchronizer_step_mf_cc<>          > sync_step_mf (Factory_DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(), 	
 	matched_flt.get(), sync_gardner.get()));
 
@@ -79,7 +80,7 @@ int main(int argc, char** argv)
 	            freq_shift  .get(), sync_lr      .get(), sync_fine_pf.get(), 
 	            chn_delay   .get(), radio        .get(),
 	            sync_frame  .get(), sync_coarse_f.get(), matched_flt.get(),
-	            sync_gardner.get(), sync_step_mf .get()};
+	            sync_gardner.get(), sync_step_mf .get(), mult_agc   .get()};
 	
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -87,7 +88,7 @@ int main(int argc, char** argv)
 		{
 			ta->set_autoalloc      (true        ); // enable the automatic allocation of the data in the tasks
 			ta->set_autoexec       (false       ); // disable the auto execution mode of the tasks
-			ta->set_debug          (params.debug); // disable the debug mode
+			ta->set_debug          (false       ); // disable the debug mode
 			ta->set_debug_limit    (         100); // display only the 16 first bits if the debug mode is enabled
 			ta->set_debug_precision(           8);
 			ta->set_stats          (params.stats); // enable the statistics
@@ -117,7 +118,8 @@ int main(int argc, char** argv)
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 
 	(*sync_step_mf)[syn::sck::synchronize ::X_N1].bind((*radio        )[rad::sck::receive     ::Y_N1]);
-	(*sync_frame  )[syn::sck::synchronize ::X_N1].bind((*sync_step_mf )[syn::sck::synchronize ::Y_N2]);
+	(*mult_agc    )[mlt::sck::imultiply   ::X_N ].bind((*sync_step_mf)[syn::sck::synchronize  ::Y_N2]);
+	(*sync_frame  )[syn::sck::synchronize ::X_N1].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N ]);
 	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*sync_frame   )[syn::sck::synchronize ::Y_N2]);
 
 
@@ -147,7 +149,11 @@ int main(int argc, char** argv)
 	sync_frame->reset();
 	sync_lr->reset();
 	sync_fine_pf->reset();
-
+	if (params.debug)
+	{
+		(*pl_scrambler )[scr::tsk::descramble  ].set_debug(true);
+		(*pl_scrambler )[scr::tsk::descramble  ].set_debug_limit(-1);
+	}
 	char buf[256];
 	char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
 	char heads[]  =      "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
@@ -163,6 +169,7 @@ int main(int argc, char** argv)
 		(*radio       )[rad::tsk::receive    ].exec();
 		the_delay = sync_step_mf->get_delay();
 		(*sync_step_mf)[syn::tsk::synchronize].exec();
+		(*mult_agc    )[mlt::tsk::imultiply  ].exec();
 		(*sync_frame  )[syn::tsk::synchronize].exec();
 		
 		sync_coarse_f->enable_update();
@@ -189,6 +196,7 @@ int main(int argc, char** argv)
 		(*radio      ) [rad::tsk::receive    ].exec();
 		the_delay = sync_step_mf->get_delay();
 		(*sync_step_mf)[syn::tsk::synchronize].exec();
+		(*mult_agc    )[mlt::tsk::imultiply  ].exec();
 		(*sync_frame  )[syn::tsk::synchronize].exec();
 		
 		sync_coarse_f->enable_update();
@@ -209,17 +217,21 @@ int main(int argc, char** argv)
 	(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*radio        )[rad::sck::receive     ::Y_N1]);
 	(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2 ]);
 	(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
-	(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
+	(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);	
+	(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);	
 
 	sync_coarse_f->disable_update();
 	std::cerr << buf << "\n";
 	std::cerr.flush();
+	//(*sync_fine_pf )[syn::tsk::synchronize].set_debug(true);
+	//(*sync_fine_pf )[syn::tsk::synchronize].set_debug_limit(-1);
 	for (int m = 0; m < 200; m++)
 	{
 		(*radio      ) [rad::tsk::receive     ].exec();
 		(*sync_coarse_f)[syn::tsk::synchronize].exec();
 		(*matched_flt  )[flt::tsk::filter     ].exec();
 		(*sync_gardner )[syn::tsk::synchronize].exec();
+		(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 		(*sync_frame   )[syn::tsk::synchronize].exec();
 		(*pl_scrambler )[scr::tsk::descramble ].exec();
 		(*sync_lr      )[syn::tsk::synchronize].exec();
@@ -239,13 +251,15 @@ int main(int argc, char** argv)
 
 	// tasks execution
 	int n_frames = 0;
-	while (monitor->get_n_fe() < 100 && n_frames < 100000)//!monitor_red->is_done_all() && !terminal->is_interrupt()
+	while (monitor->get_n_fe() < 10000 && n_frames < 10000000)//!monitor_red->is_done_all() && !terminal->is_interrupt()
 	{
 		(*source       )[src::tsk::generate    ].exec();
+
 		(*radio        )[rad::tsk::receive     ].exec();
 		(*sync_coarse_f)[syn::tsk::synchronize ].exec();
 		(*matched_flt  )[flt::tsk::filter      ].exec();
 		(*sync_gardner )[syn::tsk::synchronize ].exec();
+		(*mult_agc     )[mlt::tsk::imultiply   ].exec();		
 		(*sync_frame   )[syn::tsk::synchronize ].exec();
 		(*pl_scrambler )[scr::tsk::descramble  ].exec();
 		(*sync_lr      )[syn::tsk::synchronize ].exec();

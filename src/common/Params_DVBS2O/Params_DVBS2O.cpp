@@ -36,6 +36,11 @@ Params_DVBS2O(int argc, char** argv)
 	else
 		stats = false;
 
+	if (arg_vals.exist({"no-pll"}))
+		no_pll = true;
+	else
+		no_pll = false;
+
 	filtered = true;
 
 	if (arg_vals.exist({"dec-ite"}))
@@ -183,6 +188,7 @@ get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals)
 		args.add({"sim-noise-min","m"},  cli::Real(),                                           "Min Eb/N0"                           );
 		args.add({"sim-noise-max","M"},  cli::Real(),                                           "Max Eb/N0"                           );
 		args.add({"sim-noise-step","s"}, cli::Real(),                                           "Step Eb/N0"                          );
+		args.add({"no-pll"},             cli::None(),                                           "Disable coarse PLL."                 );
 		args.add({"sim-debug", "d"},     cli::None(),                                           "Display debug."                      );
 		args.add({"sim-stats"},          cli::None(),                                           "Display stats."                      );
 		args.add({"src-type"},           cli::Text(cli::Including_set("RAND", "USER", "AZCW")), "Type of the binary source"           );
