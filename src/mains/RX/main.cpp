@@ -138,7 +138,7 @@ int main(int argc, char** argv)
 	modem   ->set_noise(noise);
 
 	chn_delay->reset();
-	freq_shift->reset_time();
+	freq_shift->reset();
 
 	sync_coarse_f->reset();
 	sync_coarse_f->disable_update();

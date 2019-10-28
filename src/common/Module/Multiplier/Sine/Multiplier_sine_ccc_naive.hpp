@@ -26,7 +26,7 @@ private:
 
 public:
 	Multiplier_sine_ccc_naive (const int N, const R f, const R Fs = 1.0f, const int n_frames = 1);
-	void reset_time();
+	void reset();
 	void set_f (R f);
 	void set_omega (R omega);
 	void set_nu (R nu);

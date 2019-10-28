@@ -163,7 +163,7 @@ int main(int argc, char** argv)
 
 		shaping_flt  ->reset();
 		chn_delay    ->reset();
-		freq_shift   ->reset_time();
+		freq_shift   ->reset();
 		sync_coarse_f->reset();
 		sync_coarse_f->disable_update();
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);

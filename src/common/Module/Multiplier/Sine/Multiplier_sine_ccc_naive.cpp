@@ -65,7 +65,7 @@ R Multiplier_sine_ccc_naive<R>
 
 template <typename R>
 void Multiplier_sine_ccc_naive<R>
-::reset_time()
+::reset()
 {
 	this->n = (R)0.0;
 }

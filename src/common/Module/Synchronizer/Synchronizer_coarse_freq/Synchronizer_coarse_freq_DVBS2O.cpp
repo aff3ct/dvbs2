@@ -129,7 +129,7 @@ void Synchronizer_coarse_freq_DVBS2O<R>
 	this->DDS_prev_in        = (R)0.0;
 	this->is_active          = false;
 	this->estimated_freq     = (R)0.0;
-	this->mult.reset_time();
+	this->mult.reset();
 	this->mult.set_nu((R)0.0);
 }
 
