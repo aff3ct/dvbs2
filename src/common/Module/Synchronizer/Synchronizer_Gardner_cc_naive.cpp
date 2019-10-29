@@ -40,8 +40,8 @@ outbuf_max_sz(N/OSF),
 outbuf_cur_sz(0)//outbuf_cur_sz(0)//N/OSF/10
 {
 	this->set_loop_filter_coeffs(damping_factor, normalized_bandwidth, detector_gain);
-	std::cerr << "# Gardner integrator_gain = " << this->lf_integrator_gain << std::endl;
-	std::cerr << "# Gardner proportional_gain = " << this->lf_proportional_gain << std::endl;
+	// std::cerr << "# Gardner integrator_gain   = " << this->lf_integrator_gain << std::endl;
+	// std::cerr << "# Gardner proportional_gain = " << this->lf_proportional_gain << std::endl;
 }
 
 template <typename R>

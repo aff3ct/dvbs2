@@ -21,10 +21,10 @@ Synchronizer_coarse_freq_DVBS2O<R>
 {
 	this->curr_idx = this->length_max - 1;
 	this->set_PLL_coeffs (1, damping_factor, normalized_bandwidth);
-	std::cerr << "# PLL integrator_gain = " << this->integrator_gain << std::endl;
-	std::cerr << "# PLL digital_synthesizer_gain = " << this->digital_synthesizer_gain << std::endl;
-	std::cerr << "# PLL proportional_gain = " << this->proportional_gain << std::endl;
-	std::cerr << this->PL_RAND_SEQ.size() << std::endl;
+	// std::cerr << "# PLL integrator_gain          = " << this->integrator_gain << std::endl;
+	// std::cerr << "# PLL digital_synthesizer_gain = " << this->digital_synthesizer_gain << std::endl;
+	// std::cerr << "# PLL proportional_gain        = " << this->proportional_gain << std::endl;
+	// std::cerr << "# PL rand seq size             = " << this->PL_RAND_SEQ.size() << std::endl;
 	for (size_t i = 0; i < this->PL_RAND_SEQ.size(); i++)
 	{
 		this->scrambled_pilots[i] = std::complex<R>(std::cos((R)M_PI_2*((R)PL_RAND_SEQ[i]+0.5)), std::sin((R)M_PI_2*((R)PL_RAND_SEQ[i]+0.5)));
