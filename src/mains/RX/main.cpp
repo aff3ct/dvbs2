@@ -208,11 +208,12 @@ int main(int argc, char** argv)
 	}
 
 	std::cerr << buf << "\n" << head_lines << "\n";
-	monitor->reset();
+	monitor ->reset();
+	terminal->reset();
+	terminal->start_temp_report();
 
 	// tasks execution
-	int n_frames = 0;
-	while (monitor->get_n_fe() < 10000 && n_frames < 10000000)//!monitor_red->is_done_all() && !terminal->is_interrupt()
+	while (!terminal->is_interrupt())
 	{
 		(*source       )[src::tsk::generate    ].exec();
 		(*radio        )[rad::tsk::receive     ].exec();
@@ -232,19 +233,10 @@ int main(int argc, char** argv)
 		(*bb_scrambler )[scr::tsk::descramble  ].exec();
 		(*monitor      )[mnt::tsk::check_errors].exec();
 
-		if (n_frames < 1)
-			monitor->reset();
-
-		n_frames++;
-		terminal->temp_report(std::cout);
 	}
 
 	// display the performance (BER and FER) in the terminal
 	terminal->final_report();
-
-	// reset the monitors and the terminal for the next SNR
-	monitor->reset();
-	terminal->reset();
 
 	std::cout << "#" << std::endl;
 	std::cout << "# End of the simulation" << std::endl;

@@ -260,10 +260,10 @@ int main(int argc, char** argv)
 		std::cerr << buf << "\n" << head_lines << "\n";
 
 		monitor->reset();
-
+		terminal->start_temp_report();
 		// tasks execution
 		int n_frames = 0;
-		while (monitor->get_n_fe() < 100 && n_frames < 100000) // !monitor_red->is_done_all() && !terminal->is_interrupt()
+		while (!monitor->is_done() && !terminal->is_interrupt())
 		{
 			(*source       )[src::tsk::generate    ].exec();
 			(*bb_scrambler )[scr::tsk::scramble    ].exec();
@@ -294,15 +294,10 @@ int main(int argc, char** argv)
 			(*delay        )[flt::tsk::filter      ].exec();
 			(*monitor      )[mnt::tsk::check_errors].exec();
 
-			if (n_frames < 1)
+			if (n_frames < 1) // first frame is delayed
 				monitor->reset();
 
 			n_frames++;
-
-			if ((n_frames % 10) == 1)
-			{
-				terminal->temp_report(std::cerr);
-			}
 		}
 
 		// display the performance (BER and FER) in the terminal
