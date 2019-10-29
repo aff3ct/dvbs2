@@ -29,6 +29,7 @@ int main(int argc, char** argv)
 
 	// construct modules
 	std::unique_ptr<module::Source<>                           > source       (Factory_DVBS2O::build_source                   <>(params                 ));
+	std::unique_ptr<module::Sink<>                             > sink         (Factory_DVBS2O::build_sink                     <>(params                 ));
 	std::unique_ptr<module::Radio<>                            > radio        (Factory_DVBS2O::build_radio                    <>(params                 ));
 	std::unique_ptr<module::Scrambler<>                        > bb_scrambler (Factory_DVBS2O::build_bb_scrambler             <>(params                 ));
 	std::unique_ptr<module::Decoder_HIHO<>                     > BCH_decoder  (Factory_DVBS2O::build_bch_decoder              <>(params, poly_gen       ));
@@ -79,7 +80,8 @@ int main(int argc, char** argv)
 	            itl_rx      .get(), modem        .get(), framer      .get(), pl_scrambler .get(),
 	            monitor     .get(), freq_shift   .get(), sync_lr     .get(), sync_fine_pf .get(),
 	            chn_delay   .get(), radio        .get(), sync_frame  .get(), sync_coarse_f.get(),
-	            matched_flt .get(), sync_gardner .get(), sync_step_mf.get(), mult_agc     .get()};
+	            matched_flt .get(), sync_gardner .get(), sync_step_mf.get(), mult_agc     .get(),
+	            sink        .get()                                                               };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -110,6 +112,8 @@ int main(int argc, char** argv)
 	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*sync_frame  )[syn::sck::synchronize ::Y_N2]);
 	(*monitor     )[mnt::sck::check_errors::U   ].bind((*source      )[src::sck::generate    ::U_K ]);
 	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
+	(*sink        )[snk::sck::send        ::X_N1].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
+
 	// reset the memory of the decoder after the end of each communication
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 
@@ -232,7 +236,7 @@ int main(int argc, char** argv)
 		(*BCH_decoder  )[dec::tsk::decode_hiho ].exec();
 		(*bb_scrambler )[scr::tsk::descramble  ].exec();
 		(*monitor      )[mnt::tsk::check_errors].exec();
-
+		(*sink         )[snk::tsk::send        ].exec();
 	}
 
 	// display the performance (BER and FER) in the terminal
