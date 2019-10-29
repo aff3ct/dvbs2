@@ -52,8 +52,8 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>       > mult_agc     (Factory_DVBS2O::build_agc_shift                <>(params                 ));
 	std::unique_ptr<module::Synchronizer_coarse_freq<>      > sync_coarse_f(Factory_DVBS2O::build_synchronizer_coarse_freq <>(params                 ));
 	std::unique_ptr<module::Synchronizer_step_mf_cc<>       > sync_step_mf (Factory_DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(),
-	                                                                                                                          matched_flt.get(),
-	                                                                                                                          sync_gardner.get()     ));
+	                                                                                                                          matched_flt  .get(),
+	                                                                                                                          sync_gardner .get()    ));
 
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
@@ -130,6 +130,7 @@ int main(int argc, char** argv)
 	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho ::V_K ]);
 	(*bb_scrambler)[scr::sck::descramble  ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K ]);
 
+	// monitor
 	(*monitor     )[mnt::sck::check_errors::U   ].bind((*delay       )[flt::sck::filter      ::Y_N2]);
 	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
 
@@ -239,27 +240,24 @@ int main(int argc, char** argv)
 			if (m == 149)
 			{
 				n_phase++;
-				std::cerr << buf << "\n";
-				std::cerr.flush();
+				std::cerr << buf << std::endl;
 				sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 			}
 
 			if (m == 299)
 			{
 				n_phase++;
-				std::cerr << buf << "\n";
+				std::cerr << buf << std::endl;
 				(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
 				(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
 				(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
 				(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);
 				(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
 				sync_coarse_f->disable_update();
-				std::cerr.flush();
 			}
 		}
 
-		std::cerr << buf << "\n";
-		std::cerr << head_lines << "\n";
+		std::cerr << buf << "\n" << head_lines << "\n";
 
 		monitor->reset();
 
@@ -301,7 +299,7 @@ int main(int argc, char** argv)
 
 			n_frames++;
 
-			if ((n_frames%10) == 1)
+			if ((n_frames % 10) == 1)
 			{
 				terminal->temp_report(std::cerr);
 			}
@@ -310,10 +308,12 @@ int main(int argc, char** argv)
 		// display the performance (BER and FER) in the terminal
 		terminal->final_report();
 		terminal->final_report(std::cerr);
+
 		// reset the monitors and the terminal for the next SNR
 		monitor ->reset();
 		terminal->reset();
 	}
+
 	std::cout << "#" << std::endl;
 	std::cout << "# End of the simulation" << std::endl;
 
