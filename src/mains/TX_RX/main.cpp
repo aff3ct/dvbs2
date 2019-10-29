@@ -187,67 +187,47 @@ int main(int argc, char** argv)
 
 		// tasks execution
 		int the_delay = 0;
-		for (int m = 0; m < 150; m++)
+		auto n_phase = 1;
+
+		for (int m = 0; m < 500; m++)
 		{
-			(*source      )[src::tsk::generate   ].exec();
-			(*bb_scrambler)[scr::tsk::scramble   ].exec();
-			(*BCH_encoder )[enc::tsk::encode     ].exec();
-			(*LDPC_encoder)[enc::tsk::encode     ].exec();
-			(*itl_tx      )[itl::tsk::interleave ].exec();
-			(*modem       )[mdm::tsk::modulate   ].exec();
-			(*framer      )[frm::tsk::generate   ].exec();
-			(*pl_scrambler)[scr::tsk::scramble   ].exec();
-			(*shaping_flt )[flt::tsk::filter     ].exec();
-			(*chn_delay   )[flt::tsk::filter     ].exec();
-			(*freq_shift  )[mlt::tsk::imultiply  ].exec();
-			(*channel     )[chn::tsk::add_noise  ].exec(); the_delay = sync_step_mf->get_delay();
-			(*sync_step_mf)[syn::tsk::synchronize].exec();
-			(*mult_agc    )[mlt::tsk::imultiply  ].exec();
-			(*sync_frame  )[syn::tsk::synchronize].exec();
+			(*source       )[src::tsk::generate   ].exec();
+			(*bb_scrambler )[scr::tsk::scramble   ].exec();
+			(*BCH_encoder  )[enc::tsk::encode     ].exec();
+			(*LDPC_encoder )[enc::tsk::encode     ].exec();
+			(*itl_tx       )[itl::tsk::interleave ].exec();
+			(*modem        )[mdm::tsk::modulate   ].exec();
+			(*framer       )[frm::tsk::generate   ].exec();
+			(*pl_scrambler )[scr::tsk::scramble   ].exec();
+			(*shaping_flt  )[flt::tsk::filter     ].exec();
+			(*chn_delay    )[flt::tsk::filter     ].exec();
+			(*freq_shift   )[mlt::tsk::imultiply  ].exec();
+			(*channel      )[chn::tsk::add_noise  ].exec();
 
-			sync_coarse_f->enable_update();
-			the_delay = (2*params.PL_FRAME_SIZE - sync_frame->get_delay() + the_delay) %  params.PL_FRAME_SIZE;
-			sync_coarse_f->set_curr_idx(the_delay);
+			if(n_phase < 3)
+			{
+				the_delay = sync_step_mf->get_delay();
+				(*sync_step_mf )[syn::tsk::synchronize].exec();
+				(*mult_agc     )[mlt::tsk::imultiply  ].exec();
+				(*sync_frame   )[syn::tsk::synchronize].exec();
+				sync_coarse_f->enable_update();
+				the_delay = (2*params.PL_FRAME_SIZE - sync_frame->get_delay() + the_delay) %  params.PL_FRAME_SIZE;
+				sync_coarse_f->set_curr_idx(the_delay);
+				(*pl_scrambler )[scr::tsk::descramble].exec();
+			}
+			else // n_phase == 3
+			{
+				(*sync_coarse_f)[syn::tsk::synchronize].exec();
+				(*matched_flt  )[flt::tsk::filter     ].exec();
+				(*sync_gardner )[syn::tsk::synchronize].exec();
+				(*mult_agc     )[mlt::tsk::imultiply  ].exec();
+				(*sync_frame   )[syn::tsk::synchronize].exec();
+				(*pl_scrambler )[scr::tsk::descramble ].exec();
+				(*sync_lr      )[syn::tsk::synchronize].exec();
+				(*sync_fine_pf )[syn::tsk::synchronize].exec();
+			}
 
-			(*pl_scrambler )[scr::tsk::descramble].exec();
-			sprintf(buf, pattern, 1, m+1,
-			        sync_gardner ->get_mu(),
-			        sync_coarse_f->get_estimated_freq(),
-			        the_delay,
-					sync_lr      ->get_est_reduced_freq() / (float)params.OSF,
-			        sync_fine_pf ->get_estimated_freq()   / (float)params.OSF);
-			std::cerr << buf << "\r";
-			std::cerr.flush();
-		}
-		std::cerr << buf << "\n";
-		std::cerr.flush();
-		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
-
-		for (int m = 0; m < 150; m++)
-		{
-			(*source      )[src::tsk::generate   ].exec();
-			(*bb_scrambler)[scr::tsk::scramble   ].exec();
-			(*BCH_encoder )[enc::tsk::encode     ].exec();
-			(*LDPC_encoder)[enc::tsk::encode     ].exec();
-			(*itl_tx      )[itl::tsk::interleave ].exec();
-			(*modem       )[mdm::tsk::modulate   ].exec();
-			(*framer      )[frm::tsk::generate   ].exec();
-			(*pl_scrambler)[scr::tsk::scramble   ].exec();
-			(*shaping_flt )[flt::tsk::filter     ].exec();
-			(*chn_delay   )[flt::tsk::filter     ].exec();
-			(*freq_shift  )[mlt::tsk::imultiply  ].exec();
-			(*channel     )[chn::tsk::add_noise  ].exec(); the_delay = sync_step_mf->get_delay();
-			(*sync_step_mf)[syn::tsk::synchronize].exec();
-			(*mult_agc    )[mlt::tsk::imultiply  ].exec();
-			(*sync_frame  )[syn::tsk::synchronize].exec();
-
-			sync_coarse_f->enable_update();
-			the_delay = (2*params.PL_FRAME_SIZE - sync_frame->get_delay() + the_delay) %  params.PL_FRAME_SIZE;
-			sync_coarse_f->set_curr_idx(the_delay);
-
-			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-
-			sprintf(buf, pattern, 2, m+151,
+			sprintf(buf, pattern, n_phase, m+1,
 			        sync_gardner ->get_mu(),
 			        sync_coarse_f->get_estimated_freq(),
 			        the_delay,
@@ -256,51 +236,28 @@ int main(int argc, char** argv)
 			std::cerr << buf << "\r";
 			std::cerr.flush();
 
+			if (m == 149)
+			{
+				n_phase++;
+				std::cerr << buf << "\n";
+				std::cerr.flush();
+				sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
+			}
+
+			if (m == 299)
+			{
+				n_phase++;
+				std::cerr << buf << "\n";
+				(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
+				(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
+				(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
+				(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);
+				(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
+				sync_coarse_f->disable_update();
+				std::cerr.flush();
+			}
 		}
 
-		std::cerr << buf << "\n";
-		(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
-		(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
-		(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
-		(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);
-		(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
-
-		sync_coarse_f->disable_update();
-
-		std::cerr.flush();
-
-		for (int m = 0; m < 200; m++)
-		{
-			(*source       )[src::tsk::generate    ].exec();
-			(*bb_scrambler )[scr::tsk::scramble    ].exec();
-			(*BCH_encoder  )[enc::tsk::encode      ].exec();
-			(*LDPC_encoder )[enc::tsk::encode      ].exec();
-			(*itl_tx       )[itl::tsk::interleave  ].exec();
-			(*modem        )[mdm::tsk::modulate    ].exec();
-			(*framer       )[frm::tsk::generate    ].exec();
-			(*pl_scrambler )[scr::tsk::scramble    ].exec();
-			(*shaping_flt  )[flt::tsk::filter      ].exec();
-			(*chn_delay    )[flt::tsk::filter      ].exec();
-			(*freq_shift   )[mlt::tsk::imultiply   ].exec();
-			(*channel      )[chn::tsk::add_noise   ].exec();
-			(*sync_coarse_f)[syn::tsk::synchronize ].exec();
-			(*matched_flt  )[flt::tsk::filter      ].exec();
-			(*sync_gardner )[syn::tsk::synchronize ].exec();
-			(*mult_agc     )[mlt::tsk::imultiply   ].exec();
-			(*sync_frame   )[syn::tsk::synchronize ].exec();
-			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			(*sync_lr      )[syn::tsk::synchronize ].exec();
-			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
-
-			sprintf(buf, pattern, 3, m+301,
-			        sync_gardner ->get_mu(),
-			        sync_coarse_f->get_estimated_freq(),
-			        the_delay,
-			        sync_lr     ->get_est_reduced_freq() / (float)params.OSF,
-			        sync_fine_pf->get_estimated_freq()   / (float)params.OSF);
-			std::cerr << buf << "\r";
-			std::cerr.flush();
-		}
 		std::cerr << buf << "\n";
 		std::cerr << head_lines << "\n";
 
@@ -308,7 +265,7 @@ int main(int argc, char** argv)
 
 		// tasks execution
 		int n_frames = 0;
-		while (monitor->get_n_fe() < 100 && n_frames < 100000)//!monitor_red->is_done_all() && !terminal->is_interrupt()
+		while (monitor->get_n_fe() < 100 && n_frames < 100000) // !monitor_red->is_done_all() && !terminal->is_interrupt()
 		{
 			(*source       )[src::tsk::generate    ].exec();
 			(*bb_scrambler )[scr::tsk::scramble    ].exec();
@@ -350,12 +307,12 @@ int main(int argc, char** argv)
 			}
 		}
 
-	// display the performance (BER and FER) in the terminal
-	terminal->final_report();
-	terminal->final_report(std::cerr);
-	// reset the monitors and the terminal for the next SNR
-	monitor ->reset();
-	terminal->reset();
+		// display the performance (BER and FER) in the terminal
+		terminal->final_report();
+		terminal->final_report(std::cerr);
+		// reset the monitors and the terminal for the next SNR
+		monitor ->reset();
+		terminal->reset();
 	}
 	std::cout << "#" << std::endl;
 	std::cout << "# End of the simulation" << std::endl;
