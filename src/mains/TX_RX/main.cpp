@@ -29,6 +29,7 @@ int main(int argc, char** argv)
 
 	// construct modules
 	std::unique_ptr<module::Source<>                        > source       (Factory_DVBS2O::build_source                   <>(params                 ));
+	std::unique_ptr<module::Sink<>                          > sink         (Factory_DVBS2O::build_sink                     <>(params                 ));
 	std::unique_ptr<module::Channel<>                       > channel      (Factory_DVBS2O::build_channel                  <>(params                 ));
 	std::unique_ptr<module::Scrambler<>                     > bb_scrambler (Factory_DVBS2O::build_bb_scrambler             <>(params                 ));
 	std::unique_ptr<module::Encoder<>                       > BCH_encoder  (Factory_DVBS2O::build_bch_encoder              <>(params, poly_gen       ));
@@ -89,7 +90,7 @@ int main(int argc, char** argv)
 	            sync_lr     .get(), sync_fine_pf.get(), shaping_flt .get(), chn_delay    .get(),
 	            mult_agc    .get(), sync_frame  .get(), delay       .get(), sync_coarse_f.get(),
 	            matched_flt .get(), sync_gardner.get(), sync_step_mf.get(), source       .get(),
-	            channel     .get()                                                              };
+	            channel     .get(), sink        .get()                                           };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -133,6 +134,7 @@ int main(int argc, char** argv)
 	// monitor
 	(*monitor     )[mnt::sck::check_errors::U   ].bind((*delay       )[flt::sck::filter      ::Y_N2]);
 	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
+	(*sink        )[snk::sck::send        ::X_N1].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
@@ -293,6 +295,7 @@ int main(int argc, char** argv)
 			(*bb_scrambler )[scr::tsk::descramble  ].exec();
 			(*delay        )[flt::tsk::filter      ].exec();
 			(*monitor      )[mnt::tsk::check_errors].exec();
+			(*sink         )[snk::tsk::send        ].exec();
 
 			if (n_frames < 1) // first frame is delayed
 				monitor->reset();

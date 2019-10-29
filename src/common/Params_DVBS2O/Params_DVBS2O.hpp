@@ -40,6 +40,7 @@ public:
 	std::string section;
 	std::string src_type;
 	std::string src_path;
+	std::string sink_path;
 
 	const int   N_LDPC    = 16200;
 	const int   M         = 90;    // number of symbols per slot

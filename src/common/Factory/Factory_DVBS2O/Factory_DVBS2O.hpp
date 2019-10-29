@@ -23,11 +23,16 @@
 #include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "Module/Estimator/Estimator.hpp"
 #include "Module/Radio/Radio.hpp"
+#include "Module/Sink/Sink_binary/Sink_binary.hpp"
 
 struct Factory_DVBS2O {
 	template <typename B = int>
 	static module::Source<B>*
 	build_source(const Params_DVBS2O& params, const int seed = 0);
+
+	template <typename B = int>
+	static module::Sink<B>*
+	build_sink(const Params_DVBS2O& params);
 
 	template <typename B = int>
 	static module::Encoder_BCH<B>*
@@ -89,14 +94,14 @@ struct Factory_DVBS2O {
 	template <typename R = float>
 	static module::Estimator<R>*
 	build_estimator(const Params_DVBS2O& params);
-	
+
 	template <typename R = float>
 	static module::Synchronizer_LR_cc_naive<R>*
 	build_synchronizer_lr(const Params_DVBS2O& params);
 
 	template <typename R = float>
 	static module::Synchronizer_fine_pf_cc_DVBS2O<R>*
-	build_synchronizer_fine_pf(const Params_DVBS2O& params);	
+	build_synchronizer_fine_pf(const Params_DVBS2O& params);
 
 	template <typename R = float>
 	static module::Synchronizer_Gardner_cc_naive<R>*

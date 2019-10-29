@@ -11,11 +11,20 @@ module::Source<B>* Factory_DVBS2O
 		return new module::Source_random_fast<B>(params.K_BCH, seed);
 	else if (params.src_type == "USER")
 		return new module::Source_user<B>(params.K_BCH,params.src_path);
+	else if (params.src_type == "USER_BIN")
+		return new module::Source_user_binary<B>(params.K_BCH,params.src_path);
 	else if (params.src_type == "AZCW")
 		return new module::Source_AZCW<B>(params.K_BCH);
 	else
 		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Source type.");
 
+}
+
+template <typename B>
+module::Sink<B>* Factory_DVBS2O
+::build_sink(const Params_DVBS2O& params)
+{
+	return new module::Sink_binary<B>(params.K_BCH, params.sink_path);
 }
 
 template <typename B>
@@ -242,13 +251,14 @@ module::Radio<R>* Factory_DVBS2O
 	return params.p_rad.build<R>();
 }
 
-template aff3ct::module::Source<B>*                            Factory_DVBS2O::build_source<B>               (const Params_DVBS2O& params, const int seed);
-template aff3ct::module::Encoder_BCH<B>*                       Factory_DVBS2O::build_bch_encoder<B>          (const Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
-template aff3ct::module::Decoder_BCH_std<B>*                   Factory_DVBS2O::build_bch_decoder<B>          (const Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
-template aff3ct::module::Codec_LDPC<B,Q>*                      Factory_DVBS2O::build_ldpc_cdc<B,Q>           (const Params_DVBS2O& params);
-template aff3ct::module::Interleaver<int32_t,uint32_t>*        Factory_DVBS2O::build_itl<int32_t,uint32_t>   (const Params_DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
-template aff3ct::module::Interleaver<float,uint32_t>*          Factory_DVBS2O::build_itl<float,uint32_t>     (const Params_DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
-template aff3ct::module::Modem_generic<B,R,Q,tools::max_star>* Factory_DVBS2O::build_modem                   (const Params_DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl);
+template aff3ct::module::Source<B>*                            Factory_DVBS2O::build_source<B>                  (const Params_DVBS2O& params, const int seed);
+template aff3ct::module::Sink<B>*                              Factory_DVBS2O::build_sink<B>                    (const Params_DVBS2O& params);
+template aff3ct::module::Encoder_BCH<B>*                       Factory_DVBS2O::build_bch_encoder<B>             (const Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
+template aff3ct::module::Decoder_BCH_std<B>*                   Factory_DVBS2O::build_bch_decoder<B>             (const Params_DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
+template aff3ct::module::Codec_LDPC<B,Q>*                      Factory_DVBS2O::build_ldpc_cdc<B,Q>              (const Params_DVBS2O& params);
+template aff3ct::module::Interleaver<int32_t,uint32_t>*        Factory_DVBS2O::build_itl<int32_t,uint32_t>      (const Params_DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
+template aff3ct::module::Interleaver<float,uint32_t>*          Factory_DVBS2O::build_itl<float,uint32_t>        (const Params_DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
+template aff3ct::module::Modem_generic<B,R,Q,tools::max_star>* Factory_DVBS2O::build_modem                      (const Params_DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl);
 template aff3ct::module::Framer<R>*                            Factory_DVBS2O::build_framer                     (const Params_DVBS2O& params);
 template aff3ct::module::Scrambler_BB<B>*                      Factory_DVBS2O::build_bb_scrambler<B>            (const Params_DVBS2O& params);
 template aff3ct::module::Scrambler_PL<R>*                      Factory_DVBS2O::build_pl_scrambler<R>            (const Params_DVBS2O& params);

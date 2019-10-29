@@ -148,6 +148,13 @@ Params_DVBS2O(int argc, char** argv)
 		src_path          = "../conf/src/K_14232.src";
 	}
 
+	if (arg_vals.exist({"src-path"}))
+		src_path = arg_vals.at({"src-path"});
+
+	if (arg_vals.exist({"snk-path"}))
+		sink_path = arg_vals.at({"snk-path"});
+
+
 	if (arg_vals.exist({"section"}))
 		section = arg_vals.at({"section"});
 	else
@@ -180,7 +187,8 @@ get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals)
 		p_rad.get_description(args);
 
 		// add possible argument inputs
-		auto modcod_format = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
+		auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
+		auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                    ));
 		args.add({"mod-cod"},            modcod_format,                                         "Modulation and coding scheme."       );
 		args.add({"chn-max-freq-shift"}, cli::Real(),                                           "Maximum Doppler shift."              );
 		args.add({"chn-max-delay"},      cli::Real(),                                           "Maximum Channel Delay."              );
@@ -191,7 +199,9 @@ get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals)
 		args.add({"no-pll"},             cli::None(),                                           "Disable coarse PLL."                 );
 		args.add({"sim-debug", "d"},     cli::None(),                                           "Display debug."                      );
 		args.add({"sim-stats"},          cli::None(),                                           "Display stats."                      );
-		args.add({"src-type"},           cli::Text(cli::Including_set("RAND", "USER", "AZCW")), "Type of the binary source"           );
+		args.add({"src-type"},           src_type_format,                                       "Type of the binary source"           );
+		args.add({"src-path"},           cli::Text(),                                           "Path of the binary source"           );
+		args.add({"snk-path"},           cli::Text(),                                           "Path of the binary sink"             );
 		args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),        "LDPC number of iterations"           );
 		args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")),     "LDPC Implem "                        );
 		args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),       "Display stats."                      );
