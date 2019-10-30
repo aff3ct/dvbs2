@@ -66,20 +66,17 @@ void Sink_binary<B>
 
 	int main_chunk_size = (this->N - n_consumed) / CHAR_BIT; // en octet
 	n_rest              = (this->N - n_consumed) % CHAR_BIT;
-	char chunk[main_chunk_size];
 
-	// for (auto i = 0; i < 8; i++)
-	// 	std::cout << X_N1[i] << std::endl;
+	char* chunk = new char[main_chunk_size];
+
 	tools::Bit_packer::pack(X_N1 + n_consumed, chunk, main_chunk_size * CHAR_BIT);
-	// std::cout << std::hex << +chunk[0] << std::endl;
-	// std::cout << std::hex << +chunk[1] << std::endl;
-	// std::cout << std::hex << +chunk[2] << std::endl;
-	// std::cout << std::hex << +chunk[3] << std::endl;
 	sink_file.write(chunk, main_chunk_size);
 	sink_file.flush();
 	n_rest = 0;
 	for (auto i = n_consumed + main_chunk_size * CHAR_BIT; i < this->N; i++ )
 		buffer[n_rest++] = X_N1[i];
+
+	delete[] chunk;
 }
 
 #endif /* SINK_BINARY_HXX_ */
