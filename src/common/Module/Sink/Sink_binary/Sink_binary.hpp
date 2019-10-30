@@ -43,7 +43,7 @@ public:
 	/*!
 	 * \brief Destructor.
 	 */
-	~Sink_binary();
+	~Sink_binary() = default;
 
 protected:
 

@@ -30,7 +30,7 @@ Sink_binary<B>
 	this->set_name(name);
 
 	if (this->N < 8)
-		throw runtime_error(__FILE__, __LINE__, __func__, "Sink_binary does not manage N < 9");
+		throw runtime_error(__FILE__, __LINE__, __func__, "Sink_binary does not manage N < 8");
 
 	if (sink_file.fail())
 	{
@@ -41,42 +41,41 @@ Sink_binary<B>
 }
 
 template <typename B>
-Sink_binary<B>
-::~Sink_binary()
-{
-
-}
-
-template <typename B>
 void Sink_binary<B>
 ::_send(const B *X_N1, const int frame_id)
 {
-	B buffer[CHAR_BIT];
-	static int n_rest       = 0;
-	       int n_consumed = (CHAR_BIT - n_rest) % CHAR_BIT;
+	static int n_left = 0;                              // number of bits have not been left by last call
+	int n_completing  = (CHAR_BIT - n_left) % CHAR_BIT; // number of bits that are needed to complete one byte
+	B    reconstructed_buffer[CHAR_BIT];                // to store reconstructed byte (n_left & n_completing)
+	char reconstructed_byte;                            // to store reconstructed byte (n_left & n_completing)
 
-	if (n_rest != 0)
+	if (sink_file.fail())
 	{
-		for (auto i = 0; i < n_consumed; i++)
-			buffer[i] = X_N1[n_rest + i];
-		char solo_byte;
-		tools::Bit_packer::pack(buffer, &solo_byte, CHAR_BIT);
-		sink_file.write(&solo_byte, 1);
+		std::stringstream message;
+		message << "'filename' file name is not valid: sink file failbit is set.";
+		throw runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	int main_chunk_size = (this->N - n_consumed) / CHAR_BIT; // en octet
-	n_rest              = (this->N - n_consumed) % CHAR_BIT;
+	if (n_left != 0)
+	{
 
-	char* chunk = new char[main_chunk_size];
+		for (auto i = 0; i < n_completing; i++) // completing byte with n_completing first bits of X_N1
+			reconstructed_buffer[i] = X_N1[n_left + i];
+		tools::Bit_packer::pack(reconstructed_buffer, &reconstructed_byte, CHAR_BIT);
+		sink_file.write(&reconstructed_byte, 1);
+	}
 
-	tools::Bit_packer::pack(X_N1 + n_consumed, chunk, main_chunk_size * CHAR_BIT);
-	sink_file.write(chunk, main_chunk_size);
+	int main_chunk_size = (this->N - n_completing) / CHAR_BIT; // en octet
+	n_left              = (this->N - n_completing) % CHAR_BIT;
+
+	std::vector<char> chunk(main_chunk_size);
+
+	tools::Bit_packer::pack(X_N1 + n_completing, chunk.data(), main_chunk_size * CHAR_BIT);
+	sink_file.write(chunk.data(), main_chunk_size);
 	sink_file.flush();
-	n_rest = 0;
-	for (auto i = n_consumed + main_chunk_size * CHAR_BIT; i < this->N; i++ )
-		buffer[n_rest++] = X_N1[i];
-
-	delete[] chunk;
+	n_left = 0;
+	for (auto i = n_completing + main_chunk_size * CHAR_BIT; i < this->N; i++ )
+		reconstructed_buffer[n_left++] = X_N1[i];
 }
 
 #endif /* SINK_BINARY_HXX_ */
