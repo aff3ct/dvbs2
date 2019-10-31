@@ -39,8 +39,8 @@ Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const doub
 		                     "This data type (" + std::string(typeid(R).name()) + ") is not supported.");
 	}
 
-	uhd::log::set_console_level(uhd::log::severity_level(3));
-	uhd::log::set_file_level   (uhd::log::severity_level(2));
+	// uhd::log::set_console_level(uhd::log::severity_level(3));
+	// uhd::log::set_file_level   (uhd::log::severity_level(2));
 
 	usrp = uhd::usrp::multi_usrp::make("addr=" + usrp_addr);
 	usrp->set_master_clock_rate(clk_rate);
@@ -105,15 +105,15 @@ _receive(R *Y_N1, const int frame_id)
 		        // count overflows ?
 		        if (!md.out_of_sequence)
 		        {
-		        	UHD_LOGGER_INFO("RADIO USRP") << "Detected overflow in Radio Rx.";
+		        	// UHD_LOGGER_INFO("RADIO USRP") << "Detected overflow in Radio Rx.";
 		        } else
 		        {
-		            UHD_LOGGER_INFO("RADIO USRP") << "Detected Rx sequence error.";
+		            // UHD_LOGGER_INFO("RADIO USRP") << "Detected Rx sequence error.";
 		        }
 		        break;
 
 		    case uhd::rx_metadata_t::ERROR_CODE_LATE_COMMAND:
-		    	UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
+		    	// UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
 		        // // Radio core will be in the idle state. Issue stream command to restart
 		        // // streaming.
 		        // cmd.time_spec  = usrp->get_time_now() + uhd::time_spec_t(0.05);
@@ -122,12 +122,12 @@ _receive(R *Y_N1, const int frame_id)
 		        break;
 
 		    case uhd::rx_metadata_t::ERROR_CODE_TIMEOUT:
-		    	UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
+		    	// UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
 		        break;
 
 		        // Otherwise, it's an error
 		    default:
-		    	UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
+		    	// UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
 		    	throw::runtime_error(__FILE__, __LINE__, __func__, "Error in the Radio USRP streaming.");
 		        // std::cerr << "[" << "] Receiver error: " << md.strerror()
 		        //           << std::endl;

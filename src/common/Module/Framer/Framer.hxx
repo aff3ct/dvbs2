@@ -49,21 +49,22 @@ Framer(const int XFEC_FRAME_SIZE, const int PL_FRAME_SIZE, const std::string MOD
 	}
 
 	auto &p1 = this->create_task("generate");
-	auto &p1s_Y_N1 = this->template create_socket_in <B>(p1, "Y_N1", this->XFEC_FRAME_SIZE * this->n_frames);
-	auto &p1s_Y_N2 = this->template create_socket_out<B>(p1, "Y_N2", this->PL_FRAME_SIZE   * this->n_frames);
-	this->create_codelet(p1, [this, &p1s_Y_N1, &p1s_Y_N2]() -> int
+	auto p1s_Y_N1 = this->template create_socket_in <B>(p1, "Y_N1", this->XFEC_FRAME_SIZE * this->n_frames);
+	auto p1s_Y_N2 = this->template create_socket_out<B>(p1, "Y_N2", this->PL_FRAME_SIZE   * this->n_frames);
+	this->create_codelet(p1, [this, p1s_Y_N1, p1s_Y_N2](Task &t) -> int
 	{
-		this->generate(static_cast<B*>(p1s_Y_N1.get_dataptr()), static_cast<B*>(p1s_Y_N2.get_dataptr()));
-
+		this->generate(static_cast<B*>(t[p1s_Y_N1].get_dataptr()),
+		               static_cast<B*>(t[p1s_Y_N2].get_dataptr()));
 		return 0;
 	});
 
 	auto &p2 = this->create_task("remove_plh");
-	auto &p2s_Y_N1 = this->template create_socket_in <B>(p2, "Y_N1", this->PL_FRAME_SIZE   * this->n_frames);
-	auto &p2s_Y_N2 = this->template create_socket_out<B>(p2, "Y_N2", this->XFEC_FRAME_SIZE * this->n_frames);
-	this->create_codelet(p2, [this, &p2s_Y_N1, &p2s_Y_N2]() -> int
+	auto p2s_Y_N1 = this->template create_socket_in <B>(p2, "Y_N1", this->PL_FRAME_SIZE   * this->n_frames);
+	auto p2s_Y_N2 = this->template create_socket_out<B>(p2, "Y_N2", this->XFEC_FRAME_SIZE * this->n_frames);
+	this->create_codelet(p2, [this, p2s_Y_N1, p2s_Y_N2](Task &t) -> int
 	{
-		this->remove_plh(static_cast<B*>(p2s_Y_N1.get_dataptr()), static_cast<B*>(p2s_Y_N2.get_dataptr()));
+		this->remove_plh(static_cast<B*>(t[p2s_Y_N1].get_dataptr()),
+		                 static_cast<B*>(t[p2s_Y_N2].get_dataptr()));
 
 		return 0;
 	});

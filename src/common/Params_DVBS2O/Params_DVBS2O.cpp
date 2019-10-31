@@ -1,5 +1,6 @@
 #include "Factory/Module/Radio/Radio.hpp"
 
+#include "Tools/Display/rang_format/rang_format.h"
 #include "Params_DVBS2O/Params_DVBS2O.hpp"
 
 using namespace aff3ct;

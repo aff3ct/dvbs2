@@ -8,7 +8,7 @@ using namespace aff3ct;
 class Params_DVBS2O
 {
 public:
-	factory::Radio::parameters p_rad;
+	factory::Radio p_rad;
 
 	float ebn0_min;
 	float ebn0_max;

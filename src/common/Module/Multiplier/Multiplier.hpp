@@ -43,9 +43,9 @@ template <typename R = float>
 class Multiplier : public Module
 {
 public:
-	inline Task&   operator[](const mlt::tsk             t) { return Module::operator[]((int)t);                                }
-	inline Socket& operator[](const mlt::sck::multiply s) { return Module::operator[]((int)mlt::tsk::multiply        )[(int)s]; }
-	inline Socket& operator[](const mlt::sck::imultiply s) { return Module::operator[]((int)mlt::tsk::imultiply        )[(int)s]; }
+	inline Task&   operator[](const mlt::tsk            t) { return Module::operator[]((int)t);                                }
+	inline Socket& operator[](const mlt::sck::multiply  s) { return Module::operator[]((int)mlt::tsk::multiply        )[(int)s]; }
+	inline Socket& operator[](const mlt::sck::imultiply s) { return Module::operator[]((int)mlt::tsk::imultiply       )[(int)s]; }
 
 protected:
 	const int N;     /*!< Size of one frame (= number of samples in one frame) */

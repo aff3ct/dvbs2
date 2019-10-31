@@ -52,12 +52,12 @@ void Synchronizer<R>::
 init_processes()
 {
 	auto &p1 = this->create_task("synchronize");
-	auto &p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", this->N_in  * this->n_frames);
-	auto &p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N_out * this->n_frames);
-	this->create_codelet(p1, [this, &p1s_X_N1, &p1s_Y_N2]() -> int
+	auto p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", this->N_in  * this->n_frames);
+	auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N_out * this->n_frames);
+	this->create_codelet(p1, [this, p1s_X_N1, p1s_Y_N2](Task &t) -> int
 	{
-		this->synchronize(static_cast<R*>(p1s_X_N1.get_dataptr()),
-		                  static_cast<R*>(p1s_Y_N2.get_dataptr()));
+		this->synchronize(static_cast<R*>(t[p1s_X_N1].get_dataptr()),
+		                  static_cast<R*>(t[p1s_Y_N2].get_dataptr()));
 
 		return 0;
 	});
