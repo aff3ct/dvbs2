@@ -261,7 +261,11 @@ int main(int argc, char** argv)
 
 		monitor->reset();
 		terminal->start_temp_report();
-		// tasks execution
+
+		for (auto& m : modules)
+			for (auto& ta : m->tasks)
+				ta->reset_stats();
+
 		int n_frames = 0;
 		while (!monitor->is_done() && !terminal->is_interrupt())
 		{
@@ -307,6 +311,29 @@ int main(int argc, char** argv)
 		// reset the monitors and the terminal for the next SNR
 		monitor ->reset();
 		terminal->reset();
+
+		if (params.stats)
+		{
+			std::vector<const module::Module*> modules_stats(modules.size());
+			for (size_t m = 0; m < modules.size(); m++)
+				modules_stats.push_back(modules[m]);
+
+			std::cout << "#" << std::endl;
+			const auto ordered = true;
+			tools::Stats::show(modules_stats, ordered);
+
+			for (auto& m : modules)
+				for (auto& ta : m->tasks)
+					ta->reset_stats();
+
+			if (ebn0 + params.ebn0_step < params.ebn0_max)
+			{
+				std::cout << "#" << std::endl;
+				terminal->legend();
+			}
+
+		}
+
 	}
 
 	std::cout << "#" << std::endl;

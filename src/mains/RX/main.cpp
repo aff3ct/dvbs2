@@ -216,6 +216,10 @@ int main(int argc, char** argv)
 	terminal->reset();
 	terminal->start_temp_report();
 
+	for (auto& m : modules)
+		for (auto& ta : m->tasks)
+			ta->reset_stats();
+
 	// tasks execution
 	while (!terminal->is_interrupt())
 	{
@@ -237,6 +241,17 @@ int main(int argc, char** argv)
 		(*bb_scrambler )[scr::tsk::descramble  ].exec();
 		(*monitor      )[mnt::tsk::check_errors].exec();
 		(*sink         )[snk::tsk::send        ].exec();
+	}
+
+	if (params.stats)
+	{
+		std::vector<const module::Module*> modules_stats(modules.size());
+		for (size_t m = 0; m < modules.size(); m++)
+			modules_stats.push_back(modules[m]);
+
+		std::cout << "#" << std::endl;
+		const auto ordered = true;
+		tools::Stats::show(modules_stats, ordered);
 	}
 
 	// display the performance (BER and FER) in the terminal

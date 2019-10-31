@@ -101,5 +101,16 @@ int main(int argc, char** argv)
 		(*radio         )[rad::tsk::send    ].exec();
 	}
 
+	if (params.stats)
+	{
+		std::vector<const module::Module*> modules_stats(modules.size());
+		for (size_t m = 0; m < modules.size(); m++)
+			modules_stats.push_back(modules[m]);
+
+		std::cout << "#" << std::endl;
+		const auto ordered = true;
+		tools::Stats::show(modules_stats, ordered);
+	}
+
 	return EXIT_SUCCESS;
 }
