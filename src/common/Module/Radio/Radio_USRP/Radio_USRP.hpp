@@ -51,8 +51,8 @@ public:
 	 */
 	~Radio_USRP();
 protected:
-	void _send   (R *X_N1, const int frame_id);
-	void _receive(R *Y_N1, const int frame_id);
+	void _send   (const R *X_N1, const int frame_id);
+	void _receive(      R *Y_N1, const int frame_id);
 };
 }
 }

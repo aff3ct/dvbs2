@@ -71,7 +71,7 @@ Radio_USRP<R>::
 
 template <typename R>
 void Radio_USRP<R>::
-_send(R *X_N1, const int frame_id)
+_send(const R *X_N1, const int frame_id)
 {
 	uhd::tx_metadata_t md;
     md.start_of_burst = true;

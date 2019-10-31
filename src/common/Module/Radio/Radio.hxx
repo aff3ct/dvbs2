@@ -58,14 +58,14 @@ Radio(const int N, const int n_frames)
 template <typename R>
 template <class A>
 void Radio<R>::
-send(std::vector<R,A>& X_N1, const int frame_id)
+send(const std::vector<R,A>& X_N1, const int frame_id)
 {
 	this->send(X_N1.data(), frame_id);
 }
 
 template <typename R>
 void Radio<R>::
-send(R *X_N1, const int frame_id)
+send(const R *X_N1, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;

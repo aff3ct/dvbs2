@@ -1,6 +1,6 @@
 /*!
  * \file
- * \brief Pushes data to a file.
+ * \brief Transmit or receive data to or from a radio module.
  *
  * \section LICENSE
  * This file is under MIT license (https://opensource.org/licenses/MIT).
@@ -67,9 +67,9 @@ public:
 	 * \param X_N1 : a vector of complex samples to send.
 	 */
 	template <class A = std::allocator<R>>
-	void send(std::vector<R,A>& X_N1, const int frame_id = -1);
+	void send(const std::vector<R,A>& X_N1, const int frame_id = -1);
 
-	virtual void send(R *X_N1, const int frame_id = -1);
+	virtual void send(const R *X_N1, const int frame_id = -1);
 
 	/*!
 	 * \brief Receive a frame.
@@ -84,8 +84,8 @@ public:
 
 
 protected:
-	virtual void _send   (R *X_N1, const int frame_id) = 0;
-	virtual void _receive(R *Y_N1, const int frame_id) = 0;
+	virtual void _send   (const R *X_N1, const int frame_id) = 0;
+	virtual void _receive(      R *Y_N1, const int frame_id) = 0;
 };
 }
 }

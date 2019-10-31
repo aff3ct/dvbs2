@@ -24,6 +24,7 @@ struct Radio : Factory
 		// optional parameters
 		int N                      = 0;
 		int n_frames               = 1;
+		std::string type           = "USRP";
 		double clk_rate            = 125e6;
 
 		std::string rx_subdev_spec = "A:0";

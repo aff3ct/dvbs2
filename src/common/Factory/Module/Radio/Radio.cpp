@@ -1,5 +1,6 @@
 #include "Factory/Module/Radio/Radio.hpp"
 
+#include "Module/Radio/Radio_NO/Radio_NO.hpp"
 #ifdef DVBS2O_LINK_UHD
 	#include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
 #endif
@@ -31,44 +32,47 @@ void Radio::parameters
 	tools::add_arg(args, p, class_name+"p+fra-size,N",
 	               cli::Integer(cli::Positive(), cli::Non_zero()));
 
+	tools::add_arg(args, p, class_name+"p+type",
+	                cli::Text(cli::Including_set("USRP", "NO")));
+
 	tools::add_arg(args, p, class_name+"p+fra,F",
-		cli::Integer(cli::Positive(), cli::Non_zero()));
+	               cli::Integer(cli::Positive(), cli::Non_zero()));
 
 	tools::add_arg(args, p, class_name+"p+clk-rate",
-		cli::Real(cli::Positive(), cli::Non_zero()));
+	               cli::Real(cli::Positive(), cli::Non_zero()));
 
 	tools::add_arg(args, p, class_name+"p+rx-subdev-spec",
-		cli::Text());
+	               cli::Text());
 
 	tools::add_arg(args, p, class_name+"p+rx-ant",
-		cli::Text());
+	               cli::Text());
 
 	tools::add_arg(args, p, class_name+"p+rx-rate",
-		cli::Real(cli::Positive(), cli::Non_zero()));
+	               cli::Real(cli::Positive(), cli::Non_zero()));
 
 	tools::add_arg(args, p, class_name+"p+rx-freq",
-		cli::Real(cli::Positive(), cli::Non_zero()));
+	               cli::Real(cli::Positive(), cli::Non_zero()));
 
 	tools::add_arg(args, p, class_name+"p+rx-gain",
-		cli::Real(cli::Positive(), cli::Non_zero()));
+	               cli::Real(cli::Positive(), cli::Non_zero()));
 
 	tools::add_arg(args, p, class_name+"p+tx-subdev-spec",
-		cli::Text());
+	               cli::Text());
 
 	tools::add_arg(args, p, class_name+"p+tx-ant",
-		cli::Text());
+	               cli::Text());
 
 	tools::add_arg(args, p, class_name+"p+tx-rate",
-		cli::Real(cli::Positive(), cli::Non_zero()));
+	               cli::Real(cli::Positive(), cli::Non_zero()));
 
 	tools::add_arg(args, p, class_name+"p+tx-freq",
-		cli::Real(cli::Positive(), cli::Non_zero()));
+	               cli::Real(cli::Positive(), cli::Non_zero()));
 
 	tools::add_arg(args, p, class_name+"p+tx-gain",
-		cli::Real(cli::Positive(), cli::Non_zero()));
+	               cli::Real(cli::Positive(), cli::Non_zero()));
 
 	tools::add_arg(args, p, class_name+"p+ip-addr",
-		cli::Text());
+	               cli::Text());
 }
 
 void Radio::parameters
@@ -77,6 +81,7 @@ void Radio::parameters
 	auto p = this->get_prefix();
 
 	if(vals.exist({p+"-fra-size",  "N"})) this->N              = vals.to_int  ({p+"-fra-size",  "N"});
+	if(vals.exist({p+"-type"          })) this->type           = vals.at      ({p+"-type"          });
 	if(vals.exist({p+"-clk-rate"      })) this->clk_rate       = vals.to_float({p+"-clk-rate"      });
 	if(vals.exist({p+"-rx-subdev-spec"})) this->rx_subdev_spec = vals.at      ({p+"-rx-subdev-spec"});
 	if(vals.exist({p+"-rx-ant"        })) this->rx_antenna     = vals.at      ({p+"-rx-ant"});
@@ -98,6 +103,7 @@ void Radio::parameters
 	auto p = this->get_prefix();
 
 	headers[p].push_back(std::make_pair("N. cw  (N)", std::to_string(this->N)));
+	headers[p].push_back(std::make_pair("Type      ", std::to_string(this->clk_rate)));
 	headers[p].push_back(std::make_pair("Clk rate  ", std::to_string(this->clk_rate)));
 	headers[p].push_back(std::make_pair("Rx rate   ", std::to_string(this->rx_rate)));
 	headers[p].push_back(std::make_pair("Rx subdev ", this->rx_subdev_spec));
@@ -117,13 +123,17 @@ template <typename R>
 module::Radio<R>* Radio::parameters
 ::build() const
 {
+	if (this->type == "NO") return new module::Radio_NO<R>(this->N, this->n_frames);
+
 	#ifdef DVBS2O_LINK_UHD
-	return new module::Radio_USRP<R> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
-	                                  this->rx_subdev_spec, this->rx_antenna, this->tx_rate, this->tx_freq, this->tx_subdev_spec,
-	                                  this->tx_antenna, this->n_frames, this->rx_gain, this->tx_gain);
+	else if (this->type == "USRP")
+		return new module::Radio_USRP<R> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
+		                                  this->rx_subdev_spec, this->rx_antenna,   this->tx_rate, this->tx_freq,
+		                                  this->tx_subdev_spec, this->tx_antenna, this->n_frames,
+		                                  this->rx_gain, this->tx_gain);
 	#endif
 
-	throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "A dependency is possibly missing (e.g. UHD).");
+	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }
 
 template <typename R>
