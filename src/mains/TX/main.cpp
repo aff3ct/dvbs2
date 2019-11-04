@@ -27,6 +27,19 @@ int main(int argc, char** argv)
 
 	std::vector<float> shaping_in  ((params.PL_FRAME_SIZE) * 2, 0.0f);
 
+
+	// build a terminal just for signal handling
+	std::vector<std::unique_ptr<tools ::Reporter>>              reporters;
+	            std::unique_ptr<tools ::Terminal>               terminal;
+	                            tools ::Sigma<>                 noise;
+	const auto ebn0 = 3.8f;
+	const float rate = (float)params.K_BCH / (float)params.N_LDPC;
+	const auto esn0  = tools::ebn0_to_esn0 (ebn0, rate, params.BPS);
+	const auto sigma = tools::esn0_to_sigma(esn0);
+	noise.set_noise(sigma, ebn0, esn0);
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>(noise       ))); // report the noise values (Es/N0 and Eb/N0)
+	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
+
 	// construct tools
 	std::unique_ptr<tools::Constellation           <R>> cstl          (new tools::Constellation_user<R>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core        < >> itl_core      (Factory_DVBS2O::build_itl_core<>(params                   ));
@@ -82,7 +95,7 @@ int main(int argc, char** argv)
 	(*shaping_filter)[flt::sck::filter    ::X_N1].bind(shaping_in);
 	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter  ::Y_N2]);
 
-	while(1)
+	while(!terminal->is_interrupt())
 	{
 		(*source)      [src::tsk::generate  ].exec();
 		(*bb_scrambler)[scr::tsk::scramble  ].exec();
