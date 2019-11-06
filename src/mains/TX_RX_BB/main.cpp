@@ -24,7 +24,6 @@ int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
 	auto params = Params_DVBS2O(argc, argv);
-	params.filtered = false;
 
 	// declare shared modules and tools
 	std::vector<std::unique_ptr<module::Monitor_BFER<>>>        monitors;
@@ -64,7 +63,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Interleaver<>              > itl_tx      (Factory_DVBS2O::build_itl              <>(params, *itl_core      ));
 	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (Factory_DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
 	std::unique_ptr<module::Modem<>                    > modem       (Factory_DVBS2O::build_modem            <>(params, std::move(cstl)));
-	std::unique_ptr<module::Channel<>                  > channel     (Factory_DVBS2O::build_channel          <>(params, tid*2+1        ));
+	std::unique_ptr<module::Channel<>                  > channel     (Factory_DVBS2O::build_channel          <>(params, tid*2+1, false));
 	std::unique_ptr<module::Framer<>                   > framer      (Factory_DVBS2O::build_framer           <>(params                 ));
 	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(Factory_DVBS2O::build_pl_scrambler     <>(params                 ));
 	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (Factory_DVBS2O::build_monitor          <>(params                 ));

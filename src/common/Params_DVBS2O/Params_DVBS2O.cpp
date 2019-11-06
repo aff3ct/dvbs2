@@ -8,7 +8,6 @@ using namespace aff3ct;
 Params_DVBS2O::
 Params_DVBS2O(int argc, char** argv)
 {
-
 	cli::Argument_map_value arg_vals;
 	get_arguments(argc, argv, arg_vals);
 
@@ -28,8 +27,6 @@ Params_DVBS2O(int argc, char** argv)
 	sink_path      = arg_vals.exist({"snk-path"}          ) ? arg_vals.at      ({"snk-path"}          ) : ""          ;
 	section        = arg_vals.exist({"section"}           ) ? arg_vals.at      ({"section"}           ) : ""          ;
 	src_type       = arg_vals.exist({"src-type"}          ) ? arg_vals.at      ({"src-type"}          ) : "RAND"      ;
-
-	filtered       = true;
 
 	if (modcod == "QPSK-S_8/9" || modcod == "")
 	{
@@ -77,14 +74,14 @@ Params_DVBS2O(int argc, char** argv)
 		constellation_file = "../conf/mod/16APSK.mod";
 	}
 
-	if      ( cod == "3/5"  )
+	if ( cod == "3/5")
 	{
 		K_bch             = 9552;
 		N_bch             = 9720;
 		N_bch_unshortened = 16383;
 		src_path          = "../conf/src/K_9552.src";
 	}
-	else if ( cod == "8/9"  )
+	else if ( cod == "8/9")
 	{
 		K_bch             = 14232;
 		N_bch             = 14400;

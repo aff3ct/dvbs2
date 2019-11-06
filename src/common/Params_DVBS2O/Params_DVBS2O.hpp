@@ -16,7 +16,6 @@ public:
 	float ebn0_step;
 	bool debug;
 	bool stats;
-	bool filtered;    // filtering disabled in bb simu
 	bool no_pll;
 	int max_fe;       // max number of frame errors per SNR point
 	int max_n_frames; // max number of simulated frames per SNR point

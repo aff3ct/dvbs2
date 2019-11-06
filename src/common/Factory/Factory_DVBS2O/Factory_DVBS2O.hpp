@@ -65,7 +65,7 @@ struct Factory_DVBS2O {
 
 	template <typename R = float>
 	static module::Channel<R>*
-	build_channel(const Params_DVBS2O& params, const int seed = 0);
+	build_channel(const Params_DVBS2O& params, const int seed = 0, const bool filtered = true);
 
 	template <typename R = float>
 	static module::Framer<R>*
