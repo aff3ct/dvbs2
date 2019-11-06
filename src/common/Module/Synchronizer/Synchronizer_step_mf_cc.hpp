@@ -5,7 +5,6 @@
 #include <complex>
 #include <aff3ct.hpp>
 
-#include "Params_DVBS2O/Params_DVBS2O.hpp"
 #include "Module/Synchronizer/Synchronizer.hpp"
 #include "Module/Synchronizer/Synchronizer_Gardner_cc_naive.hpp"
 #include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq.hpp"

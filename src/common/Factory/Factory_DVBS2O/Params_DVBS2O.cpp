@@ -1,7 +1,7 @@
 #include "Factory/Module/Radio/Radio.hpp"
 
 #include "Tools/Display/rang_format/rang_format.h"
-#include "Params_DVBS2O/Params_DVBS2O.hpp"
+#include "Params_DVBS2O.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::factory;
@@ -26,7 +26,26 @@ void Params_DVBS2O
 ::get_description(cli::Argument_map_info &args) const
 {
 	const std::string class_name = "factory::DVBS2O::";
-	// args.add
+
+	auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
+	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                    ));
+	args.add({"mod-cod"},            modcod_format,                                         "Modulation and coding scheme."       );
+	args.add({"chn-max-freq-shift"}, cli::Real(),                                           "Maximum Doppler shift."              );
+	args.add({"chn-max-delay"},      cli::Real(),                                           "Maximum Channel Delay."              );
+	args.add({"max-fe","e"},         cli::Integer(cli::Positive(), cli::Non_zero()),        "Modulation and coding scheme."       );
+	args.add({"sim-noise-min","m"},  cli::Real(),                                           "Min Eb/N0"                           );
+	args.add({"sim-noise-max","M"},  cli::Real(),                                           "Max Eb/N0"                           );
+	args.add({"sim-noise-step","s"}, cli::Real(),                                           "Step Eb/N0"                          );
+	args.add({"no-pll"},             cli::None(),                                           "Disable coarse PLL."                 );
+	args.add({"sim-debug", "d"},     cli::None(),                                           "Display debug."                      );
+	args.add({"sim-stats"},          cli::None(),                                           "Display stats."                      );
+	args.add({"src-type"},           src_type_format,                                       "Type of the binary source"           );
+	args.add({"src-path"},           cli::Text(),                                           "Path of the binary source"           );
+	args.add({"snk-path"},           cli::Text(),                                           "Path of the binary sink"             );
+	args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),        "LDPC number of iterations"           );
+	args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")),     "LDPC Implem "                        );
+	args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),       "Display stats."                      );
+	args.add({"section"},            cli::Text(),                                           "Section to be used in bridge binary.");
 }
 
 void Params_DVBS2O
@@ -61,7 +80,6 @@ void Params_DVBS2O
 ::get_headers(std::map<std::string,tools::header_list>& headers, const bool full) const
 {
 	auto p = this->get_prefix();
-
 	// headers[p].push_back(std::make_pair("Type",           this->type  ));
 }
 
@@ -75,27 +93,7 @@ get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals)
 	std::vector<std::string> cmd_warn, cmd_error;
 
 	p_rad.get_description(args);
-
-	// add possible argument inputs
-	auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
-	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                    ));
-	args.add({"mod-cod"},            modcod_format,                                         "Modulation and coding scheme."       );
-	args.add({"chn-max-freq-shift"}, cli::Real(),                                           "Maximum Doppler shift."              );
-	args.add({"chn-max-delay"},      cli::Real(),                                           "Maximum Channel Delay."              );
-	args.add({"max-fe","e"},         cli::Integer(cli::Positive(), cli::Non_zero()),        "Modulation and coding scheme."       );
-	args.add({"sim-noise-min","m"},  cli::Real(),                                           "Min Eb/N0"                           );
-	args.add({"sim-noise-max","M"},  cli::Real(),                                           "Max Eb/N0"                           );
-	args.add({"sim-noise-step","s"}, cli::Real(),                                           "Step Eb/N0"                          );
-	args.add({"no-pll"},             cli::None(),                                           "Disable coarse PLL."                 );
-	args.add({"sim-debug", "d"},     cli::None(),                                           "Display debug."                      );
-	args.add({"sim-stats"},          cli::None(),                                           "Display stats."                      );
-	args.add({"src-type"},           src_type_format,                                       "Type of the binary source"           );
-	args.add({"src-path"},           cli::Text(),                                           "Path of the binary source"           );
-	args.add({"snk-path"},           cli::Text(),                                           "Path of the binary sink"             );
-	args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),        "LDPC number of iterations"           );
-	args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")),     "LDPC Implem "                        );
-	args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),       "Display stats."                      );
-	args.add({"section"},            cli::Text(),                                           "Section to be used in bridge binary.");
+	get_description(args);
 
 	// parse user arguments
 	arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);

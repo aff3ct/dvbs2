@@ -3,7 +3,7 @@
 
 #include <aff3ct.hpp>
 
-#include "Params_DVBS2O/Params_DVBS2O.hpp"
+#include "Params_DVBS2O.hpp"
 #include "Module/Framer/Framer.hpp"
 #include "Module/Scrambler/Scrambler_BB/Scrambler_BB.hpp"
 #include "Module/Scrambler/Scrambler_PL/Scrambler_PL.hpp"
