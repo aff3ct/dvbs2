@@ -1,7 +1,7 @@
 #include <aff3ct.hpp>
 
 #include "version.h"
-#include "Factory/Factory_DVBS2O/Factory_DVBS2O.hpp"
+#include "Factory/DVBS2O/DVBS2O.hpp"
 
 using namespace aff3ct;
 // using header_list = std::vector<std::pair<std::string,std::string>>;
@@ -9,7 +9,7 @@ using namespace aff3ct;
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
-	auto params = factory::Params_DVBS2O(argc, argv);
+	auto params = factory::DVBS2O(argc, argv);
 
 	tools::header_list dvbs2o_header;
 	dvbs2o_header.push_back(std::pair<std::string,std::string>("Git Hash",dvbs2o_sha1()));
@@ -42,20 +42,20 @@ int main(int argc, char** argv)
 
 	// construct tools
 	std::unique_ptr<tools::Constellation           <R>> cstl          (new tools::Constellation_user<R>(params.constellation_file));
-	std::unique_ptr<tools::Interleaver_core        < >> itl_core      (factory::Factory_DVBS2O::build_itl_core<>(params                   ));
+	std::unique_ptr<tools::Interleaver_core        < >> itl_core      (factory::DVBS2O::build_itl_core<>(params                   ));
 	                tools::BCH_polynomial_generator<B > poly_gen      (params.N_bch_unshortened, 12, params.bch_prim_poly         );
 
 	// construct modules
-	std::unique_ptr<module::Source<>        > source        (factory::Factory_DVBS2O::build_source <>     (params, 0              ));
-	std::unique_ptr<module::Scrambler<>     > bb_scrambler  (factory::Factory_DVBS2O::build_bb_scrambler<>(params                 ));
-	std::unique_ptr<module::Encoder<>       > BCH_encoder   (factory::Factory_DVBS2O::build_bch_encoder <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec<>         > LDPC_cdc      (factory::Factory_DVBS2O::build_ldpc_cdc    <>(params                 ));
-	std::unique_ptr<module::Interleaver<>   > itl           (factory::Factory_DVBS2O::build_itl         <>(params, *itl_core      ));
-	std::unique_ptr<module::Modem<>         > modem         (factory::Factory_DVBS2O::build_modem       <>(params, std::move(cstl)));
-	std::unique_ptr<module::Framer<>        > framer        (factory::Factory_DVBS2O::build_framer      <>(params                 ));
-	std::unique_ptr<module::Scrambler<float>> pl_scrambler  (factory::Factory_DVBS2O::build_pl_scrambler<>(params                 ));
-	std::unique_ptr<module::Filter<>        > shaping_filter(factory::Factory_DVBS2O::build_uprrc_filter<>(params                 ));
-	std::unique_ptr<module::Radio<>         > radio         (factory::Factory_DVBS2O::build_radio<>       (params                 ));
+	std::unique_ptr<module::Source<>        > source        (factory::DVBS2O::build_source <>     (params, 0              ));
+	std::unique_ptr<module::Scrambler<>     > bb_scrambler  (factory::DVBS2O::build_bb_scrambler<>(params                 ));
+	std::unique_ptr<module::Encoder<>       > BCH_encoder   (factory::DVBS2O::build_bch_encoder <>(params, poly_gen       ));
+	std::unique_ptr<module::Codec<>         > LDPC_cdc      (factory::DVBS2O::build_ldpc_cdc    <>(params                 ));
+	std::unique_ptr<module::Interleaver<>   > itl           (factory::DVBS2O::build_itl         <>(params, *itl_core      ));
+	std::unique_ptr<module::Modem<>         > modem         (factory::DVBS2O::build_modem       <>(params, std::move(cstl)));
+	std::unique_ptr<module::Framer<>        > framer        (factory::DVBS2O::build_framer      <>(params                 ));
+	std::unique_ptr<module::Scrambler<float>> pl_scrambler  (factory::DVBS2O::build_pl_scrambler<>(params                 ));
+	std::unique_ptr<module::Filter<>        > shaping_filter(factory::DVBS2O::build_uprrc_filter<>(params                 ));
+	std::unique_ptr<module::Radio<>         > radio         (factory::DVBS2O::build_radio<>       (params                 ));
 
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 

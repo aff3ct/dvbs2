@@ -7,7 +7,7 @@
 
 #include <aff3ct.hpp>
 
-#include "Factory/Factory_DVBS2O/Factory_DVBS2O.hpp"
+#include "Factory/DVBS2O/DVBS2O.hpp"
 
 using namespace aff3ct;
 
@@ -23,7 +23,7 @@ using Monitor_BFER_reduction = Monitor_reduction_M<Monitor_BFER<>>;
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
-	auto params = factory::Params_DVBS2O(argc, argv);
+	auto params = factory::DVBS2O(argc, argv);
 
 	// declare shared modules and tools
 	std::vector<std::unique_ptr<module::Monitor_BFER<>>>        monitors;
@@ -51,22 +51,22 @@ int main(int argc, char** argv)
 
 	// construct tools
 	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
-	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(factory::Factory_DVBS2O::build_itl_core<>(params));
+	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(factory::DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	std::unique_ptr<module::Source<>                   > source      (factory::Factory_DVBS2O::build_source           <>(params, tid*2+0        ));
-	std::unique_ptr<module::Scrambler<>                > bb_scrambler(factory::Factory_DVBS2O::build_bb_scrambler     <>(params                 ));
-	std::unique_ptr<module::Encoder<>                  > BCH_encoder (factory::Factory_DVBS2O::build_bch_encoder      <>(params, poly_gen       ));
-	std::unique_ptr<module::Decoder_HIHO<>             > BCH_decoder (factory::Factory_DVBS2O::build_bch_decoder      <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec_SIHO<>               > LDPC_cdc    (factory::Factory_DVBS2O::build_ldpc_cdc         <>(params                 ));
-	std::unique_ptr<module::Interleaver<>              > itl_tx      (factory::Factory_DVBS2O::build_itl              <>(params, *itl_core      ));
-	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (factory::Factory_DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
-	std::unique_ptr<module::Modem<>                    > modem       (factory::Factory_DVBS2O::build_modem            <>(params, std::move(cstl)));
-	std::unique_ptr<module::Channel<>                  > channel     (factory::Factory_DVBS2O::build_channel          <>(params, tid*2+1, false));
-	std::unique_ptr<module::Framer<>                   > framer      (factory::Factory_DVBS2O::build_framer           <>(params                 ));
-	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(factory::Factory_DVBS2O::build_pl_scrambler     <>(params                 ));
-	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (factory::Factory_DVBS2O::build_monitor          <>(params                 ));
+	std::unique_ptr<module::Source<>                   > source      (factory::DVBS2O::build_source           <>(params, tid*2+0        ));
+	std::unique_ptr<module::Scrambler<>                > bb_scrambler(factory::DVBS2O::build_bb_scrambler     <>(params                 ));
+	std::unique_ptr<module::Encoder<>                  > BCH_encoder (factory::DVBS2O::build_bch_encoder      <>(params, poly_gen       ));
+	std::unique_ptr<module::Decoder_HIHO<>             > BCH_decoder (factory::DVBS2O::build_bch_decoder      <>(params, poly_gen       ));
+	std::unique_ptr<module::Codec_SIHO<>               > LDPC_cdc    (factory::DVBS2O::build_ldpc_cdc         <>(params                 ));
+	std::unique_ptr<module::Interleaver<>              > itl_tx      (factory::DVBS2O::build_itl              <>(params, *itl_core      ));
+	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (factory::DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
+	std::unique_ptr<module::Modem<>                    > modem       (factory::DVBS2O::build_modem            <>(params, std::move(cstl)));
+	std::unique_ptr<module::Channel<>                  > channel     (factory::DVBS2O::build_channel          <>(params, tid*2+1, false));
+	std::unique_ptr<module::Framer<>                   > framer      (factory::DVBS2O::build_framer           <>(params                 ));
+	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(factory::DVBS2O::build_pl_scrambler     <>(params                 ));
+	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (factory::DVBS2O::build_monitor          <>(params                 ));
 
 	auto& monitor = monitors[tid];
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
