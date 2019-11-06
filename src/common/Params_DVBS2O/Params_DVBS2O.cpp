@@ -4,37 +4,67 @@
 #include "Params_DVBS2O/Params_DVBS2O.hpp"
 
 using namespace aff3ct;
+using namespace aff3ct::factory;
+
+const std::string aff3ct::factory::DVBS2O_name   = "DVBS2O";
+const std::string aff3ct::factory::DVBS2O_prefix = "dvbs2o";
 
 Params_DVBS2O::
 Params_DVBS2O(int argc, char** argv)
 {
 	cli::Argument_map_value arg_vals;
 	get_arguments(argc, argv, arg_vals);
+	store(arg_vals);
+}
 
-	modcod         = arg_vals.exist({"mod-cod"}           ) ? arg_vals.at      ({"mod-cod"}           ) : "QPSK-S_8/9";
+Params_DVBS2O* Params_DVBS2O
+::clone() const
+{
+	return new Params_DVBS2O(*this);
+}
+void Params_DVBS2O
+::get_description(cli::Argument_map_info &args) const
+{
+	const std::string class_name = "factory::DVBS2O::";
+	// args.add
+}
+
+void Params_DVBS2O
+::store(const cli::Argument_map_value &vals)
+{
+	modcod         = vals.exist({"mod-cod"}           ) ? vals.at      ({"mod-cod"}           ) : "QPSK-S_8/9";
 
 	modcod_init(modcod); // initialize all the parameters that are dependant on modcod
 
-	ebn0_min       = arg_vals.exist({"sim-noise-min","m"} ) ? arg_vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
-	ebn0_max       = arg_vals.exist({"sim-noise-max","M"} ) ? arg_vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
-	ebn0_step      = arg_vals.exist({"sim-noise-step","s"}) ? arg_vals.to_float({"sim-noise-step","s"}) : .1f         ;
-	max_freq_shift = arg_vals.exist({"chn-max-freq-shift"}) ? arg_vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
-	max_delay      = arg_vals.exist({"chn-max-delay"}     ) ? arg_vals.to_float({"chn-max-delay"}     ) : 0.f         ;
-	ldpc_nite      = arg_vals.exist({"dec-ite"}           ) ? arg_vals.to_int  ({"dec-ite"}           ) : 50          ;
-	max_fe         = arg_vals.exist({"max-fe","e"}        ) ? arg_vals.to_int  ({"max-fe","e"}        ) : 100         ;
-	sink_path      = arg_vals.exist({"snk-path"}          ) ? arg_vals.at      ({"snk-path"}          ) : ""          ;
-	ldpc_implem    = arg_vals.exist({"dec-implem"}        ) ? arg_vals.at      ({"dec-implem"}        ) : "SPA"       ;
-	ldpc_simd      = arg_vals.exist({"dec-simd"}          ) ? arg_vals.at      ({"dec-simd"}          ) : ""          ;
-	section        = arg_vals.exist({"section"}           ) ? arg_vals.at      ({"section"}           ) : ""          ;
-	src_type       = arg_vals.exist({"src-type"}          ) ? arg_vals.at      ({"src-type"}          ) : "RAND"      ;
-	src_path       = arg_vals.exist({"src-path"}          ) ? arg_vals.at      ({"src-path"}          ) : src_path    ;
-	debug          = arg_vals.exist({"sim-debug","d"}     ) ? true                                      : false       ;
-	stats          = arg_vals.exist({"sim-stats"}         ) ? true                                      : false       ;
-	no_pll         = arg_vals.exist({"no-pll"}            ) ? true                                      : false       ;
+	ebn0_min       = vals.exist({"sim-noise-min","m"} ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
+	ebn0_max       = vals.exist({"sim-noise-max","M"} ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
+	ebn0_step      = vals.exist({"sim-noise-step","s"}) ? vals.to_float({"sim-noise-step","s"}) : .1f         ;
+	max_freq_shift = vals.exist({"chn-max-freq-shift"}) ? vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
+	max_delay      = vals.exist({"chn-max-delay"}     ) ? vals.to_float({"chn-max-delay"}     ) : 0.f         ;
+	ldpc_nite      = vals.exist({"dec-ite"}           ) ? vals.to_int  ({"dec-ite"}           ) : 50          ;
+	max_fe         = vals.exist({"max-fe","e"}        ) ? vals.to_int  ({"max-fe","e"}        ) : 100         ;
+	sink_path      = vals.exist({"snk-path"}          ) ? vals.at      ({"snk-path"}          ) : ""          ;
+	ldpc_implem    = vals.exist({"dec-implem"}        ) ? vals.at      ({"dec-implem"}        ) : "SPA"       ;
+	ldpc_simd      = vals.exist({"dec-simd"}          ) ? vals.at      ({"dec-simd"}          ) : ""          ;
+	section        = vals.exist({"section"}           ) ? vals.at      ({"section"}           ) : ""          ;
+	src_type       = vals.exist({"src-type"}          ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
+	src_path       = vals.exist({"src-path"}          ) ? vals.at      ({"src-path"}          ) : src_path    ;
+	debug          = vals.exist({"sim-debug","d"}     ) ? true                                  : false       ;
+	stats          = vals.exist({"sim-stats"}         ) ? true                                  : false       ;
+	no_pll         = vals.exist({"no-pll"}            ) ? true                                  : false       ;
 
 	p_rad.N = (this->pl_frame_size) * 4; // 2 * N_fil
-	p_rad.store(arg_vals);
+	p_rad.store(vals);
 }
+
+void Params_DVBS2O
+::get_headers(std::map<std::string,tools::header_list>& headers, const bool full) const
+{
+	auto p = this->get_prefix();
+
+	// headers[p].push_back(std::make_pair("Type",           this->type  ));
+}
+
 
 void Params_DVBS2O::
 get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals)

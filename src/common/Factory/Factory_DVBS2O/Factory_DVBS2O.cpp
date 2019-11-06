@@ -3,6 +3,9 @@
 #include "Module/Encoder_BCH_DVBS2O/Encoder_BCH_DVBS2O.hpp"
 #include "Module/Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
 
+using namespace aff3ct;
+using namespace aff3ct::factory;
+
 template <typename B>
 module::Source<B>* Factory_DVBS2O
 ::build_source(const Params_DVBS2O& params, const int seed)

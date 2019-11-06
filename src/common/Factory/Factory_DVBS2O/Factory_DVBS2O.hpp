@@ -25,7 +25,12 @@
 #include "Module/Radio/Radio.hpp"
 #include "Module/Sink/Sink_binary/Sink_binary.hpp"
 
-struct Factory_DVBS2O {
+namespace aff3ct
+{
+namespace factory
+{
+struct Factory_DVBS2O
+{
 	template <typename B = int>
 	static module::Source<B>*
 	build_source(const Params_DVBS2O& params, const int seed = 0);
@@ -138,5 +143,6 @@ struct Factory_DVBS2O {
 	static module::Radio<R>*
 	build_radio (const Params_DVBS2O& params);
 };
-
+}
+}
 #endif /* FACTORY_DVBS2O_HPP */

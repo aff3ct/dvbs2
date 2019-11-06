@@ -3,17 +3,22 @@
 
 #include <aff3ct.hpp>
 #include "Factory/Module/Radio/Radio.hpp"
-using namespace aff3ct;
-using namespace factory;
 
-struct Params_DVBS2O
+namespace aff3ct
+{
+namespace factory
+{
+extern const std::string DVBS2O_name;
+extern const std::string DVBS2O_prefix;
+
+struct Params_DVBS2O : Factory
 {
 public:
 	// const
 	const int   N_ldpc    = 16200;
 	const int   M         = 90;    // number of symbols per slot
 	const int   P         = 36;    // number of symbols per pilot
-	const float rolloff   = 0.2;//DVBS2 0.05; // DVBS2-X
+	const float rolloff   = 0.2;   //  DVBS2 0.05; // DVBS2-X
 	const int   osf       = 4;
 	const int   grp_delay = 50;
 
@@ -65,7 +70,15 @@ private:
 
 public:
 	Params_DVBS2O(int argc, char** argv);
+	Params_DVBS2O* clone() const;
+
+	// parameters construction
+	void get_description(cli::Argument_map_info &args) const;
+	void store          (const cli::Argument_map_value &vals);
+	void get_headers    (std::map<std::string,tools::header_list>& headers, const bool full = true) const;
+
 	void get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals);
 };
-
+}
+}
 #endif // PARAMS_DVBS2O_HPP

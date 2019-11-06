@@ -12,7 +12,7 @@ using namespace aff3ct;
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
-	const auto params = Params_DVBS2O(argc, argv);
+	const auto params = factory::Params_DVBS2O(argc, argv);
 
 	std::vector<std::unique_ptr<tools ::Reporter>>              reporters;
 	            std::unique_ptr<tools ::Terminal>               terminal;
@@ -24,34 +24,34 @@ int main(int argc, char** argv)
 
 	// construct tools
 	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
-	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
+	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(factory::Factory_DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	std::unique_ptr<module::Source<>                        > source       (Factory_DVBS2O::build_source                   <>(params                 ));
-	std::unique_ptr<module::Channel<>                       > channel      (Factory_DVBS2O::build_channel                  <>(params                 ));
-	std::unique_ptr<module::Scrambler<>                     > bb_scrambler (Factory_DVBS2O::build_bb_scrambler             <>(params                 ));
-	std::unique_ptr<module::Encoder<>                       > BCH_encoder  (Factory_DVBS2O::build_bch_encoder              <>(params, poly_gen       ));
-	std::unique_ptr<module::Decoder_HIHO<>                  > BCH_decoder  (Factory_DVBS2O::build_bch_decoder              <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec_SIHO<>                    > LDPC_cdc     (Factory_DVBS2O::build_ldpc_cdc                 <>(params                 ));
-	std::unique_ptr<module::Interleaver<>                   > itl_tx       (Factory_DVBS2O::build_itl                      <>(params, *itl_core      ));
-	std::unique_ptr<module::Interleaver<float,uint32_t>     > itl_rx       (Factory_DVBS2O::build_itl<float,uint32_t>        (params, *itl_core      ));
-	std::unique_ptr<module::Modem<>                         > modem        (Factory_DVBS2O::build_modem                    <>(params, std::move(cstl)));
-	std::unique_ptr<module::Filter_UPRRC_ccr_naive<>        > shaping_flt  (Factory_DVBS2O::build_uprrc_filter             <>(params)                 );
-	std::unique_ptr<module::Multiplier_sine_ccc_naive<>     > freq_shift   (Factory_DVBS2O::build_freq_shift               <>(params)                 );
-	std::unique_ptr<module::Filter_Farrow_ccr_naive<>       > chn_delay    (Factory_DVBS2O::build_channel_delay            <>(params)                 );
-	std::unique_ptr<module::Synchronizer_frame_cc_naive<>   > sync_frame   (Factory_DVBS2O::build_synchronizer_frame       <>(params)                 );
-	std::unique_ptr<module::Synchronizer_LR_cc_naive<>      > sync_lr      (Factory_DVBS2O::build_synchronizer_lr          <>(params                 ));
-	std::unique_ptr<module::Synchronizer_fine_pf_cc_DVBS2O<>> sync_fine_pf (Factory_DVBS2O::build_synchronizer_fine_pf     <>(params                 ));
-	std::unique_ptr<module::Framer<>                        > framer       (Factory_DVBS2O::build_framer                   <>(params                 ));
-	std::unique_ptr<module::Scrambler<float>                > pl_scrambler (Factory_DVBS2O::build_pl_scrambler             <>(params                 ));
-	std::unique_ptr<module::Filter_unit_delay<>             > delay        (Factory_DVBS2O::build_unit_delay               <>(params                 ));
-	std::unique_ptr<module::Monitor_BFER<>                  > monitor      (Factory_DVBS2O::build_monitor                  <>(params                 ));
-	std::unique_ptr<module::Filter_RRC_ccr_naive<>          > matched_flt  (Factory_DVBS2O::build_matched_filter           <>(params                 ));
-	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<> > sync_gardner (Factory_DVBS2O::build_synchronizer_gardner     <>(params                 ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>       > mult_agc     (Factory_DVBS2O::build_agc_shift                <>(params                 ));
-	std::unique_ptr<module::Synchronizer_coarse_freq<>      > sync_coarse_f(Factory_DVBS2O::build_synchronizer_coarse_freq <>(params                 ));
-	std::unique_ptr<module::Synchronizer_step_mf_cc<>       > sync_step_mf (Factory_DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(),
+	std::unique_ptr<module::Source<>                        > source       (factory::Factory_DVBS2O::build_source                   <>(params                 ));
+	std::unique_ptr<module::Channel<>                       > channel      (factory::Factory_DVBS2O::build_channel                  <>(params                 ));
+	std::unique_ptr<module::Scrambler<>                     > bb_scrambler (factory::Factory_DVBS2O::build_bb_scrambler             <>(params                 ));
+	std::unique_ptr<module::Encoder<>                       > BCH_encoder  (factory::Factory_DVBS2O::build_bch_encoder              <>(params, poly_gen       ));
+	std::unique_ptr<module::Decoder_HIHO<>                  > BCH_decoder  (factory::Factory_DVBS2O::build_bch_decoder              <>(params, poly_gen       ));
+	std::unique_ptr<module::Codec_SIHO<>                    > LDPC_cdc     (factory::Factory_DVBS2O::build_ldpc_cdc                 <>(params                 ));
+	std::unique_ptr<module::Interleaver<>                   > itl_tx       (factory::Factory_DVBS2O::build_itl                      <>(params, *itl_core      ));
+	std::unique_ptr<module::Interleaver<float,uint32_t>     > itl_rx       (factory::Factory_DVBS2O::build_itl<float,uint32_t>        (params, *itl_core      ));
+	std::unique_ptr<module::Modem<>                         > modem        (factory::Factory_DVBS2O::build_modem                    <>(params, std::move(cstl)));
+	std::unique_ptr<module::Filter_UPRRC_ccr_naive<>        > shaping_flt  (factory::Factory_DVBS2O::build_uprrc_filter             <>(params)                 );
+	std::unique_ptr<module::Multiplier_sine_ccc_naive<>     > freq_shift   (factory::Factory_DVBS2O::build_freq_shift               <>(params)                 );
+	std::unique_ptr<module::Filter_Farrow_ccr_naive<>       > chn_delay    (factory::Factory_DVBS2O::build_channel_delay            <>(params)                 );
+	std::unique_ptr<module::Synchronizer_frame_cc_naive<>   > sync_frame   (factory::Factory_DVBS2O::build_synchronizer_frame       <>(params)                 );
+	std::unique_ptr<module::Synchronizer_LR_cc_naive<>      > sync_lr      (factory::Factory_DVBS2O::build_synchronizer_lr          <>(params                 ));
+	std::unique_ptr<module::Synchronizer_fine_pf_cc_DVBS2O<>> sync_fine_pf (factory::Factory_DVBS2O::build_synchronizer_fine_pf     <>(params                 ));
+	std::unique_ptr<module::Framer<>                        > framer       (factory::Factory_DVBS2O::build_framer                   <>(params                 ));
+	std::unique_ptr<module::Scrambler<float>                > pl_scrambler (factory::Factory_DVBS2O::build_pl_scrambler             <>(params                 ));
+	std::unique_ptr<module::Filter_unit_delay<>             > delay        (factory::Factory_DVBS2O::build_unit_delay               <>(params                 ));
+	std::unique_ptr<module::Monitor_BFER<>                  > monitor      (factory::Factory_DVBS2O::build_monitor                  <>(params                 ));
+	std::unique_ptr<module::Filter_RRC_ccr_naive<>          > matched_flt  (factory::Factory_DVBS2O::build_matched_filter           <>(params                 ));
+	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<> > sync_gardner (factory::Factory_DVBS2O::build_synchronizer_gardner     <>(params                 ));
+	std::unique_ptr<module::Multiplier_AGC_cc_naive<>       > mult_agc     (factory::Factory_DVBS2O::build_agc_shift                <>(params                 ));
+	std::unique_ptr<module::Synchronizer_coarse_freq<>      > sync_coarse_f(factory::Factory_DVBS2O::build_synchronizer_coarse_freq <>(params                 ));
+	std::unique_ptr<module::Synchronizer_step_mf_cc<>       > sync_step_mf (factory::Factory_DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(),
 	                                                                                                                          matched_flt  .get(),
 	                                                                                                                          sync_gardner .get()    ));
 
