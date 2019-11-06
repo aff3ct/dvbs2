@@ -18,40 +18,39 @@ public:
 	bool stats;
 	bool filtered;    // filtering disabled in bb simu
 	bool no_pll;
-	int MAX_FE;       // max number of frame errors per SNR point
-	int MAX_N_FRAMES; // max number of simulated frames per SNR point
-	int K_BCH;
-	int N_BCH;
-	int N_BCH_unshortened;
-	int K_LDPC;
-	int LDPC_NITE;
-	int BPS;
-	int N_XFEC_FRAME;              // number of complex symbols
-	int N_PILOTS;
+	int max_fe;       // max number of frame errors per SNR point
+	int max_n_frames; // max number of simulated frames per SNR point
+	int K_bch;
+	int N_bch;
+	int N_bch_unshortened;
+	int ldpc_nite;
+	int bps;
+	int N_xfec_frame;              // number of complex symbols
+	int N_pilots;
 	int S;                         // number of slots
-	int PL_FRAME_SIZE;
-	int ITL_N_COLS;
-	std::string LDPC_IMPLEM;
-	std::string LDPC_SIMD;
-	std::string READ_ORDER;
-	std::string MODCOD;
-	std::string MOD;
-	std::string COD;
+	int pl_frame_size;
+	int itl_n_cols;
+	std::string ldpc_implem;
+	std::string ldpc_simd;
+	std::string read_order;
+	std::string modcod;
+	std::string mod;
+	std::string cod;
 	std::string constellation_file;
 	std::string section;
 	std::string src_type;
 	std::string src_path;
 	std::string sink_path;
 
-	const int   N_LDPC    = 16200;
+	const int   N_ldpc    = 16200;
 	const int   M         = 90;    // number of symbols per slot
 	const int   P         = 36;    // number of symbols per pilot
-	const float ROLLOFF   = 0.2;//DVBS2 0.05; // DVBS2-X
-	const int   OSF       = 4;
-	const int   GRP_DELAY = 50;
+	const float rolloff   = 0.2;//DVBS2 0.05; // DVBS2-X
+	const int   osf       = 4;
+	const int   grp_delay = 50;
 
-	float MAX_FREQ_SHIFT;
-	float MAX_DELAY;
+	float max_freq_shift;
+	float max_delay;
 
 	const std::vector<float  > pilot_values = std::vector<float  > (P*2, std::sqrt(2.0f)/2.0f);
 	const std::vector<int    > pilot_start  = {1530, 3006, 4482, 5958, 7434};

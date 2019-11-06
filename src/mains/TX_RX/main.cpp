@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	// construct tools
 	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
-	                tools::BCH_polynomial_generator<      > poly_gen(params.N_BCH_unshortened, 12, params.bch_prim_poly);
+	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
 	std::unique_ptr<module::Source<>                        > source       (Factory_DVBS2O::build_source                   <>(params                 ));
@@ -149,10 +149,10 @@ int main(int argc, char** argv)
 		(*delay       )[flt::sck::filter     ::X_N1].bind((*source      )[src::sck::generate   ::U_K ]);
 
 		// compute the code rate
-		const float R = (float)params.K_BCH / (float)params.N_LDPC;
+		const float R = (float)params.K_bch / (float)params.N_ldpc;
 
 		// compute the current sigma for the channel noise
-		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.BPS);
+		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.bps);
 		const auto sigma = tools::esn0_to_sigma(esn0);
 
 		noise.set_noise(sigma, ebn0, esn0);
@@ -212,7 +212,7 @@ int main(int argc, char** argv)
 				(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 				(*sync_frame   )[syn::tsk::synchronize].exec();
 				sync_coarse_f->enable_update();
-				the_delay = (2*params.PL_FRAME_SIZE - sync_frame->get_delay() + the_delay) %  params.PL_FRAME_SIZE;
+				the_delay = (2*params.pl_frame_size - sync_frame->get_delay() + the_delay) %  params.pl_frame_size;
 				sync_coarse_f->set_curr_idx(the_delay);
 				(*pl_scrambler )[scr::tsk::descramble].exec();
 			}
@@ -232,8 +232,8 @@ int main(int argc, char** argv)
 			        sync_gardner ->get_mu(),
 			        sync_coarse_f->get_estimated_freq(),
 			        the_delay,
-			        sync_lr      ->get_est_reduced_freq() / (float)params.OSF,
-			        sync_fine_pf ->get_estimated_freq()   / (float)params.OSF);
+			        sync_lr      ->get_est_reduced_freq() / (float)params.osf,
+			        sync_fine_pf ->get_estimated_freq()   / (float)params.osf);
 			std::cerr << buf << "\r";
 			std::cerr.flush();
 

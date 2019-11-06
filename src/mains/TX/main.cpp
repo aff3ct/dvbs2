@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	tools::Header::print_parameters("DVBS2O", "DVBS2O", dvbs2o_header, max_n_chars);
 	tools::Header::print_parameters(param_vec, true, std::cout);
 
-	std::vector<float> shaping_in  ((params.PL_FRAME_SIZE) * 2, 0.0f);
+	std::vector<float> shaping_in  ((params.pl_frame_size) * 2, 0.0f);
 
 
 	// build a terminal just for signal handling
@@ -33,8 +33,8 @@ int main(int argc, char** argv)
 	            std::unique_ptr<tools ::Terminal>               terminal;
 	                            tools ::Sigma<>                 noise;
 	const auto ebn0 = 3.8f;
-	const float rate = (float)params.K_BCH / (float)params.N_LDPC;
-	const auto esn0  = tools::ebn0_to_esn0 (ebn0, rate, params.BPS);
+	const float rate = (float)params.K_bch / (float)params.N_ldpc;
+	const auto esn0  = tools::ebn0_to_esn0 (ebn0, rate, params.bps);
 	const auto sigma = tools::esn0_to_sigma(esn0);
 	noise.set_noise(sigma, ebn0, esn0);
 	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>(noise       ))); // report the noise values (Es/N0 and Eb/N0)
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
 	// construct tools
 	std::unique_ptr<tools::Constellation           <R>> cstl          (new tools::Constellation_user<R>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core        < >> itl_core      (Factory_DVBS2O::build_itl_core<>(params                   ));
-	                tools::BCH_polynomial_generator<B > poly_gen      (params.N_BCH_unshortened, 12, params.bch_prim_poly         );
+	                tools::BCH_polynomial_generator<B > poly_gen      (params.N_bch_unshortened, 12, params.bch_prim_poly         );
 
 	// construct modules
 	std::unique_ptr<module::Source<>        > source        (Factory_DVBS2O::build_source <>     (params, 0              ));
@@ -107,7 +107,7 @@ int main(int argc, char** argv)
 		(*pl_scrambler)[scr::tsk::scramble  ].exec();
 
 		std::copy((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr()),
-		          ((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.PL_FRAME_SIZE),
+		          ((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.pl_frame_size),
 		          shaping_in.data());
 
 		(*shaping_filter)[flt::tsk::filter  ].exec();

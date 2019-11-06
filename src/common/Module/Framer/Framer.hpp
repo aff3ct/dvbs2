@@ -47,29 +47,28 @@ public:
 	inline Socket& operator[](const frm::sck::remove_plh s) { return Module::operator[]((int)frm::tsk::remove_plh)[(int)s]; }
 
 protected:
-	const int XFEC_FRAME_SIZE; /*!< Number of complex symbols x2 in one XFEC frame */
-	const int PL_FRAME_SIZE; /*!< Number of complex symbols x2 in one payload frame */
+	const int xfec_frame_size; /*!< Number of complex symbols x2 in one XFEC frame */
+	const int pl_frame_size; /*!< Number of complex symbols x2 in one payload frame */
 
 private:
 
-	std::vector<B > PLH; /*!< Payload header */
-	void generate_PLH( void ); /*!< Payload header generation */
-	int N_XFEC_FRAME;
+	std::vector<B > plh; /*!< Payload header */
+	void generate_plh( void ); /*!< Payload header generation */
 	int M;
 	int P;
-	int N_PILOTS;
-	std::string MODCOD;
+	int N_pilots;
+	std::string modcod;
 
 public:
 	/*!
 	 * \brief Constructor.
 	 *
-	 * \param XFEC_FRAME_SIZE : Number of complex symbols in one XFEC frame.
-	 * \param PL_FRAME_SIZE : Number of complex symbols in one payload frame.
+	 * \param xfec_frame_size : Number of complex symbols in one XFEC frame.
+	 * \param pl_frame_size : Number of complex symbols in one payload frame.
 	 * \param n_frames: number of frames to process in the Framer.
 	 * \param name:     Framer's name.
 	 */
-	Framer(const int XFEC_FRAME_SIZE, const int PL_FRAME_SIZE, const std::string MODCOD, const int n_frames = 1);
+	Framer(const int xfec_frame_size, const int pl_frame_size, const std::string modcod, const int n_frames = 1);
 
 	/*!
 	 * \brief Destructor.

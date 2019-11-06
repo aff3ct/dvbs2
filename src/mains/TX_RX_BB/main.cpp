@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 	// construct tools
 	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(Factory_DVBS2O::build_itl_core<>(params));
-	                tools::BCH_polynomial_generator<      > poly_gen(params.N_BCH_unshortened, 12, params.bch_prim_poly);
+	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
 	std::unique_ptr<module::Source<>                   > source      (Factory_DVBS2O::build_source           <>(params, tid*2+0        ));
@@ -149,10 +149,10 @@ int main(int argc, char** argv)
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
 	{
 		// compute the code rate
-		const float R = (float)params.K_BCH / (float)params.N_LDPC;
+		const float R = (float)params.K_bch / (float)params.N_ldpc;
 
 		// compute the current sigma for the channel noise
-		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.BPS);
+		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.bps);
 		const auto sigma = tools::esn0_to_sigma(esn0);
 
 #pragma omp single

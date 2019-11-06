@@ -17,9 +17,9 @@ class Synchronizer_Gardner_cc_naive : public Synchronizer<R>
 private:
 	const std::vector<int>  set_bits_nbr = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
 
-	const int OSF;
-	const int POW_OSF;
-	const R   INV_OSF;
+	const int osf;
+	const int POW_osf;
+	const R   INV_osf;
 
 	std::complex<R> last_symbol;
 
@@ -59,7 +59,7 @@ private:
 	void push(const std::complex<R> strobe);
 
 public:
-	Synchronizer_Gardner_cc_naive (const int N, int OSF, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2);
+	Synchronizer_Gardner_cc_naive (const int N, int osf, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2);
 	virtual ~Synchronizer_Gardner_cc_naive();
 	void reset();
 
