@@ -102,8 +102,6 @@ public:
 	void store          (const cli::Argument_map_value &vals);
 	void get_headers    (std::map<std::string,tools::header_list>& headers, const bool full = true) const;
 
-	void get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals);
-
 public:
 	template <typename B = int>
 	static module::Source<B>*

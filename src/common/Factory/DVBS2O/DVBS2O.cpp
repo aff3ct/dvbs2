@@ -13,9 +13,29 @@ DVBS2O
 ::DVBS2O(int argc, char** argv, const std::string& prefix)
 : Factory(DVBS2O_name, DVBS2O_name, prefix)
 {
-	cli::Argument_map_value arg_vals;
-	get_arguments(argc, argv, arg_vals);
+	cli::Argument_handler ah(argc, (const char**) argv);
+	cli::Argument_map_info args;
+	std::vector<std::string> cmd_warn, cmd_error;
+
+	get_description(args);
+
+	// parse user arguments
+	auto arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);
+
 	store(arg_vals);
+
+	// exit on wrong args
+	if (cmd_error.size())
+	{
+		if (cmd_error.size()) std::cerr << std::endl;
+		for (auto w = 0; w < (int)cmd_error.size(); w++)
+			std::cerr << rang::tag::error << cmd_error[w] << std::endl;
+
+		if (cmd_warn.size()) std::cerr << std::endl;
+		for (auto w = 0; w < (int)cmd_warn.size(); w++)
+			std::cerr << rang::tag::warning << cmd_warn[w] << std::endl;
+		exit(EXIT_FAILURE);
+	}
 }
 
 DVBS2O* DVBS2O
@@ -23,7 +43,6 @@ DVBS2O* DVBS2O
 {
 	return new DVBS2O(*this);
 }
-
 
 void DVBS2O
 ::get_description(cli::Argument_map_info &args) const
@@ -49,6 +68,8 @@ void DVBS2O
 	args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")),     "LDPC Implem "                        );
 	args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),       "Display stats."                      );
 	args.add({"section"},            cli::Text(),                                           "Section to be used in bridge binary.");
+
+	p_rad.get_description(args);
 }
 
 void DVBS2O
@@ -84,35 +105,6 @@ void DVBS2O
 {
 	auto p = this->get_prefix();
 	// headers[p].push_back(std::make_pair("Type",           this->type  ));
-}
-
-
-void DVBS2O::
-get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals)
-{
-		// build argument handler
-	cli::Argument_handler ah(argc, (const char**) argv);
-	cli::Argument_map_info args;
-	std::vector<std::string> cmd_warn, cmd_error;
-
-	p_rad.get_description(args);
-	get_description(args);
-
-	// parse user arguments
-	arg_vals = ah.parse_arguments(args, cmd_warn, cmd_error);
-
-	// exit on wrong args
-	if (cmd_error.size())
-	{
-		if (cmd_error.size()) std::cerr << std::endl;
-		for (auto w = 0; w < (int)cmd_error.size(); w++)
-			std::cerr << rang::tag::error << cmd_error[w] << std::endl;
-
-		if (cmd_warn.size()) std::cerr << std::endl;
-		for (auto w = 0; w < (int)cmd_warn.size(); w++)
-			std::cerr << rang::tag::warning << cmd_warn[w] << std::endl;
-		exit(EXIT_FAILURE);
-	}
 }
 
 void DVBS2O::
