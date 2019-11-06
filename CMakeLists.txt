@@ -47,6 +47,7 @@ add_executable(dvbs2_optique_matlab_bridge ${SRC_FILES_MATLAB_BRIDGE})
 add_executable(dvbs2_optique_tx_rx         ${SRC_FILES_TX_RX})
 add_executable(dvbs2_optique_tx_rx_bb      ${SRC_FILES_TX_RX_BB})
 
+
 # Link with common sources
 target_link_libraries(dvbs2_optique_tx            PRIVATE dvbs2_optique_common)
 target_link_libraries(dvbs2_optique_rx            PRIVATE dvbs2_optique_common)
@@ -84,6 +85,7 @@ target_link_libraries(dvbs2_optique_matlab_rx     PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_matlab_bridge PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_tx_rx         PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_optique_tx_rx_bb      PRIVATE aff3ct-static-lib)
+
 
 # Link with OpenMP
 if(DVBS2O_LINK_OPENMP)
@@ -129,3 +131,8 @@ else()
     message(STATUS "DVBS2O - UHD: off")
 endif(DVBS2O_LINK_UHD)
 
+# set(SRC_FILES_TEST          ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/test.cpp)
+# add_executable(dvbs2_optique_test      ${SRC_FILES_TEST})
+# target_link_libraries(dvbs2_optique_test      PRIVATE aff3ct-static-lib)
+# target_link_libraries(dvbs2_optique_test      PRIVATE dvbs2_optique_common)
+# target_include_directories(dvbs2_optique_test      PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
