@@ -1,8 +1,3 @@
-#include <vector>
-#include <numeric>
-#include <string>
-#include <iostream>
-
 #include <aff3ct.hpp>
 
 #include "Factory/DVBS2O/DVBS2O.hpp"
@@ -12,7 +7,13 @@ using namespace aff3ct;
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
-	const auto params = factory::DVBS2O(argc, argv);
+	auto params = factory::DVBS2O(argc, argv);
+
+	std::map<std::string,tools::header_list> headers;
+	params.get_headers(headers);
+	std::vector<factory::Factory*> param_vec;
+	param_vec.push_back(&params);
+	tools::Header::print_parameters(param_vec, true, std::cout);
 
 	std::vector<std::unique_ptr<tools ::Reporter>>              reporters;
 	            std::unique_ptr<tools ::Terminal>               terminal;

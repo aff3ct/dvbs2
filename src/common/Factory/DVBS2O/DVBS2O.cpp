@@ -54,7 +54,7 @@ void DVBS2O
 	args.add({"mod-cod"},            modcod_format,                                         "Modulation and coding scheme."       );
 	args.add({"chn-max-freq-shift"}, cli::Real(),                                           "Maximum Doppler shift."              );
 	args.add({"chn-max-delay"},      cli::Real(),                                           "Maximum Channel Delay."              );
-	args.add({"max-fe","e"},         cli::Integer(cli::Positive(), cli::Non_zero()),        "Modulation and coding scheme."       );
+	args.add({"max-fe","e"},         cli::Integer(cli::Positive(), cli::Non_zero()),        "Max number of frame errors."         );
 	args.add({"sim-noise-min","m"},  cli::Real(),                                           "Min Eb/N0"                           );
 	args.add({"sim-noise-max","M"},  cli::Real(),                                           "Max Eb/N0"                           );
 	args.add({"sim-noise-step","s"}, cli::Real(),                                           "Step Eb/N0"                          );
@@ -100,11 +100,56 @@ void DVBS2O
 	p_rad.store(vals);
 }
 
+std::vector<std::string> DVBS2O
+::get_names() const
+{
+	std::vector<std::string> n;
+	n.push_back(this->get_name());
+	n.push_back(this->p_rad.get_name());
+	return n;
+}
+
+std::vector<std::string> DVBS2O
+::get_short_names() const
+{
+	std::vector<std::string> sn;
+	sn.push_back(this->get_short_name());
+	sn.push_back(this->p_rad.get_short_name());
+	return sn;
+}
+
+std::vector<std::string> DVBS2O
+::get_prefixes() const
+{
+	std::vector<std::string> p;
+	p.push_back(this->get_prefix());
+	p.push_back(this->p_rad.get_prefix());
+	return p;
+}
+
 void DVBS2O
 ::get_headers(std::map<std::string,tools::header_list>& headers, const bool full) const
 {
 	auto p = this->get_prefix();
-	// headers[p].push_back(std::make_pair("Type",           this->type  ));
+
+	headers[p].push_back(std::make_pair("Modulation and coding", this->modcod                        ));
+	headers[p].push_back(std::make_pair("Min  Eb/N0"           , std::to_string(this->ebn0_min)      ));
+	headers[p].push_back(std::make_pair("Max  Eb/N0"           , std::to_string(this->ebn0_max)      ));
+	headers[p].push_back(std::make_pair("Step Eb/N0"           , std::to_string(this->ebn0_step)     ));
+	headers[p].push_back(std::make_pair("Max frame errors"     , std::to_string(this->max_fe)        ));
+	if (this->max_freq_shift != 0)
+		headers[p].push_back(std::make_pair("Maximum Doppler shift", std::to_string(this->max_freq_shift)));
+	headers[p].push_back(std::make_pair("LDPC implem"          , this->ldpc_implem                   ));
+	headers[p].push_back(std::make_pair("LDPC n iterations"    , std::to_string(this->ldpc_nite)     ));
+	headers[p].push_back(std::make_pair("LDPC simd"            , this->ldpc_simd                     ));
+	if (this->sink_path != "")
+		headers[p].push_back(std::make_pair("Path to sink file"    , this->sink_path                     ));
+	headers[p].push_back(std::make_pair("Type of source"       , this->src_type                      ));
+	if (this->src_path != "")
+		headers[p].push_back(std::make_pair("Path to source file"  , this->src_path                      ));
+	headers[p].push_back(std::make_pair("Pll disabled"         , this->no_pll ? "YES" : "NO"         ));
+
+	p_rad.get_headers(headers);
 }
 
 void DVBS2O::

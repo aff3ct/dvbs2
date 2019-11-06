@@ -97,6 +97,10 @@ public:
 	DVBS2O(int argc, char** argv, const std::string &p = DVBS2O_prefix);
 	DVBS2O* clone() const;
 
+	virtual std::vector<std::string> get_names      () const;
+	virtual std::vector<std::string> get_short_names() const;
+	virtual std::vector<std::string> get_prefixes()    const;
+
 	// parameters construction
 	void get_description(cli::Argument_map_info &args) const;
 	void store          (const cli::Argument_map_value &vals);

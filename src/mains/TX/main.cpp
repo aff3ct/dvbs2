@@ -4,29 +4,19 @@
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
 using namespace aff3ct;
-// using header_list = std::vector<std::pair<std::string,std::string>>;
 
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2O(argc, argv);
 
-	tools::header_list dvbs2o_header;
-	dvbs2o_header.push_back(std::pair<std::string,std::string>("Git Hash",dvbs2o_sha1()));
 	std::map<std::string,tools::header_list> headers;
-	params.p_rad.get_headers(headers);
-	auto max_n_chars = 0;
-	for (auto &h : headers)
-		tools::Header::compute_max_n_chars(h.second, max_n_chars);
-	tools::Header::compute_max_n_chars(dvbs2o_header,max_n_chars);
-
+	params.get_headers(headers);
 	std::vector<factory::Factory*> param_vec;
-	param_vec.push_back(&params.p_rad);
-	tools::Header::print_parameters("DVBS2O", "DVBS2O", dvbs2o_header, max_n_chars);
+	param_vec.push_back(&params);
 	tools::Header::print_parameters(param_vec, true, std::cout);
 
 	std::vector<float> shaping_in  ((params.pl_frame_size) * 2, 0.0f);
-
 
 	// build a terminal just for signal handling
 	std::vector<std::unique_ptr<tools ::Reporter>>              reporters;
