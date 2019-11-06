@@ -12,76 +12,23 @@ Params_DVBS2O(int argc, char** argv)
 	cli::Argument_map_value arg_vals;
 	get_arguments(argc, argv, arg_vals);
 
-	if (arg_vals.exist({"sim-noise-min","m"}))
-		ebn0_min = arg_vals.to_float({"sim-noise-min","m"});
-	else
-		ebn0_min = 3.2f;
-
-	if (arg_vals.exist({"sim-noise-max","M"}))
-		ebn0_max = arg_vals.to_float({"sim-noise-max","M"});
-	else
-		ebn0_max = 6.f;
-
-	if (arg_vals.exist({"sim-noise-step","s"}))
-		ebn0_step = arg_vals.to_float({"sim-noise-step","s"});
-	else
-		ebn0_step = .1f;
-
-	if (arg_vals.exist({"sim-debug","d"}))
-		debug = true;
-	else
-		debug = false;
-
-	if (arg_vals.exist({"sim-stats"}))
-		stats = true;
-	else
-		stats = false;
-
-	if (arg_vals.exist({"no-pll"}))
-		no_pll = true;
-	else
-		no_pll = false;
-
-	filtered = true;
-
-	if (arg_vals.exist({"dec-ite"}))
-		LDPC_NITE = arg_vals.to_int({"dec-ite"});
-	else
-		LDPC_NITE = 50;
-
-	if (arg_vals.exist({"dec-implem"}))
-		LDPC_IMPLEM = arg_vals.at({"dec-implem"});
-	else
-		LDPC_IMPLEM = "SPA";
-
-	if (arg_vals.exist({"dec-simd"}))
-		LDPC_SIMD = arg_vals.at({"dec-simd"});
-	else
-		LDPC_SIMD = "";
-
-	// initialize max fe
-	if (arg_vals.exist({"max-fe","e"}))
-		MAX_FE = arg_vals.to_int({"max-fe","e"});
-	else
-		MAX_FE = 100;
-
-	// initialize max fe
-	if (arg_vals.exist({"chn-max-freq-shift"}))
-		MAX_FREQ_SHIFT = arg_vals.to_float({"chn-max-freq-shift"});
-	else
-		MAX_FREQ_SHIFT = 0.0f;
-
-	// initialize max fe
-	if (arg_vals.exist({"chn-max-delay"}))
-		MAX_DELAY = arg_vals.to_float({"chn-max-delay"});
-	else
-		MAX_DELAY = 0.0f;
-
-	// initialize MODCOD
-	if (arg_vals.exist({"mod-cod"}))
-		MODCOD = arg_vals.at({"mod-cod"});
-	else
-		MODCOD = "QPSK-S_8/9";
+	ebn0_min       = arg_vals.exist({"sim-noise-min","m"} ) ? arg_vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
+	ebn0_max       = arg_vals.exist({"sim-noise-max","M"} ) ? arg_vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
+	ebn0_step      = arg_vals.exist({"sim-noise-step","s"}) ? arg_vals.to_float({"sim-noise-step","s"}) : .1f         ;
+	debug          = arg_vals.exist({"sim-debug","d"}     ) ? true                                      : false       ;
+	stats          = arg_vals.exist({"sim-stats"}         ) ? true                                      : false       ;
+	no_pll         = arg_vals.exist({"no-pll"}            ) ? true                                      : false       ;
+	filtered       = true;
+	LDPC_NITE      = arg_vals.exist({"dec-ite"}           ) ? arg_vals.to_int  ({"dec-ite"}           ) : 50          ;
+	LDPC_IMPLEM    = arg_vals.exist({"dec-implem"}        ) ? arg_vals.at      ({"dec-implem"}        ) : "SPA"       ;
+	LDPC_SIMD      = arg_vals.exist({"dec-simd"}          ) ? arg_vals.at      ({"dec-simd"}          ) : ""          ;
+	MAX_FE         = arg_vals.exist({"max-fe","e"}        ) ? arg_vals.to_int  ({"max-fe","e"}        ) : 100         ;
+	MAX_FREQ_SHIFT = arg_vals.exist({"chn-max-freq-shift"}) ? arg_vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
+	MAX_DELAY      = arg_vals.exist({"chn-max-delay"}     ) ? arg_vals.to_float({"chn-max-delay"}     ) : 0.f         ;
+	MODCOD         = arg_vals.exist({"mod-cod"}           ) ? arg_vals.at      ({"mod-cod"}           ) : "QPSK-S_8/9";
+	sink_path      = arg_vals.exist({"snk-path"}          ) ? arg_vals.at      ({"snk-path"}          ) : ""          ;
+	section        = arg_vals.exist({"section"}           ) ? arg_vals.at      ({"section"}           ) : ""          ;
+	src_type       = arg_vals.exist({"src-type"}          ) ? arg_vals.at      ({"src-type"}          ) : "RAND"      ;
 
 	if (MODCOD == "QPSK-S_8/9" || MODCOD == "")
 	{
@@ -128,11 +75,6 @@ Params_DVBS2O(int argc, char** argv)
 		BPS = 4;
 		constellation_file = "../conf/mod/16APSK.mod";
 	}
-	else
-	{
-		BPS = 2;
-		constellation_file = "../conf/4QAM_GRAY.mod";
-	}
 
 	if      ( COD == "3/5"  )
 	{
@@ -149,22 +91,7 @@ Params_DVBS2O(int argc, char** argv)
 		src_path          = "../conf/src/K_14232.src";
 	}
 
-	if (arg_vals.exist({"src-path"}))
-		src_path = arg_vals.at({"src-path"});
-
-	if (arg_vals.exist({"snk-path"}))
-		sink_path = arg_vals.at({"snk-path"});
-
-
-	if (arg_vals.exist({"section"}))
-		section = arg_vals.at({"section"});
-	else
-		section = "";
-
-	if (arg_vals.exist({"src-type"}))
-		src_type = arg_vals.at({"src-type"});
-	else
-		src_type = "RAND";
+	src_path       = arg_vals.exist({"src-path"}          ) ? arg_vals.at      ({"src-path"}          ) : src_path    ;
 
 	ITL_N_COLS        = BPS;
 	K_LDPC            = N_BCH;

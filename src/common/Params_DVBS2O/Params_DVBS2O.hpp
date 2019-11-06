@@ -4,8 +4,9 @@
 #include <aff3ct.hpp>
 #include "Factory/Module/Radio/Radio.hpp"
 using namespace aff3ct;
+using namespace factory;
 
-class Params_DVBS2O
+struct Params_DVBS2O
 {
 public:
 	factory::Radio p_rad;
@@ -62,8 +63,6 @@ public:
 
 	Params_DVBS2O(int argc, char** argv);
 	void get_arguments(int argc, char** argv, cli::Argument_map_value& arg_vals);
-
-
 };
 
 #endif // PARAMS_DVBS2O_HPP
