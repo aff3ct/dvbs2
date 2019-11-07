@@ -28,10 +28,9 @@ int main(int argc, char** argv)
 
 	std::cout << "[trace]" << std::endl;
 	std::map<std::string,tools::header_list> headers;
-	params.get_headers(headers);
 	std::vector<factory::Factory*> param_vec;
 	param_vec.push_back(&params);
-	tools::Header::print_parameters(param_vec, true, std::cout);
+	tools::Header::print_parameters(param_vec, false, std::cout);
 
 	// declare shared modules and tools
 	std::vector<std::unique_ptr<module::Monitor_BFER<>>>        monitors;

@@ -63,6 +63,7 @@ public:
 	bool  debug;
 	bool  stats;
 	bool  no_pll;
+	bool  no_sync_info;
 	int   max_fe;       // max number of frame errors per SNR point
 	int   max_n_frames; // max number of simulated frames per SNR point
 	int   K_bch;

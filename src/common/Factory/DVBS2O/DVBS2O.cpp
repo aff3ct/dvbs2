@@ -59,6 +59,7 @@ void DVBS2O
 	args.add({"sim-noise-max","M"},  cli::Real(),                                           "Max Eb/N0"                           );
 	args.add({"sim-noise-step","s"}, cli::Real(),                                           "Step Eb/N0"                          );
 	args.add({"no-pll"},             cli::None(),                                           "Disable coarse PLL."                 );
+	args.add({"no-sync-info"},       cli::None(),                                           "Disable sync information logging."   );
 	args.add({"sim-debug", "d"},     cli::None(),                                           "Display debug."                      );
 	args.add({"sim-stats"},          cli::None(),                                           "Display stats."                      );
 	args.add({"src-type"},           src_type_format,                                       "Type of the binary source"           );
@@ -96,6 +97,7 @@ void DVBS2O
 	debug          = vals.exist({"sim-debug","d"}     ) ? true                                  : false       ;
 	stats          = vals.exist({"sim-stats"}         ) ? true                                  : false       ;
 	no_pll         = vals.exist({"no-pll"}            ) ? true                                  : false       ;
+	no_sync_info   = vals.exist({"no-sync-info"}      ) ? true                                  : false       ;
 
 	if (vals.exist({"ter-freq"}))
 		ter_freq = std::chrono::milliseconds(vals.to_int  ({"ter-freq"}));
@@ -145,17 +147,20 @@ void DVBS2O
 	headers[p].push_back(std::make_pair("Max frame errors"     , std::to_string(this->max_fe)        ));
 	if (this->max_freq_shift != 0)
 		headers[p].push_back(std::make_pair("Maximum Doppler shift", std::to_string(this->max_freq_shift)));
+	if (this->max_delay != 0)
+		headers[p].push_back(std::make_pair("Maximum Channel Delay", std::to_string(this->max_delay)));
 	headers[p].push_back(std::make_pair("LDPC implem"          , this->ldpc_implem                   ));
 	headers[p].push_back(std::make_pair("LDPC n iterations"    , std::to_string(this->ldpc_nite)     ));
-	headers[p].push_back(std::make_pair("LDPC simd"            , this->ldpc_simd                     ));
+	if (this->src_path != "")
+		headers[p].push_back(std::make_pair("LDPC simd"            , this->ldpc_simd                     ));
 	if (this->sink_path != "")
 		headers[p].push_back(std::make_pair("Path to sink file"    , this->sink_path                     ));
 	headers[p].push_back(std::make_pair("Type of source"       , this->src_type                      ));
 	if (this->src_path != "")
 		headers[p].push_back(std::make_pair("Path to source file"  , this->src_path                      ));
 	headers[p].push_back(std::make_pair("Pll disabled"         , this->no_pll ? "YES" : "NO"         ));
-
-	p_rad.get_headers(headers);
+	if(full)
+		p_rad.get_headers(headers);
 }
 
 void DVBS2O::

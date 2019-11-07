@@ -12,7 +12,13 @@ using namespace aff3ct;
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
-	const auto params = factory::DVBS2O(argc, argv);
+	auto params = factory::DVBS2O(argc, argv);
+
+	std::cout << "[trace]" << std::endl;
+	std::map<std::string,tools::header_list> headers;
+	std::vector<factory::Factory*> param_vec;
+	param_vec.push_back(&params);
+	tools::Header::print_parameters(param_vec, false, std::cout);
 
 	std::vector<std::unique_ptr<tools ::Reporter>>              reporters;
 	            std::unique_ptr<tools ::Terminal>               terminal;
@@ -180,8 +186,11 @@ int main(int argc, char** argv)
 		char heads[]       = "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
 		char pattern[]     = "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
 
-		std::cerr << head_lines << "\n" << heads << "\n" <<head_lines << "\n";
-		std::cerr.flush();
+		if(!params.no_sync_info)
+		{
+			std::cerr << head_lines << "\n" << heads << "\n" <<head_lines << "\n";
+			std::cerr.flush();
+		}
 
 		//(*sync_step_mf )[syn::tsk::synchronize].set_debug(true);
 		//(*pl_scrambler )[scr::tsk::descramble ].set_debug(true);
@@ -228,36 +237,42 @@ int main(int argc, char** argv)
 				(*sync_fine_pf )[syn::tsk::synchronize].exec();
 			}
 
-			sprintf(buf, pattern, n_phase, m+1,
-			        sync_gardner ->get_mu(),
-			        sync_coarse_f->get_estimated_freq(),
-			        the_delay,
-			        sync_lr      ->get_est_reduced_freq() / (float)params.osf,
-			        sync_fine_pf ->get_estimated_freq()   / (float)params.osf);
-			std::cerr << buf << "\r";
-			std::cerr.flush();
+			if(!params.no_sync_info)
+			{
+				sprintf(buf, pattern, n_phase, m+1,
+						sync_gardner ->get_mu(),
+						sync_coarse_f->get_estimated_freq(),
+						the_delay,
+						sync_lr      ->get_est_reduced_freq() / (float)params.osf,
+						sync_fine_pf ->get_estimated_freq()   / (float)params.osf);
+				std::cerr << buf << "\r";
+				std::cerr.flush();
+			}
 
 			if (m == 149)
 			{
 				n_phase++;
-				std::cerr << buf << std::endl;
 				sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
+				if(!params.no_sync_info)
+					std::cerr << buf << std::endl;
 			}
 
 			if (m == 299)
 			{
 				n_phase++;
-				std::cerr << buf << std::endl;
 				(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
 				(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
 				(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
 				(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);
 				(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
 				sync_coarse_f->disable_update();
+				if(!params.no_sync_info)
+					std::cerr << buf << std::endl;
 			}
 		}
 
-		std::cerr << buf << "\n" << head_lines << "\n";
+		if(!params.no_sync_info)
+			std::cerr << buf << "\n" << head_lines << "\n";
 
 		monitor->reset();
 		if(params.ter_freq != std::chrono::nanoseconds(0))
@@ -307,7 +322,8 @@ int main(int argc, char** argv)
 
 		// display the performance (BER and FER) in the terminal
 		terminal->final_report();
-		terminal->final_report(std::cerr);
+		if(!params.no_sync_info)
+			terminal->final_report(std::cerr);
 
 		// reset the monitors and the terminal for the next SNR
 		monitor ->reset();

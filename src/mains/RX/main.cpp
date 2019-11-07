@@ -10,7 +10,6 @@ int main(int argc, char** argv)
 	auto params = factory::DVBS2O(argc, argv);
 
 	std::map<std::string,tools::header_list> headers;
-	params.get_headers(headers);
 	std::vector<factory::Factory*> param_vec;
 	param_vec.push_back(&params);
 	tools::Header::print_parameters(param_vec, true, std::cout);
