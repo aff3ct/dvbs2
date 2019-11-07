@@ -12,8 +12,9 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_Gardner_cc_naive<R>
-::Synchronizer_Gardner_cc_naive(const int N, int osf, const R damping_factor, const R normalized_bandwidth, const R detector_gain)
-: Synchronizer<R>(N,N/osf),
+::Synchronizer_Gardner_cc_naive(const int N, int osf, const R damping_factor, const R normalized_bandwidth,
+                                const R detector_gain, const int n_frames)
+: Synchronizer<R>(N, N/osf, n_frames),
 osf(osf),
 POW_osf(1<<osf),
 INV_osf((R)1.0/ (R)osf),

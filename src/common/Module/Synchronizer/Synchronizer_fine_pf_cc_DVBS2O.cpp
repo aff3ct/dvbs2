@@ -12,8 +12,14 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_fine_pf_cc_DVBS2O<R>
-::Synchronizer_fine_pf_cc_DVBS2O(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
-: Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), estimated_freq(0)
+::Synchronizer_fine_pf_cc_DVBS2O(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start,
+                                 const int n_frames)
+: Synchronizer<R>(N, N, n_frames),
+  pilot_size(pilot_values.size()),
+  pilot_nbr(pilot_start.size()),
+  pilot_values(pilot_values),
+  pilot_start(pilot_start),
+  estimated_freq(0)
 {
 	assert(pilot_size > 0);
 	assert(pilot_nbr > 0);

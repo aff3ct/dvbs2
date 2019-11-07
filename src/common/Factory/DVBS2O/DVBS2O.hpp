@@ -76,6 +76,7 @@ public:
 	int   S;                         // number of slots
 	int   pl_frame_size;
 	int   itl_n_cols;
+	int   n_frames;
 
 	std::chrono::milliseconds ter_freq;
 
@@ -205,7 +206,8 @@ public:
 
 	template <typename R = float>
 	static module::Synchronizer_step_mf_cc<R>*
-	build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f,
+	build_synchronizer_step_mf_cc(const DVBS2O& params,
+	                              aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f,
 	                              aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
 	                              aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner  );
 

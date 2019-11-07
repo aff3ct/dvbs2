@@ -12,10 +12,15 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_step_mf_cc<R>
-::	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f,
-	                         aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
-							 aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner)
-: Synchronizer<R>(sync_coarse_f->get_N_in(),sync_gardner->get_N_out()), sync_coarse_f(sync_coarse_f), matched_filter(matched_filter), sync_gardner(sync_gardner), gardner_delay(0)
+::	Synchronizer_step_mf_cc (Synchronizer_coarse_freq<R>         *sync_coarse_f,
+	                         Filter_RRC_ccr_naive<R>             *matched_filter,
+	                         Synchronizer_Gardner_cc_naive<R>    *sync_gardner,
+	                         const int n_frames)
+: Synchronizer<R>(sync_coarse_f->get_N_in(),sync_gardner->get_N_out(), n_frames),
+  sync_coarse_f(sync_coarse_f),
+  matched_filter(matched_filter),
+  sync_gardner(sync_gardner),
+  gardner_delay(0)
 {
 	this->gardner_delay = this->sync_gardner->get_delay();
 }

@@ -7,8 +7,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_coarse_freq_NO<R>
-::Synchronizer_coarse_freq_NO(const int N)
-:Synchronizer_coarse_freq<R>(N)
+::Synchronizer_coarse_freq_NO(const int N, const int n_frames)
+:Synchronizer_coarse_freq<R>(N, n_frames)
 {
 }
 

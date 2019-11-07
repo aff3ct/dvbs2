@@ -12,8 +12,15 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_frame_cc_naive<R>
-::Synchronizer_frame_cc_naive(const int N)
-: Synchronizer<R>(N,N), reg_channel(std::complex<R>((R)1,(R)0)), sec_SOF_sz(25), sec_PLSC_sz(64), corr_buff(89*2, std::complex<R>((R)0,(R)0)), corr_vec(N/2, (R)0), head(0), SOF_PLSC_sz(89), delay(0), output_delay(N, N/2, N/2)
+::Synchronizer_frame_cc_naive(const int N, const int n_frames)
+: Synchronizer<R>(N, N, n_frames),
+  reg_channel(std::complex<R>((R)1,(R)0)),
+  sec_SOF_sz(25),
+  sec_PLSC_sz(64),
+  corr_buff(89*2, std::complex<R>((R)0,(R)0)),
+  corr_vec(N/2, (R)0), head(0), SOF_PLSC_sz(89),
+  delay(0),
+  output_delay(N, N/2, N/2)
 {
 }
 

@@ -49,8 +49,15 @@ std::vector<R> Filter_UPRRC_ccr_naive<R>
 
 template <typename R>
 Filter_UPRRC_ccr_naive<R>
-::Filter_UPRRC_ccr_naive(const int N, const R rolloff, const int samples_per_symbol, const int delay_in_symbol)
-: Filter_UPFIR_ccr_naive<R>(N, this->compute_rrc_coefs(rolloff, samples_per_symbol, delay_in_symbol), samples_per_symbol), rolloff(rolloff), samples_per_symbol(samples_per_symbol), delay_in_symbol(delay_in_symbol)
+::Filter_UPRRC_ccr_naive(const int N, const R rolloff, const int samples_per_symbol, const int delay_in_symbol,
+                         const int n_frames)
+: Filter_UPFIR_ccr_naive<R>(N,
+                            this->compute_rrc_coefs(rolloff, samples_per_symbol, delay_in_symbol),
+                            samples_per_symbol,
+                            n_frames),
+  rolloff(rolloff),
+  samples_per_symbol(samples_per_symbol),
+  delay_in_symbol(delay_in_symbol)
 {
 }
 

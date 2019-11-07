@@ -57,9 +57,10 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<> > sync_gardner (factory::DVBS2O::build_synchronizer_gardner     <>(params                 ));
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>       > mult_agc     (factory::DVBS2O::build_agc_shift                <>(params                 ));
 	std::unique_ptr<module::Synchronizer_coarse_freq<>      > sync_coarse_f(factory::DVBS2O::build_synchronizer_coarse_freq <>(params                 ));
-	std::unique_ptr<module::Synchronizer_step_mf_cc<>       > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(),
-	                                                                                                                          matched_flt  .get(),
-	                                                                                                                          sync_gardner .get()    ));
+	std::unique_ptr<module::Synchronizer_step_mf_cc<>       > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(params,
+	                                                                                                                           sync_coarse_f.get(),
+	                                                                                                                           matched_flt  .get(),
+	                                                                                                                           sync_gardner .get()    ));
 
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
