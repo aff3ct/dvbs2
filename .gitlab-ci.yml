@@ -161,7 +161,7 @@ build-macos-clang:
     - ./ci/build-linux-macos.sh
 
 
-test-regression-bb:
+test-regression-tx-rx-bb:
   stage: test
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
@@ -176,12 +176,37 @@ test-regression-bb:
     - python3.4
     - powerful
   artifacts:
-     name: test-regression-results-bb
+     name: test-regression-results-tx-rx-bb
      when: always
      paths:
-      - test-regression-results-bb/
+      - test-regression-results-tx-rx-bb/
   script:
     - source ./ci/tools/threads.sh
     - export OMP_NUM_THREADS=$THREADS
     - export TIME_SEC="5"
-    - ./ci/test-regression.py --refs-path refs/BB/ --results-path test-regression-results-bb --build-path build_linux_gcc --binary-path bin/dvbs2_optique_tx_rx_bb --max-snr-time $TIME_SEC --sensibility 2.5 --weak-rate 0.9 --verbose 1
+    - ./lib/aff3ct/ci/test-regression.py --refs-path refs/TX_RX_BB/ --results-path test-regression-results-tx-rx-bb --build-path build_linux_gcc --binary-path bin/dvbs2_optique_tx_rx_bb --max-snr-time $TIME_SEC --sensibility 2.5 --weak-rate 0.9 --verbose 1
+
+# test-regression-tx-rx:
+#   stage: test
+#   variables:
+#     GIT_SUBMODULE_STRATEGY: recursive
+#   retry: 1
+#   dependencies:
+#     - build-linux-gcc
+#   tags:
+#     - linux
+#     - x86
+#     - 64-bit
+#     - sse4.2
+#     - python3.4
+#     - powerful
+#   artifacts:
+#      name: test-regression-results-tx-rx
+#      when: always
+#      paths:
+#       - test-regression-results-bb/
+#   script:
+#     - source ./ci/tools/threads.sh
+#     - export OMP_NUM_THREADS=$THREADS
+#     - export TIME_SEC="5"
+#     - ./ci/test-regression.py --refs-path refs/TX_RX/ --results-path test-regression-results-tx-rx-bb --build-path build_linux_gcc --binary-path bin/dvbs2_optique_tx_rx --max-snr-time $TIME_SEC --sensibility 2.5 --weak-rate 0.9 --verbose 1
