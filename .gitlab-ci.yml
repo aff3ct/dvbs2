@@ -4,6 +4,7 @@ variables:
 stages:
   - analysis
   - build
+  - test
 
 before_script:
   - hostname
@@ -158,3 +159,29 @@ build-macos-clang:
     - export BUILD="build_macos_clang"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
+
+
+test-regression-bb:
+  stage: test
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  retry: 1
+  dependencies:
+    - build-linux-gcc
+  tags:
+    - linux
+    - x86
+    - 64-bit
+    - sse4.2
+    - python3.4
+    - powerful
+  artifacts:
+     name: test-regression-results-bb
+     when: always
+     paths:
+      - test-regression-results-bb/
+  script:
+    - source ./ci/tools/threads.sh
+    - export OMP_NUM_THREADS=$THREADS
+    - export TIME_SEC="5"
+    - ./ci/test-regression.py --refs-path refs/BB/ --results-path test-regression-results-bb --build-path build-linux-gcc --binary-path bin/dvbs2_optique_tx_rx_bb --max-snr-time $TIME_SEC --sensibility 2.5 --weak-rate 0.9 --verbose 1

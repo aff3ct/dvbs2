@@ -22,8 +22,16 @@ using Monitor_BFER_reduction = Monitor_reduction_M<Monitor_BFER<>>;
 
 int main(int argc, char** argv)
 {
+
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2O(argc, argv);
+
+	std::cout << "[trace]" << std::endl;
+	std::map<std::string,tools::header_list> headers;
+	params.get_headers(headers);
+	std::vector<factory::Factory*> param_vec;
+	param_vec.push_back(&params);
+	tools::Header::print_parameters(param_vec, true, std::cout);
 
 	// declare shared modules and tools
 	std::vector<std::unique_ptr<module::Monitor_BFER<>>>        monitors;
