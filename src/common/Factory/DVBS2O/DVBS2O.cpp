@@ -68,6 +68,7 @@ void DVBS2O
 	args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")),     "LDPC Implem "                        );
 	args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),       "Display stats."                      );
 	args.add({"section"},            cli::Text(),                                           "Section to be used in bridge binary.");
+	args.add({"ter-freq"},           cli::Integer(cli::Positive()),                         "Terminal frequency."                 );
 
 	p_rad.get_description(args);
 }
@@ -95,6 +96,11 @@ void DVBS2O
 	debug          = vals.exist({"sim-debug","d"}     ) ? true                                  : false       ;
 	stats          = vals.exist({"sim-stats"}         ) ? true                                  : false       ;
 	no_pll         = vals.exist({"no-pll"}            ) ? true                                  : false       ;
+
+	if (vals.exist({"ter-freq"}))
+		ter_freq = std::chrono::milliseconds(vals.to_int  ({"ter-freq"}));
+	else
+		ter_freq = std::chrono::milliseconds(500L);
 
 	p_rad.N = (this->pl_frame_size) * 4; // 2 * N_fil
 	p_rad.store(vals);

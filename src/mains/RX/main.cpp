@@ -215,7 +215,8 @@ int main(int argc, char** argv)
 	std::cerr << buf << "\n" << head_lines << "\n";
 	monitor ->reset();
 	terminal->reset();
-	terminal->start_temp_report();
+	if(params.ter_freq != std::chrono::nanoseconds(0))
+		terminal->start_temp_report(params.ter_freq);
 
 	for (auto& m : modules)
 		for (auto& ta : m->tasks)

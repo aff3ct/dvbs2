@@ -76,6 +76,8 @@ public:
 	int   pl_frame_size;
 	int   itl_n_cols;
 
+	std::chrono::milliseconds ter_freq;
+
 	std::string ldpc_implem;
 	std::string ldpc_simd;
 	std::string read_order;
