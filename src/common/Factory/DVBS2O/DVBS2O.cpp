@@ -475,7 +475,7 @@ module::Synchronizer_coarse_freq<R>* DVBS2O
 {
 	if(params.no_pll)
 		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_NO    <R>
-		                                               (2 * params.pl_frame_size * params.osf), params.n_frames);
+		                                               (2 * params.pl_frame_size * params.osf, params.n_frames));
 	else
 		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_DVBS2O<R>
 		                                               (2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4,
