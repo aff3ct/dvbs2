@@ -8,8 +8,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Filter_unit_delay<R>
-::Filter_unit_delay(const int N)
-: Filter<R>(N,N), mem(N, R(0))
+::Filter_unit_delay(const int N, const int n_frames)
+: Filter<R>(N, N, n_frames), mem(N, R(0))
 {
 }
 

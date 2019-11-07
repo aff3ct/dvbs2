@@ -22,7 +22,7 @@ private:
 	int P;
 
 public:
-	Filter_FIR_ccr (const int N, const std::vector<R> b);
+	Filter_FIR_ccr (const int N, const std::vector<R> b, const int n_frames = 1);
 	virtual ~Filter_FIR_ccr();
 	inline void step(const std::complex<R>* x_elt, std::complex<R>* y_elt);
 	void reset();

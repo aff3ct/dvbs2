@@ -92,6 +92,7 @@ void DVBS2O
 	args.add({"perfect-lr-sync"},    cli::None(),                                       "Enable genie aided Luise and Reggiannini frequency synchronization." );
 	args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
 	args.add({"perfect-timing-sync"},cli::None(),                                       "Enable genie aided timing synchronization."                          );
+	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),        "Inter frame level."                  );
 
 	p_rad.get_description(args);
 }
@@ -128,6 +129,7 @@ void DVBS2O
 	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false       ;
 	perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false       ;
 	perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false       ;
+	n_frames                 = vals.exist({"src-fra","f"}        ) ? vals.to_int  ({"src-fra","f"}       ) : 1           ;
 
 	if (perfect_sync)
 	{
@@ -136,12 +138,14 @@ void DVBS2O
 		perfect_pf_freq_sync     = true;
 		perfect_lr_freq_sync     = true;
 	}
+
 	if (vals.exist({"ter-freq"}))
 		ter_freq = std::chrono::milliseconds(vals.to_int  ({"ter-freq"}));
 	else
 		ter_freq = std::chrono::milliseconds(500L);
 
 	p_rad.N = (this->pl_frame_size) * 4; // 2 * N_fil
+	p_rad.n_frames = n_frames;
 	p_rad.store(vals);
 }
 
@@ -177,11 +181,11 @@ void DVBS2O
 {
 	auto p = this->get_prefix();
 
-	headers[p].push_back(std::make_pair("Modulation and coding", this->modcod                        ));
-	headers[p].push_back(std::make_pair("Min  Eb/N0"           , std::to_string(this->ebn0_min)      ));
-	headers[p].push_back(std::make_pair("Max  Eb/N0"           , std::to_string(this->ebn0_max)      ));
-	headers[p].push_back(std::make_pair("Step Eb/N0"           , std::to_string(this->ebn0_step)     ));
-	headers[p].push_back(std::make_pair("Max frame errors"     , std::to_string(this->max_fe)        ));
+	headers[p].push_back(std::make_pair("Modulation and coding", this->modcod                            ));
+	headers[p].push_back(std::make_pair("Min  Eb/N0"           , std::to_string(this->ebn0_min)          ));
+	headers[p].push_back(std::make_pair("Max  Eb/N0"           , std::to_string(this->ebn0_max)          ));
+	headers[p].push_back(std::make_pair("Step Eb/N0"           , std::to_string(this->ebn0_step)         ));
+	headers[p].push_back(std::make_pair("Max frame errors"     , std::to_string(this->max_fe)            ));
 	if (this->max_freq_shift != 0)
 		headers[p].push_back(std::make_pair("Maximum Doppler shift", std::to_string(this->max_freq_shift)));
 	if (this->max_delay != 0)
@@ -192,7 +196,7 @@ void DVBS2O
 		headers[p].push_back(std::make_pair("LDPC simd"            , this->ldpc_simd                     ));
 	if (this->sink_path != "")
 		headers[p].push_back(std::make_pair("Path to sink file"    , this->sink_path                     ));
-	headers[p].push_back(std::make_pair("Type of source"       , this->src_type                      ));
+	headers[p].push_back(std::make_pair("Type of source"       , this->src_type                          ));
 	if (this->src_path != "")
 		headers[p].push_back(std::make_pair("Path to source file"  , this->src_path                      ));
 	headers[p].push_back(std::make_pair("Perfect synchronization"         , this->perfect_sync ? "YES" : "NO"         ));
@@ -277,13 +281,13 @@ module::Source<B>* DVBS2O
 ::build_source(const DVBS2O& params, const int seed)
 {
 	if (params.src_type == "RAND")
-		return new module::Source_random_fast<B>(params.K_bch, seed);
+		return new module::Source_random_fast<B>(params.K_bch, seed, params.n_frames);
 	else if (params.src_type == "USER")
-		return new module::Source_user<B>(params.K_bch,params.src_path);
+		return new module::Source_user<B>(params.K_bch, params.src_path, params.n_frames);
 	else if (params.src_type == "USER_BIN")
-		return new module::Source_user_binary<B>(params.K_bch,params.src_path);
+		return new module::Source_user_binary<B>(params.K_bch, params.src_path, params.n_frames);
 	else if (params.src_type == "AZCW")
-		return new module::Source_AZCW<B>(params.K_bch);
+		return new module::Source_AZCW<B>(params.K_bch, params.n_frames);
 	else
 		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Source type.");
 
@@ -293,21 +297,21 @@ template <typename B>
 module::Sink<B>* DVBS2O
 ::build_sink(const DVBS2O& params)
 {
-	return new module::Sink_binary<B>(params.K_bch, params.sink_path);
+	return new module::Sink_binary<B>(params.K_bch, params.sink_path, params.n_frames);
 }
 
 template <typename B>
 module::Encoder_BCH<B>* DVBS2O
 ::build_bch_encoder(const DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen)
 {
-	return new module::Encoder_BCH_DVBS2O<B>(params.K_bch, params.N_bch, poly_gen, 1);
+	return new module::Encoder_BCH_DVBS2O<B>(params.K_bch, params.N_bch, poly_gen, params.n_frames);
 }
 
 template <typename B,typename Q>
 module::Decoder_BCH_std<B,Q>* DVBS2O
 ::build_bch_decoder(const DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen)
 {
-	return new module::Decoder_BCH_DVBS2O<B,Q>(params.K_bch, params.N_bch, poly_gen, 1);
+	return new module::Decoder_BCH_DVBS2O<B,Q>(params.K_bch, params.N_bch, poly_gen, params.n_frames);
 }
 
 template <typename B,typename Q>
@@ -321,6 +325,7 @@ module::Codec_LDPC<B,Q>* DVBS2O
 	// store parameters
 	enc_ldpc->type          = "LDPC_DVBS2";
 	dec_ldpc->type          = "BP_HORIZONTAL_LAYERED";
+	p_cdc.enc->n_frames     = params.n_frames;
 	dec_ldpc->simd_strategy = params.ldpc_simd;
 	dec_ldpc->implem        = params.ldpc_implem;
 	enc_ldpc->N_cw          = params.N_ldpc;
@@ -343,9 +348,9 @@ tools::Interleaver_core<D>* DVBS2O
 ::build_itl_core(const DVBS2O& params)
 {
 	if (params.modcod == "QPSK-S_8/9" || params.modcod == "QPSK-S_3/5")
-		return new tools::Interleaver_core_NO<D>(params.N_ldpc);
+		return new tools::Interleaver_core_NO<D>(params.N_ldpc, params.n_frames);
 	else // "8PSK-S_8/9" "8PSK-S_3/5" "16APSK-S_8/9"
-		return new tools::Interleaver_core_column_row<D>(params.N_ldpc, params.itl_n_cols, params.read_order);
+		return new tools::Interleaver_core_column_row<D>(params.N_ldpc, params.itl_n_cols, params.read_order, params.n_frames);
 }
 
 template <typename D, typename T>
@@ -359,28 +364,28 @@ template <typename B, typename R, typename Q, tools::proto_max<Q> MAX>
 module::Modem_generic<B,R,Q,MAX>* DVBS2O
 ::build_modem(const DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl)
 {
-	 return new module::Modem_generic<B,R,Q,MAX>(params.N_ldpc, std::move(cstl), tools::Sigma<R >(1.0), false, 1);
+	 return new module::Modem_generic<B,R,Q,MAX>(params.N_ldpc, std::move(cstl), tools::Sigma<R >(1.0), false, params.n_frames);
 }
 
 template <typename R>
 module::Framer<R>* DVBS2O
 ::build_framer(const DVBS2O& params)
 {
-	return new module::Framer<R>(2 * params.N_ldpc / params.bps, 2 * params.pl_frame_size, params.modcod);
+	return new module::Framer<R>(2 * params.N_ldpc / params.bps, 2 * params.pl_frame_size, params.modcod, params.n_frames);
 }
 
 template <typename B>
 module::Scrambler_BB<B>* DVBS2O
 ::build_bb_scrambler(const DVBS2O& params)
 {
-	return new module::Scrambler_BB<B>(params.K_bch);
+	return new module::Scrambler_BB<B>(params.K_bch, params.n_frames);
 }
 
 template <typename R>
 module::Scrambler_PL<R>* DVBS2O
 ::build_pl_scrambler(const DVBS2O& params)
 {
-	return new module::Scrambler_PL<R>(2*params.pl_frame_size, params.M);
+	return new module::Scrambler_PL<R>(2*params.pl_frame_size, params.M, params.n_frames);
 }
 
 template <typename R>
@@ -426,10 +431,8 @@ template <typename R>
 module::Estimator<R>* DVBS2O
 ::build_estimator(const DVBS2O& params)
 {
-	return new module::Estimator<R>(2 * params.N_xfec_frame);
+	return new module::Estimator<R>(2 * params.N_xfec_frame, params.n_frames);
 }
-
-
 
 template <typename B>
 module::Monitor_BFER<B>* DVBS2O
@@ -442,7 +445,7 @@ module::Monitor_BFER<B>* DVBS2O
 	tools::Monitor_reduction::set_reduce_frequency(freq);
 	// END DEBUG
 
-	return new module::Monitor_BFER<B>(params.K_bch, params.max_fe);
+	return new module::Monitor_BFER<B>(params.K_bch, params.max_fe, 0, false, params.n_frames);
 }
 
 template <typename R>
@@ -452,16 +455,19 @@ module::Channel<R>* DVBS2O
 	std::unique_ptr<tools::Gaussian_noise_generator<R>> n = nullptr;
 	n.reset(new tools::Gaussian_noise_generator_fast<R>(seed));
 	if (filtered)
-		return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size * params.osf, std::move(n));
+		return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size * params.osf, std::move(n),
+		                                       false, tools::Sigma<R>(), params.n_frames);
 	else
-		return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size             , std::move(n));
+		return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size             , std::move(n),
+		                                       false, tools::Sigma<R>(), params.n_frames);
 }
 
 template <typename R>
 module::Multiplier_sine_ccc_naive<R>* DVBS2O
 ::build_freq_shift(const DVBS2O& params)
 {
-	return new module::Multiplier_sine_ccc_naive<R>(2*params.pl_frame_size * params.osf, params.max_freq_shift);
+	return new module::Multiplier_sine_ccc_naive<R>(2*params.pl_frame_size * params.osf, params.max_freq_shift, 1.0,
+	                                                params.n_frames);
 }
 
 template <typename R>
@@ -500,11 +506,12 @@ module::Synchronizer_timing<R>* DVBS2O
 	return sync_timing;
 }
 
+
 template <typename R>
 module::Multiplier_AGC_cc_naive<R>* DVBS2O
 ::build_agc_shift(const DVBS2O& params)
 {
-	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size);
+	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size, params.n_frames);
 }
 
 template <typename R>
@@ -541,16 +548,13 @@ module::Synchronizer_freq_coarse<R>* DVBS2O
 		sync_freq_coarse =  (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_DVBS2_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4));
 
 	return sync_freq_coarse;
-
-
-
 }
 
 template <typename B>
 module::Filter_unit_delay<B>* DVBS2O
 ::build_unit_delay(const DVBS2O& params)
 {
-	return new module::Filter_unit_delay<B>(params.K_bch);
+	return new module::Filter_unit_delay<B>(params.K_bch, params.n_frames);
 }
 
 template <typename R>

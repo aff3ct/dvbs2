@@ -79,6 +79,7 @@ public:
 	float rolloff;   //  DVBS2 0.05; // DVBS2-X
 	int   osf;
 	int   grp_delay;
+	int   n_frames;
 
 	std::chrono::milliseconds ter_freq;
 
