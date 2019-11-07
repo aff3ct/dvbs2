@@ -300,7 +300,6 @@ class aff3ctTraceReader:
 			pos = entry.find(" --")
 			entry = [entry[:pos], entry[pos+1:]] # keep line separator "-----------------" in second part
 			entry.append(1)
-			print("Here I am 1!")
 			self.SimuHeader.append(entry)
 
 		elif line.startswith(self.HeaderLevel2) and line[len(self.HeaderLevel2)] != ' ' and line[len(self.HeaderLevel2)] != '*':
@@ -308,23 +307,19 @@ class aff3ctTraceReader:
 			pos = entry.find(" --")
 			entry = [entry[:pos], entry[pos+1:]] # keep line separator "-----------------" in second part
 			entry.append(2)
-			print("Here I am 2!")
 			self.SimuHeader.append(entry)
 
 		elif line.startswith(self.HeaderLevel3):
 			entry = line[len(self.HeaderLevel3):].split(" = ")
-			print("Here I am 3!")
 			if len(entry) == 2:
 				entry.append(3)
 				self.SimuHeader.append(entry)
 
 		elif len(line) > 2:
 			if len(self.SimuHeader) == 0: # then it's a simu title
-				print("Here I am if!")
 				self.SimuTitle.append(line)
 
 			else: # then it's a legend title
-				print("Here I am else!")
 				self.LegendTitle.append(line)
 
 				if(   line.find(self.BferLegendsList["be_rate"]) != -1
