@@ -62,7 +62,7 @@ send(const B *X_N1, const int frame_id)
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_send(X_N1 + f * this->N * 2, f);
+		this->_send(X_N1 + f * this->N, f);
 }
 
 }

@@ -200,7 +200,7 @@ int main(int argc, char** argv)
 		int the_delay = 0;
 		auto n_phase = 1;
 
-		for (int m = 0; m < 500; m++)
+		for (int m = 0; m < 500; m += params.n_frames)
 		{
 			(*source       )[src::tsk::generate   ].exec();
 			(*bb_scrambler )[scr::tsk::scramble   ].exec();
@@ -250,16 +250,18 @@ int main(int argc, char** argv)
 				std::cerr.flush();
 			}
 
-			if (m == 149)
+			if (m > 149 && n_phase == 1)
 			{
+				m = 150;
 				n_phase++;
 				sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 				if(!params.no_sync_info)
 					std::cerr << buf << std::endl;
 			}
 
-			if (m == 299)
+			if (m > 299 && n_phase == 2)
 			{
+				m = 300;
 				n_phase++;
 				(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
 				(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);

@@ -8,8 +8,6 @@
 #ifndef SINK_BINARY_HPP
 #define SINK_BINARY_HPP
 
-#include <queue>
-
 #include "Module/Sink/Sink.hpp"
 
 namespace aff3ct
@@ -29,7 +27,6 @@ class Sink_binary : public Sink<B>
 {
 private:
 	std::ofstream sink_file;
-	std::queue<B> queue;
 
 public:
 	/*!
