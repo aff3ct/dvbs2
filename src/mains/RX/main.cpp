@@ -152,7 +152,7 @@ int main(int argc, char** argv)
 
 	int the_delay = 0;
 	int n_phase   = 1;
-	for (int m = 0; m < 500; m++)
+	for (int m = 0; m < 500; m += params.n_frames)
 	{
 		if(n_phase < 3)
 		{
@@ -188,15 +188,17 @@ int main(int argc, char** argv)
 		std::cerr << buf << "\r";
 		std::cerr.flush();
 
-		if (m == 149)
+		if (m > 149 && n_phase == 1)
 		{
+			m = 150;
 			n_phase++;
 			std::cerr << buf << std::endl;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 		}
 
-		if (m == 299)
+		if (m > 299 && n_phase == 2)
 		{
+			m = 300;
 			n_phase++;
 			std::cerr << buf << std::endl;
 			(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*radio        )[rad::sck::receive     ::Y_N1]);
