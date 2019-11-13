@@ -97,8 +97,8 @@ module::Radio<R>* Radio
 	else if (this->type == "USRP")
 		return new module::Radio_USRP<R> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
 		                                  this->rx_subdev_spec, this->rx_antenna,   this->tx_rate, this->tx_freq,
-		                                  this->tx_subdev_spec, this->tx_antenna, this->n_frames,
-		                                  this->rx_gain, this->tx_gain);
+		                                  this->tx_subdev_spec, this->tx_antenna,
+		                                  this->rx_gain, this->tx_gain, this->n_frames);
 	#endif
 
 	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);
