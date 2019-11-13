@@ -196,6 +196,10 @@ public:
 	build_agc_shift(const DVBS2O& params);
 
 	template <typename R = float>
+	static module::Multiplier_AGC_cc_naive<R>*
+	build_channel_agc(const DVBS2O& params);
+
+	template <typename R = float>
 	static module::Synchronizer_frame_cc_naive<R>*
 	build_synchronizer_frame (const DVBS2O& params);
 
