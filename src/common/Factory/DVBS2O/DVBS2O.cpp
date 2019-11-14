@@ -98,6 +98,9 @@ void DVBS2O
 	stats          = vals.exist({"sim-stats"}         ) ? true                                  : false       ;
 	no_pll         = vals.exist({"no-pll"}            ) ? true                                  : false       ;
 	no_sync_info   = vals.exist({"no-sync-info"}      ) ? true                                  : false       ;
+	rolloff        = vals.exist({"shp-rolloff"}       ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f        ;
+	osf            = vals.exist({"shp-osf"}           ) ? vals.to_int  ({"shp-osf"}           ) : 4           ;
+	grp_delay      = vals.exist({"shp-grp-delay"}     ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15          ;
 
 	if (vals.exist({"ter-freq"}))
 		ter_freq = std::chrono::milliseconds(vals.to_int  ({"ter-freq"}));

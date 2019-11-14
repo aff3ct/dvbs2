@@ -43,9 +43,6 @@ public:
 	const int   N_ldpc    = 16200;
 	const int   M         = 90;    // number of symbols per slot
 	const int   P         = 36;    // number of symbols per pilot
-	const float rolloff   = 0.2;   //  DVBS2 0.05; // DVBS2-X
-	const int   osf       = 4;
-	const int   grp_delay = 50;
 
 	const std::vector<float> pilot_values = std::vector<float  > (P*2, std::sqrt(2.0f)/2.0f);
 	const std::vector<int  > pilot_start  = {1530, 3006, 4482, 5958, 7434};
@@ -76,6 +73,9 @@ public:
 	int   S;                         // number of slots
 	int   pl_frame_size;
 	int   itl_n_cols;
+	float rolloff;   //  DVBS2 0.05; // DVBS2-X
+	int   osf;
+	int   grp_delay;
 
 	std::chrono::milliseconds ter_freq;
 
