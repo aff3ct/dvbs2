@@ -3,14 +3,14 @@
 
 #include <vector>
 
-#include "Module/Filter/Filter_FIR/Filter_FIR_ccr_naive.hpp"
+#include "Module/Filter/Filter_FIR/Filter_FIR_ccr.hpp"
 
 namespace aff3ct
 {
 namespace module
 {
 template <typename R = float>
-class Filter_RRC_ccr_naive : public Filter_FIR_ccr_naive<R>
+class Filter_RRC_ccr_naive : public Filter_FIR_ccr<R>
 {
 private:
 	const R   rolloff;

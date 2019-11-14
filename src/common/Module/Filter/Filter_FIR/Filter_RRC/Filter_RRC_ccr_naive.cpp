@@ -50,7 +50,7 @@ std::vector<R> Filter_RRC_ccr_naive<R>
 template <typename R>
 Filter_RRC_ccr_naive<R>
 ::Filter_RRC_ccr_naive(const int N, const R rolloff, const int samples_per_symbol, const int delay_in_symbol)
-: Filter_FIR_ccr_naive<R>(N, this->compute_rrc_coefs(rolloff, samples_per_symbol, delay_in_symbol)), rolloff(rolloff), samples_per_symbol(samples_per_symbol), delay_in_symbol(delay_in_symbol)
+: Filter_FIR_ccr<R>(N, this->compute_rrc_coefs(rolloff, samples_per_symbol, delay_in_symbol)), rolloff(rolloff), samples_per_symbol(samples_per_symbol), delay_in_symbol(delay_in_symbol)
 {
 }
 

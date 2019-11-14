@@ -12,7 +12,7 @@ Filter_UPFIR_ccr_naive<R>
 		this->H[i%F].push_back(H[i]);
 
 	for (auto f=0;f<F; f++)
-		this->flt_bank.push_back(Filter_FIR_ccr_naive<R>(N,this->H[f]));
+		this->flt_bank.push_back(Filter_FIR_ccr<R>(N,this->H[f]));
 }
 
 template <typename R>
