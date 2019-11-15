@@ -59,10 +59,10 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>       > mult_agc     (factory::DVBS2O::build_agc_shift                <>(params                 ));
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>       > chn_agc      (factory::DVBS2O::build_channel_agc              <>(params                 ));
 	std::unique_ptr<module::Synchronizer_coarse_freq<>      > sync_coarse_f(factory::DVBS2O::build_synchronizer_coarse_freq <>(params                 ));
+	std::unique_ptr<module::Estimator<>                     > estimator    (factory::DVBS2O::build_estimator                <>(params                 ));
 	std::unique_ptr<module::Synchronizer_step_mf_cc<>       > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(),
 	                                                                                                                          matched_flt  .get(),
 	                                                                                                                          sync_gardner .get()    ));
-	std::unique_ptr<module::Estimator<>                     > estimator   (factory::DVBS2O::build_estimator                 <>(params                 ));
 
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
@@ -314,7 +314,7 @@ int main(int argc, char** argv)
 			(*sync_lr      )[syn::tsk::synchronize  ].exec();
 			(*sync_fine_pf )[syn::tsk::synchronize  ].exec();
 			(*framer       )[frm::tsk::remove_plh   ].exec();
-			(*estimator   )[est::tsk::estimate      ].exec();
+			(*estimator    )[est::tsk::estimate     ].exec();
 
 			const auto sigma_estimated = std::sqrt(estimator->get_sigma_n2() / 2);
 			const auto esn0_estimated  = tools::sigma_to_esn0(sigma_estimated);

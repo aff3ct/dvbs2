@@ -48,6 +48,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<>    > sync_gardner (factory::DVBS2O::build_synchronizer_gardner     <>(params                 ));
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>          > mult_agc     (factory::DVBS2O::build_agc_shift                <>(params                 ));
 	std::unique_ptr<module::Synchronizer_coarse_freq<>         > sync_coarse_f(factory::DVBS2O::build_synchronizer_coarse_freq <>(params                 ));
+	std::unique_ptr<module::Estimator<>                        > estimator    (factory::DVBS2O::build_estimator                <>(params                 ));
 	std::unique_ptr<module::Synchronizer_step_mf_cc<>          > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(),
 	                                                                                                                             matched_flt  .get(),
 	                                                                                                                             sync_gardner .get()    ));
@@ -81,7 +82,7 @@ int main(int argc, char** argv)
 	            monitor     .get(), freq_shift   .get(), sync_lr     .get(), sync_fine_pf .get(),
 	            chn_delay   .get(), radio        .get(), sync_frame  .get(), sync_coarse_f.get(),
 	            matched_flt .get(), sync_gardner .get(), sync_step_mf.get(), mult_agc     .get(),
-	            sink        .get()                                                               };
+	            sink        .get(), estimator    .get()                                          };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -98,36 +99,26 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
-	(*sync_lr     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
-	(*sync_fine_pf)[syn::sck::synchronize ::X_N1].bind((*sync_lr     )[syn::sck::synchronize ::Y_N2]);
-	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*sync_fine_pf)[syn::sck::synchronize ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
-	(*itl_rx      )[itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
-	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
-	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho ::V_K ]);
-	(*bb_scrambler)[scr::sck::descramble  ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K ]);
-	(*sync_step_mf)[syn::sck::synchronize ::X_N1].bind((*radio       )[rad::sck::receive     ::Y_N1]);
-	(*mult_agc    )[mlt::sck::imultiply   ::X_N ].bind((*sync_step_mf)[syn::sck::synchronize ::Y_N2]);
-	(*sync_frame  )[syn::sck::synchronize ::X_N1].bind((*mult_agc    )[mlt::sck::imultiply   ::Z_N ]);
-	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*sync_frame  )[syn::sck::synchronize ::Y_N2]);
-	(*monitor     )[mnt::sck::check_errors::U   ].bind((*source      )[src::sck::generate    ::U_K ]);
-	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
-	(*sink        )[snk::sck::send        ::X_N1].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
+	(*sync_lr     )[syn::sck::synchronize  ::X_N1].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*sync_fine_pf)[syn::sck::synchronize  ::X_N1].bind((*sync_lr     )[syn::sck::synchronize  ::Y_N2]);
+	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[syn::sck::synchronize  ::Y_N2]);
+	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
+	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
+	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
+	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
+	(*sync_step_mf)[syn::sck::synchronize  ::X_N1].bind((*radio       )[rad::sck::receive      ::Y_N1]);
+	(*mult_agc    )[mlt::sck::imultiply    ::X_N ].bind((*sync_step_mf)[syn::sck::synchronize  ::Y_N2]);
+	(*sync_frame  )[syn::sck::synchronize  ::X_N1].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N ]);
+	(*pl_scrambler)[scr::sck::descramble   ::Y_N1].bind((*sync_frame  )[syn::sck::synchronize  ::Y_N2]);
+	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
+	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*sink        )[snk::sck::send         ::X_N1].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
-
-	// TODO : get noise from estimator
-	const auto ebn0 = 3.8f;
-	// compute the code rate
-	const float R = (float)params.K_bch / (float)params.N_ldpc;
-	// compute the current sigma for the channel noise
-	const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.bps);
-	const auto sigma = tools::esn0_to_sigma(esn0);
-	noise.set_noise(sigma, ebn0, esn0);
-	// update the sigma of the modem and the channel
-	LDPC_cdc->set_noise(noise);
-	modem   ->set_noise(noise);
 
 	chn_delay    ->reset();
 	freq_shift   ->reset();
@@ -224,24 +215,34 @@ int main(int argc, char** argv)
 	// tasks execution
 	while (!terminal->is_interrupt())
 	{
-		(*source       )[src::tsk::generate    ].exec();
-		(*radio        )[rad::tsk::receive     ].exec();
-		(*sync_coarse_f)[syn::tsk::synchronize ].exec();
-		(*matched_flt  )[flt::tsk::filter      ].exec();
-		(*sync_gardner )[syn::tsk::synchronize ].exec();
-		(*mult_agc     )[mlt::tsk::imultiply   ].exec();
-		(*sync_frame   )[syn::tsk::synchronize ].exec();
-		(*pl_scrambler )[scr::tsk::descramble  ].exec();
-		(*sync_lr      )[syn::tsk::synchronize ].exec();
-		(*sync_fine_pf )[syn::tsk::synchronize ].exec();
-		(*framer       )[frm::tsk::remove_plh  ].exec();
-		(*modem        )[mdm::tsk::demodulate  ].exec();
-		(*itl_rx       )[itl::tsk::deinterleave].exec();
-		(*LDPC_decoder )[dec::tsk::decode_siho ].exec();
-		(*BCH_decoder  )[dec::tsk::decode_hiho ].exec();
-		(*bb_scrambler )[scr::tsk::descramble  ].exec();
-		(*monitor      )[mnt::tsk::check_errors].exec();
-		(*sink         )[snk::tsk::send        ].exec();
+		(*source       )[src::tsk::generate     ].exec();
+		(*radio        )[rad::tsk::receive      ].exec();
+		(*sync_coarse_f)[syn::tsk::synchronize  ].exec();
+		(*matched_flt  )[flt::tsk::filter       ].exec();
+		(*sync_gardner )[syn::tsk::synchronize  ].exec();
+		(*mult_agc     )[mlt::tsk::imultiply    ].exec();
+		(*sync_frame   )[syn::tsk::synchronize  ].exec();
+		(*pl_scrambler )[scr::tsk::descramble   ].exec();
+		(*sync_lr      )[syn::tsk::synchronize  ].exec();
+		(*sync_fine_pf )[syn::tsk::synchronize  ].exec();
+		(*framer       )[frm::tsk::remove_plh   ].exec();
+		(*estimator    )[est::tsk::estimate     ].exec();
+
+		const float R = (float)params.K_bch / (float)params.N_ldpc;
+		const auto sigma_estimated = std::sqrt(estimator->get_sigma_n2() / 2);
+		const auto esn0_estimated  = tools::sigma_to_esn0(sigma_estimated);
+		const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, R, params.bps);
+		noise.set_noise(sigma_estimated, ebn0_estimated, esn0_estimated);
+		LDPC_cdc->set_noise(noise);
+		modem   ->set_noise(noise);
+
+		(*modem        )[mdm::tsk::demodulate_wg].exec();
+		(*itl_rx       )[itl::tsk::deinterleave ].exec();
+		(*LDPC_decoder )[dec::tsk::decode_siho  ].exec();
+		(*BCH_decoder  )[dec::tsk::decode_hiho  ].exec();
+		(*bb_scrambler )[scr::tsk::descramble   ].exec();
+		(*monitor      )[mnt::tsk::check_errors ].exec();
+		(*sink         )[snk::tsk::send         ].exec();
 	}
 
 	if (params.stats)
