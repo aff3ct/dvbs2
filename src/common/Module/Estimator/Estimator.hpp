@@ -24,7 +24,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class estimate   : uint8_t { Y_N, H_N, SIZE };
+			enum class estimate   : uint8_t { X_N, H_N, SIZE };
 		}
 	}
 

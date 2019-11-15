@@ -37,8 +37,8 @@ Estimator(const int N, const int n_frames)
 	}
 
 	auto &p1 = this->create_task("estimate");
-	auto p1s_X_N = this->template create_socket_out<R>(p1, "Y_N", this->N * this->n_frames);
-	auto p1s_H_N = this->template create_socket_out<R>(p1, "H_N", this->N * this->n_frames);
+	auto p1s_X_N = this->template create_socket_out<R>(p1, "X_N", this->N);
+	auto p1s_H_N = this->template create_socket_out<R>(p1, "H_N", this->N);
 	this->create_codelet(p1, [this, p1s_X_N, p1s_H_N](Task& t) -> int
 	{
 		this->estimate(static_cast<R*>(t[p1s_X_N].get_dataptr()),
@@ -116,7 +116,7 @@ _estimate(R *X_N, R *H_N, const int frame_id)
 	float Ne      = std::abs( moment2 - Se );
 	float SNR_est = 10 * std::log10(Se / Ne);
 
-	SNR_est = 15.8;
+	// SNR_est = 15.8;
 
 	// std::cout << "(WW) SNR Estimation is manually set." << std::endl;
 	pow_tot = moment2;

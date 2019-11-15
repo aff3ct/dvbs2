@@ -60,6 +60,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(factory::DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
+	                tools ::Sigma<>                         noise_estimated;
 
 	// construct modules
 	std::unique_ptr<module::Source<>                   > source      (factory::DVBS2O::build_source           <>(params, tid*2+0        ));
@@ -70,9 +71,10 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Interleaver<>              > itl_tx      (factory::DVBS2O::build_itl              <>(params, *itl_core      ));
 	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (factory::DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
 	std::unique_ptr<module::Modem<>                    > modem       (factory::DVBS2O::build_modem            <>(params, std::move(cstl)));
-	std::unique_ptr<module::Channel<>                  > channel     (factory::DVBS2O::build_channel          <>(params, tid*2+1, false));
+	std::unique_ptr<module::Channel<>                  > channel     (factory::DVBS2O::build_channel          <>(params, tid*2+1, false ));
 	std::unique_ptr<module::Framer<>                   > framer      (factory::DVBS2O::build_framer           <>(params                 ));
 	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(factory::DVBS2O::build_pl_scrambler     <>(params                 ));
+	std::unique_ptr<module::Estimator<>                > estimator   (factory::DVBS2O::build_estimator        <>(params                 ));
 	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (factory::DVBS2O::build_monitor          <>(params                 ));
 
 	auto& monitor = monitors[tid];
@@ -111,7 +113,7 @@ int main(int argc, char** argv)
 	modules[tid] = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder.get(), LDPC_encoder.get(),
 	                 LDPC_decoder.get(), itl_tx      .get(), itl_rx     .get(), modem       .get(),
 	                 framer      .get(), pl_scrambler.get(), source     .get(), monitor     .get(),
-	                 channel     .get()                                                             };
+	                 channel     .get(), estimator   .get()                                        };
 
 	// configuration of the module tasks
 	for (auto& m : modules[tid])
@@ -140,6 +142,7 @@ int main(int argc, char** argv)
 	(*channel     )[chn::sck::add_noise   ::X_N ].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
 	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*channel     )[chn::sck::add_noise   ::Y_N ]);
 	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
+	(*estimator   )[est::sck::estimate    ::X_N ].bind((*framer)      [frm::sck::remove_plh  ::Y_N2]);
 	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
 	(*itl_rx      )[itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
 	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
@@ -172,8 +175,6 @@ int main(int argc, char** argv)
 // end of #pragma omp single
 
 		// update the sigma of the modem and the channel
-		LDPC_cdc->set_noise(noise);
-		modem   ->set_noise(noise);
 		channel ->set_noise(noise);
 
 		// tasks execution
@@ -190,6 +191,15 @@ int main(int argc, char** argv)
 			(*channel     )[chn::tsk::add_noise   ].exec();
 			(*pl_scrambler)[scr::tsk::descramble  ].exec();
 			(*framer      )[frm::tsk::remove_plh  ].exec();
+			(*estimator   )[est::tsk::estimate    ].exec();
+
+			const auto sigma_estimated = std::sqrt(estimator->get_sigma_n2() / 2);
+			const auto esn0_estimated  = tools::sigma_to_esn0(sigma_estimated);
+			const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, R, params.bps);
+			noise_estimated.set_noise(sigma_estimated, ebn0_estimated, esn0_estimated);
+			LDPC_cdc->set_noise(noise_estimated);
+			modem   ->set_noise(noise_estimated);
+
 			(*modem       )[mdm::tsk::demodulate  ].exec();
 			(*itl_rx      )[itl::tsk::deinterleave].exec();
 			(*LDPC_decoder)[dec::tsk::decode_siho ].exec();

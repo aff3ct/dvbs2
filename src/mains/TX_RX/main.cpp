@@ -32,6 +32,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(factory::DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
+	                tools ::Sigma<>                         noise_estimated;
 
 	// construct modules
 	std::unique_ptr<module::Source<>                        > source       (factory::DVBS2O::build_source                   <>(params                 ));
@@ -61,6 +62,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Synchronizer_step_mf_cc<>       > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(),
 	                                                                                                                          matched_flt  .get(),
 	                                                                                                                          sync_gardner .get()    ));
+	std::unique_ptr<module::Estimator<>                     > estimator   (factory::DVBS2O::build_estimator                 <>(params                 ));
 
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
@@ -96,7 +98,7 @@ int main(int argc, char** argv)
 	            sync_lr     .get(), sync_fine_pf.get(), shaping_flt .get(), chn_delay    .get(),
 	            mult_agc    .get(), sync_frame  .get(), delay       .get(), sync_coarse_f.get(),
 	            matched_flt .get(), sync_gardner.get(), sync_step_mf.get(), source       .get(),
-	            channel     .get(), chn_agc     .get()                                          };
+	            channel     .get(), chn_agc     .get(), estimator   .get()                      };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -132,6 +134,7 @@ int main(int argc, char** argv)
 	(*sync_lr     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
 	(*sync_fine_pf)[syn::sck::synchronize ::X_N1].bind((*sync_lr     )[syn::sck::synchronize ::Y_N2]);
 	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*sync_fine_pf)[syn::sck::synchronize ::Y_N2]);
+	(*estimator   )[est::sck::estimate    ::X_N ].bind((*framer)      [frm::sck::remove_plh  ::Y_N2]);
 	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
 	(*itl_rx      )[itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
 	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
@@ -310,6 +313,15 @@ int main(int argc, char** argv)
 			(*sync_lr      )[syn::tsk::synchronize ].exec();
 			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
 			(*framer       )[frm::tsk::remove_plh  ].exec();
+			(*estimator   )[est::tsk::estimate     ].exec();
+
+			const auto sigma_estimated = std::sqrt(estimator->get_sigma_n2() / 2);
+			const auto esn0_estimated  = tools::sigma_to_esn0(sigma_estimated);
+			const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, R, params.bps);
+			noise_estimated.set_noise(sigma_estimated, ebn0_estimated, esn0_estimated);
+			LDPC_cdc->set_noise(noise_estimated);
+			modem   ->set_noise(noise_estimated);
+
 			(*modem        )[mdm::tsk::demodulate  ].exec();
 			(*itl_rx       )[itl::tsk::deinterleave].exec();
 			(*LDPC_decoder )[dec::tsk::decode_siho ].exec();
