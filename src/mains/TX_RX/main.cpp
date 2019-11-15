@@ -117,29 +117,30 @@ int main(int argc, char** argv)
 
 	// socket binding
 	// TX
-	(*BCH_encoder )[enc::sck::encode      ::U_K ].bind((*bb_scrambler)[scr::sck::scramble    ::X_N2]);
-	(*LDPC_encoder)[enc::sck::encode      ::U_K ].bind((*BCH_encoder )[enc::sck::encode      ::X_N ]);
-	(*itl_tx      )[itl::sck::interleave  ::nat ].bind((*LDPC_encoder)[enc::sck::encode      ::X_N ]);
-	(*modem       )[mdm::sck::modulate    ::X_N1].bind((*itl_tx      )[itl::sck::interleave  ::itl ]);
-	(*framer      )[frm::sck::generate    ::Y_N1].bind((*modem       )[mdm::sck::modulate    ::X_N2]);
-	(*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
-	(*shaping_flt )[flt::sck::filter      ::X_N1].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
+	(*BCH_encoder )[enc::sck::encode       ::U_K ].bind((*bb_scrambler)[scr::sck::scramble     ::X_N2]);
+	(*LDPC_encoder)[enc::sck::encode       ::U_K ].bind((*BCH_encoder )[enc::sck::encode       ::X_N ]);
+	(*itl_tx      )[itl::sck::interleave   ::nat ].bind((*LDPC_encoder)[enc::sck::encode       ::X_N ]);
+	(*modem       )[mdm::sck::modulate     ::X_N1].bind((*itl_tx      )[itl::sck::interleave   ::itl ]);
+	(*framer      )[frm::sck::generate     ::Y_N1].bind((*modem       )[mdm::sck::modulate     ::X_N2]);
+	(*pl_scrambler)[scr::sck::scramble     ::X_N1].bind((*framer      )[frm::sck::generate     ::Y_N2]);
+	(*shaping_flt )[flt::sck::filter       ::X_N1].bind((*pl_scrambler)[scr::sck::scramble     ::X_N2]);
 
 	// Channel
-	(*chn_delay   )[flt::sck::filter      ::X_N1].bind((*shaping_flt )[flt::sck::filter      ::Y_N2]);
-	(*chn_agc     )[mlt::sck::imultiply   ::X_N ].bind((*chn_delay   )[flt::sck::filter      ::Y_N2]);
-	(*freq_shift  )[mlt::sck::imultiply   ::X_N ].bind((*chn_agc     )[mlt::sck::imultiply   ::Z_N ]);
+	(*chn_delay   )[flt::sck::filter       ::X_N1].bind((*shaping_flt )[flt::sck::filter       ::Y_N2]);
+	(*chn_agc     )[mlt::sck::imultiply    ::X_N ].bind((*chn_delay   )[flt::sck::filter       ::Y_N2]);
+	(*freq_shift  )[mlt::sck::imultiply    ::X_N ].bind((*chn_agc     )[mlt::sck::imultiply    ::Z_N ]);
 
 	// RX
-	(*sync_lr     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
-	(*sync_fine_pf)[syn::sck::synchronize ::X_N1].bind((*sync_lr     )[syn::sck::synchronize ::Y_N2]);
-	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*sync_fine_pf)[syn::sck::synchronize ::Y_N2]);
-	(*estimator   )[est::sck::estimate    ::X_N ].bind((*framer)      [frm::sck::remove_plh  ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
-	(*itl_rx      )[itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
-	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
-	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho ::V_K ]);
-	(*bb_scrambler)[scr::sck::descramble  ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K ]);
+	(*sync_lr     )[syn::sck::synchronize  ::X_N1].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*sync_fine_pf)[syn::sck::synchronize  ::X_N1].bind((*sync_lr     )[syn::sck::synchronize  ::Y_N2]);
+	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[syn::sck::synchronize  ::Y_N2]);
+	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
+	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
+	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
+	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
 
 	// monitor
 	(*monitor     )[mnt::sck::check_errors::U   ].bind((*delay       )[flt::sck::filter      ::Y_N2]);
@@ -291,29 +292,29 @@ int main(int argc, char** argv)
 		int n_frames = 0;
 		while (!monitor->is_done() && !terminal->is_interrupt())
 		{
-			(*source       )[src::tsk::generate    ].exec();
-			(*bb_scrambler )[scr::tsk::scramble    ].exec();
-			(*BCH_encoder  )[enc::tsk::encode      ].exec();
-			(*LDPC_encoder )[enc::tsk::encode      ].exec();
-			(*itl_tx       )[itl::tsk::interleave  ].exec();
-			(*modem        )[mdm::tsk::modulate    ].exec();
-			(*framer       )[frm::tsk::generate    ].exec();
-			(*pl_scrambler )[scr::tsk::scramble    ].exec();
-			(*shaping_flt  )[flt::tsk::filter      ].exec();
-			(*chn_delay    )[flt::tsk::filter      ].exec();
-			(*chn_agc      )[mlt::tsk::imultiply   ].exec();
-			(*freq_shift   )[mlt::tsk::imultiply   ].exec();
-			(*channel      )[chn::tsk::add_noise   ].exec();
-			(*sync_coarse_f)[syn::tsk::synchronize ].exec();
-			(*matched_flt  )[flt::tsk::filter      ].exec();
-			(*sync_gardner )[syn::tsk::synchronize ].exec();
-			(*mult_agc     )[mlt::tsk::imultiply   ].exec();
-			(*sync_frame   )[syn::tsk::synchronize ].exec();
-			(*pl_scrambler )[scr::tsk::descramble  ].exec();
-			(*sync_lr      )[syn::tsk::synchronize ].exec();
-			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
-			(*framer       )[frm::tsk::remove_plh  ].exec();
-			(*estimator   )[est::tsk::estimate     ].exec();
+			(*source       )[src::tsk::generate     ].exec();
+			(*bb_scrambler )[scr::tsk::scramble     ].exec();
+			(*BCH_encoder  )[enc::tsk::encode       ].exec();
+			(*LDPC_encoder )[enc::tsk::encode       ].exec();
+			(*itl_tx       )[itl::tsk::interleave   ].exec();
+			(*modem        )[mdm::tsk::modulate     ].exec();
+			(*framer       )[frm::tsk::generate     ].exec();
+			(*pl_scrambler )[scr::tsk::scramble     ].exec();
+			(*shaping_flt  )[flt::tsk::filter       ].exec();
+			(*chn_delay    )[flt::tsk::filter       ].exec();
+			(*chn_agc      )[mlt::tsk::imultiply    ].exec();
+			(*freq_shift   )[mlt::tsk::imultiply    ].exec();
+			(*channel      )[chn::tsk::add_noise    ].exec();
+			(*sync_coarse_f)[syn::tsk::synchronize  ].exec();
+			(*matched_flt  )[flt::tsk::filter       ].exec();
+			(*sync_gardner )[syn::tsk::synchronize  ].exec();
+			(*mult_agc     )[mlt::tsk::imultiply    ].exec();
+			(*sync_frame   )[syn::tsk::synchronize  ].exec();
+			(*pl_scrambler )[scr::tsk::descramble   ].exec();
+			(*sync_lr      )[syn::tsk::synchronize  ].exec();
+			(*sync_fine_pf )[syn::tsk::synchronize  ].exec();
+			(*framer       )[frm::tsk::remove_plh   ].exec();
+			(*estimator   )[est::tsk::estimate      ].exec();
 
 			const auto sigma_estimated = std::sqrt(estimator->get_sigma_n2() / 2);
 			const auto esn0_estimated  = tools::sigma_to_esn0(sigma_estimated);
@@ -322,13 +323,13 @@ int main(int argc, char** argv)
 			LDPC_cdc->set_noise(noise_estimated);
 			modem   ->set_noise(noise_estimated);
 
-			(*modem        )[mdm::tsk::demodulate  ].exec();
-			(*itl_rx       )[itl::tsk::deinterleave].exec();
-			(*LDPC_decoder )[dec::tsk::decode_siho ].exec();
-			(*BCH_decoder  )[dec::tsk::decode_hiho ].exec();
-			(*bb_scrambler )[scr::tsk::descramble  ].exec();
-			(*delay        )[flt::tsk::filter      ].exec();
-			(*monitor      )[mnt::tsk::check_errors].exec();
+			(*modem        )[mdm::tsk::demodulate_wg].exec();
+			(*itl_rx       )[itl::tsk::deinterleave ].exec();
+			(*LDPC_decoder )[dec::tsk::decode_siho  ].exec();
+			(*BCH_decoder  )[dec::tsk::decode_hiho  ].exec();
+			(*bb_scrambler )[scr::tsk::descramble   ].exec();
+			(*delay        )[flt::tsk::filter       ].exec();
+			(*monitor      )[mnt::tsk::check_errors ].exec();
 
 			if (n_frames < 1) // first frame is delayed
 				monitor->reset();

@@ -132,24 +132,25 @@ int main(int argc, char** argv)
 	using namespace module;
 
 	// socket binding
-	(*bb_scrambler)[scr::sck::scramble    ::X_N1].bind((*source      )[src::sck::generate    ::U_K ]);
-	(*BCH_encoder )[enc::sck::encode      ::U_K ].bind((*bb_scrambler)[scr::sck::scramble    ::X_N2]);
-	(*LDPC_encoder)[enc::sck::encode      ::U_K ].bind((*BCH_encoder )[enc::sck::encode      ::X_N ]);
-	(*itl_tx      )[itl::sck::interleave  ::nat ].bind((*LDPC_encoder)[enc::sck::encode      ::X_N ]);
-	(*modem       )[mdm::sck::modulate    ::X_N1].bind((*itl_tx      )[itl::sck::interleave  ::itl ]);
-	(*framer      )[frm::sck::generate    ::Y_N1].bind((*modem       )[mdm::sck::modulate    ::X_N2]);
-	(*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
-	(*channel     )[chn::sck::add_noise   ::X_N ].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
-	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*channel     )[chn::sck::add_noise   ::Y_N ]);
-	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
-	(*estimator   )[est::sck::estimate    ::X_N ].bind((*framer)      [frm::sck::remove_plh  ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
-	(*itl_rx      )[itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
-	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
-	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho ::V_K ]);
-	(*bb_scrambler)[scr::sck::descramble  ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K ]);
-	(*monitor     )[mnt::sck::check_errors::U   ].bind((*source      )[src::sck::generate    ::U_K ]);
-	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
+	(*bb_scrambler)[scr::sck::scramble     ::X_N1].bind((*source      )[src::sck::generate     ::U_K ]);
+	(*BCH_encoder )[enc::sck::encode       ::U_K ].bind((*bb_scrambler)[scr::sck::scramble     ::X_N2]);
+	(*LDPC_encoder)[enc::sck::encode       ::U_K ].bind((*BCH_encoder )[enc::sck::encode       ::X_N ]);
+	(*itl_tx      )[itl::sck::interleave   ::nat ].bind((*LDPC_encoder)[enc::sck::encode       ::X_N ]);
+	(*modem       )[mdm::sck::modulate     ::X_N1].bind((*itl_tx      )[itl::sck::interleave   ::itl ]);
+	(*framer      )[frm::sck::generate     ::Y_N1].bind((*modem       )[mdm::sck::modulate     ::X_N2]);
+	(*pl_scrambler)[scr::sck::scramble     ::X_N1].bind((*framer      )[frm::sck::generate     ::Y_N2]);
+	(*channel     )[chn::sck::add_noise    ::X_N ].bind((*pl_scrambler)[scr::sck::scramble     ::X_N2]);
+	(*pl_scrambler)[scr::sck::descramble   ::Y_N1].bind((*channel     )[chn::sck::add_noise    ::Y_N ]);
+	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
+	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
+	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
+	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
+	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
+	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
@@ -180,18 +181,18 @@ int main(int argc, char** argv)
 		// tasks execution
 		while (!monitor_red->is_done_all() && !terminal->is_interrupt())
 		{
-			(*source      )[src::tsk::generate    ].exec();
-			(*bb_scrambler)[scr::tsk::scramble    ].exec();
-			(*BCH_encoder )[enc::tsk::encode      ].exec();
-			(*LDPC_encoder)[enc::tsk::encode      ].exec();
-			(*itl_tx      )[itl::tsk::interleave  ].exec();
-			(*modem       )[mdm::tsk::modulate    ].exec();
-			(*framer      )[frm::tsk::generate    ].exec();
-			(*pl_scrambler)[scr::tsk::scramble    ].exec();
-			(*channel     )[chn::tsk::add_noise   ].exec();
-			(*pl_scrambler)[scr::tsk::descramble  ].exec();
-			(*framer      )[frm::tsk::remove_plh  ].exec();
-			(*estimator   )[est::tsk::estimate    ].exec();
+			(*source      )[src::tsk::generate     ].exec();
+			(*bb_scrambler)[scr::tsk::scramble     ].exec();
+			(*BCH_encoder )[enc::tsk::encode       ].exec();
+			(*LDPC_encoder)[enc::tsk::encode       ].exec();
+			(*itl_tx      )[itl::tsk::interleave   ].exec();
+			(*modem       )[mdm::tsk::modulate     ].exec();
+			(*framer      )[frm::tsk::generate     ].exec();
+			(*pl_scrambler)[scr::tsk::scramble     ].exec();
+			(*channel     )[chn::tsk::add_noise    ].exec();
+			(*pl_scrambler)[scr::tsk::descramble   ].exec();
+			(*framer      )[frm::tsk::remove_plh   ].exec();
+			(*estimator   )[est::tsk::estimate     ].exec();
 
 			const auto sigma_estimated = std::sqrt(estimator->get_sigma_n2() / 2);
 			const auto esn0_estimated  = tools::sigma_to_esn0(sigma_estimated);
@@ -200,12 +201,12 @@ int main(int argc, char** argv)
 			LDPC_cdc->set_noise(noise_estimated);
 			modem   ->set_noise(noise_estimated);
 
-			(*modem       )[mdm::tsk::demodulate  ].exec();
-			(*itl_rx      )[itl::tsk::deinterleave].exec();
-			(*LDPC_decoder)[dec::tsk::decode_siho ].exec();
-			(*BCH_decoder )[dec::tsk::decode_hiho ].exec();
-			(*bb_scrambler)[scr::tsk::descramble  ].exec();
-			(*monitor     )[mnt::tsk::check_errors].exec();
+			(*modem       )[mdm::tsk::demodulate_wg].exec();
+			(*itl_rx      )[itl::tsk::deinterleave ].exec();
+			(*LDPC_decoder)[dec::tsk::decode_siho  ].exec();
+			(*BCH_decoder )[dec::tsk::decode_hiho  ].exec();
+			(*bb_scrambler)[scr::tsk::descramble   ].exec();
+			(*monitor     )[mnt::tsk::check_errors ].exec();
 		}
 
 // need to wait all the threads here before to reset the 'monitors' and 'terminal' states
