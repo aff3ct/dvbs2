@@ -18,7 +18,6 @@ M(mipp::N<R>()),
 P((N-2*b.size())/mipp::N<R>())
 {
 	assert(size > 0);
-	std::cout << M << std::endl;
 	if(P < 0)
 		P = 0;
 

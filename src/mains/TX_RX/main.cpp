@@ -125,11 +125,8 @@ int main(int argc, char** argv)
 	(*shaping_flt )[flt::sck::filter      ::X_N1].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
 
 	// Channel
-	std::cout << "hi" << std::endl;
 	(*chn_int_delay )[flt::sck::filter      ::X_N1].bind((*shaping_flt   )[flt::sck::filter      ::Y_N2]);
-	std::cout << "hi" << std::endl;
 	(*chn_frac_delay)[flt::sck::filter      ::X_N1].bind((*chn_int_delay )[flt::sck::filter      ::Y_N2]);
-	std::cout << "hi" << std::endl;
 	(*chn_agc       )[mlt::sck::imultiply   ::X_N ].bind((*chn_frac_delay)[flt::sck::filter      ::Y_N2]);
 	(*freq_shift    )[mlt::sck::imultiply   ::X_N ].bind((*chn_agc       )[mlt::sck::imultiply   ::Z_N ]);
 

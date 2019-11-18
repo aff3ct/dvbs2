@@ -374,7 +374,6 @@ module::Variable_delay_cc_naive<R>* DVBS2O
 {
 	int N_cplx = params.pl_frame_size * params.osf;
 	int int_delay = ((int)std::floor(params.max_delay) + N_cplx - 2) % N_cplx;
-	std::cout << int_delay << std::endl;
 	return new module::Variable_delay_cc_naive <float>(N_cplx * 2,
 	                                                   int_delay, int_delay);
 }
