@@ -14,6 +14,7 @@
 #include "Module/Filter/Filter_unit_delay/Filter_unit_delay.hpp"
 #include "Module/Filter/Filter_FIR/Filter_RRC/Filter_RRC_ccr_naive.hpp"
 #include "Module/Filter/Filter_FIR/Farrow/Filter_Farrow_ccr_naive.hpp"
+#include "Module/Filter/Variable_delay/Variable_delay_cc_naive.hpp"
 #include "Module/Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 #include "Module/Multiplier/Sequence/Multiplier_AGC_cc_naive.hpp"
 #include "Module/Synchronizer/Synchronizer_LR_cc_naive.hpp"
@@ -169,7 +170,11 @@ public:
 
 	template <typename R = float>
 	static module::Filter_Farrow_ccr_naive<R>*
-	build_channel_delay(const DVBS2O& params);
+	build_channel_frac_delay(const DVBS2O& params);
+
+	template <typename R = float>
+	static module::Variable_delay_cc_naive<R>*
+	build_channel_int_delay(const DVBS2O& params);
 
 	template <typename R = float>
 	static module::Filter_RRC_ccr_naive<R>*

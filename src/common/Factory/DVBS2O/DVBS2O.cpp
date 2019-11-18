@@ -361,10 +361,22 @@ module::Filter_UPRRC_ccr_naive<R>* DVBS2O
 
 template <typename R>
 module::Filter_Farrow_ccr_naive<R>* DVBS2O
-::build_channel_delay(const DVBS2O& params)
+::build_channel_frac_delay(const DVBS2O& params)
 {
+	R frac_delay = params.max_delay - std::floor(params.max_delay);
 	return new module::Filter_Farrow_ccr_naive <float>(params.pl_frame_size * 2 * params.osf,
-	                                                   params.max_delay);
+	                                                   frac_delay);
+}
+
+template <typename R>
+module::Variable_delay_cc_naive<R>* DVBS2O
+::build_channel_int_delay(const DVBS2O& params)
+{
+	int N_cplx = params.pl_frame_size * params.osf;
+	int int_delay = ((int)std::floor(params.max_delay) + N_cplx - 2) % N_cplx;
+	std::cout << int_delay << std::endl;
+	return new module::Variable_delay_cc_naive <float>(N_cplx * 2,
+	                                                   int_delay, int_delay);
 }
 
 template <typename R>
@@ -506,7 +518,8 @@ template aff3ct::module::Framer<R>*                            DVBS2O::build_fra
 template aff3ct::module::Scrambler_BB<B>*                      DVBS2O::build_bb_scrambler<B>            (const DVBS2O& params);
 template aff3ct::module::Scrambler_PL<R>*                      DVBS2O::build_pl_scrambler<R>            (const DVBS2O& params);
 template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            DVBS2O::build_uprrc_filter<R>            (const DVBS2O& params);
-template aff3ct::module::Filter_Farrow_ccr_naive<R>*           DVBS2O::build_channel_delay<R>           (const DVBS2O& params);
+template aff3ct::module::Filter_Farrow_ccr_naive<R>*           DVBS2O::build_channel_frac_delay<R>      (const DVBS2O& params);
+template aff3ct::module::Variable_delay_cc_naive<R>*           DVBS2O::build_channel_int_delay<R>       (const DVBS2O& params);
 template aff3ct::module::Filter_RRC_ccr_naive<R>*              DVBS2O::build_matched_filter<R>          (const DVBS2O& params);
 template aff3ct::module::Estimator<R>*                         DVBS2O::build_estimator<R>               (const DVBS2O& params);
 template aff3ct::module::Monitor_BFER<B>*                      DVBS2O::build_monitor<B>                 (const DVBS2O& params);
