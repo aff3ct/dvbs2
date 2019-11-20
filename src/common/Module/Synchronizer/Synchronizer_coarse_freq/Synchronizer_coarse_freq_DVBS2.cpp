@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "Synchronizer_coarse_freq_DVBS2O.hpp"
+#include "Synchronizer_coarse_freq_DVBS2.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
 #ifndef M_PI
@@ -15,8 +15,8 @@
 using namespace aff3ct::module;
 
 template <typename R>
-Synchronizer_coarse_freq_DVBS2O<R>
-::Synchronizer_coarse_freq_DVBS2O(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth)
+Synchronizer_coarse_freq_DVBS2<R>
+::Synchronizer_coarse_freq_DVBS2(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth)
 :Synchronizer_coarse_freq<R>(N), scrambled_pilots(this->PL_RAND_SEQ.size(),std::complex<R>((R)0,(R)0)), samples_per_symbol(samples_per_symbol), length_max(N/(2*samples_per_symbol)), proportional_gain((R)1.0), integrator_gain((R)1.0), digital_synthesizer_gain((R)1), prev_spl(std::complex<R>((R)0.0,(R)0.0)), prev_prev_spl(std::complex<R>((R)0.0,(R)0.0)), loop_filter_state((R)0.0),  integ_filter_state((R)0.0), DDS_prev_in((R)0.0), mult(N,(R)0.0, (R)1.0, 1)
 {
 	this->curr_idx = this->length_max - 1;
@@ -32,12 +32,12 @@ Synchronizer_coarse_freq_DVBS2O<R>
 }
 
 template <typename R>
-Synchronizer_coarse_freq_DVBS2O<R>
-::~Synchronizer_coarse_freq_DVBS2O()
+Synchronizer_coarse_freq_DVBS2<R>
+::~Synchronizer_coarse_freq_DVBS2()
 {}
 
 template <typename R>
-void Synchronizer_coarse_freq_DVBS2O<R>
+void Synchronizer_coarse_freq_DVBS2<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	//for (int i = 1; i<this->N_in; i++)
@@ -46,7 +46,7 @@ void Synchronizer_coarse_freq_DVBS2O<R>
 }
 
 template <typename R>
-void Synchronizer_coarse_freq_DVBS2O<R>
+void Synchronizer_coarse_freq_DVBS2<R>
 ::step(const std::complex<R>* x_elt, std::complex<R>* y_elt)
 {
 	//*y_elt = *x_elt;
@@ -55,7 +55,7 @@ void Synchronizer_coarse_freq_DVBS2O<R>
 
 
 template <typename R>
-void Synchronizer_coarse_freq_DVBS2O<R>
+void Synchronizer_coarse_freq_DVBS2<R>
 ::update_phase(const std::complex<R> spl)
 {
 	if (this->is_active)
@@ -95,7 +95,7 @@ void Synchronizer_coarse_freq_DVBS2O<R>
 }
 
 template <typename R>
-void Synchronizer_coarse_freq_DVBS2O<R>
+void Synchronizer_coarse_freq_DVBS2<R>
 ::set_PLL_coeffs (const int pll_sps, const R damping_factor, const R normalized_bandwidth)
 {
 	R phase_error_detector_gain = (R)2.0;
@@ -116,7 +116,7 @@ void Synchronizer_coarse_freq_DVBS2O<R>
 }
 
 template <typename R>
-void Synchronizer_coarse_freq_DVBS2O<R>
+void Synchronizer_coarse_freq_DVBS2<R>
 ::reset()
 {
 	this->prev_spl      = std::complex<R> ((R)0.0, (R)0.0);
@@ -134,6 +134,6 @@ void Synchronizer_coarse_freq_DVBS2O<R>
 
 
 // ==================================================================================== explicit template instantiation
-template class aff3ct::module::Synchronizer_coarse_freq_DVBS2O<float>;
-template class aff3ct::module::Synchronizer_coarse_freq_DVBS2O<double>;
+template class aff3ct::module::Synchronizer_coarse_freq_DVBS2<float>;
+template class aff3ct::module::Synchronizer_coarse_freq_DVBS2<double>;
 // ==================================================================================== explicit template instantiation

@@ -3,7 +3,7 @@
 #include "Module/Encoder_BCH_DVBS2O/Encoder_BCH_DVBS2O.hpp"
 #include "Module/Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
 
-#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_DVBS2O.hpp"
+#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_DVBS2.hpp"
 #include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_NO.hpp"
 
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_aib.hpp"
@@ -490,7 +490,7 @@ module::Synchronizer_coarse_freq<R>* DVBS2O
 	if(params.no_pll)
 		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_NO    <R>(2 * params.pl_frame_size * params.osf));
 	else
-		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_DVBS2O<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4));
+		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_DVBS2<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4));
 }
 
 template <typename B>
