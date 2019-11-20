@@ -1,5 +1,5 @@
-#ifndef SYNCHRONIZER_LR_CC_NAIVE_HPP
-#define SYNCHRONIZER_LR_CC_NAIVE_HPP
+#ifndef Synchronizer_LR_DVBS2_AIB_HPP
+#define Synchronizer_LR_DVBS2_AIB_HPP
 
 #include <vector>
 #include <complex>
@@ -11,7 +11,7 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Synchronizer_LR_cc_naive : public Synchronizer<R>
+class Synchronizer_Luise_Reggiannini_DVBS2_aib : public Synchronizer<R>
 {
 private:
 	const int                pilot_size;
@@ -23,8 +23,8 @@ private:
 	std::vector<R> R_l;
 
 public:
-	Synchronizer_LR_cc_naive (const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start);
-	virtual ~Synchronizer_LR_cc_naive();
+	Synchronizer_Luise_Reggiannini_DVBS2_aib (const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start);
+	virtual ~Synchronizer_Luise_Reggiannini_DVBS2_aib();
 	void reset();
 	R get_est_reduced_freq();
 
@@ -36,4 +36,4 @@ protected:
 }
 }
 
-#endif //SYNCHRONIZER_LR_CC_NAIVE_HPP
+#endif //Synchronizer_Luise_Reggiannini_DVBS2_aib_HPP

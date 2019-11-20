@@ -1,21 +1,21 @@
-#ifndef SYNCHRONIZER_COARSE_FREQ_HPP
-#define SYNCHRONIZER_COARSE_FREQ_HPP
+#ifndef SYNCHRONIZER_FREQ_COARSE_HPP
+#define SYNCHRONIZER_FREQ_COARSE_HPP
 
 #include <vector>
 #include <complex>
 
-#include "../Synchronizer.hpp"
+#include "../../Synchronizer.hpp"
 
 namespace aff3ct
 {
 namespace module
 {
 template <typename R = float>
-class Synchronizer_coarse_freq : public Synchronizer<R>
+class Synchronizer_freq_coarse : public Synchronizer<R>
 {
 public:
-	Synchronizer_coarse_freq(const int N);
-	virtual ~Synchronizer_coarse_freq() = default;
+	Synchronizer_freq_coarse(const int N);
+	virtual ~Synchronizer_freq_coarse() = default;
 
 	virtual void update_phase(const std::complex<R> spl) = 0;
 	virtual void step (const std::complex<R>* x_elt, std::complex<R>* y_elt) = 0;
@@ -35,5 +35,5 @@ protected:
 
 }
 }
-#include "Synchronizer_coarse_freq.hxx"
-#endif //SYNCHRONIZER_COARSE_FREQ_HPP
+#include "Synchronizer_freq_coarse.hxx"
+#endif //SYNCHRONIZER_FREQ_COARSE_HPP

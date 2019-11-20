@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "Module/Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
+#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_freq_phase_DVBS2_aib.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
 #ifndef M_PI
@@ -11,8 +11,8 @@
 using namespace aff3ct::module;
 
 template <typename R>
-Synchronizer_fine_pf_cc_DVBS2O<R>
-::Synchronizer_fine_pf_cc_DVBS2O(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
+Synchronizer_freq_phase_DVBS2_aib<R>
+::Synchronizer_freq_phase_DVBS2_aib(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
 : Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), estimated_freq(0)
 {
 	assert(pilot_size > 0);
@@ -21,12 +21,12 @@ Synchronizer_fine_pf_cc_DVBS2O<R>
 }
 
 template <typename R>
-Synchronizer_fine_pf_cc_DVBS2O<R>
-::~Synchronizer_fine_pf_cc_DVBS2O()
+Synchronizer_freq_phase_DVBS2_aib<R>
+::~Synchronizer_freq_phase_DVBS2_aib()
 {}
 
 template <typename R>
-void Synchronizer_fine_pf_cc_DVBS2O<R>
+void Synchronizer_freq_phase_DVBS2_aib<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	int Lp = this->pilot_size/2;
@@ -148,7 +148,7 @@ void Synchronizer_fine_pf_cc_DVBS2O<R>
 }
 
 template <typename R>
-void Synchronizer_fine_pf_cc_DVBS2O<R>
+void Synchronizer_freq_phase_DVBS2_aib<R>
 ::reset()
 {
 	this->estimated_freq = (R)0;
@@ -156,6 +156,6 @@ void Synchronizer_fine_pf_cc_DVBS2O<R>
 }
 
 // ==================================================================================== explicit template instantiation
-template class aff3ct::module::Synchronizer_fine_pf_cc_DVBS2O<float>;
-template class aff3ct::module::Synchronizer_fine_pf_cc_DVBS2O<double>;
+template class aff3ct::module::Synchronizer_freq_phase_DVBS2_aib<float>;
+template class aff3ct::module::Synchronizer_freq_phase_DVBS2_aib<double>;
 // ==================================================================================== explicit template instantiation

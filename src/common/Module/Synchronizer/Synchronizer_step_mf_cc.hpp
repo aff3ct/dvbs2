@@ -7,7 +7,7 @@
 
 #include "Module/Synchronizer/Synchronizer.hpp"
 #include "Module/Synchronizer/Synchronizer_Gardner_cc_naive.hpp"
-#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq.hpp"
+#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_coarse/Synchronizer_freq_coarse.hpp"
 #include "Module/Filter/Filter_FIR/Filter_RRC/Filter_RRC_ccr_naive.hpp"
 
 namespace aff3ct
@@ -19,14 +19,14 @@ class Synchronizer_step_mf_cc : public Synchronizer<R>
 {
 
 public:
-	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f,
+	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_freq_coarse<R>         *sync_coarse_f,
 	                         aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
 							 aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner);
 
 	virtual ~Synchronizer_step_mf_cc();
 	void reset();
 
-	aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f;
+	aff3ct::module::Synchronizer_freq_coarse<R>         *sync_coarse_f;
 	aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter;
 	aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner;
 

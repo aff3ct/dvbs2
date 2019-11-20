@@ -3,8 +3,9 @@
 #include "Module/Encoder_BCH_DVBS2O/Encoder_BCH_DVBS2O.hpp"
 #include "Module/Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
 
-#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_DVBS2.hpp"
-#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_NO.hpp"
+#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_coarse/Synchronizer_freq_coarse_DVBS2_aib.hpp"
+
+#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_coarse/Synchronizer_freq_coarse_perfect.hpp"
 
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_aib.hpp"
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_fast.hpp"
@@ -439,17 +440,17 @@ module::Multiplier_sine_ccc_naive<R>* DVBS2O
 }
 
 template <typename R>
-module::Synchronizer_LR_cc_naive<R>* DVBS2O
+module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>* DVBS2O
 ::build_synchronizer_lr(const DVBS2O& params)
 {
-	return new module::Synchronizer_LR_cc_naive<R>(2 * params.pl_frame_size, params.pilot_values, params.pilot_start);
+	return new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size, params.pilot_values, params.pilot_start);
 }
 
 template <typename R>
-module::Synchronizer_fine_pf_cc_DVBS2O<R>* DVBS2O
-::build_synchronizer_fine_pf(const DVBS2O& params)
+module::Synchronizer_freq_phase_DVBS2_aib<R>* DVBS2O
+::build_synchronizer_freq_phase(const DVBS2O& params)
 {
-	return new module::Synchronizer_fine_pf_cc_DVBS2O<R>(2 * params.pl_frame_size, params.pilot_values, params.pilot_start);
+	return new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size, params.pilot_values, params.pilot_start);
 }
 
 template <typename R>
@@ -484,13 +485,13 @@ module::Synchronizer_frame<R>* DVBS2O
 }
 
 template <typename R>
-module::Synchronizer_coarse_freq<R>* DVBS2O
-::build_synchronizer_coarse_freq(const DVBS2O& params)
+module::Synchronizer_freq_coarse<R>* DVBS2O
+::build_synchronizer_freq_coarse(const DVBS2O& params)
 {
 	if(params.no_pll)
-		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_NO    <R>(2 * params.pl_frame_size * params.osf));
+		return (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_perfect<R>(2 * params.pl_frame_size * params.osf));
 	else
-		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_DVBS2<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4));
+		return (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_DVBS2_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4));
 }
 
 template <typename B>
@@ -502,7 +503,7 @@ module::Filter_unit_delay<B>* DVBS2O
 
 template <typename R>
 module::Synchronizer_step_mf_cc<R>* DVBS2O
-::build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f,
+::build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_freq_coarse<R>         *sync_coarse_f,
 	                            aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
 	                            aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner)
 {
@@ -524,28 +525,28 @@ template aff3ct::module::Codec_LDPC<B,Q>*                      DVBS2O::build_ldp
 template aff3ct::module::Interleaver<int32_t,uint32_t>*        DVBS2O::build_itl<int32_t,uint32_t>      (const DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
 template aff3ct::module::Interleaver<float,uint32_t>*          DVBS2O::build_itl<float,uint32_t>        (const DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
 template aff3ct::module::Modem_generic<B,R,Q,tools::max_star>* DVBS2O::build_modem                      (const DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl);
-template aff3ct::module::Framer<R>*                            DVBS2O::build_framer                     (const DVBS2O& params);
-template aff3ct::module::Scrambler_BB<B>*                      DVBS2O::build_bb_scrambler<B>            (const DVBS2O& params);
-template aff3ct::module::Scrambler_PL<R>*                      DVBS2O::build_pl_scrambler<R>            (const DVBS2O& params);
-template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            DVBS2O::build_uprrc_filter<R>            (const DVBS2O& params);
-template aff3ct::module::Filter_Farrow_ccr_naive<R>*           DVBS2O::build_channel_frac_delay<R>      (const DVBS2O& params);
-template aff3ct::module::Variable_delay_cc_naive<R>*           DVBS2O::build_channel_int_delay<R>       (const DVBS2O& params);
-template aff3ct::module::Filter_RRC_ccr_naive<R>*              DVBS2O::build_matched_filter<R>          (const DVBS2O& params);
-template aff3ct::module::Estimator<R>*                         DVBS2O::build_estimator<R>               (const DVBS2O& params);
-template aff3ct::module::Monitor_BFER<B>*                      DVBS2O::build_monitor<B>                 (const DVBS2O& params);
-template aff3ct::module::Channel<R>*                           DVBS2O::build_channel<R>                 (const DVBS2O& params, const int seed, const bool filtered);
-template aff3ct::module::Multiplier_sine_ccc_naive<R>*         DVBS2O::build_freq_shift<R>              (const DVBS2O& params);
-template aff3ct::module::Synchronizer_LR_cc_naive<R>*          DVBS2O::build_synchronizer_lr<R>         (const DVBS2O& params);
-template aff3ct::module::Synchronizer_fine_pf_cc_DVBS2O<R>*    DVBS2O::build_synchronizer_fine_pf<R>    (const DVBS2O& params);
-template aff3ct::module::Synchronizer_Gardner_cc_naive<R>*     DVBS2O::build_synchronizer_gardner<R>    (const DVBS2O& params);
-template aff3ct::module::Multiplier_AGC_cc_naive<R>*           DVBS2O::build_agc_shift<R>               (const DVBS2O& params);
-template aff3ct::module::Multiplier_AGC_cc_naive<R>*           DVBS2O::build_channel_agc<R>             (const DVBS2O& params);
-template aff3ct::module::Synchronizer_frame<R>*                DVBS2O::build_synchronizer_frame<R>      (const DVBS2O& params);
-template aff3ct::module::Synchronizer_coarse_freq<R>*          DVBS2O::build_synchronizer_coarse_freq<R>(const DVBS2O& params);
-template aff3ct::module::Filter_unit_delay<B>*                 DVBS2O::build_unit_delay<B>              (const DVBS2O& params);
-template aff3ct::tools ::Interleaver_core<uint32_t>*           DVBS2O::build_itl_core<uint32_t>         (const DVBS2O& params);
-template aff3ct::module::Synchronizer_step_mf_cc<R>*           DVBS2O::build_synchronizer_step_mf_cc<R>(
-                                                                        aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f,
+template aff3ct::module::Framer<R>*                                   DVBS2O::build_framer                     (const DVBS2O& params);
+template aff3ct::module::Scrambler_BB<B>*                             DVBS2O::build_bb_scrambler<B>            (const DVBS2O& params);
+template aff3ct::module::Scrambler_PL<R>*                             DVBS2O::build_pl_scrambler<R>            (const DVBS2O& params);
+template aff3ct::module::Filter_UPRRC_ccr_naive<R>*                   DVBS2O::build_uprrc_filter<R>            (const DVBS2O& params);
+template aff3ct::module::Filter_Farrow_ccr_naive<R>*                  DVBS2O::build_channel_frac_delay<R>      (const DVBS2O& params);
+template aff3ct::module::Variable_delay_cc_naive<R>*                  DVBS2O::build_channel_int_delay<R>       (const DVBS2O& params);
+template aff3ct::module::Filter_RRC_ccr_naive<R>*                     DVBS2O::build_matched_filter<R>          (const DVBS2O& params);
+template aff3ct::module::Estimator<R>*                                DVBS2O::build_estimator<R>               (const DVBS2O& params);
+template aff3ct::module::Monitor_BFER<B>*                             DVBS2O::build_monitor<B>                 (const DVBS2O& params);
+template aff3ct::module::Channel<R>*                                  DVBS2O::build_channel<R>                 (const DVBS2O& params, const int seed, const bool filtered);
+template aff3ct::module::Multiplier_sine_ccc_naive<R>*                DVBS2O::build_freq_shift<R>              (const DVBS2O& params);
+template aff3ct::module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>* DVBS2O::build_synchronizer_lr<R>         (const DVBS2O& params);
+template aff3ct::module::Synchronizer_freq_phase_DVBS2_aib<R>*        DVBS2O::build_synchronizer_freq_phase<R> (const DVBS2O& params);
+template aff3ct::module::Synchronizer_Gardner_cc_naive<R>*            DVBS2O::build_synchronizer_gardner<R>    (const DVBS2O& params);
+template aff3ct::module::Multiplier_AGC_cc_naive<R>*                  DVBS2O::build_agc_shift<R>               (const DVBS2O& params);
+template aff3ct::module::Multiplier_AGC_cc_naive<R>*                  DVBS2O::build_channel_agc<R>             (const DVBS2O& params);
+template aff3ct::module::Synchronizer_frame<R>*                       DVBS2O::build_synchronizer_frame<R>      (const DVBS2O& params);
+template aff3ct::module::Synchronizer_freq_coarse<R>*                 DVBS2O::build_synchronizer_freq_coarse<R>(const DVBS2O& params);
+template aff3ct::module::Filter_unit_delay<B>*                        DVBS2O::build_unit_delay<B>              (const DVBS2O& params);
+template aff3ct::tools ::Interleaver_core<uint32_t>*                  DVBS2O::build_itl_core<uint32_t>         (const DVBS2O& params);
+template aff3ct::module::Synchronizer_step_mf_cc<R>*                  DVBS2O::build_synchronizer_step_mf_cc<R>(
+                                                                        aff3ct::module::Synchronizer_freq_coarse<R>         *sync_coarse_f,
                                                                         aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
                                                                         aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner   );
 template aff3ct::module::Radio<R>*                             DVBS2O::build_radio<R>                   (const DVBS2O& params);

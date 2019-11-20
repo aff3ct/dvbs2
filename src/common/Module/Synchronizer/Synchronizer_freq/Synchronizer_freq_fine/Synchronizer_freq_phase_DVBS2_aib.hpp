@@ -1,5 +1,5 @@
-#ifndef SYNCHRONIZER_FINE_PF_CC_DVBS2O
-#define SYNCHRONIZER_FINE_PF_CC_DVBS2O
+#ifndef SYNCHRONIZER_FREQ_PHASE_DVBS2_AIB
+#define SYNCHRONIZER_FREQ_PHASE_DVBS2_AIB
 
 #include <vector>
 #include <complex>
@@ -11,7 +11,7 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Synchronizer_fine_pf_cc_DVBS2O : public Synchronizer<R>
+class Synchronizer_freq_phase_DVBS2_aib : public Synchronizer<R>
 {
 private:
 	const int                pilot_size;
@@ -23,8 +23,8 @@ private:
 	R estimated_phase;
 
 public:
-	Synchronizer_fine_pf_cc_DVBS2O (const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start);
-	virtual ~Synchronizer_fine_pf_cc_DVBS2O();
+	Synchronizer_freq_phase_DVBS2_aib (const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start);
+	virtual ~Synchronizer_freq_phase_DVBS2_aib();
 	void reset();
 	R get_estimated_freq(){return this->estimated_freq;};
 	R get_estimated_phase(){return this->estimated_phase;};
@@ -37,4 +37,4 @@ protected:
 }
 }
 
-#endif //SYNCHRONIZER_FINE_PF_CC_DVBS2O
+#endif //SYNCHRONIZER_FREQ_PHASE_DVBS2_AIB

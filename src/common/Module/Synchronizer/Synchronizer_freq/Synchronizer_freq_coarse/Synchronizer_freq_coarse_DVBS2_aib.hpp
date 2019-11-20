@@ -1,10 +1,10 @@
-#ifndef SYNCHRONIZER_COARSE_FR_CC_DVBS2
-#define SYNCHRONIZER_COARSE_FR_CC_DVBS2
+#ifndef SYNCHRONIZER_FREQ_COARSE_DVBS2_AIB
+#define SYNCHRONIZER_FREQ_COARSE_DVBS2_AIB
 
 #include <vector>
 #include <complex>
 
-#include "Synchronizer_coarse_freq.hpp"
+#include "Synchronizer_freq_coarse.hpp"
 #include "Module/Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 
 namespace aff3ct
@@ -12,7 +12,7 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Synchronizer_coarse_freq_DVBS2 : public Synchronizer_coarse_freq<R>
+class Synchronizer_freq_coarse_DVBS2_aib : public Synchronizer_freq_coarse<R>
 {
 private:
 const std::vector<int > PL_RAND_SEQ {
@@ -4191,8 +4191,8 @@ const std::vector<int > PL_RAND_SEQ {
 
 
 public:
-	Synchronizer_coarse_freq_DVBS2(const int N, const int samples_per_symbol = 4, const R damping_factor = 1/std::sqrt((R)2.0), const R normalized_bandwidth = (R)1e-4);
-	virtual ~Synchronizer_coarse_freq_DVBS2();
+	Synchronizer_freq_coarse_DVBS2_aib(const int N, const int samples_per_symbol = 4, const R damping_factor = 1/std::sqrt((R)2.0), const R normalized_bandwidth = (R)1e-4);
+	virtual ~Synchronizer_freq_coarse_DVBS2_aib();
 	void reset();
 
 	void update_phase(const std::complex<R> spl);
@@ -4207,4 +4207,4 @@ protected:
 }
 }
 
-#endif //SYNCHRONIZER_COARSE_FR_CC_DVBS2
+#endif //SYNCHRONIZER_FREQ_COARSE_DVBS2_AIB

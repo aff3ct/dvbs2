@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "Module/Synchronizer/Synchronizer_LR_cc_naive.hpp"
+#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_Luise_Reggiannini_DVBS2_aib.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
 #ifndef M_PI
@@ -11,8 +11,8 @@
 using namespace aff3ct::module;
 
 template <typename R>
-Synchronizer_LR_cc_naive<R>
-::Synchronizer_LR_cc_naive(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
+Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
+::Synchronizer_Luise_Reggiannini_DVBS2_aib(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
 : Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), est_reduced_freq(0), R_l(2,(R)0.0)
 {
 	assert(pilot_size > 0);
@@ -21,12 +21,12 @@ Synchronizer_LR_cc_naive<R>
 }
 
 template <typename R>
-Synchronizer_LR_cc_naive<R>
-::~Synchronizer_LR_cc_naive()
+Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
+::~Synchronizer_Luise_Reggiannini_DVBS2_aib()
 {}
 
 template <typename R>
-void Synchronizer_LR_cc_naive<R>
+void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	int P = this->pilot_nbr;
@@ -86,7 +86,7 @@ void Synchronizer_LR_cc_naive<R>
 }
 
 template <typename R>
-void Synchronizer_LR_cc_naive<R>
+void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 ::reset()
 {
 	this->R_l[0] = (R)0.0;
@@ -95,13 +95,13 @@ void Synchronizer_LR_cc_naive<R>
 }
 
 template <typename R>
-R Synchronizer_LR_cc_naive<R>
+R Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 ::get_est_reduced_freq()
 {
 	return this->est_reduced_freq;
 }
 
 // ==================================================================================== explicit template instantiation
-template class aff3ct::module::Synchronizer_LR_cc_naive<float>;
-template class aff3ct::module::Synchronizer_LR_cc_naive<double>;
+template class aff3ct::module::Synchronizer_Luise_Reggiannini_DVBS2_aib<float>;
+template class aff3ct::module::Synchronizer_Luise_Reggiannini_DVBS2_aib<double>;
 // ==================================================================================== explicit template instantiation
