@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "Module/Synchronizer/Synchronizer_frame_cc_naive.hpp"
+#include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_aib.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
 #ifndef M_PI
@@ -11,19 +11,19 @@
 using namespace aff3ct::module;
 
 template <typename R>
-Synchronizer_frame_cc_naive<R>
-::Synchronizer_frame_cc_naive(const int N)
-: Synchronizer<R>(N,N), reg_channel(std::complex<R>((R)1,(R)0)), sec_SOF_sz(25), sec_PLSC_sz(64), corr_buff(89*2, std::complex<R>((R)0,(R)0)), corr_vec(N/2, (R)0), head(0), SOF_PLSC_sz(89), delay(0), output_delay(N, N/2, N/2)
+Synchronizer_frame_DVBS2_aib<R>
+::Synchronizer_frame_DVBS2_aib(const int N)
+: Synchronizer_frame<R>(N), reg_channel(std::complex<R>((R)1,(R)0)), sec_SOF_sz(25), sec_PLSC_sz(64), corr_buff(89*2, std::complex<R>((R)0,(R)0)), corr_vec(N/2, (R)0), head(0), SOF_PLSC_sz(89), output_delay(N, N/2, N/2)
 {
 }
 
 template <typename R>
-Synchronizer_frame_cc_naive<R>
-::~Synchronizer_frame_cc_naive()
+Synchronizer_frame_DVBS2_aib<R>
+::~Synchronizer_frame_DVBS2_aib()
 {}
 
 template <typename R>
-void Synchronizer_frame_cc_naive<R>
+void Synchronizer_frame_DVBS2_aib<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	int cplx_in_sz = this->N_in/2;
@@ -73,7 +73,7 @@ void Synchronizer_frame_cc_naive<R>
 }
 
 template <typename R>
-void Synchronizer_frame_cc_naive<R>
+void Synchronizer_frame_DVBS2_aib<R>
 ::step(const std::complex<R>* x_elt, R* y_corr)
 {
 	this->corr_buff[this->head] = *x_elt;
@@ -95,7 +95,7 @@ void Synchronizer_frame_cc_naive<R>
 
 
 template <typename R>
-void Synchronizer_frame_cc_naive<R>
+void Synchronizer_frame_DVBS2_aib<R>
 ::reset()
 {
 
@@ -113,6 +113,6 @@ void Synchronizer_frame_cc_naive<R>
 }
 
 // ==================================================================================== explicit template instantiation
-template class aff3ct::module::Synchronizer_frame_cc_naive<float>;
-template class aff3ct::module::Synchronizer_frame_cc_naive<double>;
+template class aff3ct::module::Synchronizer_frame_DVBS2_aib<float>;
+template class aff3ct::module::Synchronizer_frame_DVBS2_aib<double>;
 // ==================================================================================== explicit template instantiation

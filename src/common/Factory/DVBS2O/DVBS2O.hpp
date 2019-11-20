@@ -20,9 +20,7 @@
 #include "Module/Synchronizer/Synchronizer_LR_cc_naive.hpp"
 #include "Module/Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
 #include "Module/Synchronizer/Synchronizer_Gardner_cc_naive.hpp"
-#include "Module/Synchronizer/Synchronizer_frame_cc_naive.hpp"
-#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_DVBS2O.hpp"
-#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_NO.hpp"
+#include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame.hpp"
 #include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq.hpp"
 #include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "Module/Estimator/Estimator.hpp"
@@ -62,6 +60,7 @@ public:
 	bool  stats;
 	bool  no_pll;
 	bool  no_sync_info;
+	bool  frame_sync_fast;
 	int   max_fe;       // max number of frame errors per SNR point
 	int   max_n_frames; // max number of simulated frames per SNR point
 	int   K_bch;
@@ -205,7 +204,7 @@ public:
 	build_channel_agc(const DVBS2O& params);
 
 	template <typename R = float>
-	static module::Synchronizer_frame_cc_naive<R>*
+	static module::Synchronizer_frame<R>*
 	build_synchronizer_frame (const DVBS2O& params);
 
 	template <typename R = float>

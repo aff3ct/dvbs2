@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Multiplier_sine_ccc_naive<>     > freq_shift    (factory::DVBS2O::build_freq_shift               <>(params)                 );
 	std::unique_ptr<module::Filter_Farrow_ccr_naive<>       > chn_frac_delay(factory::DVBS2O::build_channel_frac_delay       <>(params)                 );
 	std::unique_ptr<module::Variable_delay_cc_naive<>       > chn_int_delay (factory::DVBS2O::build_channel_int_delay        <>(params)                 );
-	std::unique_ptr<module::Synchronizer_frame_cc_naive<>   > sync_frame    (factory::DVBS2O::build_synchronizer_frame       <>(params)                 );
+	std::unique_ptr<module::Synchronizer_frame<>            > sync_frame    (factory::DVBS2O::build_synchronizer_frame       <>(params                 ));
 	std::unique_ptr<module::Synchronizer_LR_cc_naive<>      > sync_lr       (factory::DVBS2O::build_synchronizer_lr          <>(params                 ));
 	std::unique_ptr<module::Synchronizer_fine_pf_cc_DVBS2O<>> sync_fine_pf  (factory::DVBS2O::build_synchronizer_fine_pf     <>(params                 ));
 	std::unique_ptr<module::Framer<>                        > framer        (factory::DVBS2O::build_framer                   <>(params                 ));
