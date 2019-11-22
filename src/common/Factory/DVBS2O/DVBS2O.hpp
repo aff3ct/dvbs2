@@ -60,6 +60,10 @@ public:
 	bool  no_sync_info;
 	bool  frame_sync_fast;
 	bool  perfect_sync;
+	bool  perfect_timing_sync;
+	bool  perfect_coarse_freq_sync;
+	bool  perfect_lr_freq_sync;
+	bool  perfect_pf_freq_sync;
 	int   max_fe;       // max number of frame errors per SNR point
 	int   max_n_frames; // max number of simulated frames per SNR point
 	int   K_bch;

@@ -12,12 +12,16 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
-::Synchronizer_Luise_Reggiannini_DVBS2_aib(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
-: Synchronizer_freq<R>(N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), R_l(2,(R)0.0)
+::Synchronizer_Luise_Reggiannini_DVBS2_aib(const int N)
+: Synchronizer_freq<R>(N), pilot_nbr(0), pilot_start(), R_l(2,(R)0.0)
 {
-	assert(pilot_size > 0);
-	assert(pilot_nbr  > 0);
-	assert(N > pilot_start[pilot_nbr-1] + pilot_size - 1);
+	int idx = 1530;
+	while(idx < N/2)
+	{
+		pilot_start.push_back(idx);
+		pilot_nbr++;
+		idx += 1476;
+	}
 }
 
 template <typename R>
@@ -30,7 +34,7 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	int P = this->pilot_nbr;
-	int Lp = this->pilot_size/2;
+	int Lp = 36/2;
 	int Lp_2 = Lp/2;
 	for  (int p = 0 ; p<P ; p++)
 	{
@@ -38,11 +42,11 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 		std::vector<R> z(2*Lp, (R)0.0);
 		for (int i = 0 ; i<Lp ; i++)
 		{
-			z[2*i    ] = X_N1[2*i + 2*this->pilot_start[p]    ] * pilot_values[2*i    ]
-			           + X_N1[2*i + 2*this->pilot_start[p] + 1] * pilot_values[2*i + 1];
+			z[2*i    ] = X_N1[2*i + 2*this->pilot_start[p]    ]
+			           + X_N1[2*i + 2*this->pilot_start[p] + 1];
 
-			z[2*i + 1] = X_N1[2*i + 2*this->pilot_start[p] + 1] * pilot_values[2*i    ]
-			           - X_N1[2*i + 2*this->pilot_start[p]    ] * pilot_values[2*i + 1];
+			z[2*i + 1] = X_N1[2*i + 2*this->pilot_start[p] + 1]
+			           - X_N1[2*i + 2*this->pilot_start[p]    ];
 
 		}
 
@@ -58,8 +62,8 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 				sum_xcorr_z[1] += z[2*k + 1] * z[2*(k-m)    ]
 				                - z[2*k    ] * z[2*(k-m) + 1];
 			}
-			this->R_l[0] += sum_xcorr_z[0] / (R)(Lp-m);
-			this->R_l[1] += sum_xcorr_z[1] / (R)(Lp-m);
+			this->R_l[0] += sum_xcorr_z[0] / (R)(2*(Lp-m));
+			this->R_l[1] += sum_xcorr_z[1] / (R)(2*(Lp-m));
 		}
 	}
 	this->estimated_freq = std::atan2(this->R_l[1], this->R_l[0]);

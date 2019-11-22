@@ -63,28 +63,35 @@ void DVBS2O
 {
 	const std::string class_name = "factory::DVBS2O::";
 
-	auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"));
-	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                    ));
-	args.add({"mod-cod"},            modcod_format,                                         "Modulation and coding scheme."       );
-	args.add({"chn-max-freq-shift"}, cli::Real(),                                           "Maximum Doppler shift."              );
-	args.add({"chn-max-delay"},      cli::Real(),                                           "Maximum Channel Delay."              );
-	args.add({"max-fe","e"},         cli::Integer(cli::Positive(), cli::Non_zero()),        "Max number of frame errors."         );
-	args.add({"sim-noise-min","m"},  cli::Real(),                                           "Min Eb/N0"                           );
-	args.add({"sim-noise-max","M"},  cli::Real(),                                           "Max Eb/N0"                           );
-	args.add({"sim-noise-step","s"}, cli::Real(),                                           "Step Eb/N0"                          );
-	args.add({"no-sync-info"},       cli::None(),                                           "Disable sync information logging."   );
-	args.add({"sim-debug", "d"},     cli::None(),                                           "Display debug."                      );
-	args.add({"sim-stats"},          cli::None(),                                           "Display stats."                      );
-	args.add({"src-type"},           src_type_format,                                       "Type of the binary source"           );
-	args.add({"src-path"},           cli::Text(),                                           "Path of the binary source"           );
-	args.add({"snk-path"},           cli::Text(),                                           "Path of the binary sink"             );
-	args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),        "LDPC number of iterations"           );
-	args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")),     "LDPC Implem "                        );
-	args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),       "Display stats."                      );
-	args.add({"section"},            cli::Text(),                                           "Section to be used in bridge binary.");
-	args.add({"ter-freq"},           cli::Integer(cli::Positive()),                         "Terminal frequency."                 );
-	args.add({"frame-sync-fast"},    cli::None(),                                           "Enable fast frame synchronization."  );
-	args.add({"perfect-sync"},       cli::None(),                                           "Enable genie aided synchronization." );
+	auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"                                ));
+	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                                                    ));
+	args.add({"mod-cod"},            modcod_format,                                     "Modulation and coding scheme."                                       );
+	args.add({"chn-max-freq-shift"}, cli::Real(),                                       "Maximum Doppler shift."                                              );
+	args.add({"chn-max-delay"},      cli::Real(),                                       "Maximum Channel Delay."                                              );
+	args.add({"shp-grp-delay"},      cli::Real(),                                       "RRC Group delay."                                                    );
+	args.add({"shp-rolloff"},        cli::Real(),                                       "RRC rolloff."                                                        );
+	args.add({"shp-osf"},            cli::Real(),                                       "RRC oversampling factor."                                            );
+	args.add({"max-fe","e"},         cli::Integer(cli::Positive(), cli::Non_zero()),    "Max number of frame errors."                                         );
+	args.add({"sim-noise-min","m"},  cli::Real(),                                       "Min Eb/N0"                                                           );
+	args.add({"sim-noise-max","M"},  cli::Real(),                                       "Max Eb/N0"                                                           );
+	args.add({"sim-noise-step","s"}, cli::Real(),                                       "Step Eb/N0"                                                          );
+	args.add({"no-sync-info"},       cli::None(),                                       "Disable sync information logging."                                   );
+	args.add({"sim-debug", "d"},     cli::None(),                                       "Display debug."                                                      );
+	args.add({"sim-stats"},          cli::None(),                                       "Display stats."                                                      );
+	args.add({"src-type"},           src_type_format,                                   "Type of the binary source"                                           );
+	args.add({"src-path"},           cli::Text(),                                       "Path of the binary source"                                           );
+	args.add({"snk-path"},           cli::Text(),                                       "Path of the binary sink"                                             );
+	args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),    "LDPC number of iterations"                                           );
+	args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")), "LDPC Implem "                                                        );
+	args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),   "Display stats."                                                      );
+	args.add({"section"},            cli::Text(),                                       "Section to be used in bridge binary."                                );
+	args.add({"ter-freq"},           cli::Integer(cli::Positive()),                     "Terminal frequency."                                                 );
+	args.add({"frame-sync-fast"},    cli::None(),                                       "Enable fast frame synchronization."                                  );
+	args.add({"perfect-sync"},       cli::None(),                                       "Enable genie aided synchronization."                                 );
+	args.add({"perfect-cf-sync"},    cli::None(),                                       "Enable genie aided coarse frequency synchronization."                );
+	args.add({"perfect-lr-sync"},    cli::None(),                                       "Enable genie aided Luise and Reggiannini frequency synchronization." );
+	args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
+	args.add({"perfect-timing-sync"},cli::None(),                                       "Enable genie aided timing synchronization."                          );
 
 	p_rad.get_description(args);
 }
@@ -96,28 +103,39 @@ void DVBS2O
 
 	modcod_init(modcod); // initialize all the parameters that are dependant on modcod
 
-	ebn0_min        = vals.exist({"sim-noise-min","m"} ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
-	ebn0_max        = vals.exist({"sim-noise-max","M"} ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
-	ebn0_step       = vals.exist({"sim-noise-step","s"}) ? vals.to_float({"sim-noise-step","s"}) : .1f         ;
-	max_freq_shift  = vals.exist({"chn-max-freq-shift"}) ? vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
-	max_delay       = vals.exist({"chn-max-delay"}     ) ? vals.to_float({"chn-max-delay"}     ) : 0.f         ;
-	ldpc_nite       = vals.exist({"dec-ite"}           ) ? vals.to_int  ({"dec-ite"}           ) : 50          ;
-	max_fe          = vals.exist({"max-fe","e"}        ) ? vals.to_int  ({"max-fe","e"}        ) : 100         ;
-	sink_path       = vals.exist({"snk-path"}          ) ? vals.at      ({"snk-path"}          ) : ""          ;
-	ldpc_implem     = vals.exist({"dec-implem"}        ) ? vals.at      ({"dec-implem"}        ) : "SPA"       ;
-	ldpc_simd       = vals.exist({"dec-simd"}          ) ? vals.at      ({"dec-simd"}          ) : ""          ;
-	section         = vals.exist({"section"}           ) ? vals.at      ({"section"}           ) : ""          ;
-	src_type        = vals.exist({"src-type"}          ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
-	src_path        = vals.exist({"src-path"}          ) ? vals.at      ({"src-path"}          ) : src_path    ;
-	debug           = vals.exist({"sim-debug","d"}     ) ? true                                  : false       ;
-	stats           = vals.exist({"sim-stats"}         ) ? true                                  : false       ;
-	no_sync_info    = vals.exist({"no-sync-info"}      ) ? true                                  : false       ;
-	rolloff         = vals.exist({"shp-rolloff"}       ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f        ;
-	osf             = vals.exist({"shp-osf"}           ) ? vals.to_int  ({"shp-osf"}           ) : 4           ;
-	grp_delay       = vals.exist({"shp-grp-delay"}     ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15          ;
-	frame_sync_fast = vals.exist({"frame-sync-fast"}   ) ? true                                  : false       ;
-	perfect_sync    = vals.exist({"perfect-sync"}      ) ? true                                  : false       ;
+	ebn0_min                 = vals.exist({"sim-noise-min","m"}  ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
+	ebn0_max                 = vals.exist({"sim-noise-max","M"}  ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
+	ebn0_step                = vals.exist({"sim-noise-step","s"} ) ? vals.to_float({"sim-noise-step","s"}) : .1f         ;
+	max_freq_shift           = vals.exist({"chn-max-freq-shift"} ) ? vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
+	max_delay                = vals.exist({"chn-max-delay"}      ) ? vals.to_float({"chn-max-delay"}     ) : 0.f         ;
+	ldpc_nite                = vals.exist({"dec-ite"}            ) ? vals.to_int  ({"dec-ite"}           ) : 50          ;
+	max_fe                   = vals.exist({"max-fe","e"}         ) ? vals.to_int  ({"max-fe","e"}        ) : 100         ;
+	sink_path                = vals.exist({"snk-path"}           ) ? vals.at      ({"snk-path"}          ) : ""          ;
+	ldpc_implem              = vals.exist({"dec-implem"}         ) ? vals.at      ({"dec-implem"}        ) : "SPA"       ;
+	ldpc_simd                = vals.exist({"dec-simd"}           ) ? vals.at      ({"dec-simd"}          ) : ""          ;
+	section                  = vals.exist({"section"}            ) ? vals.at      ({"section"}           ) : ""          ;
+	src_type                 = vals.exist({"src-type"}           ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
+	src_path                 = vals.exist({"src-path"}           ) ? vals.at      ({"src-path"}          ) : src_path    ;
+	debug                    = vals.exist({"sim-debug","d"}      ) ? true                                  : false       ;
+	stats                    = vals.exist({"sim-stats"}          ) ? true                                  : false       ;
+	no_sync_info             = vals.exist({"no-sync-info"}       ) ? true                                  : false       ;
+	rolloff                  = vals.exist({"shp-rolloff"}        ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f        ;
+	osf                      = vals.exist({"shp-osf"}            ) ? vals.to_int  ({"shp-osf"}           ) : 4           ;
+	grp_delay                = vals.exist({"shp-grp-delay"}      ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15          ;
+	frame_sync_fast          = vals.exist({"frame-sync-fast"}    ) ? true                                  : false       ;
+	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
+	perfect_timing_sync      = vals.exist({"perfect-timing-sync"}) ? true                                  : false       ;
+	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false       ;
+	perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false       ;
+	perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false       ;
 
+	if (perfect_sync)
+	{
+		perfect_timing_sync      = true;
+		perfect_coarse_freq_sync = true;
+		perfect_pf_freq_sync     = true;
+		perfect_lr_freq_sync     = true;
+	}
 	if (vals.exist({"ter-freq"}))
 		ter_freq = std::chrono::milliseconds(vals.to_int  ({"ter-freq"}));
 	else
@@ -450,10 +468,10 @@ template <typename R>
 module::Synchronizer_freq<R>* DVBS2O
 ::build_synchronizer_lr(const DVBS2O& params)
 {
-	if (params.perfect_sync)
+	if (params.perfect_lr_freq_sync)
 		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>          (2 * params.pl_frame_size, (R)0, (R)0));
 	else
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size, params.pilot_values, params.pilot_start));
+		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size));
 
 }
 
@@ -461,10 +479,10 @@ template <typename R>
 module::Synchronizer_freq<R>* DVBS2O
 ::build_synchronizer_freq_phase(const DVBS2O& params)
 {
-	if (params.perfect_sync)
+	if (params.perfect_pf_freq_sync)
 		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>   (2 * params.pl_frame_size, (R)0, (R)0));
 	else
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size, params.pilot_values, params.pilot_start));
+		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size));
 }
 
 template <typename R>
@@ -472,7 +490,7 @@ module::Synchronizer_timing<R>* DVBS2O
 ::build_synchronizer_timing(const DVBS2O& params)
 {
 	module::Synchronizer_timing<R>* sync_timing;
-	if (params.perfect_sync)
+	if (params.perfect_timing_sync)
 	{
 		sync_timing = (module::Synchronizer_timing<R>*)(new module::Synchronizer_timing_perfect<R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay));
 	}
@@ -517,7 +535,7 @@ module::Synchronizer_freq_coarse<R>* DVBS2O
 ::build_synchronizer_freq_coarse(const DVBS2O& params)
 {
 	module::Synchronizer_freq_coarse<R> * sync_freq_coarse;
-	if(params.perfect_sync)
+	if(params.perfect_coarse_freq_sync)
 		sync_freq_coarse =  (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_perfect<R>(2 * params.pl_frame_size * params.osf, params.max_freq_shift));
 	else
 		sync_freq_coarse =  (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_DVBS2_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4));

@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_freq_phase_DVBS2_aib.hpp"
+#include "Synchronizer_freq_phase_DVBS2_aib.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
 #ifndef M_PI
@@ -12,12 +12,15 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_freq_phase_DVBS2_aib<R>
-::Synchronizer_freq_phase_DVBS2_aib(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
-: Synchronizer_freq<R>(N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start)
+::Synchronizer_freq_phase_DVBS2_aib(const int N)
+: Synchronizer_freq<R>(N), pilot_start()
 {
-	assert(pilot_size > 0);
-	assert(pilot_nbr  > 0);
-	assert(N > pilot_start[pilot_nbr-1] + pilot_size - 1);
+	int idx = 1530;
+	while(idx < N/2)
+	{
+		pilot_start.push_back(idx);
+		idx += 1476;
+	}
 }
 
 template <typename R>
@@ -29,35 +32,37 @@ template <typename R>
 void Synchronizer_freq_phase_DVBS2_aib<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
-	int Lp = this->pilot_size/2;
+	int P  = pilot_start.size();
+	int Lp = 36;
+
 	R inv_2PI = 1.0f/(2*M_PI);
 
-	std::vector<R> phase_est(this->pilot_nbr, (R)0);
-	for (int p = 0; p < this->pilot_nbr; p++)
+	std::vector<R> phase_est(P, (R)0);
+	for (int p = 0; p < P; p++)
 	{
 		std::vector<R> sum_symb_conj_ref(2, (R)0);
 		// Phase estimation for every pilot location
 		for (int i = 0 ; i < Lp ; i++)
 		{
-			sum_symb_conj_ref[0] += X_N1[2*this->pilot_start[p] + 2*i    ] * this->pilot_values[2*i    ]
-			                      + X_N1[2*this->pilot_start[p] + 2*i + 1] * this->pilot_values[2*i + 1];
+			sum_symb_conj_ref[0] += X_N1[2*this->pilot_start[p] + 2*i    ]
+			                      + X_N1[2*this->pilot_start[p] + 2*i + 1];
 
-			sum_symb_conj_ref[1] += X_N1[2*this->pilot_start[p] + 2*i + 1] * this->pilot_values[2*i    ]
-			                      - X_N1[2*this->pilot_start[p] + 2*i    ] * this->pilot_values[2*i + 1];
+			sum_symb_conj_ref[1] += X_N1[2*this->pilot_start[p] + 2*i + 1]
+			                      - X_N1[2*this->pilot_start[p] + 2*i    ];
 		}
 		phase_est[p] = std::atan2(sum_symb_conj_ref[1], sum_symb_conj_ref[0]);
 		phase_est[p] = phase_est[p] < 0 ? phase_est[p] + 2*M_PI : phase_est[p];
 	}
 
-	std::vector<R> y(this->pilot_nbr,0.0f);
-	std::vector<R> t(this->pilot_nbr,0.0f);
+	std::vector<R> y(P,0.0f);
+	std::vector<R> t(P,0.0f);
 
 	y[0] = inv_2PI*phase_est[0];
 	t[0] = this->pilot_start[0] + (R)(Lp/2);
 
 	R acc = (R)0;
 
-	for (int p = 1; p<this->pilot_nbr; p++)
+	for (int p = 1; p<P; p++)
 	{
 		R diff_angle = phase_est[p] - phase_est[p-1];
 		R acc_elt = diff_angle > 0 ? std::floor(diff_angle*inv_2PI + (R)0.5) :  std::ceil(diff_angle*inv_2PI - (R)0.5);
@@ -72,7 +77,7 @@ void Synchronizer_freq_phase_DVBS2_aib<R>
 	R sum_ty  = (R)0;
 	R sum_tt  = (R)0;
 
-	for (int p = 0; p < this->pilot_nbr; p++)
+	for (int p = 0; p < P; p++)
 	{
 		sum_t  += t[p];
 		sum_y  += y[p];
@@ -80,8 +85,8 @@ void Synchronizer_freq_phase_DVBS2_aib<R>
 		sum_tt += t[p]*t[p];
 	}
 
-	this->estimated_freq  = (this->pilot_nbr * sum_ty - sum_t * sum_y) / (this->pilot_nbr * sum_tt - sum_t * sum_t);
-	this->estimated_phase = (sum_y - this->estimated_freq * sum_t) / this->pilot_nbr;
+	this->estimated_freq  = (P * sum_ty - sum_t * sum_y) / (P * sum_tt - sum_t * sum_t);
+	this->estimated_phase = (sum_y - this->estimated_freq * sum_t) / P;
 
 	for (int n = 0 ; n < this->N_in/2 ; n++)
 	{

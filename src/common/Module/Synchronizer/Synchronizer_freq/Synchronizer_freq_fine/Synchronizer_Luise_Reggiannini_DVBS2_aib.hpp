@@ -14,15 +14,13 @@ template <typename R = float>
 class Synchronizer_Luise_Reggiannini_DVBS2_aib : public Synchronizer_freq<R>
 {
 private:
-	const int                pilot_size;
-	const int                pilot_nbr;
-	const std::vector<R>     pilot_values;
-	const std::vector<int>   pilot_start;
+	int                pilot_nbr;
+	std::vector<int>   pilot_start;
 
 	std::vector<R> R_l;
 
 public:
-	Synchronizer_Luise_Reggiannini_DVBS2_aib (const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start);
+	Synchronizer_Luise_Reggiannini_DVBS2_aib (const int N);
 	virtual ~Synchronizer_Luise_Reggiannini_DVBS2_aib();
 
 protected:

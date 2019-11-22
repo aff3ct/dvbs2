@@ -15,9 +15,11 @@ buff(2*b.size(), std::complex<R>(R(0))),
 head(0),
 size((int)b.size()),
 M(mipp::N<R>()),
-P((N-2*b.size())/mipp::N<R>())
+P((N-2*(b.size()-1))/mipp::N<R>())
 {
 	assert(size > 0);
+	assert(mipp::N<R>() > 1);
+
 	if(P < 0)
 		P = 0;
 
@@ -35,10 +37,12 @@ void Filter_FIR_ccr<R>
 ::_filter(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-	auto cY_N2 = reinterpret_cast<std::complex<R>* >(Y_N2);
+	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
+
 	int rest = this->N - this->P * this->M;
+
 	for(auto i = 0; i < rest/2; i++)
-		step(cX_N1 + i, cY_N2 + i);
+		step(&cX_N1[i], &cY_N2[i]);
 
 	mipp::Reg<R> ps;
 	mipp::Reg<R> reg_x;
@@ -46,16 +50,17 @@ void Filter_FIR_ccr<R>
 	for(auto i = rest ; i<this->N ; i+=this->M)
 	{
 		ps = (R)0;
-		for(int k = 0; k<b.size() ; k++)
+		for(int k = 0; k < b.size() ; k++)
 		{
 			reg_b = b[k];
-			reg_x.load(X_N1 + i - 2*(b.size()- 1 -k));
+			reg_x.load(X_N1 + i - 2*(b.size() - 1 - k));
 			ps += reg_b * reg_x;
 		}
-		ps.store(Y_N2+i);
+		ps.store(Y_N2 + i);
 	}
-	std::copy(cX_N1 + this->N/2 - this->b.size(), cX_N1 + this->N/2 - 1, &this->buff[0]);
-	std::copy(cX_N1 + this->N/2 - this->b.size(), cX_N1 + this->N/2 - 1, &this->buff[this->size]);
+	int sz = this->N/2;
+	std::copy(&cX_N1[sz - this->size], &cX_N1[sz], &this->buff[0]);
+	std::copy(&cX_N1[sz - this->size], &cX_N1[sz], &this->buff[this->size]);
 	this->head = 0;
 }
 

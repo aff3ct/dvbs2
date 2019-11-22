@@ -107,7 +107,7 @@ int main(int argc, char** argv)
 			ta->set_autoalloc      (true        ); // enable the automatic allocation of the data in the tasks
 			ta->set_autoexec       (false       ); // disable the auto execution mode of the tasks
 			ta->set_debug          (params.debug); // disable the debug mode
-			ta->set_debug_limit    (100         ); // display only the 16 first bits if the debug mode is enabled
+			ta->set_debug_limit    (-1          ); // display only the 16 first bits if the debug mode is enabled
 			ta->set_debug_precision(8           );
 			ta->set_stats          (params.stats); // enable the statistics
 			ta->set_fast           (false       ); // disable the fast mode
@@ -182,6 +182,8 @@ int main(int argc, char** argv)
 		sync_coarse_f ->disable_update();
 		sync_coarse_f ->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 
+		//(*sync_fine_pf )[syn::tsk::synchronize].set_debug(true);
+
 		char buf[256];
 		char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
 		char heads[]       = "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
@@ -193,7 +195,6 @@ int main(int argc, char** argv)
 				std::cerr << head_lines << "\n" << heads << "\n" <<head_lines << "\n";
 				std::cerr.flush();
 			}
-			//(*sync_step_mf )[syn::tsk::synchronize].set_debug(true);
 			// tasks execution
 			int the_delay = 0;
 			auto n_phase = 1;
