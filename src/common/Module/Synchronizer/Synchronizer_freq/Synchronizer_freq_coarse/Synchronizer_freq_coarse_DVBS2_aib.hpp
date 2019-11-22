@@ -4193,14 +4193,15 @@ const std::vector<int > PL_RAND_SEQ {
 public:
 	Synchronizer_freq_coarse_DVBS2_aib(const int N, const int samples_per_symbol = 4, const R damping_factor = 1/std::sqrt((R)2.0), const R normalized_bandwidth = (R)1e-4);
 	virtual ~Synchronizer_freq_coarse_DVBS2_aib();
-	void reset();
 
 	void update_phase(const std::complex<R> spl);
+
 	void set_PLL_coeffs (const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth);
 	void step (const std::complex<R>* x_elt, std::complex<R>* y_elt);
 
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
+	void _reset();
 
 };
 

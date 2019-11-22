@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "Module/Synchronizer/Synchronizer_Gardner_cc_naive.hpp"
+#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_aib.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
 #ifndef M_PI
@@ -11,17 +11,11 @@
 using namespace aff3ct::module;
 
 template <typename R>
-Synchronizer_Gardner_cc_naive<R>
-::Synchronizer_Gardner_cc_naive(const int N, int osf, const R damping_factor, const R normalized_bandwidth, const R detector_gain)
-: Synchronizer<R>(N,N/osf),
-osf(osf),
-POW_osf(1<<osf),
-INV_osf((R)1.0/ (R)osf),
-last_symbol(0,0),
-mu(0),
+Synchronizer_Gardner_aib<R>
+::Synchronizer_Gardner_aib(const int N, int osf, const R damping_factor, const R normalized_bandwidth, const R detector_gain)
+: Synchronizer_timing<R>(N, osf),
 farrow_flt(N,(R)0),
 strobe_history(0),
-is_strobe(0),
 TED_error((R)0),
 TED_buffer(osf, std::complex<R>((R)0,(R)0)),
 TED_head_pos(osf - 1),
@@ -31,13 +25,7 @@ lf_integrator_gain   ((R)0),
 lf_prev_in ((R)0),
 lf_filter_state ((R)0),
 lf_output((R)0),
-NCO_counter((R)0),
-overflow_cnt(0),
-underflow_cnt(0),
-output_buffer(N/osf, std::complex<R>((R)0,(R)0)),
-outbuf_head  (0),//outbuf_head  (0),//N/osf/10
-outbuf_max_sz(N/osf),
-outbuf_cur_sz(0)//outbuf_cur_sz(0)//N/osf/10
+NCO_counter((R)0)
 {
 	this->set_loop_filter_coeffs(damping_factor, normalized_bandwidth, detector_gain);
 	// std::cerr << "# Gardner integrator_gain   = " << this->lf_integrator_gain << std::endl;
@@ -45,12 +33,12 @@ outbuf_cur_sz(0)//outbuf_cur_sz(0)//N/osf/10
 }
 
 template <typename R>
-Synchronizer_Gardner_cc_naive<R>
-::~Synchronizer_Gardner_cc_naive()
+Synchronizer_Gardner_aib<R>
+::~Synchronizer_Gardner_aib()
 {}
 
 template <typename R>
-void Synchronizer_Gardner_cc_naive<R>
+void Synchronizer_Gardner_aib<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
@@ -65,7 +53,7 @@ void Synchronizer_Gardner_cc_naive<R>
 
 
 template <typename R>
-void Synchronizer_Gardner_cc_naive<R>
+void Synchronizer_Gardner_aib<R>
 ::step(const std::complex<R> *X_N1)
 {
 	std::complex<R> farrow_output(0,0);
@@ -81,38 +69,28 @@ void Synchronizer_Gardner_cc_naive<R>
 }
 
 template <typename R>
-void Synchronizer_Gardner_cc_naive<R>
-::reset()
+void Synchronizer_Gardner_aib<R>
+::reset_()
 {
+	this->mu = (R)0;
 	this->farrow_flt.reset();
 	this->farrow_flt.set_mu((R)0);
 
 	for (auto i = 0; i<this->osf ; i++)
 		this->TED_buffer[i] = std::complex<R>(R(0),R(0));
 
-	this->last_symbol      = std::complex<R> (R(0),R(0));
-	this->mu               = (R)0;
 	this->strobe_history   = 0;
-	this->is_strobe        = 0;
 	this->TED_error        = (R)0;
 	this->TED_head_pos     = 0;
-	this->TED_mid_pos      = osf/2;//(osf - 1 - osf / 2) % osf;
+	this->TED_mid_pos      = this->osf/2;//(osf - 1 - osf / 2) % osf;
 	this->lf_prev_in       = (R)0;
 	this->lf_filter_state  = (R)0;
 	this->lf_output        = (R)0;
 	this->NCO_counter      = (R)0;
-	this->overflow_cnt     = 0;
-	this->underflow_cnt    = 0;
-	for (auto i = 0; i<this->outbuf_max_sz ; i++)
-		this->output_buffer[i] = std::complex<R>((R)0,(R)0);
-
-	this->outbuf_head      = 0; // this->N_out/10;
-	this->outbuf_tail      = 0;
-	this->outbuf_cur_sz    = 0; //this->N_out/10;
 }
 
 template <typename R>
-void Synchronizer_Gardner_cc_naive<R>
+void Synchronizer_Gardner_aib<R>
 ::loop_filter()
 {
 	//this->lf_filter_state += this->lf_prev_in;
@@ -126,7 +104,7 @@ void Synchronizer_Gardner_cc_naive<R>
 }
 
 template <typename R>
-void Synchronizer_Gardner_cc_naive<R>
+void Synchronizer_Gardner_aib<R>
 ::interpolation_control()
 {
 	// Interpolation Control
@@ -146,7 +124,7 @@ void Synchronizer_Gardner_cc_naive<R>
 }
 
 template <typename R>
-void Synchronizer_Gardner_cc_naive<R>
+void Synchronizer_Gardner_aib<R>
 ::TED_update(std::complex<R> sample)
 {
 	this->strobe_history = (this->strobe_history << 1) % this->POW_osf + this->is_strobe;
@@ -182,47 +160,7 @@ void Synchronizer_Gardner_cc_naive<R>
 }
 
 template <typename R>
-void Synchronizer_Gardner_cc_naive<R>
-::push(const std::complex<R> strobe)
-{
-	if (this->outbuf_cur_sz < this->outbuf_max_sz)
-	{
-		this->output_buffer[this->outbuf_head] = strobe;
-		this->outbuf_head = (this->outbuf_head + 1)%this->outbuf_max_sz;
-		this->outbuf_cur_sz++;
-	}
-	else
-	{
-		this->overflow_cnt++;
-	}
-}
-
-template <typename R>
-void Synchronizer_Gardner_cc_naive<R>
-::pop(std::complex<R> *strobe)
-{
-	if	(this->outbuf_cur_sz > 0)
-	{
-		*strobe = this->output_buffer[this->outbuf_tail];
-		this->outbuf_tail = (this->outbuf_tail + 1)%this->outbuf_max_sz;
-		this->outbuf_cur_sz--;
-	}
-	else
-	{
-		*strobe = std::complex<R>((R)0,(R)0);
-		this->underflow_cnt++;
-	}
-}
-
-template <typename R>
-int Synchronizer_Gardner_cc_naive<R>
-::get_delay()
-{
-	return this->outbuf_cur_sz;
-}
-
-template <typename R>
-void Synchronizer_Gardner_cc_naive<R>
+void Synchronizer_Gardner_aib<R>
 ::set_loop_filter_coeffs (const R damping_factor, const R normalized_bandwidth, const R detector_gain)
 {
 	R K0   = -1;
@@ -234,6 +172,6 @@ void Synchronizer_Gardner_cc_naive<R>
 }
 
 // ==================================================================================== explicit template instantiation
-template class aff3ct::module::Synchronizer_Gardner_cc_naive<float>;
-template class aff3ct::module::Synchronizer_Gardner_cc_naive<double>;
+template class aff3ct::module::Synchronizer_Gardner_aib<float>;
+template class aff3ct::module::Synchronizer_Gardner_aib<double>;
 // ==================================================================================== explicit template instantiation

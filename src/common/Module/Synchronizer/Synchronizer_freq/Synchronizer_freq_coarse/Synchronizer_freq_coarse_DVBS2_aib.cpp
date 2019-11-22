@@ -117,7 +117,7 @@ void Synchronizer_freq_coarse_DVBS2_aib<R>
 
 template <typename R>
 void Synchronizer_freq_coarse_DVBS2_aib<R>
-::reset()
+::_reset()
 {
 	this->prev_spl      = std::complex<R> ((R)0.0, (R)0.0);
 	this->prev_prev_spl = std::complex<R> ((R)0.0, (R)0.0);
@@ -127,7 +127,7 @@ void Synchronizer_freq_coarse_DVBS2_aib<R>
 	this->integ_filter_state = (R)0.0;
 	this->DDS_prev_in        = (R)0.0;
 	this->is_active          = false;
-	this->estimated_freq     = (R)0.0;
+
 	this->mult.reset();
 	this->mult.set_nu((R)0.0);
 }

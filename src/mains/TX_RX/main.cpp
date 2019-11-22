@@ -34,36 +34,35 @@ int main(int argc, char** argv)
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	std::unique_ptr<module::Source<>                     > source        (factory::DVBS2O::build_source                   <>(params                 ));
-	std::unique_ptr<module::Channel<>                    > channel       (factory::DVBS2O::build_channel                  <>(params                 ));
-	std::unique_ptr<module::Scrambler<>                  > bb_scrambler  (factory::DVBS2O::build_bb_scrambler             <>(params                 ));
-	std::unique_ptr<module::Encoder<>                    > BCH_encoder   (factory::DVBS2O::build_bch_encoder              <>(params, poly_gen       ));
-	std::unique_ptr<module::Decoder_HIHO<>               > BCH_decoder   (factory::DVBS2O::build_bch_decoder              <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec_SIHO<>                 > LDPC_cdc      (factory::DVBS2O::build_ldpc_cdc                 <>(params                 ));
-	std::unique_ptr<module::Interleaver<>                > itl_tx        (factory::DVBS2O::build_itl                      <>(params, *itl_core      ));
-	std::unique_ptr<module::Interleaver<float,uint32_t>  > itl_rx        (factory::DVBS2O::build_itl<float,uint32_t>        (params, *itl_core      ));
-	std::unique_ptr<module::Modem<>                      > modem         (factory::DVBS2O::build_modem                    <>(params, std::move(cstl)));
-	std::unique_ptr<module::Filter_UPRRC_ccr_naive<>     > shaping_flt   (factory::DVBS2O::build_uprrc_filter             <>(params)                 );
-	std::unique_ptr<module::Multiplier_sine_ccc_naive<>  > freq_shift    (factory::DVBS2O::build_freq_shift               <>(params)                 );
-	std::unique_ptr<module::Filter_Farrow_ccr_naive<>    > chn_frac_delay(factory::DVBS2O::build_channel_frac_delay       <>(params)                 );
-	std::unique_ptr<module::Variable_delay_cc_naive<>    > chn_int_delay (factory::DVBS2O::build_channel_int_delay        <>(params)                 );
-	std::unique_ptr<module::Synchronizer_frame<>         > sync_frame    (factory::DVBS2O::build_synchronizer_frame       <>(params                 ));
+	std::unique_ptr<module::Source<>                    > source      (factory::DVBS2O::build_source              <>(params                 ));
+	std::unique_ptr<module::Channel<>                   > channel     (factory::DVBS2O::build_channel             <>(params                 ));
+	std::unique_ptr<module::Scrambler<>                 > bb_scrambler(factory::DVBS2O::build_bb_scrambler        <>(params                 ));
+	std::unique_ptr<module::Encoder<>                   > BCH_encoder (factory::DVBS2O::build_bch_encoder         <>(params, poly_gen       ));
+	std::unique_ptr<module::Decoder_HIHO<>              > BCH_decoder (factory::DVBS2O::build_bch_decoder         <>(params, poly_gen       ));
+	std::unique_ptr<module::Codec_SIHO<>                > LDPC_cdc    (factory::DVBS2O::build_ldpc_cdc            <>(params                 ));
+	std::unique_ptr<module::Interleaver<>               > itl_tx      (factory::DVBS2O::build_itl                 <>(params, *itl_core      ));
+	std::unique_ptr<module::Interleaver<float,uint32_t> > itl_rx      (factory::DVBS2O::build_itl<float,uint32_t>   (params, *itl_core      ));
+	std::unique_ptr<module::Modem<>                     > modem       (factory::DVBS2O::build_modem               <>(params, std::move(cstl)));
+	std::unique_ptr<module::Filter_UPRRC_ccr_naive<>    > shaping_flt (factory::DVBS2O::build_uprrc_filter        <>(params)                 );
+	std::unique_ptr<module::Multiplier_sine_ccc_naive<> > freq_shift  (factory::DVBS2O::build_freq_shift          <>(params)                 );
+	std::unique_ptr<module::Filter_Farrow_ccr_naive<>   > chn_frac_del(factory::DVBS2O::build_channel_frac_delay  <>(params)                 );
+	std::unique_ptr<module::Variable_delay_cc_naive<>   > chn_int_del (factory::DVBS2O::build_channel_int_delay   <>(params)                 );
+	std::unique_ptr<module::Synchronizer_frame<>        > sync_frame  (factory::DVBS2O::build_synchronizer_frame  <>(params                 ));
+	std::unique_ptr<module::Framer<>                    > framer      (factory::DVBS2O::build_framer              <>(params                 ));
+	std::unique_ptr<module::Scrambler<float>            > pl_scrambler(factory::DVBS2O::build_pl_scrambler        <>(params                 ));
+	std::unique_ptr<module::Filter_unit_delay<>         > delay       (factory::DVBS2O::build_unit_delay          <>(params                 ));
+	std::unique_ptr<module::Monitor_BFER<>              > monitor     (factory::DVBS2O::build_monitor             <>(params                 ));
+	std::unique_ptr<module::Filter_RRC_ccr_naive<>      > matched_flt (factory::DVBS2O::build_matched_filter      <>(params                 ));
+	std::unique_ptr<module::Synchronizer_timing<>       > sync_timing (factory::DVBS2O::build_synchronizer_timing <>(params                 ));
+	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > mult_agc    (factory::DVBS2O::build_agc_shift           <>(params                 ));
+	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > chn_agc     (factory::DVBS2O::build_channel_agc         <>(params                 ));
 
-	std::unique_ptr<module::Framer<>                        > framer        (factory::DVBS2O::build_framer                   <>(params                 ));
-	std::unique_ptr<module::Scrambler<float>                > pl_scrambler  (factory::DVBS2O::build_pl_scrambler             <>(params                 ));
-	std::unique_ptr<module::Filter_unit_delay<>             > delay         (factory::DVBS2O::build_unit_delay               <>(params                 ));
-	std::unique_ptr<module::Monitor_BFER<>                  > monitor       (factory::DVBS2O::build_monitor                  <>(params                 ));
-	std::unique_ptr<module::Filter_RRC_ccr_naive<>          > matched_flt   (factory::DVBS2O::build_matched_filter           <>(params                 ));
-	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<> > sync_gardner  (factory::DVBS2O::build_synchronizer_gardner     <>(params                 ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>       > mult_agc      (factory::DVBS2O::build_agc_shift                <>(params                 ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>       > chn_agc       (factory::DVBS2O::build_channel_agc              <>(params                 ));
-
-	std::unique_ptr<module::Synchronizer_freq_coarse<>                 > sync_coarse_f  (factory::DVBS2O::build_synchronizer_freq_coarse <>(params));
-	std::unique_ptr<module::Synchronizer_freq_phase_DVBS2_aib<>        > sync_fine_pf   (factory::DVBS2O::build_synchronizer_freq_phase  <>(params));
-	std::unique_ptr<module::Synchronizer_Luise_Reggiannini_DVBS2_aib<> > sync_lr        (factory::DVBS2O::build_synchronizer_lr          <>(params));
-	std::unique_ptr<module::Synchronizer_step_mf_cc<>       > sync_step_mf  (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(),
-	                                                                                                                          matched_flt  .get(),
-	                                                                                                                          sync_gardner .get()));
+	std::unique_ptr<module::Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse <>(params));
+	std::unique_ptr<module::Synchronizer_freq<>         > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase  <>(params));
+	std::unique_ptr<module::Synchronizer_freq<>         > sync_fine_lr (factory::DVBS2O::build_synchronizer_lr          <>(params));
+	std::unique_ptr<module::Synchronizer_step_mf_cc<>   > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>( sync_coarse_f.get(),
+	                                                                                                                        matched_flt  .get(),
+	                                                                                                                        sync_timing  .get()) );
 
 	auto& LDPC_encoder = LDPC_cdc->get_encoder();
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
@@ -72,9 +71,9 @@ int main(int argc, char** argv)
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
 	BCH_encoder  ->set_custom_name("BCH Encoder" );
 	BCH_decoder  ->set_custom_name("BCH Decoder" );
-	sync_lr      ->set_custom_name("L&R F Syn"   );
+	sync_fine_lr      ->set_custom_name("L&R F Syn"   );
 	sync_fine_pf ->set_custom_name("Fine P/F Syn");
-	sync_gardner ->set_custom_name("Gardner Syn" );
+	sync_timing  ->set_custom_name("Timing Syn" );
 	sync_frame   ->set_custom_name("Frame Syn"   );
 	matched_flt  ->set_custom_name("Matched Flt" );
 	shaping_flt  ->set_custom_name("Shaping Flt" );
@@ -96,10 +95,10 @@ int main(int argc, char** argv)
 	modules = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder  .get(), LDPC_encoder  .get(),
 	            LDPC_decoder.get(), itl_tx      .get(), itl_rx       .get(), modem         .get(),
 	            framer      .get(), pl_scrambler.get(), monitor      .get(), freq_shift    .get(),
-	            sync_lr     .get(), sync_fine_pf.get(), shaping_flt  .get(), chn_frac_delay.get(),
+	            sync_fine_lr.get(), sync_fine_pf.get(), shaping_flt  .get(), chn_frac_del  .get(),
 	            mult_agc    .get(), sync_frame  .get(), delay        .get(), sync_coarse_f .get(),
-	            matched_flt .get(), sync_gardner.get(), sync_step_mf .get(), source        .get(),
-	            channel     .get(), chn_agc     .get(), chn_int_delay.get()                       };
+	            matched_flt .get(), sync_timing .get(), sync_step_mf .get(), source        .get(),
+	            channel     .get(), chn_agc     .get(), chn_int_del  .get()                       };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -118,33 +117,27 @@ int main(int argc, char** argv)
 
 	// socket binding
 	// TX
-	(*BCH_encoder )[enc::sck::encode      ::U_K ].bind((*bb_scrambler)[scr::sck::scramble    ::X_N2]);
-	(*LDPC_encoder)[enc::sck::encode      ::U_K ].bind((*BCH_encoder )[enc::sck::encode      ::X_N ]);
-	(*itl_tx      )[itl::sck::interleave  ::nat ].bind((*LDPC_encoder)[enc::sck::encode      ::X_N ]);
-	(*modem       )[mdm::sck::modulate    ::X_N1].bind((*itl_tx      )[itl::sck::interleave  ::itl ]);
-	(*framer      )[frm::sck::generate    ::Y_N1].bind((*modem       )[mdm::sck::modulate    ::X_N2]);
-	(*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer      )[frm::sck::generate    ::Y_N2]);
-	(*shaping_flt )[flt::sck::filter      ::X_N1].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
-
-	// Channel
-	(*chn_int_delay )[flt::sck::filter      ::X_N1].bind((*shaping_flt   )[flt::sck::filter      ::Y_N2]);
-	(*chn_frac_delay)[flt::sck::filter      ::X_N1].bind((*chn_int_delay )[flt::sck::filter      ::Y_N2]);
-	(*chn_agc       )[mlt::sck::imultiply   ::X_N ].bind((*chn_frac_delay)[flt::sck::filter      ::Y_N2]);
-	(*freq_shift    )[mlt::sck::imultiply   ::X_N ].bind((*chn_agc       )[mlt::sck::imultiply   ::Z_N ]);
-
-	// RX
-	(*sync_lr     )[syn::sck::synchronize ::X_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
-	(*sync_fine_pf)[syn::sck::synchronize ::X_N1].bind((*sync_lr     )[syn::sck::synchronize ::Y_N2]);
-	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*sync_fine_pf)[syn::sck::synchronize ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
-	(*itl_rx      )[itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
-	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
-	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho ::V_K ]);
-	(*bb_scrambler)[scr::sck::descramble  ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K ]);
-
-	// monitor
-	(*monitor     )[mnt::sck::check_errors::U   ].bind((*delay       )[flt::sck::filter      ::Y_N2]);
-	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
+	(*BCH_encoder )[enc::sck::encode      ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble    ::X_N2]);
+	(*LDPC_encoder)[enc::sck::encode      ::U_K ].bind((*BCH_encoder   )[enc::sck::encode      ::X_N ]);
+	(*itl_tx      )[itl::sck::interleave  ::nat ].bind((*LDPC_encoder  )[enc::sck::encode      ::X_N ]);
+	(*modem       )[mdm::sck::modulate    ::X_N1].bind((*itl_tx        )[itl::sck::interleave  ::itl ]);
+	(*framer      )[frm::sck::generate    ::Y_N1].bind((*modem         )[mdm::sck::modulate    ::X_N2]);
+	(*pl_scrambler)[scr::sck::scramble    ::X_N1].bind((*framer        )[frm::sck::generate    ::Y_N2]);
+	(*shaping_flt )[flt::sck::filter      ::X_N1].bind((*pl_scrambler  )[scr::sck::scramble    ::X_N2]);
+	(*chn_int_del )[flt::sck::filter      ::X_N1].bind((*shaping_flt   )[flt::sck::filter      ::Y_N2]);
+	(*chn_frac_del)[flt::sck::filter      ::X_N1].bind((*chn_int_del   )[flt::sck::filter      ::Y_N2]);
+	(*chn_agc     )[mlt::sck::imultiply   ::X_N ].bind((*chn_frac_del  )[flt::sck::filter      ::Y_N2]);
+	(*freq_shift  )[mlt::sck::imultiply   ::X_N ].bind((*chn_agc       )[mlt::sck::imultiply   ::Z_N ]);
+	(*sync_fine_lr)[syn::sck::synchronize ::X_N1].bind((*pl_scrambler  )[scr::sck::descramble  ::Y_N2]);
+	(*sync_fine_pf)[syn::sck::synchronize ::X_N1].bind((*sync_fine_lr  )[syn::sck::synchronize ::Y_N2]);
+	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*sync_fine_pf  )[syn::sck::synchronize ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*framer        )[frm::sck::remove_plh  ::Y_N2]);
+	(*itl_rx      )[itl::sck::deinterleave::itl ].bind((*modem         )[mdm::sck::demodulate  ::Y_N2]);
+	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx        )[itl::sck::deinterleave::nat ]);
+	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ].bind((*LDPC_decoder  )[dec::sck::decode_siho ::V_K ]);
+	(*bb_scrambler)[scr::sck::descramble  ::Y_N1].bind((*BCH_decoder   )[dec::sck::decode_hiho ::V_K ]);
+	(*monitor     )[mnt::sck::check_errors::U   ].bind((*delay         )[flt::sck::filter      ::Y_N2]);
+	(*monitor     )[mnt::sck::check_errors::V   ].bind((*bb_scrambler  )[scr::sck::descramble  ::Y_N2]);
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
@@ -175,111 +168,121 @@ int main(int argc, char** argv)
 		channel ->set_noise(noise);
 
 		shaping_flt   ->reset();
-		chn_frac_delay->reset();
-		chn_int_delay ->reset();
+		chn_frac_del  ->reset();
+		chn_int_del   ->reset();
 		freq_shift    ->reset();
 		sync_coarse_f ->reset();
-		sync_coarse_f ->disable_update();
-		sync_coarse_f ->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 		matched_flt   ->reset();
-		sync_gardner  ->reset();
+		sync_timing   ->reset();
 		sync_frame    ->reset();
-		sync_lr       ->reset();
+		sync_fine_lr  ->reset();
 		sync_fine_pf  ->reset();
 		delay         ->reset();
+
+		sync_coarse_f ->disable_update();
+		sync_coarse_f ->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 
 		char buf[256];
 		char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
 		char heads[]       = "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
 		char pattern[]     = "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
-
-		if(!params.no_sync_info)
+		if(!params.perfect_sync)
 		{
-			std::cerr << head_lines << "\n" << heads << "\n" <<head_lines << "\n";
-			std::cerr.flush();
-		}
-		//(*sync_step_mf )[syn::tsk::synchronize].set_debug(true);
-		// tasks execution
-		int the_delay = 0;
-		auto n_phase = 1;
-		for (int m = 0; m < 500; m++)
-		{
-			(*source        )[src::tsk::generate   ].exec();
-			(*delay         )[flt::tsk::filter     ].exec();
-			(*bb_scrambler  )[scr::tsk::scramble   ].exec();
-			(*BCH_encoder   )[enc::tsk::encode     ].exec();
-			(*LDPC_encoder  )[enc::tsk::encode     ].exec();
-			(*itl_tx        )[itl::tsk::interleave ].exec();
-			(*modem         )[mdm::tsk::modulate   ].exec();
-			(*framer        )[frm::tsk::generate   ].exec();
-			(*pl_scrambler  )[scr::tsk::scramble   ].exec();
-			(*shaping_flt   )[flt::tsk::filter     ].exec();
-			(*chn_int_delay )[flt::tsk::filter     ].exec();
-			(*chn_frac_delay)[flt::tsk::filter     ].exec();
-			(*chn_agc       )[mlt::tsk::imultiply  ].exec();
-			(*freq_shift    )[mlt::tsk::imultiply  ].exec();
-			(*channel       )[chn::tsk::add_noise  ].exec();
-
-			if(n_phase < 3)
-			{
-				the_delay = sync_step_mf->get_delay();
-				(*sync_step_mf )[syn::tsk::synchronize].exec();
-				(*mult_agc     )[mlt::tsk::imultiply  ].exec();
-				(*sync_frame   )[syn::tsk::synchronize].exec();
-				sync_coarse_f->enable_update();
-				the_delay = (2*params.pl_frame_size - sync_frame->get_delay() + the_delay) % params.pl_frame_size;
-				sync_coarse_f->set_curr_idx(the_delay);
-				(*pl_scrambler )[scr::tsk::descramble].exec();
-			}
-			else // n_phase == 3
-			{
-				(*sync_coarse_f)[syn::tsk::synchronize].exec();
-				(*matched_flt  )[flt::tsk::filter     ].exec();
-				(*sync_gardner )[syn::tsk::synchronize].exec();
-				(*mult_agc     )[mlt::tsk::imultiply  ].exec();
-				(*sync_frame   )[syn::tsk::synchronize].exec();
-				(*pl_scrambler )[scr::tsk::descramble ].exec();
-				(*sync_lr      )[syn::tsk::synchronize].exec();
-				(*sync_fine_pf )[syn::tsk::synchronize].exec();
-			}
-
 			if(!params.no_sync_info)
 			{
-				sprintf(buf, pattern, n_phase, m+1,
-						sync_gardner ->get_mu(),
-						sync_coarse_f->get_estimated_freq(),
-						the_delay,
-						sync_lr      ->get_est_reduced_freq() / (float)params.osf,
-						sync_fine_pf ->get_estimated_freq()   / (float)params.osf);
-				std::cerr << buf << "\r";
+				std::cerr << head_lines << "\n" << heads << "\n" <<head_lines << "\n";
 				std::cerr.flush();
 			}
+			//(*sync_step_mf )[syn::tsk::synchronize].set_debug(true);
+			// tasks execution
+			int the_delay = 0;
+			auto n_phase = 1;
 
-			if (m == 149)
+			for (int m = 0; m < 500; m++)
 			{
-				n_phase++;
-				sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
-				if(!params.no_sync_info)
-					std::cerr << buf << std::endl;
-			}
+				(*source        )[src::tsk::generate   ].exec();
+				(*delay         )[flt::tsk::filter     ].exec();
+				(*bb_scrambler  )[scr::tsk::scramble   ].exec();
+				(*BCH_encoder   )[enc::tsk::encode     ].exec();
+				(*LDPC_encoder  )[enc::tsk::encode     ].exec();
+				(*itl_tx        )[itl::tsk::interleave ].exec();
+				(*modem         )[mdm::tsk::modulate   ].exec();
+				(*framer        )[frm::tsk::generate   ].exec();
+				(*pl_scrambler  )[scr::tsk::scramble   ].exec();
+				(*shaping_flt   )[flt::tsk::filter     ].exec();
+				(*chn_int_del   )[flt::tsk::filter     ].exec();
+				(*chn_frac_del  )[flt::tsk::filter     ].exec();
+				(*chn_agc       )[mlt::tsk::imultiply  ].exec();
+				(*freq_shift    )[mlt::tsk::imultiply  ].exec();
+				(*channel       )[chn::tsk::add_noise  ].exec();
 
-			if (m == 299)
-			{
-				n_phase++;
-				(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
-				(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
-				(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
-				(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);
-				(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
-				sync_coarse_f->disable_update();
+				if(n_phase < 3)
+				{
+					the_delay = sync_step_mf->get_delay();
+					(*sync_step_mf )[syn::tsk::synchronize].exec();
+					(*mult_agc     )[mlt::tsk::imultiply  ].exec();
+					(*sync_frame   )[syn::tsk::synchronize].exec();
+					sync_coarse_f->enable_update();
+					the_delay = (2*params.pl_frame_size - sync_frame->get_delay() + the_delay) % params.pl_frame_size;
+					sync_coarse_f->set_curr_idx(the_delay);
+					(*pl_scrambler )[scr::tsk::descramble].exec();
+				}
+				else // n_phase == 3
+				{
+					(*sync_coarse_f)[syn::tsk::synchronize].exec();
+					(*matched_flt  )[flt::tsk::filter     ].exec();
+					(*sync_timing  )[syn::tsk::synchronize].exec();
+					(*mult_agc     )[mlt::tsk::imultiply  ].exec();
+					(*sync_frame   )[syn::tsk::synchronize].exec();
+					(*pl_scrambler )[scr::tsk::descramble ].exec();
+					(*sync_fine_lr )[syn::tsk::synchronize].exec();
+					(*sync_fine_pf )[syn::tsk::synchronize].exec();
+				}
+
 				if(!params.no_sync_info)
-					std::cerr << buf << std::endl;
+				{
+					sprintf(buf, pattern, n_phase, m+1,
+							sync_timing  ->get_mu(),
+							sync_coarse_f->get_estimated_freq(),
+							the_delay,
+							sync_fine_lr ->get_estimated_freq() / (float)params.osf,
+							sync_fine_pf ->get_estimated_freq() / (float)params.osf);
+					std::cerr << buf << "\r";
+					std::cerr.flush();
+				}
+
+				if (m == 149)
+				{
+					n_phase++;
+					sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
+					if(!params.no_sync_info)
+						std::cerr << buf << std::endl;
+				}
+
+				if (m == 299)
+				{
+					n_phase++;
+					(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
+					(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
+					(*sync_timing  )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
+					(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[syn::sck::synchronize ::Y_N2]);
+					(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
+					sync_coarse_f->disable_update();
+					if(!params.no_sync_info)
+						std::cerr << buf << std::endl;
+				}
 			}
+			if(!params.no_sync_info)
+				std::cerr << buf << "\n" << head_lines << "\n";
 		}
-
-		if(!params.no_sync_info)
-			std::cerr << buf << "\n" << head_lines << "\n";
-
+		else
+		{
+			(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
+			(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
+			(*sync_timing  )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
+			(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[syn::sck::synchronize ::Y_N2]);
+			(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
+		}
 		monitor->reset();
 		if(params.ter_freq != std::chrono::nanoseconds(0))
 			terminal->start_temp_report(params.ter_freq);
@@ -291,36 +294,36 @@ int main(int argc, char** argv)
 		int n_frames = 0;
 		while (!monitor->is_done() && !terminal->is_interrupt())
 		{
-			(*source        )[src::tsk::generate    ].exec();
-			(*delay         )[flt::tsk::filter      ].exec();
-			(*bb_scrambler  )[scr::tsk::scramble    ].exec();
-			(*BCH_encoder   )[enc::tsk::encode      ].exec();
-			(*LDPC_encoder  )[enc::tsk::encode      ].exec();
-			(*itl_tx        )[itl::tsk::interleave  ].exec();
-			(*modem         )[mdm::tsk::modulate    ].exec();
-			(*framer        )[frm::tsk::generate    ].exec();
-			(*pl_scrambler  )[scr::tsk::scramble    ].exec();
-			(*shaping_flt   )[flt::tsk::filter      ].exec();
-			(*chn_int_delay )[flt::tsk::filter      ].exec();
-			(*chn_frac_delay)[flt::tsk::filter      ].exec();
-			(*chn_agc       )[mlt::tsk::imultiply   ].exec();
-			(*freq_shift    )[mlt::tsk::imultiply   ].exec();
-			(*channel       )[chn::tsk::add_noise   ].exec();
-			(*sync_coarse_f )[syn::tsk::synchronize ].exec();
-			(*matched_flt   )[flt::tsk::filter      ].exec();
-			(*sync_gardner  )[syn::tsk::synchronize ].exec();
-			(*mult_agc      )[mlt::tsk::imultiply   ].exec();
-			(*sync_frame    )[syn::tsk::synchronize ].exec();
-			(*pl_scrambler  )[scr::tsk::descramble  ].exec();
-			(*sync_lr       )[syn::tsk::synchronize ].exec();
-			(*sync_fine_pf  )[syn::tsk::synchronize ].exec();
-			(*framer        )[frm::tsk::remove_plh  ].exec();
-			(*modem         )[mdm::tsk::demodulate  ].exec();
-			(*itl_rx        )[itl::tsk::deinterleave].exec();
-			(*LDPC_decoder  )[dec::tsk::decode_siho ].exec();
-			(*BCH_decoder   )[dec::tsk::decode_hiho ].exec();
-			(*bb_scrambler  )[scr::tsk::descramble  ].exec();
-			(*monitor       )[mnt::tsk::check_errors].exec();
+			(*source       )[src::tsk::generate    ].exec();
+			(*delay        )[flt::tsk::filter      ].exec();
+			(*bb_scrambler )[scr::tsk::scramble    ].exec();
+			(*BCH_encoder  )[enc::tsk::encode      ].exec();
+			(*LDPC_encoder )[enc::tsk::encode      ].exec();
+			(*itl_tx       )[itl::tsk::interleave  ].exec();
+			(*modem        )[mdm::tsk::modulate    ].exec();
+			(*framer       )[frm::tsk::generate    ].exec();
+			(*pl_scrambler )[scr::tsk::scramble    ].exec();
+			(*shaping_flt  )[flt::tsk::filter      ].exec();
+			(*chn_int_del  )[flt::tsk::filter      ].exec();
+			(*chn_frac_del )[flt::tsk::filter      ].exec();
+			(*chn_agc      )[mlt::tsk::imultiply   ].exec();
+			(*freq_shift   )[mlt::tsk::imultiply   ].exec();
+			(*channel      )[chn::tsk::add_noise   ].exec();
+			(*sync_coarse_f)[syn::tsk::synchronize ].exec();
+			(*matched_flt  )[flt::tsk::filter      ].exec();
+			(*sync_timing  )[syn::tsk::synchronize ].exec();
+			(*mult_agc     )[mlt::tsk::imultiply   ].exec();
+			(*sync_frame   )[syn::tsk::synchronize ].exec();
+			(*pl_scrambler )[scr::tsk::descramble  ].exec();
+			(*sync_fine_lr )[syn::tsk::synchronize ].exec();
+			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
+			(*framer       )[frm::tsk::remove_plh  ].exec();
+			(*modem        )[mdm::tsk::demodulate  ].exec();
+			(*itl_rx       )[itl::tsk::deinterleave].exec();
+			(*LDPC_decoder )[dec::tsk::decode_siho ].exec();
+			(*BCH_decoder  )[dec::tsk::decode_hiho ].exec();
+			(*bb_scrambler )[scr::tsk::descramble  ].exec();
+			(*monitor      )[mnt::tsk::check_errors].exec();
 
 			if (n_frames < 1) // first frame is delayed
 				monitor->reset();
@@ -330,8 +333,6 @@ int main(int argc, char** argv)
 
 		// display the performance (BER and FER) in the terminal
 		terminal->final_report();
-		if(!params.no_sync_info)
-			terminal->final_report(std::cerr);
 
 		// reset the monitors and the terminal for the next SNR
 		monitor ->reset();

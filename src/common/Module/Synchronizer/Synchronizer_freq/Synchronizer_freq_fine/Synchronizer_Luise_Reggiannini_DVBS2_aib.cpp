@@ -13,10 +13,10 @@ using namespace aff3ct::module;
 template <typename R>
 Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 ::Synchronizer_Luise_Reggiannini_DVBS2_aib(const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start)
-: Synchronizer<R>(N,N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), est_reduced_freq(0), R_l(2,(R)0.0)
+: Synchronizer_freq<R>(N), pilot_size(pilot_values.size()), pilot_nbr(pilot_start.size()), pilot_values(pilot_values), pilot_start(pilot_start), R_l(2,(R)0.0)
 {
 	assert(pilot_size > 0);
-	assert(pilot_nbr > 0);
+	assert(pilot_nbr  > 0);
 	assert(N > pilot_start[pilot_nbr-1] + pilot_size - 1);
 }
 
@@ -44,7 +44,6 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 			z[2*i + 1] = X_N1[2*i + 2*this->pilot_start[p] + 1] * pilot_values[2*i    ]
 			           - X_N1[2*i + 2*this->pilot_start[p]    ] * pilot_values[2*i + 1];
 
-					   //std::cout << "(" << X_N1[2*i +   + 2*this->pilot_start[p]] << " " << X_N1[2*i + 1  + 2*this->pilot_start[p]] << ")";
 		}
 
 		for (int m = 1 ; m < Lp_2 + 1 ; m++)
@@ -63,17 +62,12 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 			this->R_l[1] += sum_xcorr_z[1] / (R)(Lp-m);
 		}
 	}
-	this->est_reduced_freq = std::atan2(this->R_l[1], this->R_l[0]);
-	this->est_reduced_freq /= (Lp_2 + 1) * M_PI;
-
-	/*if((*this)[syn::tsk::synchronize].is_debug())
-	{
-		std::cout << "# {INTERNAL} hat_nu = "<< this->est_reduced_freq << " " << std::endl;
-	}*/
+	this->estimated_freq = std::atan2(this->R_l[1], this->R_l[0]);
+	this->estimated_freq /= (Lp_2 + 1) * M_PI;
 
 	for (int n = 0 ; n < this->N_in/2 ; n++)
 	{
-		R theta = 2 * M_PI * this->est_reduced_freq * (R)n;
+		R theta = 2 * M_PI * this->estimated_freq * (R)n;
 		R cos_theta = std::cos(theta);
 		R sin_theta = std::sin(theta);
 
@@ -87,18 +81,11 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 
 template <typename R>
 void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
-::reset()
+::_reset()
 {
-	this->R_l[0] = (R)0.0;
-	this->R_l[1] = (R)0.0;
-	this->est_reduced_freq = (R)0.0;
-}
-
-template <typename R>
-R Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
-::get_est_reduced_freq()
-{
-	return this->est_reduced_freq;
+	this->R_l[0]         = (R)0.0;
+	this->R_l[1]         = (R)0.0;
+	this->estimated_freq = (R)0.0;
 }
 
 // ==================================================================================== explicit template instantiation

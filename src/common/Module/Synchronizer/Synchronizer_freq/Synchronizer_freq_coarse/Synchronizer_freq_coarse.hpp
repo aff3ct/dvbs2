@@ -4,14 +4,14 @@
 #include <vector>
 #include <complex>
 
-#include "../../Synchronizer.hpp"
+#include "../Synchronizer_freq.hpp"
 
 namespace aff3ct
 {
 namespace module
 {
 template <typename R = float>
-class Synchronizer_freq_coarse : public Synchronizer<R>
+class Synchronizer_freq_coarse : public Synchronizer_freq<R>
 {
 public:
 	Synchronizer_freq_coarse(const int N);
@@ -23,14 +23,14 @@ public:
 
 	void enable_update (){this->is_active = true; };
 	void disable_update(){this->is_active = false;};
+
 	void set_curr_idx(int curr_idx) {this->curr_idx = curr_idx;};
-	void set_estimated_freq(R estimated_freq) {this->estimated_freq = estimated_freq;};
-	R get_estimated_freq() {return this->estimated_freq;};
 
 protected:
 	bool is_active;
 	int curr_idx;
-	R estimated_freq;
+
+	virtual void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id) = 0;
 };
 
 }

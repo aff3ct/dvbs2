@@ -44,7 +44,6 @@ public:
 	virtual ~Synchronizer_frame_DVBS2_fast();
 	void step(const std::complex<R>* x_elt, R* y_elt);
 	void reset();
-	int get_delay(){return this->delay;};
 
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);

@@ -28,28 +28,28 @@ int main(int argc, char** argv)
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	std::unique_ptr<module::Source<>                                   > source       (factory::DVBS2O::build_source                   <>(params                 ));
-	std::unique_ptr<module::Sink<>                                     > sink         (factory::DVBS2O::build_sink                     <>(params                 ));
-	std::unique_ptr<module::Radio<>                                    > radio        (factory::DVBS2O::build_radio                    <>(params                 ));
-	std::unique_ptr<module::Scrambler<>                                > bb_scrambler (factory::DVBS2O::build_bb_scrambler             <>(params                 ));
-	std::unique_ptr<module::Decoder_HIHO<>                             > BCH_decoder  (factory::DVBS2O::build_bch_decoder              <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec_SIHO<>                               > LDPC_cdc     (factory::DVBS2O::build_ldpc_cdc                 <>(params                 ));
-	std::unique_ptr<module::Interleaver<float,uint32_t>                > itl_rx       (factory::DVBS2O::build_itl<float,uint32_t>        (params, *itl_core      ));
-	std::unique_ptr<module::Modem<>                                    > modem        (factory::DVBS2O::build_modem                    <>(params, std::move(cstl)));
-	std::unique_ptr<module::Multiplier_sine_ccc_naive<>                > freq_shift   (factory::DVBS2O::build_freq_shift               <>(params                 ));
-	std::unique_ptr<module::Synchronizer_frame<>                       > sync_frame   (factory::DVBS2O::build_synchronizer_frame       <>(params                 ));
-	std::unique_ptr<module::Synchronizer_Luise_Reggiannini_DVBS2_aib<> > sync_lr      (factory::DVBS2O::build_synchronizer_lr          <>(params                 ));
-	std::unique_ptr<module::Synchronizer_freq_phase_DVBS2_aib<>        > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase     <>(params                 ));
-	std::unique_ptr<module::Framer<>                                   > framer       (factory::DVBS2O::build_framer                   <>(params                 ));
-	std::unique_ptr<module::Scrambler<float>                           > pl_scrambler (factory::DVBS2O::build_pl_scrambler             <>(params                 ));
-	std::unique_ptr<module::Monitor_BFER<>                             > monitor      (factory::DVBS2O::build_monitor                  <>(params                 ));
-	std::unique_ptr<module::Filter_RRC_ccr_naive<>                     > matched_flt  (factory::DVBS2O::build_matched_filter           <>(params                 ));
-	std::unique_ptr<module::Synchronizer_Gardner_cc_naive<>            > sync_gardner (factory::DVBS2O::build_synchronizer_gardner     <>(params                 ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>                  > mult_agc     (factory::DVBS2O::build_agc_shift                <>(params                 ));
-	std::unique_ptr<module::Synchronizer_freq_coarse<>                 > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse <>(params                 ));
-	std::unique_ptr<module::Synchronizer_step_mf_cc<>                  > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(sync_coarse_f.get(),
-	                                                                                                                             matched_flt  .get(),
-	                                                                                                                             sync_gardner .get()    ));
+	std::unique_ptr<module::Source<>                    > source       (factory::DVBS2O::build_source                  <>(params                 ));
+	std::unique_ptr<module::Sink<>                      > sink         (factory::DVBS2O::build_sink                    <>(params                 ));
+	std::unique_ptr<module::Radio<>                     > radio        (factory::DVBS2O::build_radio                   <>(params                 ));
+	std::unique_ptr<module::Scrambler<>                 > bb_scrambler (factory::DVBS2O::build_bb_scrambler            <>(params                 ));
+	std::unique_ptr<module::Decoder_HIHO<>              > BCH_decoder  (factory::DVBS2O::build_bch_decoder             <>(params, poly_gen       ));
+	std::unique_ptr<module::Codec_SIHO<>                > LDPC_cdc     (factory::DVBS2O::build_ldpc_cdc                <>(params                 ));
+	std::unique_ptr<module::Interleaver<float,uint32_t> > itl_rx       (factory::DVBS2O::build_itl<float,uint32_t>       (params, *itl_core      ));
+	std::unique_ptr<module::Modem<>                     > modem        (factory::DVBS2O::build_modem                   <>(params, std::move(cstl)));
+	std::unique_ptr<module::Multiplier_sine_ccc_naive<> > freq_shift   (factory::DVBS2O::build_freq_shift              <>(params                 ));
+	std::unique_ptr<module::Synchronizer_frame<>        > sync_frame   (factory::DVBS2O::build_synchronizer_frame      <>(params                 ));
+	std::unique_ptr<module::Synchronizer_freq<>         > sync_lr      (factory::DVBS2O::build_synchronizer_lr         <>(params                 ));
+	std::unique_ptr<module::Synchronizer_freq<>         > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase <>(params                 ));
+	std::unique_ptr<module::Framer<>                    > framer       (factory::DVBS2O::build_framer                  <>(params                 ));
+	std::unique_ptr<module::Scrambler<float>            > pl_scrambler (factory::DVBS2O::build_pl_scrambler            <>(params                 ));
+	std::unique_ptr<module::Monitor_BFER<>              > monitor      (factory::DVBS2O::build_monitor                 <>(params                 ));
+	std::unique_ptr<module::Filter_RRC_ccr_naive<>      > matched_flt  (factory::DVBS2O::build_matched_filter          <>(params                 ));
+	std::unique_ptr<module::Synchronizer_timing <>      > sync_timing  (factory::DVBS2O::build_synchronizer_timing     <>(params                 ));
+	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > mult_agc     (factory::DVBS2O::build_agc_shift               <>(params                 ));
+	std::unique_ptr<module::Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse<>(params                 ));
+	std::unique_ptr<module::Synchronizer_step_mf_cc<>   > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc <>(sync_coarse_f.get(),
+	                                                                                                                       matched_flt  .get(),
+	                                                                                                                        sync_timing .get()    ));
 
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
 
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 	BCH_decoder  ->set_custom_name("BCH Decoder" );
 	sync_lr      ->set_custom_name("L&R F Syn"   );
 	sync_fine_pf ->set_custom_name("Fine P/F Syn");
-	sync_gardner ->set_custom_name("Gardner Syn" );
+	sync_timing ->set_custom_name("Gardner Syn" );
 	sync_frame   ->set_custom_name("Frame Syn"   );
 	matched_flt  ->set_custom_name("Matched Flt" );
 	sync_coarse_f->set_custom_name("Coarse_Synch");
@@ -79,7 +79,7 @@ int main(int argc, char** argv)
 	            itl_rx      .get(), modem       .get(), framer       .get(), pl_scrambler .get(),
 	            monitor     .get(), freq_shift  .get(), sync_lr      .get(), sync_fine_pf .get(),
 	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt  .get(),
-	            sync_gardner.get(), sync_step_mf.get(), mult_agc     .get(), sink         .get() };
+	            sync_timing.get(), sync_step_mf.get(), mult_agc     .get(), sink         .get() };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -132,7 +132,7 @@ int main(int argc, char** argv)
 	sync_coarse_f->disable_update();
 	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 	matched_flt  ->reset();
-	sync_gardner ->reset();
+	sync_timing ->reset();
 	sync_frame   ->reset();
 	sync_lr      ->reset();
 	sync_fine_pf ->reset();
@@ -171,7 +171,7 @@ int main(int argc, char** argv)
 			(*radio        )[rad::tsk::receive    ].exec();
 			(*sync_coarse_f)[syn::tsk::synchronize].exec();
 			(*matched_flt  )[flt::tsk::filter     ].exec();
-			(*sync_gardner )[syn::tsk::synchronize].exec();
+			(*sync_timing )[syn::tsk::synchronize].exec();
 			(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 			(*sync_frame   )[syn::tsk::synchronize].exec();
 			(*pl_scrambler )[scr::tsk::descramble ].exec();
@@ -180,11 +180,11 @@ int main(int argc, char** argv)
 		}
 
 		sprintf(buf, pattern, n_phase, m+1,
-				sync_gardner ->get_mu(),
+				sync_timing ->get_mu(),
 				sync_coarse_f->get_estimated_freq(),
 				the_delay,
-				sync_lr      ->get_est_reduced_freq() / (float)params.osf,
-				sync_fine_pf ->get_estimated_freq()   / (float)params.osf);
+				sync_lr      ->get_estimated_freq() / (float)params.osf,
+				sync_fine_pf ->get_estimated_freq() / (float)params.osf);
 		std::cerr << buf << "\r";
 		std::cerr.flush();
 
@@ -201,8 +201,8 @@ int main(int argc, char** argv)
 			std::cerr << buf << std::endl;
 			(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*radio        )[rad::sck::receive     ::Y_N1]);
 			(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
-			(*sync_gardner )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
-			(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_gardner )[syn::sck::synchronize ::Y_N2]);
+			(*sync_timing )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
+			(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing )[syn::sck::synchronize ::Y_N2]);
 			(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
 			sync_coarse_f->disable_update();
 		}
@@ -225,7 +225,7 @@ int main(int argc, char** argv)
 		(*radio        )[rad::tsk::receive     ].exec();
 		(*sync_coarse_f)[syn::tsk::synchronize ].exec();
 		(*matched_flt  )[flt::tsk::filter      ].exec();
-		(*sync_gardner )[syn::tsk::synchronize ].exec();
+		(*sync_timing )[syn::tsk::synchronize ].exec();
 		(*mult_agc     )[mlt::tsk::imultiply   ].exec();
 		(*sync_frame   )[syn::tsk::synchronize ].exec();
 		(*pl_scrambler )[scr::tsk::descramble  ].exec();
