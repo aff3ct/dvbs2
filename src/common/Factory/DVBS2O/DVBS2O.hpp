@@ -14,14 +14,13 @@
 #include "Module/Filter/Filter_unit_delay/Filter_unit_delay.hpp"
 #include "Module/Filter/Filter_FIR/Filter_RRC/Filter_RRC_ccr_naive.hpp"
 #include "Module/Filter/Filter_FIR/Farrow/Filter_Farrow_ccr_naive.hpp"
+#include "Module/Filter/Variable_delay/Variable_delay_cc_naive.hpp"
 #include "Module/Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 #include "Module/Multiplier/Sequence/Multiplier_AGC_cc_naive.hpp"
 #include "Module/Synchronizer/Synchronizer_LR_cc_naive.hpp"
 #include "Module/Synchronizer/Synchronizer_fine_pf_cc_DVBS2O.hpp"
 #include "Module/Synchronizer/Synchronizer_Gardner_cc_naive.hpp"
-#include "Module/Synchronizer/Synchronizer_frame_cc_naive.hpp"
-#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_DVBS2O.hpp"
-#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_NO.hpp"
+#include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame.hpp"
 #include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq.hpp"
 #include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "Module/Estimator/Estimator.hpp"
@@ -43,9 +42,6 @@ public:
 	const int   N_ldpc    = 16200;
 	const int   M         = 90;    // number of symbols per slot
 	const int   P         = 36;    // number of symbols per pilot
-	const float rolloff   = 0.2;   //  DVBS2 0.05; // DVBS2-X
-	const int   osf       = 4;
-	const int   grp_delay = 50;
 
 	const std::vector<float> pilot_values = std::vector<float  > (P*2, std::sqrt(2.0f)/2.0f);
 	const std::vector<int  > pilot_start  = {1530, 3006, 4482, 5958, 7434};
@@ -64,6 +60,7 @@ public:
 	bool  stats;
 	bool  no_pll;
 	bool  no_sync_info;
+	bool  frame_sync_fast;
 	int   max_fe;       // max number of frame errors per SNR point
 	int   max_n_frames; // max number of simulated frames per SNR point
 	int   K_bch;
@@ -77,6 +74,9 @@ public:
 	int   pl_frame_size;
 	int   itl_n_cols;
 	int   n_frames;
+	float rolloff;   //  DVBS2 0.05; // DVBS2-X
+	int   osf;
+	int   grp_delay;
 
 	std::chrono::milliseconds ter_freq;
 
@@ -170,7 +170,11 @@ public:
 
 	template <typename R = float>
 	static module::Filter_Farrow_ccr_naive<R>*
-	build_channel_delay(const DVBS2O& params);
+	build_channel_frac_delay(const DVBS2O& params);
+
+	template <typename R = float>
+	static module::Variable_delay_cc_naive<R>*
+	build_channel_int_delay(const DVBS2O& params);
 
 	template <typename R = float>
 	static module::Filter_RRC_ccr_naive<R>*
@@ -197,7 +201,11 @@ public:
 	build_agc_shift(const DVBS2O& params);
 
 	template <typename R = float>
-	static module::Synchronizer_frame_cc_naive<R>*
+	static module::Multiplier_AGC_cc_naive<R>*
+	build_channel_agc(const DVBS2O& params);
+
+	template <typename R = float>
+	static module::Synchronizer_frame<R>*
 	build_synchronizer_frame (const DVBS2O& params);
 
 	template <typename R = float>

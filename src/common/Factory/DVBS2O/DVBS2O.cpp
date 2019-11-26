@@ -3,6 +3,12 @@
 #include "Module/Encoder_BCH_DVBS2O/Encoder_BCH_DVBS2O.hpp"
 #include "Module/Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
 
+#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_DVBS2.hpp"
+#include "Module/Synchronizer/Synchronizer_coarse_freq/Synchronizer_coarse_freq_NO.hpp"
+
+#include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_aib.hpp"
+#include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_fast.hpp"
+
 using namespace aff3ct;
 using namespace aff3ct::factory;
 
@@ -71,6 +77,7 @@ void DVBS2O
 	args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),       "Display stats."                      );
 	args.add({"section"},            cli::Text(),                                           "Section to be used in bridge binary.");
 	args.add({"ter-freq"},           cli::Integer(cli::Positive()),                         "Terminal frequency."                 );
+	args.add({"frame-sync-fast"},    cli::None(),                                           "Enable fast frame synchronization."  );
 
 	p_rad.get_description(args);
 }
@@ -82,24 +89,28 @@ void DVBS2O
 
 	modcod_init(modcod); // initialize all the parameters that are dependant on modcod
 
-	ebn0_min       = vals.exist({"sim-noise-min","m"} ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
-	ebn0_max       = vals.exist({"sim-noise-max","M"} ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
-	ebn0_step      = vals.exist({"sim-noise-step","s"}) ? vals.to_float({"sim-noise-step","s"}) : .1f         ;
-	max_freq_shift = vals.exist({"chn-max-freq-shift"}) ? vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
-	max_delay      = vals.exist({"chn-max-delay"}     ) ? vals.to_float({"chn-max-delay"}     ) : 0.f         ;
-	ldpc_nite      = vals.exist({"dec-ite"}           ) ? vals.to_int  ({"dec-ite"}           ) : 50          ;
-	max_fe         = vals.exist({"max-fe","e"}        ) ? vals.to_int  ({"max-fe","e"}        ) : 100         ;
+	ebn0_min        = vals.exist({"sim-noise-min","m"} ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
+	ebn0_max        = vals.exist({"sim-noise-max","M"} ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
+	ebn0_step       = vals.exist({"sim-noise-step","s"}) ? vals.to_float({"sim-noise-step","s"}) : .1f         ;
+	max_freq_shift  = vals.exist({"chn-max-freq-shift"}) ? vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
+	max_delay       = vals.exist({"chn-max-delay"}     ) ? vals.to_float({"chn-max-delay"}     ) : 0.f         ;
+	ldpc_nite       = vals.exist({"dec-ite"}           ) ? vals.to_int  ({"dec-ite"}           ) : 50          ;
+	max_fe          = vals.exist({"max-fe","e"}        ) ? vals.to_int  ({"max-fe","e"}        ) : 100         ;
 	n_frames       = vals.exist({"src-fra","f"}       ) ? vals.to_int  ({"src-fra","f"}       ) : 1           ;
-	sink_path      = vals.exist({"snk-path"}          ) ? vals.at      ({"snk-path"}          ) : ""          ;
-	ldpc_implem    = vals.exist({"dec-implem"}        ) ? vals.at      ({"dec-implem"}        ) : "SPA"       ;
-	ldpc_simd      = vals.exist({"dec-simd"}          ) ? vals.at      ({"dec-simd"}          ) : ""          ;
-	section        = vals.exist({"section"}           ) ? vals.at      ({"section"}           ) : ""          ;
-	src_type       = vals.exist({"src-type"}          ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
-	src_path       = vals.exist({"src-path"}          ) ? vals.at      ({"src-path"}          ) : src_path    ;
-	debug          = vals.exist({"sim-debug","d"}     ) ? true                                  : false       ;
-	stats          = vals.exist({"sim-stats"}         ) ? true                                  : false       ;
-	no_pll         = vals.exist({"no-pll"}            ) ? true                                  : false       ;
-	no_sync_info   = vals.exist({"no-sync-info"}      ) ? true                                  : false       ;
+	sink_path       = vals.exist({"snk-path"}          ) ? vals.at      ({"snk-path"}          ) : ""          ;
+	ldpc_implem     = vals.exist({"dec-implem"}        ) ? vals.at      ({"dec-implem"}        ) : "SPA"       ;
+	ldpc_simd       = vals.exist({"dec-simd"}          ) ? vals.at      ({"dec-simd"}          ) : ""          ;
+	section         = vals.exist({"section"}           ) ? vals.at      ({"section"}           ) : ""          ;
+	src_type        = vals.exist({"src-type"}          ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
+	src_path        = vals.exist({"src-path"}          ) ? vals.at      ({"src-path"}          ) : src_path    ;
+	debug           = vals.exist({"sim-debug","d"}     ) ? true                                  : false       ;
+	stats           = vals.exist({"sim-stats"}         ) ? true                                  : false       ;
+	no_pll          = vals.exist({"no-pll"}            ) ? true                                  : false       ;
+	no_sync_info    = vals.exist({"no-sync-info"}      ) ? true                                  : false       ;
+	rolloff         = vals.exist({"shp-rolloff"}       ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f        ;
+	osf             = vals.exist({"shp-osf"}           ) ? vals.to_int  ({"shp-osf"}           ) : 4           ;
+	grp_delay       = vals.exist({"shp-grp-delay"}     ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15          ;
+	frame_sync_fast = vals.exist({"frame-sync-fast"}   ) ? true                                  : false       ;
 
 	if (vals.exist({"ter-freq"}))
 		ter_freq = std::chrono::milliseconds(vals.to_int  ({"ter-freq"}));
@@ -363,11 +374,21 @@ module::Filter_UPRRC_ccr_naive<R>* DVBS2O
 
 template <typename R>
 module::Filter_Farrow_ccr_naive<R>* DVBS2O
-::build_channel_delay(const DVBS2O& params)
+::build_channel_frac_delay(const DVBS2O& params)
 {
+	R frac_delay = params.max_delay - std::floor(params.max_delay);
 	return new module::Filter_Farrow_ccr_naive <float>(params.pl_frame_size * 2 * params.osf,
 	                                                   params.max_delay,
 	                                                   params.n_frames);
+}
+
+template <typename R>
+module::Variable_delay_cc_naive<R>* DVBS2O
+::build_channel_int_delay(const DVBS2O& params)
+{
+	int N_cplx = params.pl_frame_size * params.osf;
+	int int_delay = ((int)std::floor(params.max_delay) + N_cplx - 2) % N_cplx;
+	return new module::Variable_delay_cc_naive <float>(N_cplx * 2, int_delay, int_delay, params.n_frames);
 }
 
 template <typename R>
@@ -459,14 +480,24 @@ template <typename R>
 module::Multiplier_AGC_cc_naive<R>* DVBS2O
 ::build_agc_shift(const DVBS2O& params)
 {
-	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size, params.n_frames);
+	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size, (R) 1, params.n_frames);
 }
 
 template <typename R>
-module::Synchronizer_frame_cc_naive<R>* DVBS2O
+module::Multiplier_AGC_cc_naive<R>* DVBS2O
+::build_channel_agc(const DVBS2O& params)
+{
+	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size * params.osf, 1.0/(R)params.osf, params.n_frames);
+}
+
+template <typename R>
+module::Synchronizer_frame<R>* DVBS2O
 ::build_synchronizer_frame(const DVBS2O& params)
 {
-	return new module::Synchronizer_frame_cc_naive<R>(2 * params.pl_frame_size, params.n_frames);
+	if (params.frame_sync_fast)
+		return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_DVBS2_fast<R>(2 * params.pl_frame_size, params.n_frames));
+	else
+		return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_DVBS2_aib <R>(2 * params.pl_frame_size, params.n_frames));
 }
 
 template <typename R>
@@ -477,7 +508,7 @@ module::Synchronizer_coarse_freq<R>* DVBS2O
 		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_NO    <R>
 		                                               (2 * params.pl_frame_size * params.osf, params.n_frames));
 	else
-		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_DVBS2O<R>
+		return (module::Synchronizer_coarse_freq<R> *)(new module::Synchronizer_coarse_freq_DVBS2<R>
 		                                               (2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4,
 		                                                params.n_frames));
 }
@@ -518,7 +549,8 @@ template aff3ct::module::Framer<R>*                            DVBS2O::build_fra
 template aff3ct::module::Scrambler_BB<B>*                      DVBS2O::build_bb_scrambler<B>            (const DVBS2O& params);
 template aff3ct::module::Scrambler_PL<R>*                      DVBS2O::build_pl_scrambler<R>            (const DVBS2O& params);
 template aff3ct::module::Filter_UPRRC_ccr_naive<R>*            DVBS2O::build_uprrc_filter<R>            (const DVBS2O& params);
-template aff3ct::module::Filter_Farrow_ccr_naive<R>*           DVBS2O::build_channel_delay<R>           (const DVBS2O& params);
+template aff3ct::module::Filter_Farrow_ccr_naive<R>*           DVBS2O::build_channel_frac_delay<R>      (const DVBS2O& params);
+template aff3ct::module::Variable_delay_cc_naive<R>*           DVBS2O::build_channel_int_delay<R>       (const DVBS2O& params);
 template aff3ct::module::Filter_RRC_ccr_naive<R>*              DVBS2O::build_matched_filter<R>          (const DVBS2O& params);
 template aff3ct::module::Estimator<R>*                         DVBS2O::build_estimator<R>               (const DVBS2O& params);
 template aff3ct::module::Monitor_BFER<B>*                      DVBS2O::build_monitor<B>                 (const DVBS2O& params);
@@ -528,7 +560,8 @@ template aff3ct::module::Synchronizer_LR_cc_naive<R>*          DVBS2O::build_syn
 template aff3ct::module::Synchronizer_fine_pf_cc_DVBS2O<R>*    DVBS2O::build_synchronizer_fine_pf<R>    (const DVBS2O& params);
 template aff3ct::module::Synchronizer_Gardner_cc_naive<R>*     DVBS2O::build_synchronizer_gardner<R>    (const DVBS2O& params);
 template aff3ct::module::Multiplier_AGC_cc_naive<R>*           DVBS2O::build_agc_shift<R>               (const DVBS2O& params);
-template aff3ct::module::Synchronizer_frame_cc_naive<R>*       DVBS2O::build_synchronizer_frame<R>      (const DVBS2O& params);
+template aff3ct::module::Multiplier_AGC_cc_naive<R>*           DVBS2O::build_channel_agc<R>             (const DVBS2O& params);
+template aff3ct::module::Synchronizer_frame<R>*                DVBS2O::build_synchronizer_frame<R>      (const DVBS2O& params);
 template aff3ct::module::Synchronizer_coarse_freq<R>*          DVBS2O::build_synchronizer_coarse_freq<R>(const DVBS2O& params);
 template aff3ct::module::Filter_unit_delay<B>*                 DVBS2O::build_unit_delay<B>              (const DVBS2O& params);
 template aff3ct::tools ::Interleaver_core<uint32_t>*           DVBS2O::build_itl_core<uint32_t>         (const DVBS2O& params);

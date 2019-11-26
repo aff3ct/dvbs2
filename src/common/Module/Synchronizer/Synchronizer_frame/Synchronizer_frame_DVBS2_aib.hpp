@@ -1,10 +1,10 @@
-#ifndef SYNCHRONIZER_FRAME_CC_NAIVE_HPP
-#define SYNCHRONIZER_FRAME_CC_NAIVE_HPP
+#ifndef SYNCHRONIZER_FRAME_DVBS2_AIB_HPP
+#define SYNCHRONIZER_FRAME_DVBS2_AIB_HPP
 
 #include <vector>
 #include <complex>
 
-#include "Module/Synchronizer/Synchronizer.hpp"
+#include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame.hpp"
 #include "Module/Filter/Variable_delay/Variable_delay_cc_naive.hpp"
 
 namespace aff3ct
@@ -12,7 +12,7 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Synchronizer_frame_cc_naive : public Synchronizer<R>
+class Synchronizer_frame_DVBS2_aib : public Synchronizer_frame<R>
 {
 private:
 	const std::vector<std::complex<R> >  conj_SOF_PLSC = {std::complex<R>(0,1), std::complex<R>(0,1), std::complex<R>(0,1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,-1), std::complex<R>(0,-1), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,-1), std::complex<R>(0,0), std::complex<R>(0,1), std::complex<R>(0,0), std::complex<R>(0,1)};
@@ -25,12 +25,12 @@ private:
 	std::vector<R               > corr_vec;
 	int head;
 	int SOF_PLSC_sz;
-	int delay;
 	Variable_delay_cc_naive<R> output_delay;
 
 public:
-	Synchronizer_frame_cc_naive (const int N, const int n_frames = 1);
-	virtual ~Synchronizer_frame_cc_naive();
+	Synchronizer_frame_DVBS2_aib (const int N, const int n_frames = 1);
+	virtual ~Synchronizer_frame_DVBS2_aib();
+
 	void step(const std::complex<R>* x_elt, R* y_elt);
 	void reset();
 	int get_delay(){return this->delay;};
@@ -42,4 +42,4 @@ protected:
 }
 }
 
-#endif //SYNCHRONIZER_FRAME_CC_NAIVE_HPP
+#endif //SYNCHRONIZER_FRAME_DVBS2_AIB_HPP

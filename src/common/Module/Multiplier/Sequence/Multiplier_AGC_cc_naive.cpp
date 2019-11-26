@@ -9,8 +9,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Multiplier_AGC_cc_naive<R>
-::Multiplier_AGC_cc_naive(const int N, const int n_frames)
-: Multiplier<R>(N, n_frames)
+::Multiplier_AGC_cc_naive(const int N, const R output_energy, const int n_frames)
+: Multiplier<R>(N, n_frames), output_energy(output_energy)
 {
 }
 
@@ -33,7 +33,9 @@ void Multiplier_AGC_cc_naive<R>
 		sum_val_re += X_N[2*i];
 		sum_val_im += X_N[2*i+1];
 	}
+
 	R std_xn = sqrt(sum_abs_2 * (R)N_cplx - sum_val_re*sum_val_re - sum_val_im * sum_val_im) / (R)N_cplx;
+	std_xn /= sqrt(output_energy);
 
 	for (int i = 0 ; i < N_cplx ; i++)
 	{

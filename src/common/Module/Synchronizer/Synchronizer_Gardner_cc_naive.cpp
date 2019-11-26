@@ -140,6 +140,10 @@ void Synchronizer_Gardner_cc_naive<R>
 	}
 
 	this->NCO_counter = (this->NCO_counter - W) - std::floor(this->NCO_counter - W); // Update counter*/
+
+	//this->is_strobe = ((int)this->NCO_counter % 4 == 0) ? 1:0; // Check if a strobe
+	//this->NCO_counter += 1.0f;
+	//this->NCO_counter = (R)((int)this->NCO_counter % 4);
 }
 
 template <typename R>

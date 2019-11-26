@@ -37,8 +37,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Interleaver<float,uint32_t>        > itl_rx       (factory::DVBS2O::build_itl<float,uint32_t>        (params, *itl_core      ));
 	std::unique_ptr<module::Modem<>                            > modem        (factory::DVBS2O::build_modem                    <>(params, std::move(cstl)));
 	std::unique_ptr<module::Multiplier_sine_ccc_naive<>        > freq_shift   (factory::DVBS2O::build_freq_shift               <>(params                 ));
-	std::unique_ptr<module::Filter_Farrow_ccr_naive<>          > chn_delay    (factory::DVBS2O::build_channel_delay            <>(params                 ));
-	std::unique_ptr<module::Synchronizer_frame_cc_naive<>      > sync_frame   (factory::DVBS2O::build_synchronizer_frame       <>(params                 ));
+	std::unique_ptr<module::Synchronizer_frame<>               > sync_frame   (factory::DVBS2O::build_synchronizer_frame       <>(params                 ));
 	std::unique_ptr<module::Synchronizer_LR_cc_naive<>         > sync_lr      (factory::DVBS2O::build_synchronizer_lr          <>(params                 ));
 	std::unique_ptr<module::Synchronizer_fine_pf_cc_DVBS2O<>   > sync_fine_pf (factory::DVBS2O::build_synchronizer_fine_pf     <>(params                 ));
 	std::unique_ptr<module::Framer<>                           > framer       (factory::DVBS2O::build_framer                   <>(params                 ));
@@ -77,12 +76,11 @@ int main(int argc, char** argv)
 	terminal->legend();
 
 	// fill the list of modules
-	modules = { bb_scrambler.get(), BCH_decoder  .get(), source      .get(), LDPC_decoder .get(),
-	            itl_rx      .get(), modem        .get(), framer      .get(), pl_scrambler .get(),
-	            monitor     .get(), freq_shift   .get(), sync_lr     .get(), sync_fine_pf .get(),
-	            chn_delay   .get(), radio        .get(), sync_frame  .get(), sync_coarse_f.get(),
-	            matched_flt .get(), sync_gardner .get(), sync_step_mf.get(), mult_agc     .get(),
-	            sink        .get()                                                               };
+	modules = { bb_scrambler.get(), BCH_decoder .get(), source       .get(), LDPC_decoder .get(),
+	            itl_rx      .get(), modem       .get(), framer       .get(), pl_scrambler .get(),
+	            monitor     .get(), freq_shift  .get(), sync_lr      .get(), sync_fine_pf .get(),
+	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt  .get(),
+	            sync_gardner.get(), sync_step_mf.get(), mult_agc     .get(), sink         .get() };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -130,7 +128,6 @@ int main(int argc, char** argv)
 	LDPC_cdc->set_noise(noise);
 	modem   ->set_noise(noise);
 
-	chn_delay    ->reset();
 	freq_shift   ->reset();
 	sync_coarse_f->reset();
 	sync_coarse_f->disable_update();

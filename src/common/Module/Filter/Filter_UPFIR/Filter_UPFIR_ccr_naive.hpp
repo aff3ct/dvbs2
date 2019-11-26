@@ -4,7 +4,7 @@
 #include <vector>
 #include <complex>
 
-#include "Module/Filter/Filter_FIR/Filter_FIR_ccr_naive.hpp"
+#include "Module/Filter/Filter_FIR/Filter_FIR_ccr.hpp"
 
 namespace aff3ct
 {
@@ -25,7 +25,7 @@ protected:
 private:
 	const int                           F;       // Upsampling Factor
 	std::vector<std::vector<R> >        H;       // Impulse response
-	std::vector<Filter_FIR_ccr_naive<R> > flt_bank;// Filter bank
+	std::vector<Filter_FIR_ccr<R> > flt_bank;// Filter bank
 };
 }
 }

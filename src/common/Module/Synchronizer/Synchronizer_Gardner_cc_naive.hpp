@@ -67,6 +67,7 @@ public:
 
 	void step(const std::complex<R> *X_N1);
 	R get_mu() {return this->mu;};
+	void set_mu(R mu) { this->mu = mu;};
 	int get_is_strobe() {return this->is_strobe;};
 	std::complex<R> get_last_symbol() {return this->last_symbol;};
 	void pop(std::complex<R> *strobe);

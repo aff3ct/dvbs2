@@ -1,5 +1,5 @@
-#ifndef SYNCHRONIZER_COARSE_FR_CC_DVBS2O
-#define SYNCHRONIZER_COARSE_FR_CC_DVBS2O
+#ifndef SYNCHRONIZER_COARSE_FR_CC_DVBS2
+#define SYNCHRONIZER_COARSE_FR_CC_DVBS2
 
 #include <vector>
 #include <complex>
@@ -12,7 +12,7 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Synchronizer_coarse_freq_DVBS2O : public Synchronizer_coarse_freq<R>
+class Synchronizer_coarse_freq_DVBS2 : public Synchronizer_coarse_freq<R>
 {
 private:
 const std::vector<int > PL_RAND_SEQ {
@@ -4191,11 +4191,12 @@ const std::vector<int > PL_RAND_SEQ {
 
 
 public:
-	Synchronizer_coarse_freq_DVBS2O(const int N, const int samples_per_symbol = 4,
-	                                const R damping_factor = 1/std::sqrt((R)2.0),
+	Synchronizer_coarse_freq_DVBS2(const int N, const int samples_per_symbol = 4,
+	                                const R damping_factor = 1 / std::sqrt((R)2.0),
 	                                const R normalized_bandwidth = (R)1e-4,
 	                                const int n_frames = 1);
-	virtual ~Synchronizer_coarse_freq_DVBS2O();
+	virtual ~Synchronizer_coarse_freq_DVBS2();
+
 	void reset();
 
 	void update_phase(const std::complex<R> spl);
@@ -4210,4 +4211,4 @@ protected:
 }
 }
 
-#endif //SYNCHRONIZER_COARSE_FR_CC_DVBS2O
+#endif //SYNCHRONIZER_COARSE_FR_CC_DVBS2
