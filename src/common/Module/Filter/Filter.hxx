@@ -53,7 +53,6 @@ template <typename R>
 void Filter<R>::
 init_processes()
 {
-	std::cout << n_frames << std::endl;
 	auto &p2 = this->create_task("filter");
 	auto p2s_X_N1 = this->template create_socket_in <R>(p2, "X_N1", this->N    );
 	auto p2s_Y_N2 = this->template create_socket_out<R>(p2, "Y_N2", this->N_fil);
