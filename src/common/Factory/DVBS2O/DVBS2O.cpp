@@ -376,7 +376,6 @@ template <typename R>
 module::Filter_Farrow_ccr_naive<R>* DVBS2O
 ::build_channel_frac_delay(const DVBS2O& params)
 {
-	R frac_delay = params.max_delay - std::floor(params.max_delay);
 	return new module::Filter_Farrow_ccr_naive <float>(params.pl_frame_size * 2 * params.osf,
 	                                                   params.max_delay,
 	                                                   params.n_frames);
