@@ -105,24 +105,24 @@ _receive(R *Y_N1, const int frame_id)
 		        // count overflows ?
 		        if (!md.out_of_sequence)
 		        {
-		        	// UHD_LOGGER_INFO("RADIO USRP") << "Detected overflow in Radio Rx.";
+		        	UHD_LOGGER_INFO("RADIO USRP") << "Detected overflow in Radio Rx.";
 		        } else
 		        {
-		            // UHD_LOGGER_INFO("RADIO USRP") << "Detected Rx sequence error.";
+		            UHD_LOGGER_INFO("RADIO USRP") << "Detected Rx sequence error.";
 		        }
 		        break;
 
 		    case uhd::rx_metadata_t::ERROR_CODE_LATE_COMMAND:
-		    	// UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
-		        // // Radio core will be in the idle state. Issue stream command to restart
-		        // // streaming.
+		    	UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
+		        // Radio core will be in the idle state. Issue stream command to restart
+		        // streaming.
 		        // cmd.time_spec  = usrp->get_time_now() + uhd::time_spec_t(0.05);
 		        // cmd.stream_now = (buffs.size() == 1);
 		        // rx_stream->issue_stream_cmd(cmd);
 		        break;
 
 		    case uhd::rx_metadata_t::ERROR_CODE_TIMEOUT:
-		    	// UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
+		    	UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
 		        break;
 
 		        // Otherwise, it's an error
