@@ -1,6 +1,7 @@
 *.gitignore*
 
 src/common/version.cpp
+src/mains/test.cpp
 .cproject
 .project
 .pydevproject

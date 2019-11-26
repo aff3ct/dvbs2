@@ -14,7 +14,7 @@ template <typename R = float>
 class Synchronizer_coarse_freq : public Synchronizer<R>
 {
 public:
-	Synchronizer_coarse_freq(const int N);
+	Synchronizer_coarse_freq(const int N, const int n_frames = 1);
 	virtual ~Synchronizer_coarse_freq() = default;
 
 	virtual void update_phase(const std::complex<R> spl) = 0;
@@ -24,7 +24,7 @@ public:
 	void enable_update (){this->is_active = true; };
 	void disable_update(){this->is_active = false;};
 	void set_curr_idx(int curr_idx) {this->curr_idx = curr_idx;};
-
+	void set_estimated_freq(R estimated_freq) {this->estimated_freq = estimated_freq;};
 	R get_estimated_freq() {return this->estimated_freq;};
 
 protected:

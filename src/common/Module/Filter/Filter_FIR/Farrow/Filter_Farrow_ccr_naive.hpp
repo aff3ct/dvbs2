@@ -24,7 +24,7 @@ private:
 	R mu;
 public:
 
-	Filter_Farrow_ccr_naive (const int N, const R mu);
+	Filter_Farrow_ccr_naive (const int N, const R mu, const int n_frames = 1);
 	virtual ~Filter_Farrow_ccr_naive();
 	void set_mu(R mu);
 	void step(const std::complex<R>* x_elt, std::complex<R>* y_elt);

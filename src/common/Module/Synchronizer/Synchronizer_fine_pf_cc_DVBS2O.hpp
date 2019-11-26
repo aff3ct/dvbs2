@@ -23,7 +23,8 @@ private:
 	R estimated_phase;
 
 public:
-	Synchronizer_fine_pf_cc_DVBS2O (const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start);
+	Synchronizer_fine_pf_cc_DVBS2O (const int N, const std::vector<R> pilot_values, const std::vector<int> pilot_start,
+	                                const int n_frames = 1);
 	virtual ~Synchronizer_fine_pf_cc_DVBS2O();
 	void reset();
 	R get_estimated_freq(){return this->estimated_freq;};

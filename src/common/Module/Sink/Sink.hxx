@@ -37,7 +37,7 @@ Sink(const int N, const int n_frames)
 	}
 
 	auto &p1 = this->create_task("send");
-	auto p1s_X_N1 = this->template create_socket_in <B>(p1, "X_N1", N * this->n_frames);
+	auto p1s_X_N1 = this->template create_socket_in <B>(p1, "X_N1", N);
 	this->create_codelet(p1, [this, p1s_X_N1](Task& t) -> int
 	{
 		this->send(static_cast<B*>(t[p1s_X_N1].get_dataptr()));
@@ -62,7 +62,7 @@ send(const B *X_N1, const int frame_id)
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_send(X_N1 + f * this->N * 2, f);
+		this->_send(X_N1 + f * this->N, f);
 }
 
 }

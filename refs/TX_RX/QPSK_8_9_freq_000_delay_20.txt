@@ -1,5 +1,5 @@
 [metadata]
-command=dvbs2_optique_tx_rx -m 3.4 -M 3.71 -s 0.1 --chn-max-freq-shift 0 --chn-max-delay 0.0 --no-sync-info
+command=dvbs2_optique_tx_rx -m 3.4 -M 3.71 -s 0.1 --chn-max-freq-shift 0 --chn-max-delay 2.0 --no-sync-info
 
 [trace]
 # * DVBS2O ----------------------------------------

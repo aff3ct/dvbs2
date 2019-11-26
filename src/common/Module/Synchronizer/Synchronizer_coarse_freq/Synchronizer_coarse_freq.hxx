@@ -15,8 +15,8 @@ namespace module
 {
 	template <typename R>
 	Synchronizer_coarse_freq<R>::
-	Synchronizer_coarse_freq(const int N)
-	: Synchronizer<R>(N,N), is_active(false), curr_idx(0), estimated_freq((R)0.0)
+	Synchronizer_coarse_freq(const int N, const int n_frames)
+	: Synchronizer<R>(N, N, n_frames), is_active(false), curr_idx(0), estimated_freq((R)0.0)
 	{
 	}
 }

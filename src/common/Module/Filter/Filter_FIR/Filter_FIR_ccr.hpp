@@ -1,5 +1,5 @@
-#ifndef FILTER_FIR_CCR_NAIVE_HPP
-#define FILTER_FIR_CCR_NAIVE_HPP
+#ifndef FILTER_FIR_CCR_HPP
+#define FILTER_FIR_CCR_HPP
 
 #include <vector>
 #include <complex>
@@ -11,17 +11,19 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Filter_FIR_ccr_naive : public Filter<R>
+class Filter_FIR_ccr : public Filter<R>
 {
 private:
 	std::vector<R> b;
 	std::vector<std::complex<R> > buff;
 	int head;
 	int size;
+	int M;
+	int P;
 
 public:
-	Filter_FIR_ccr_naive (const int N, const std::vector<R> b, const int n_frames = 1);
-	virtual ~Filter_FIR_ccr_naive();
+	Filter_FIR_ccr (const int N, const std::vector<R> b, const int n_frames = 1);
+	virtual ~Filter_FIR_ccr();
 	inline void step(const std::complex<R>* x_elt, std::complex<R>* y_elt);
 	void reset();
 	std::vector<R> get_filter_coefs();
@@ -32,7 +34,7 @@ protected:
 
 // Adrien: I put this function here because you wanted to be inlined
 template <typename R>
-void Filter_FIR_ccr_naive<R>
+void Filter_FIR_ccr<R>
 ::step(const std::complex<R>* x_elt, std::complex<R>* y_elt)
 {
 	this->buff[this->head] = *x_elt;
@@ -40,7 +42,7 @@ void Filter_FIR_ccr_naive<R>
 
 	std::complex<R> ps = this->buff[this->head+1] * this->b[0];
 	for (auto i = 1; i < this->size ; i++)
-		ps += this->buff[this->head+1+i] * this->b[i];
+		ps += this->buff[this->head + 1 + i] * this->b[i];
 
 	*y_elt = ps;
 
@@ -51,4 +53,4 @@ void Filter_FIR_ccr_naive<R>
 }
 }
 
-#endif //FILTER_FIR_CCR_NAIVE_HPP
+#endif //FILTER_FIR_CCR_HPP

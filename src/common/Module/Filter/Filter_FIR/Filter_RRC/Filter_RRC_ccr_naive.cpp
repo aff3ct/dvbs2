@@ -11,6 +11,23 @@ using namespace aff3ct::module;
 #endif
 
 template <typename R>
+Filter_RRC_ccr_naive<R>
+::Filter_RRC_ccr_naive(const int N, const R rolloff, const int samples_per_symbol, const int delay_in_symbol,
+                       const int n_frames)
+: Filter_FIR_ccr<R>(N, this->compute_rrc_coefs(rolloff, samples_per_symbol, delay_in_symbol), n_frames),
+  rolloff(rolloff),
+  samples_per_symbol(samples_per_symbol),
+  delay_in_symbol(delay_in_symbol)
+{
+}
+
+template <typename R>
+Filter_RRC_ccr_naive<R>
+::~Filter_RRC_ccr_naive()
+{
+}
+
+template <typename R>
 std::vector<R> Filter_RRC_ccr_naive<R>
 ::compute_rrc_coefs(const R rolloff, const int samples_per_symbol, const int delay_in_symbol)
 {
@@ -47,16 +64,7 @@ std::vector<R> Filter_RRC_ccr_naive<R>
 	return rrc_coefs;
 }
 
-template <typename R>
-Filter_RRC_ccr_naive<R>
-::Filter_RRC_ccr_naive(const int N, const R rolloff, const int samples_per_symbol, const int delay_in_symbol)
-: Filter_FIR_ccr_naive<R>(N, this->compute_rrc_coefs(rolloff, samples_per_symbol, delay_in_symbol)), rolloff(rolloff), samples_per_symbol(samples_per_symbol), delay_in_symbol(delay_in_symbol)
-{
-}
 
-template <typename R>
-Filter_RRC_ccr_naive<R>
-::~Filter_RRC_ccr_naive(){}
 
 // ==================================================================================== explicit template instantiation
 template class aff3ct::module::Filter_RRC_ccr_naive<float>;

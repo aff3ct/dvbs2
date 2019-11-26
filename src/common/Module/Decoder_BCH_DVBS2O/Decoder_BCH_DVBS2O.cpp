@@ -10,7 +10,7 @@ using namespace aff3ct::module;
 template <typename B, typename R>
 Decoder_BCH_DVBS2O<B, R>
 ::Decoder_BCH_DVBS2O(const int& K, const int& N, const tools::BCH_polynomial_generator<B>& GF_poly, const int n_frames)
- : Decoder         (K, N,                  n_frames, 1),
+ : Decoder         (K, N,                  n_frames, 1), // TODO specify inter frame level
    Decoder_BCH_std<B, R>(K, N, GF_poly, n_frames)
 {
 	const std::string name = "Decoder_BCH_DVBS2O";

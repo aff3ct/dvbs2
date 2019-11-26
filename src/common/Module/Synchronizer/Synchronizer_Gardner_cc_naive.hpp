@@ -59,12 +59,15 @@ private:
 	void push(const std::complex<R> strobe);
 
 public:
-	Synchronizer_Gardner_cc_naive (const int N, int osf, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2);
+	Synchronizer_Gardner_cc_naive (const int N, int osf, const R damping_factor = std::sqrt(0.5),
+	                               const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2,
+	                               const int n_frames = 1);
 	virtual ~Synchronizer_Gardner_cc_naive();
 	void reset();
 
 	void step(const std::complex<R> *X_N1);
 	R get_mu() {return this->mu;};
+	void set_mu(R mu) { this->mu = mu;};
 	int get_is_strobe() {return this->is_strobe;};
 	std::complex<R> get_last_symbol() {return this->last_symbol;};
 	void pop(std::complex<R> *strobe);

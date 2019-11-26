@@ -17,7 +17,7 @@ private:
 	std::vector<R > mem;
 
 public:
-	Filter_unit_delay (const int N);
+	Filter_unit_delay (const int N, const int n_frames = 1);
 	virtual ~Filter_unit_delay();
 
 	void reset();
