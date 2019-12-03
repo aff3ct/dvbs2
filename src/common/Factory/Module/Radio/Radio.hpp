@@ -30,6 +30,7 @@ public:
 	double rx_rate             = 8e6;
 	double rx_freq             = 1090e6;
 	double rx_gain             = 10;
+	std::string rx_filepath    = "radio.bin";
 
 	std::string tx_subdev_spec = "A:0";
 	std::string tx_antenna      = "TX/RX";
