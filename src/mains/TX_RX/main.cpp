@@ -72,9 +72,9 @@ int main(int argc, char** argv)
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
 	BCH_encoder  ->set_custom_name("BCH Encoder" );
 	BCH_decoder  ->set_custom_name("BCH Decoder" );
-	sync_fine_lr      ->set_custom_name("L&R F Syn"   );
+	sync_fine_lr ->set_custom_name("L&R F Syn"   );
 	sync_fine_pf ->set_custom_name("Fine P/F Syn");
-	sync_timing  ->set_custom_name("Timing Syn" );
+	sync_timing  ->set_custom_name("Timing Syn"  );
 	sync_frame   ->set_custom_name("Frame Syn"   );
 	matched_flt  ->set_custom_name("Matched Flt" );
 	shaping_flt  ->set_custom_name("Shaping Flt" );
