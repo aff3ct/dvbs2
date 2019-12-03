@@ -25,7 +25,6 @@ int main(int argc, char** argv)
 
 	// construct modules
 	std::unique_ptr<module::Source<>> source       (factory::DVBS2O::build_source                   <>(params                 ));
-	std::unique_ptr<module::Sink<>  > sink         (factory::DVBS2O::build_sink                     <>(params                 ));
 	std::unique_ptr<module::Radio<> > radio        (factory::DVBS2O::build_radio                    <>(params                 ));
 
 	// allocate reporters to display results in the terminal
@@ -38,7 +37,7 @@ int main(int argc, char** argv)
 	terminal->legend();
 
 	// fulfill the list of modules
-	modules = {source.get(), sink.get(), radio.get()};
+	modules = {source.get(), radio.get()};
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -55,7 +54,6 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
-	(*sink        )[snk::sck::send        ::X_N1].bind((*source      )[src::sck::generate   ::U_K  ]);
 	dumper.register_data(static_cast<R*>((*radio)[rad::sck::receive::Y_N1].get_dataptr()), params.p_rad.N, 0, std::string("bin"), true);
 
 	for (auto i = 0; !terminal->is_interrupt() ; i++)
