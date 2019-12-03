@@ -9,7 +9,7 @@ using namespace aff3ct::module;
 template <typename R>
 Filter_FIR_ccr<R>
 ::Filter_FIR_ccr(const int N, const std::vector<R> b, const int n_frames)
-: Filter<R>(N,N, n_frames),
+: Filter<R>(N, N, n_frames),
 b(b.size(), R(0)),
 buff(2*b.size(), std::complex<R>(R(0))),
 head(0),

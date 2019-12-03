@@ -22,7 +22,7 @@ private:
 	R NCO_counter;
 
 public:
-	Synchronizer_timing_perfect (const int N, const int osf, const R channel_delay);
+	Synchronizer_timing_perfect (const int N, const int osf, const R channel_delay, const int n_frames = 1);
 	virtual ~Synchronizer_timing_perfect();
 
 	void reset_();

@@ -14,7 +14,7 @@ template <typename R = float>
 class Synchronizer_freq : public Synchronizer<R>
 {
 public:
-	Synchronizer_freq(const int N);
+	Synchronizer_freq(const int N, const int n_frames = 1);
 	virtual ~Synchronizer_freq() = default;
 
 	R get_estimated_freq () {return this->estimated_freq; };

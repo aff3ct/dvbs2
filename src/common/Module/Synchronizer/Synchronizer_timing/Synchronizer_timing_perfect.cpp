@@ -12,8 +12,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_timing_perfect<R>
-::Synchronizer_timing_perfect(const int N, const int osf, const R channel_delay)
-: Synchronizer_timing<R>(N, osf),
+::Synchronizer_timing_perfect(const int N, const int osf, const R channel_delay, const int n_frames)
+: Synchronizer_timing<R>(N, osf, n_frames),
 farrow_flt   (N, (R)0),
 NCO_counter_0((R)0),
 NCO_counter  ((R)0)

@@ -15,8 +15,8 @@ namespace module
 {
 	template <typename R>
 	Synchronizer_freq<R>::
-	Synchronizer_freq(const int N)
-	: Synchronizer<R>(N,N), estimated_freq((R)0.0), estimated_phase((R)0.0)
+	Synchronizer_freq(const int N, const int n_frames)
+	: Synchronizer<R>(N, N, n_frames), estimated_freq((R)0.0), estimated_phase((R)0.0)
 	{
 	}
 

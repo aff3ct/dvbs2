@@ -41,7 +41,7 @@ private:
 	void interpolation_control();
 
 public:
-	Synchronizer_Gardner_aib (const int N, int osf, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2);
+	Synchronizer_Gardner_aib (const int N, int osf, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2, const int n_frames = 1);
 	virtual ~Synchronizer_Gardner_aib();
 
 	void reset_();

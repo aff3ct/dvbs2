@@ -14,8 +14,9 @@ template <typename R>
 Synchronizer_step_mf_cc<R>
 ::	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                         aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
-							 aff3ct::module::Synchronizer_timing<R>      *sync_timing)
-: Synchronizer<R>(sync_coarse_f->get_N_in(),sync_timing->get_N_out()), sync_coarse_f(sync_coarse_f), matched_filter(matched_filter), sync_timing(sync_timing)
+	                         aff3ct::module::Synchronizer_timing<R>      *sync_timing,
+	                         const int n_frames)
+: Synchronizer<R>(sync_coarse_f->get_N_in(),sync_timing->get_N_out(), n_frames), sync_coarse_f(sync_coarse_f), matched_filter(matched_filter), sync_timing(sync_timing)
 {
 }
 

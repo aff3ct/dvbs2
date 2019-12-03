@@ -14,7 +14,7 @@ template <typename R = float>
 class Filter_UPFIR_ccr_naive : public Filter<R>
 {
 public:
-	Filter_UPFIR_ccr_naive(const int N, const std::vector<R> H, const int F = 1);
+	Filter_UPFIR_ccr_naive(const int N, const std::vector<R> H, const int F = 1, const int n_frames = 1);
 	virtual ~Filter_UPFIR_ccr_naive();
 	inline void step  (const std::complex<R>* x_elt, std::complex<R>* y_elts);
 	void reset();

@@ -217,7 +217,8 @@ public:
 
 	template <typename R = float>
 	static module::Synchronizer_step_mf_cc<R>*
-	build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
+	build_synchronizer_step_mf_cc(const DVBS2O& params,
+	                              aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                              aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
 	                              aff3ct::module::Synchronizer_timing<R>      *sync_timing  );
 

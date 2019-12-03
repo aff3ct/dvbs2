@@ -15,8 +15,8 @@ namespace module
 {
 	template <typename R>
 	Synchronizer_timing<R>::
-	Synchronizer_timing(const int N, const int osf)
-	: Synchronizer<R>(N,N/osf),
+	Synchronizer_timing(const int N, const int osf, const int n_frames)
+	: Synchronizer<R>(N, N / osf, n_frames),
 	osf(osf),
 	POW_osf(1<<osf),
 	INV_osf((R)1.0/ (R)osf),

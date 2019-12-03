@@ -12,8 +12,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_freq_phase_DVBS2_aib<R>
-::Synchronizer_freq_phase_DVBS2_aib(const int N)
-: Synchronizer_freq<R>(N), pilot_start()
+::Synchronizer_freq_phase_DVBS2_aib(const int N, const int n_frames)
+: Synchronizer_freq<R>(N, n_frames), pilot_start()
 {
 	int idx = 1530;
 	while(idx < N/2)

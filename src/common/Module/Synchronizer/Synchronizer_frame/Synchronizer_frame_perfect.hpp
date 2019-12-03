@@ -19,7 +19,7 @@ private:
 	Variable_delay_cc_naive<R> output_delay;
 
 public:
-	Synchronizer_frame_perfect (const int N, const int frame_delay);
+	Synchronizer_frame_perfect (const int N, const int frame_delay, const int n_frames = 1);
 	virtual ~Synchronizer_frame_perfect();
 	void step(const std::complex<R>* x_elt, R* y_elt);
 	void reset();

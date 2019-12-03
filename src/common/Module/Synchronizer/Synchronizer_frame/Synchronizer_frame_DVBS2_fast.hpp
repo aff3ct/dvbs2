@@ -40,7 +40,7 @@ private:
 	Variable_delay_cc_naive<R> SOF_PLSC_delay;
 
 public:
-	Synchronizer_frame_DVBS2_fast (const int N);
+	Synchronizer_frame_DVBS2_fast (const int N, const int n_frames = 1);
 	virtual ~Synchronizer_frame_DVBS2_fast();
 	void step(const std::complex<R>* x_elt, R* y_elt);
 	void reset();

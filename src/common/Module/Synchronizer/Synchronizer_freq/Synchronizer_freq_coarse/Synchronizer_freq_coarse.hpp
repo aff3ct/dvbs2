@@ -14,7 +14,7 @@ template <typename R = float>
 class Synchronizer_freq_coarse : public Synchronizer_freq<R>
 {
 public:
-	Synchronizer_freq_coarse(const int N);
+	Synchronizer_freq_coarse(const int N, const int n_frames = 1);
 	virtual ~Synchronizer_freq_coarse() = default;
 
 	virtual void update_phase(const std::complex<R> spl) = 0;

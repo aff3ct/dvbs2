@@ -13,17 +13,16 @@ namespace module
 template <typename R = float>
 class Synchronizer_frame : public Synchronizer<R>
 {
-
 public:
-	Synchronizer_frame(const int N);
+	Synchronizer_frame(const int N, const int n_frames = 1);
 	virtual ~Synchronizer_frame() = default;
 	virtual void reset() = 0;
-	
+
 	int get_delay(){return this->delay;};
+
 protected:
 	virtual void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id) = 0;
 	int delay;
-
 };
 
 }

@@ -12,8 +12,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_frame_perfect<R>
-::Synchronizer_frame_perfect(const int N, const int frame_delay)
-: Synchronizer_frame<R>(N), output_delay(N, N/2-frame_delay, N/2-frame_delay)
+::Synchronizer_frame_perfect(const int N, const int frame_delay, const int n_frames)
+: Synchronizer_frame<R>(N, n_frames), output_delay(N, N / 2 - frame_delay, N / 2 - frame_delay)
 {
 	this->delay = frame_delay;
 }

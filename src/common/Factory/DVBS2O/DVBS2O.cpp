@@ -92,7 +92,7 @@ void DVBS2O
 	args.add({"perfect-lr-sync"},    cli::None(),                                       "Enable genie aided Luise and Reggiannini frequency synchronization." );
 	args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
 	args.add({"perfect-timing-sync"},cli::None(),                                       "Enable genie aided timing synchronization."                          );
-	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),        "Inter frame level."                  );
+	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),    "Inter frame level."                                                  );
 
 	p_rad.get_description(args);
 }
@@ -395,7 +395,8 @@ module::Filter_UPRRC_ccr_naive<R>* DVBS2O
 	return new module::Filter_UPRRC_ccr_naive<float>(params.pl_frame_size * 2,
 	                                                 params.rolloff,
 	                                                 params.osf,
-	                                                 params.grp_delay);
+	                                                 params.grp_delay,
+	                                                 params.n_frames);
 }
 
 template <typename R>
@@ -404,7 +405,7 @@ module::Filter_Farrow_ccr_naive<R>* DVBS2O
 {
 	R frac_delay = params.max_delay - std::floor(params.max_delay);
 	return new module::Filter_Farrow_ccr_naive <float>(params.pl_frame_size * 2 * params.osf,
-	                                                   frac_delay);
+	                                                   frac_delay, params.n_frames);
 }
 
 template <typename R>
@@ -414,7 +415,7 @@ module::Variable_delay_cc_naive<R>* DVBS2O
 	int N_cplx = params.pl_frame_size * params.osf;
 	int int_delay = ((int)std::floor(params.max_delay) + N_cplx - 2) % N_cplx;
 	return new module::Variable_delay_cc_naive <float>(N_cplx * 2,
-	                                                   int_delay, int_delay);
+	                                                   int_delay, int_delay, params.n_frames);
 }
 
 template <typename R>
@@ -424,7 +425,8 @@ module::Filter_RRC_ccr_naive<R>* DVBS2O
 	return new module::Filter_RRC_ccr_naive<float>(params.osf * params.pl_frame_size * 2,
 	                                               params.rolloff,
 	                                               params.osf,
-	                                               params.grp_delay);
+	                                               params.grp_delay,
+	                                               params.n_frames);
 }
 
 template <typename R>
@@ -475,9 +477,9 @@ module::Synchronizer_freq<R>* DVBS2O
 ::build_synchronizer_lr(const DVBS2O& params)
 {
 	if (params.perfect_lr_freq_sync)
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>          (2 * params.pl_frame_size, (R)0, (R)0));
+		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>          (2 * params.pl_frame_size, (R)0, (R)0), params.n_frames);
 	else
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size));
+		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
 
 }
 
@@ -486,9 +488,9 @@ module::Synchronizer_freq<R>* DVBS2O
 ::build_synchronizer_freq_phase(const DVBS2O& params)
 {
 	if (params.perfect_pf_freq_sync)
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>   (2 * params.pl_frame_size, (R)0, (R)0));
+		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>   (2 * params.pl_frame_size, (R)0, (R)0), params.n_frames);
 	else
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size));
+		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
 }
 
 template <typename R>
@@ -498,10 +500,10 @@ module::Synchronizer_timing<R>* DVBS2O
 	module::Synchronizer_timing<R>* sync_timing;
 	if (params.perfect_timing_sync)
 	{
-		sync_timing = (module::Synchronizer_timing<R>*)(new module::Synchronizer_timing_perfect<R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay));
+		sync_timing = (module::Synchronizer_timing<R>*)(new module::Synchronizer_timing_perfect<R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay, params.n_frames));
 	}
 	else
-	 	sync_timing = (module::Synchronizer_timing<R>*)(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf));
+	 	sync_timing = (module::Synchronizer_timing<R>*)(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, params.n_frames));
 
 	return sync_timing;
 }
@@ -518,7 +520,7 @@ template <typename R>
 module::Multiplier_AGC_cc_naive<R>* DVBS2O
 ::build_channel_agc(const DVBS2O& params)
 {
-	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size * params.osf, 1.0/(R)params.osf);
+	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size * params.osf, 1.0/(R)params.osf, params.n_frames);
 }
 
 template <typename R>
@@ -528,13 +530,13 @@ module::Synchronizer_frame<R>* DVBS2O
 	if (params.perfect_sync)
 	{
 		int delay = (R)2 * (R)params.grp_delay + ((int)std::floor(params.max_delay) + 1)/params.osf;
-		return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_perfect<R>(2 * params.pl_frame_size, delay));
+		return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_perfect<R>(2 * params.pl_frame_size, delay, params.n_frames));
 	}
 
 	if (params.frame_sync_fast)
-		return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_DVBS2_fast<R>(2 * params.pl_frame_size));
+		return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_DVBS2_fast<R>(2 * params.pl_frame_size, params.n_frames));
 
-	return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_DVBS2_aib <R>(2 * params.pl_frame_size));
+	return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_DVBS2_aib <R>(2 * params.pl_frame_size, params.n_frames));
 }
 
 template <typename R>
@@ -543,9 +545,9 @@ module::Synchronizer_freq_coarse<R>* DVBS2O
 {
 	module::Synchronizer_freq_coarse<R> * sync_freq_coarse;
 	if(params.perfect_coarse_freq_sync)
-		sync_freq_coarse =  (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_perfect<R>(2 * params.pl_frame_size * params.osf, params.max_freq_shift));
+		sync_freq_coarse =  (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_perfect<R>(2 * params.pl_frame_size * params.osf, params.max_freq_shift, params.n_frames));
 	else
-		sync_freq_coarse =  (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_DVBS2_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4));
+		sync_freq_coarse =  (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_DVBS2_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4, params.n_frames));
 
 	return sync_freq_coarse;
 }
@@ -559,11 +561,12 @@ module::Filter_unit_delay<B>* DVBS2O
 
 template <typename R>
 module::Synchronizer_step_mf_cc<R>* DVBS2O
-::build_synchronizer_step_mf_cc(aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
+::build_synchronizer_step_mf_cc(const DVBS2O& params,
+	                            aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                            aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
 	                            aff3ct::module::Synchronizer_timing<R>      *sync_timing)
 {
-	return new module::Synchronizer_step_mf_cc<R>(sync_coarse_f, matched_filter, sync_timing);
+	return new module::Synchronizer_step_mf_cc<R>(sync_coarse_f, matched_filter, sync_timing, params.n_frames);
 }
 
 template <typename R>
@@ -601,7 +604,8 @@ template aff3ct::module::Synchronizer_frame<R>*        DVBS2O::build_synchronize
 template aff3ct::module::Synchronizer_freq_coarse<R>*  DVBS2O::build_synchronizer_freq_coarse<R>(const DVBS2O& params);
 template aff3ct::module::Filter_unit_delay<B>*         DVBS2O::build_unit_delay<B>              (const DVBS2O& params);
 template aff3ct::tools ::Interleaver_core<uint32_t>*   DVBS2O::build_itl_core<uint32_t>         (const DVBS2O& params);
-template aff3ct::module::Synchronizer_step_mf_cc<R>*   DVBS2O::build_synchronizer_step_mf_cc<R> ( aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
-                                                                                                  aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
-                                                                                                  aff3ct::module::Synchronizer_timing<R>      *sync_timing   );
-template aff3ct::module::Radio<R>*                             DVBS2O::build_radio<R>                   (const DVBS2O& params);
+template aff3ct::module::Synchronizer_step_mf_cc<R>*   DVBS2O::build_synchronizer_step_mf_cc<R> (const DVBS2O& params,
+                                                                                                 aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
+                                                                                                 aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
+                                                                                                 aff3ct::module::Synchronizer_timing<R>      *sync_timing   );
+template aff3ct::module::Radio<R>*                             DVBS2O::build_radio<R>           (const DVBS2O& params);

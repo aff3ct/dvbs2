@@ -13,7 +13,7 @@ template <typename R = float>
 class Synchronizer_timing : public Synchronizer<R>
 {
 public:
-	Synchronizer_timing (const int N, const int osf);
+	Synchronizer_timing (const int N, const int osf, const int n_frames = 1);
 	virtual ~Synchronizer_timing() = default;
 
 	void reset();

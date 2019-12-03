@@ -47,9 +47,10 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Synchronizer_timing <>      > sync_timing  (factory::DVBS2O::build_synchronizer_timing     <>(params                 ));
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > mult_agc     (factory::DVBS2O::build_agc_shift               <>(params                 ));
 	std::unique_ptr<module::Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse<>(params                 ));
-	std::unique_ptr<module::Synchronizer_step_mf_cc<>   > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc <>(sync_coarse_f.get(),
-	                                                                                                                       matched_flt  .get(),
-	                                                                                                                        sync_timing .get()    ));
+	std::unique_ptr<module::Synchronizer_step_mf_cc<>   > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc <>(params,
+	                                                                                                                      sync_coarse_f.get(),
+	                                                                                                                      matched_flt  .get(),
+	                                                                                                                      sync_timing .get()    ));
 
 	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
 

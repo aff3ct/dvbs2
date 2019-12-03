@@ -17,7 +17,7 @@ private:
 	std::vector<int>   pilot_start;
 
 public:
-	Synchronizer_freq_phase_DVBS2_aib (const int N);
+	Synchronizer_freq_phase_DVBS2_aib (const int N, const int n_frames = 1);
 	virtual ~Synchronizer_freq_phase_DVBS2_aib();
 
 protected:

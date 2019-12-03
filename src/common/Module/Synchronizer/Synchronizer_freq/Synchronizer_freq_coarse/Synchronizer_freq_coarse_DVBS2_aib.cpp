@@ -16,8 +16,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_freq_coarse_DVBS2_aib<R>
-::Synchronizer_freq_coarse_DVBS2_aib(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth)
-:Synchronizer_freq_coarse<R>(N), scrambled_pilots(this->PL_RAND_SEQ.size(),std::complex<R>((R)0,(R)0)), samples_per_symbol(samples_per_symbol), length_max(N/(2*samples_per_symbol)), proportional_gain((R)1.0), integrator_gain((R)1.0), digital_synthesizer_gain((R)1), prev_spl(std::complex<R>((R)0.0,(R)0.0)), prev_prev_spl(std::complex<R>((R)0.0,(R)0.0)), loop_filter_state((R)0.0),  integ_filter_state((R)0.0), DDS_prev_in((R)0.0), mult(N,(R)0.0, (R)1.0, 1)
+::Synchronizer_freq_coarse_DVBS2_aib(const int N, const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth, const int n_frames)
+:Synchronizer_freq_coarse<R>(N, n_frames), scrambled_pilots(this->PL_RAND_SEQ.size(),std::complex<R>((R)0,(R)0)), samples_per_symbol(samples_per_symbol), length_max(N/(2*samples_per_symbol)), proportional_gain((R)1.0), integrator_gain((R)1.0), digital_synthesizer_gain((R)1), prev_spl(std::complex<R>((R)0.0,(R)0.0)), prev_prev_spl(std::complex<R>((R)0.0,(R)0.0)), loop_filter_state((R)0.0),  integ_filter_state((R)0.0), DDS_prev_in((R)0.0), mult(N,(R)0.0, (R)1.0, 1)
 {
 	this->curr_idx = this->length_max - 1;
 	this->set_PLL_coeffs (1, damping_factor, normalized_bandwidth);

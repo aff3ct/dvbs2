@@ -7,8 +7,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_freq_coarse_perfect<R>
-::Synchronizer_freq_coarse_perfect(const int N, const R frequency_offset)
-:Synchronizer_freq_coarse<R>(N), mult(N, -frequency_offset, (R)1.0, 1)
+::Synchronizer_freq_coarse_perfect(const int N, const R frequency_offset, const int n_frames)
+:Synchronizer_freq_coarse<R>(N, n_frames), mult(N, -frequency_offset, (R)1.0, 1)
 {
 	this->estimated_freq = frequency_offset;
 }

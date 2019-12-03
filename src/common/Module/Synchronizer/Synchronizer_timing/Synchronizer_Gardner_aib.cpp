@@ -12,8 +12,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_Gardner_aib<R>
-::Synchronizer_Gardner_aib(const int N, int osf, const R damping_factor, const R normalized_bandwidth, const R detector_gain)
-: Synchronizer_timing<R>(N, osf),
+::Synchronizer_Gardner_aib(const int N, int osf, const R damping_factor, const R normalized_bandwidth, const R detector_gain, const int n_frames)
+: Synchronizer_timing<R>(N, osf, n_frames),
 farrow_flt(N,(R)0),
 strobe_history(0),
 TED_error((R)0),

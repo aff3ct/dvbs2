@@ -12,8 +12,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_frame_DVBS2_fast<R>
-::Synchronizer_frame_DVBS2_fast(const int N)
-: Synchronizer_frame<R>(N), reg_channel(std::complex<R>((R)1,(R)0)), corr_vec(N/2, (R)0), output_delay(N, N/2, N/2), corr_SOF(N, conj_SOF), corr_PLSC(N, conj_PLSC), SOF_PLSC_delay(N, 64, 64)
+::Synchronizer_frame_DVBS2_fast(const int N, const int n_frames)
+: Synchronizer_frame<R>(N, n_frames), reg_channel(std::complex<R>((R)1,(R)0)), corr_vec(N/2, (R)0), output_delay(N, N/2, N/2), corr_SOF(N, conj_SOF), corr_PLSC(N, conj_PLSC), SOF_PLSC_delay(N, 64, 64)
 {
 }
 

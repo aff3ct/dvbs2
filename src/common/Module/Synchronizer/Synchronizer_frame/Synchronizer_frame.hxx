@@ -15,8 +15,8 @@ namespace module
 {
 	template <typename R>
 	Synchronizer_frame<R>::
-	Synchronizer_frame(const int N)
-	: Synchronizer<R>(N,N), delay(0)
+	Synchronizer_frame(const int N, const int n_frames)
+	: Synchronizer<R>(N, N, n_frames), delay(0)
 	{
 	}
 }

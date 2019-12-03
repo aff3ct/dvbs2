@@ -15,7 +15,7 @@ template <typename R = float>
 class Synchronizer_freq_fine_perfect : public Synchronizer_freq<R>
 {
 public:
-	Synchronizer_freq_fine_perfect(const int N, const R frequency_offset, const R phase_offset);
+	Synchronizer_freq_fine_perfect(const int N, const R frequency_offset, const R phase_offset, const int n_frames = 1);
 	virtual ~Synchronizer_freq_fine_perfect();
 
 protected:

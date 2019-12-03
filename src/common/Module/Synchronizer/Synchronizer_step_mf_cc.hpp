@@ -21,7 +21,8 @@ class Synchronizer_step_mf_cc : public Synchronizer<R>
 public:
 	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                         aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
-							 aff3ct::module::Synchronizer_timing<R>      *sync_timing);
+	                         aff3ct::module::Synchronizer_timing<R>      *sync_timing,
+	                         const int n_frames = 1);
 
 	virtual ~Synchronizer_step_mf_cc();
 	void reset();

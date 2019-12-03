@@ -27,6 +27,7 @@ public:
 	inline void step(const std::complex<R>* x_elt, std::complex<R>* y_elt);
 	void reset();
 	std::vector<R> get_filter_coefs();
+
 protected:
 	void _filter(const R *X_N1,  R *Y_N2, const int frame_id);
 

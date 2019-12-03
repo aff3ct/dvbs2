@@ -20,7 +20,7 @@ private:
 	std::vector<R> R_l;
 
 public:
-	Synchronizer_Luise_Reggiannini_DVBS2_aib (const int N);
+	Synchronizer_Luise_Reggiannini_DVBS2_aib (const int N, const int n_frames = 1);
 	virtual ~Synchronizer_Luise_Reggiannini_DVBS2_aib();
 
 protected:
