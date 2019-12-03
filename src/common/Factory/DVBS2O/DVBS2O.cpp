@@ -503,7 +503,7 @@ module::Synchronizer_timing<R>* DVBS2O
 		sync_timing = (module::Synchronizer_timing<R>*)(new module::Synchronizer_timing_perfect<R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay, params.n_frames));
 	}
 	else
-	 	sync_timing = (module::Synchronizer_timing<R>*)(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, params.n_frames));
+	 	sync_timing = (module::Synchronizer_timing<R>*)(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
 
 	return sync_timing;
 }
@@ -513,7 +513,7 @@ template <typename R>
 module::Multiplier_AGC_cc_naive<R>* DVBS2O
 ::build_agc_shift(const DVBS2O& params)
 {
-	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size, params.n_frames);
+	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size, (R)1, params.n_frames);
 }
 
 template <typename R>
