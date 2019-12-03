@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 		dumper.add(i);
 	}
 
-	dumper.dump(std::string("lol"));
+	dumper.dump(std::string("radio"));
 
 	terminal->final_report();
 	terminal->final_report(std::cerr);
