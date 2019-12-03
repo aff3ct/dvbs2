@@ -144,7 +144,7 @@ void DVBS2O
 	else
 		ter_freq = std::chrono::milliseconds(500L);
 
-	p_rad.N = (this->pl_frame_size) * 4; // 2 * N_fil
+	p_rad.N = (this->pl_frame_size) * osf; // 2 * N_fil
 	p_rad.n_frames = n_frames;
 	p_rad.store(vals);
 }
