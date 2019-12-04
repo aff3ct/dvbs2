@@ -54,9 +54,9 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
-	dumper.register_data(static_cast<R*>((*radio)[rad::sck::receive::Y_N1].get_dataptr()), params.p_rad.N, 0, std::string("bin"), true);
+	dumper.register_data(static_cast<R*>((*radio)[rad::sck::receive::Y_N1].get_dataptr()), 2 * params.p_rad.N, 0, std::string("bin"), true);
 
-	for (auto i = 0; !terminal->is_interrupt() ; i++)
+	for (auto i = 0; !terminal->is_interrupt(); i++)
 	{
 		(*radio        )[rad::tsk::receive     ].exec();
 		// std::cout << "i: " << i << std::endl;

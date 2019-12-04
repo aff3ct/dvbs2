@@ -55,7 +55,7 @@ template <typename R>
 void Radio_user_binary<R>::
 _receive(R *Y_N1, const int frame_id)
 {
-	source_file.read(reinterpret_cast<char*>(Y_N1), this->N * sizeof(R));
+	source_file.read(reinterpret_cast<char*>(Y_N1), 2 * this->N * sizeof(R));
 
 	if (source_file.fail())
 	{
