@@ -37,7 +37,7 @@ Radio(const int N, const int n_frames)
 	}
 
 	auto &p1 = this->create_task("send");
-	auto p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", 2 * N * this->n_frames);
+	auto p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", 2 * N);
 	this->create_codelet(p1, [this, p1s_X_N1](Task &t) -> int
 	{
 		this->send(static_cast<R*>(t[p1s_X_N1].get_dataptr()));
@@ -46,7 +46,7 @@ Radio(const int N, const int n_frames)
 	});
 
 	auto &p2 = this->create_task("receive");
-	auto p2s_Y_N1 = this->template create_socket_out<R>(p2, "Y_N1", 2 * N  * this->n_frames);
+	auto p2s_Y_N1 = this->template create_socket_out<R>(p2, "Y_N1", 2 * N);
 	this->create_codelet(p2, [this, p2s_Y_N1](Task &t) -> int
 	{
 		this->receive(static_cast<R*>(t[p2s_Y_N1].get_dataptr()));

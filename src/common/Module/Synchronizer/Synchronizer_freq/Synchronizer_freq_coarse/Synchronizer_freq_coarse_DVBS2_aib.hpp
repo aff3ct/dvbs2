@@ -1,10 +1,10 @@
-#ifndef SYNCHRONIZER_COARSE_FR_CC_DVBS2O
-#define SYNCHRONIZER_COARSE_FR_CC_DVBS2O
+#ifndef SYNCHRONIZER_FREQ_COARSE_DVBS2_AIB
+#define SYNCHRONIZER_FREQ_COARSE_DVBS2_AIB
 
 #include <vector>
 #include <complex>
 
-#include "Synchronizer_coarse_freq.hpp"
+#include "Synchronizer_freq_coarse.hpp"
 #include "Module/Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 
 namespace aff3ct
@@ -12,7 +12,7 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Synchronizer_coarse_freq_DVBS2O : public Synchronizer_coarse_freq<R>
+class Synchronizer_freq_coarse_DVBS2_aib : public Synchronizer_freq_coarse<R>
 {
 private:
 const std::vector<int > PL_RAND_SEQ {
@@ -4191,20 +4191,21 @@ const std::vector<int > PL_RAND_SEQ {
 
 
 public:
-	Synchronizer_coarse_freq_DVBS2O(const int N, const int samples_per_symbol = 4, const R damping_factor = 1/std::sqrt((R)2.0), const R normalized_bandwidth = (R)1e-4);
-	virtual ~Synchronizer_coarse_freq_DVBS2O();
-	void reset();
+	Synchronizer_freq_coarse_DVBS2_aib(const int N, const int samples_per_symbol = 4, const R damping_factor = 1/std::sqrt((R)2.0), const R normalized_bandwidth = (R)1e-4, const int n_frames = 1);
+	virtual ~Synchronizer_freq_coarse_DVBS2_aib();
 
 	void update_phase(const std::complex<R> spl);
+
 	void set_PLL_coeffs (const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth);
 	void step (const std::complex<R>* x_elt, std::complex<R>* y_elt);
 
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
+	void _reset();
 
 };
 
 }
 }
 
-#endif //SYNCHRONIZER_COARSE_FR_CC_DVBS2O
+#endif //SYNCHRONIZER_FREQ_COARSE_DVBS2_AIB

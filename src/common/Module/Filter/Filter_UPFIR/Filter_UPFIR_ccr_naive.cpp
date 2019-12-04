@@ -4,15 +4,15 @@ using namespace aff3ct::module;
 
 template <typename R>
 Filter_UPFIR_ccr_naive<R>
-::Filter_UPFIR_ccr_naive(const int N, std::vector<R> H, const int F)
-	: Filter<R>(N, F*N), F(F), H(F), flt_bank()
+::Filter_UPFIR_ccr_naive(const int N, std::vector<R> H, const int F, const int n_frames)
+: Filter<R>(N, F * N, n_frames), F(F), H(F), flt_bank()
 {
 	this->H.resize(F);
 	for(size_t i=0; i < H.size(); i++)
-		this->H[i%F].push_back(H[i]);
+		this->H[i % F].push_back(H[i]);
 
 	for (auto f=0;f<F; f++)
-		this->flt_bank.push_back(Filter_FIR_ccr_naive<R>(N,this->H[f]));
+		this->flt_bank.push_back(Filter_FIR_ccr<R>(N,this->H[f]));
 }
 
 template <typename R>

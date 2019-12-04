@@ -9,8 +9,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Filter_Farrow_ccr_naive<R>
-::Filter_Farrow_ccr_naive(const int N, const R mu)
-: Filter<R>(N,N), xnd2_1(std::complex<R>((R)0,(R)0)), xnd2_2(std::complex<R>((R)0,(R)0)), xnd2_3(std::complex<R>((R)0,(R)0)), xn_1(std::complex<R>((R)0,(R)0)), xn_2(std::complex<R>((R)0,(R)0)), mu(mu)
+::Filter_Farrow_ccr_naive(const int N, const R mu, const int n_frames)
+: Filter<R>(N, N, n_frames), xnd2_1(std::complex<R>((R)0,(R)0)), xnd2_2(std::complex<R>((R)0,(R)0)), xnd2_3(std::complex<R>((R)0,(R)0)), xn_1(std::complex<R>((R)0,(R)0)), xn_2(std::complex<R>((R)0,(R)0)), mu(mu)
 {
 }
 

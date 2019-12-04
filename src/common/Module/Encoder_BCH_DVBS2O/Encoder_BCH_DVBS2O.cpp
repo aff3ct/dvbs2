@@ -10,7 +10,7 @@ using namespace aff3ct::module;
 template <typename B>
 Encoder_BCH_DVBS2O<B>
 ::Encoder_BCH_DVBS2O(const int& K, const int& N, const tools::BCH_polynomial_generator<B>& GF_poly, const int n_frames)
- : Encoder_BCH<B>(K, N, GF_poly, 1), U_K_rev(K)
+ : Encoder_BCH<B>(K, N, GF_poly, n_frames), U_K_rev(K)
 {
 	const std::string name = "Encoder_BCH_DVBS2O";
 	this->set_name(name);

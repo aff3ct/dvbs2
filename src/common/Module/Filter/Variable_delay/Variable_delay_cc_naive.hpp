@@ -20,7 +20,7 @@ private:
 	int size;
 
 public:
-	Variable_delay_cc_naive (const int N, const int delay, const int max_delay);
+	Variable_delay_cc_naive (const int N, const int delay, const int max_delay, const int n_frames = 1);
 	virtual ~Variable_delay_cc_naive();
 	inline void step(const std::complex<R>* x_elt, std::complex<R>* y_elt);
 	void reset();

@@ -12,12 +12,12 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_step_mf_cc<R>
-::	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_coarse_freq<R>         *sync_coarse_f,
-	                         aff3ct::module::Filter_RRC_ccr_naive<R>             *matched_filter,
-							 aff3ct::module::Synchronizer_Gardner_cc_naive<R>    *sync_gardner)
-: Synchronizer<R>(sync_coarse_f->get_N_in(),sync_gardner->get_N_out()), sync_coarse_f(sync_coarse_f), matched_filter(matched_filter), sync_gardner(sync_gardner), gardner_delay(0)
+::	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
+	                         aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
+	                         aff3ct::module::Synchronizer_timing<R>      *sync_timing,
+	                         const int n_frames)
+: Synchronizer<R>(sync_coarse_f->get_N_in(),sync_timing->get_N_out(), n_frames), sync_coarse_f(sync_coarse_f), matched_filter(matched_filter), sync_timing(sync_timing)
 {
-	this->gardner_delay = this->sync_gardner->get_delay();
 }
 
 template <typename R>
@@ -31,25 +31,25 @@ void Synchronizer_step_mf_cc<R>
 {
 	int frame_sym_sz = this->N_out;
 	int frame_sps_sz = this->N_in;
-	//this->gardner_delay = sync_gardner.get_delay()%frame_sym_sz;
 	for (int spl_idx = 0; spl_idx < frame_sps_sz/2; spl_idx++)
 	{
 		std::complex<R> sync_coarse_f_in(X_N1[spl_idx*2], X_N1[spl_idx*2 + 1]);
 		std::complex<R> sync_coarse_f_out(0.0f, 0.0f);
 		std::complex<R> matched_filter_out(0.0f, 0.0f);
-		int is_strobe = this->sync_gardner->get_is_strobe();
 
 		this->sync_coarse_f ->step (&sync_coarse_f_in,  &sync_coarse_f_out);
 		this->matched_filter->step (&sync_coarse_f_out, &matched_filter_out);
-		this->sync_gardner  ->step (&matched_filter_out);
+
+		int is_strobe = this->sync_timing->get_is_strobe();
+		this->sync_timing  ->step (&matched_filter_out);
 		if (is_strobe == 1)
-			this->sync_coarse_f->update_phase(this->sync_gardner->get_last_symbol());
+			this->sync_coarse_f->update_phase(this->sync_timing->get_last_symbol());
 	}
 
 	auto cY_N2 = reinterpret_cast<std::complex<R>* >(Y_N2);
 
 	for (auto sym_idx = 0 ; sym_idx < frame_sym_sz / 2 ; sym_idx++)
-		this->sync_gardner->pop(&cY_N2[sym_idx]);
+		this->sync_timing->pop(&cY_N2[sym_idx]);
 }
 
 template <typename R>
@@ -58,8 +58,7 @@ void Synchronizer_step_mf_cc<R>
 {
 	this->sync_coarse_f ->reset();
 	this->matched_filter->reset();
-	this->sync_gardner  ->reset();
-	this->gardner_delay = sync_gardner->get_delay();
+	this->sync_timing  ->reset();
 }
 
 // ==================================================================================== explicit template instantiation

@@ -1,5 +1,6 @@
 #include "Factory/Module/Radio/Radio.hpp"
 #include "Module/Radio/Radio_NO/Radio_NO.hpp"
+#include "Module/Radio/Radio_user/Radio_user_binary.hpp"
 #ifdef DVBS2O_LINK_UHD
 	#include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
 #endif
@@ -26,21 +27,22 @@ void Radio
 ::get_description(cli::Argument_map_info &args) const
 {
 	auto p = this->get_prefix();
-	args.add({p+"-fra-size",  "N"}, cli::Integer(cli::Positive(), cli::Non_zero()), "");
-	args.add({p+"-type"          }, cli::Text(cli::Including_set("USRP", "NO"))   , "");
-	args.add({p+"-clk-rate"      }, cli::Real(cli::Positive(), cli::Non_zero())   , "");
-	args.add({p+"-rx-subdev-spec"}, cli::Text()                                   , "");
-	args.add({p+"-rx-ant"        }, cli::Text()                                   , "");
-	args.add({p+"-rx-rate"       }, cli::Real(cli::Positive(), cli::Non_zero())   , "");
-	args.add({p+"-rx-freq"       }, cli::Real(cli::Positive(), cli::Non_zero())   , "");
-	args.add({p+"-rx-gain"       }, cli::Real(cli::Positive(), cli::Non_zero())   , "");
-	args.add({p+"-tx-subdev-spec"}, cli::Text()                                   , "");
-	args.add({p+"-tx-ant"        }, cli::Text()                                   , "");
-	args.add({p+"-tx-rate"       }, cli::Real(cli::Positive(), cli::Non_zero())   , "");
-	args.add({p+"-tx-freq"       }, cli::Real(cli::Positive(), cli::Non_zero())   , "");
-	args.add({p+"-tx-gain"       }, cli::Real(cli::Positive(), cli::Non_zero())   , "");
-	args.add({p+"-ip-addr"       }, cli::Text()                                   , "");
-	args.add({p+"-fra",       "F"}, cli::Integer(cli::Positive(), cli::Non_zero()), "");
+	args.add({p+"-fra-size",  "N"}, cli::Integer(cli::Positive(), cli::Non_zero())         , "");
+	args.add({p+"-type"          }, cli::Text(cli::Including_set("USRP", "USER_BIN", "NO")), "");
+	args.add({p+"-clk-rate"      }, cli::Real(cli::Positive(), cli::Non_zero())            , "");
+	args.add({p+"-rx-subdev-spec"}, cli::Text()                                            , "");
+	args.add({p+"-rx-ant"        }, cli::Text()                                            , "");
+	args.add({p+"-rx-rate"       }, cli::Real(cli::Positive(), cli::Non_zero())            , "");
+	args.add({p+"-rx-freq"       }, cli::Real(cli::Positive(), cli::Non_zero())            , "");
+	args.add({p+"-rx-gain"       }, cli::Real(cli::Positive(), cli::Non_zero())            , "");
+	args.add({p+"-rx-file-path"  }, cli::Text()                                            , "");
+	args.add({p+"-tx-subdev-spec"}, cli::Text()                                            , "");
+	args.add({p+"-tx-ant"        }, cli::Text()                                            , "");
+	args.add({p+"-tx-rate"       }, cli::Real(cli::Positive(), cli::Non_zero())            , "");
+	args.add({p+"-tx-freq"       }, cli::Real(cli::Positive(), cli::Non_zero())            , "");
+	args.add({p+"-tx-gain"       }, cli::Real(cli::Positive(), cli::Non_zero())            , "");
+	args.add({p+"-ip-addr"       }, cli::Text()                                            , "");
+	args.add({p+"-fra",       "F"}, cli::Integer(cli::Positive(), cli::Non_zero())         , "");
 }
 
 void Radio
@@ -56,6 +58,7 @@ void Radio
 	if(vals.exist({p+"-rx-rate"       })) this->rx_rate        = vals.to_float({p+"-rx-rate"       });
 	if(vals.exist({p+"-rx-freq"       })) this->rx_freq        = vals.to_float({p+"-rx-freq"       });
 	if(vals.exist({p+"-rx-gain"       })) this->rx_gain        = vals.to_float({p+"-rx-gain"       });
+	if(vals.exist({p+"-rx-file-path"  })) this->rx_filepath    = vals.at      ({p+"-rx-file-path"  });
 	if(vals.exist({p+"-tx-subdev-spec"})) this->tx_subdev_spec = vals.at      ({p+"-tx-subdev-spec"});
 	if(vals.exist({p+"-Tx-ant"        })) this->tx_antenna     = vals.at      ({p+"-tx-ant"        });
 	if(vals.exist({p+"-tx-rate"       })) this->tx_rate        = vals.to_float({p+"-tx-rate"       });
@@ -78,6 +81,7 @@ void Radio
 	headers[p].push_back(std::make_pair("Rx antenna", this->rx_antenna));
 	headers[p].push_back(std::make_pair("Rx freq   ", std::to_string(this->rx_freq)));
 	headers[p].push_back(std::make_pair("Rx gain   ", std::to_string(this->rx_gain)));
+	headers[p].push_back(std::make_pair("Rx File   ", this->rx_filepath));
 	headers[p].push_back(std::make_pair("Tx subdev ", this->tx_subdev_spec));
 	headers[p].push_back(std::make_pair("Tx antenna", this->tx_antenna));
 	headers[p].push_back(std::make_pair("Tx rate   ", std::to_string(this->tx_rate)));
@@ -91,14 +95,14 @@ template <typename R>
 module::Radio<R>* Radio
 ::build() const
 {
-	if (this->type == "NO") return new module::Radio_NO<R>(this->N, this->n_frames);
-
+	if      (this->type == "NO"      ) return new module::Radio_NO<R>         (this->N, this->n_frames);
+	else if (this->type == "USER_BIN") return new module::Radio_user_binary<R>(this->N, this->rx_filepath, this->n_frames);
 	#ifdef DVBS2O_LINK_UHD
 	else if (this->type == "USRP")
 		return new module::Radio_USRP<R> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
 		                                  this->rx_subdev_spec, this->rx_antenna,   this->tx_rate, this->tx_freq,
-		                                  this->tx_subdev_spec, this->tx_antenna, this->n_frames,
-		                                  this->rx_gain, this->tx_gain);
+		                                  this->tx_subdev_spec, this->tx_antenna,
+		                                  this->rx_gain, this->tx_gain, this->n_frames);
 	#endif
 
 	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);
