@@ -477,7 +477,7 @@ module::Synchronizer_freq<R>* DVBS2O
 ::build_synchronizer_lr(const DVBS2O& params)
 {
 	if (params.perfect_lr_freq_sync)
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>          (2 * params.pl_frame_size, (R)0, (R)0), params.n_frames);
+		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>          (2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
 	else
 		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
 
@@ -488,7 +488,7 @@ module::Synchronizer_freq<R>* DVBS2O
 ::build_synchronizer_freq_phase(const DVBS2O& params)
 {
 	if (params.perfect_pf_freq_sync)
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>   (2 * params.pl_frame_size, (R)0, (R)0), params.n_frames);
+		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>   (2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
 	else
 		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
 }
