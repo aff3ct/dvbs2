@@ -47,10 +47,10 @@ init_processes()
 	auto &p1 = this->create_task("imultiply");
 	auto p1s_X_N = this->template create_socket_in <R>(p1, "X_N", this->N);
 	auto p1s_Z_N = this->template create_socket_out<R>(p1, "Z_N", this->N);
-	this->create_codelet(p1, [this, p1s_X_N, p1s_Z_N](Task &t) -> int
+	this->create_codelet(p1, [p1s_X_N, p1s_Z_N](Module &m, Task &t) -> int
 	{
-		this->imultiply(static_cast<R*>(t[p1s_X_N].get_dataptr()),
-		                static_cast<R*>(t[p1s_Z_N].get_dataptr()));
+		static_cast<Multiplier<R>&>(m).imultiply(static_cast<R*>(t[p1s_X_N].get_dataptr()),
+		                                         static_cast<R*>(t[p1s_Z_N].get_dataptr()));
 
 		return 0;
 	});
@@ -59,11 +59,11 @@ init_processes()
 	auto p2s_X_N = this->template create_socket_in <R>(p2, "X_N", this->N);
 	auto p2s_Y_N = this->template create_socket_in <R>(p2, "Y_N", this->N);
 	auto p2s_Z_N = this->template create_socket_out<R>(p2, "Z_N", this->N);
-	this->create_codelet(p2, [this, p2s_X_N, p2s_Y_N, p2s_Z_N](Task &t) -> int
+	this->create_codelet(p2, [p2s_X_N, p2s_Y_N, p2s_Z_N](Module &m, Task &t) -> int
 	{
-		this->multiply(static_cast<R*>(t[p2s_X_N].get_dataptr()),
-		               static_cast<R*>(t[p2s_Y_N].get_dataptr()),
-		               static_cast<R*>(t[p2s_Z_N].get_dataptr()));
+		static_cast<Multiplier<R>&>(m).multiply(static_cast<R*>(t[p2s_X_N].get_dataptr()),
+		                                        static_cast<R*>(t[p2s_Y_N].get_dataptr()),
+		                                        static_cast<R*>(t[p2s_Z_N].get_dataptr()));
 
 		return 0;
 	});
