@@ -43,7 +43,10 @@ public:
 	inline Socket& operator[](const est::sck::estimate   s) { return Module::operator[]((int)est::tsk::estimate)[(int)s]; }
 
 protected:
-	const int N;          // Size of one frame (= number of datas in one frame)
+	const int N;                 // Size of one frame (= number of datas in one frame)
+	const int bps;               // bits per symbol for eb_n0 computation
+	const float code_rate;       // Code rate for eb_n0 computation
+	const tools::Noise<> *noise; // the estimated noise
 	float sigma_n2;
 
 public:
@@ -53,7 +56,7 @@ public:
 	 * \param N:        size of one frame.
 	 * \param n_frames: number of frames to process in the Estimator.
 	 */
-	Estimator(const int N, const int n_frames = 1);
+	Estimator(const int N, const float code_rate, const int bps, const int n_frames = 1);
 
 	/*!
 	 * \brief Destructor.
@@ -63,6 +66,10 @@ public:
 	virtual int get_N() const;
 
 	R get_sigma_n2();
+
+	const tools::Noise<>& get_noise() const;
+
+	virtual void set_noise(const tools::Noise<>& noise);
 
 	/*!
 	 * \brief Estimate the noise the frame.

@@ -433,7 +433,8 @@ template <typename R>
 module::Estimator<R>* DVBS2O
 ::build_estimator(const DVBS2O& params)
 {
-	return new module::Estimator<R>(2 * params.N_xfec_frame, params.n_frames);
+	const float code_rate = (float)params.K_bch / (float)params.N_ldpc;
+	return new module::Estimator<R>(2 * params.N_xfec_frame, code_rate, params.bps, params.n_frames);
 }
 
 template <typename B>
