@@ -132,7 +132,7 @@ public:
 	build_bch_decoder(const DVBS2O& params,tools::BCH_polynomial_generator<B>& poly_gen);
 
 	template <typename B = int, typename Q = float>
-	static module::Codec_LDPC<B,Q>*
+	static tools::Codec_LDPC<B,Q>*
 	build_ldpc_cdc(const DVBS2O& params);
 
 	template <typename D = uint32_t>
@@ -145,7 +145,7 @@ public:
 
 	template <typename B = int, typename R = float, typename Q = R, tools::proto_max<Q> MAX = tools::max_star>
 	static module::Modem_generic<B,R,Q,MAX>*
-	build_modem(const DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl);
+	build_modem(const DVBS2O& params, tools::Constellation<R>* cstl);
 
 	template <typename R = float>
 	static module::Multiplier_sine_ccc_naive<R>*
@@ -153,7 +153,7 @@ public:
 
 	template <typename R = float>
 	static module::Channel<R>*
-	build_channel(const DVBS2O& params, const int seed = 0, const bool filtered = true);
+	build_channel(const DVBS2O& params, tools::Gaussian_noise_generator<R>& gen, const bool filtered = true);
 
 	template <typename R = float>
 	static module::Framer<R>*

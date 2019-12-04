@@ -17,7 +17,7 @@ inline int omp_get_num_threads() { return 1; }
 #endif
 
 namespace aff3ct { namespace module {
-using Monitor_BFER_reduction = Monitor_reduction_M<Monitor_BFER<>>;
+using Monitor_BFER_reduction = Monitor_reduction<Monitor_BFER<>>;
 } }
 
 int main(int argc, char** argv)
@@ -60,26 +60,27 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(factory::DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
-	                tools ::Sigma<>                         noise_estimated;
+	                tools::Sigma<>                          noise_estimated;
+	std::unique_ptr<tools::Gaussian_noise_generator<R>> gen(new tools::Gaussian_noise_generator_fast<R>(tid*2+1));
 
 	// construct modules
-	std::unique_ptr<module::Source<>                   > source      (factory::DVBS2O::build_source           <>(params, tid*2+0        ));
-	std::unique_ptr<module::Scrambler<>                > bb_scrambler(factory::DVBS2O::build_bb_scrambler     <>(params                 ));
-	std::unique_ptr<module::Encoder<>                  > BCH_encoder (factory::DVBS2O::build_bch_encoder      <>(params, poly_gen       ));
-	std::unique_ptr<module::Decoder_HIHO<>             > BCH_decoder (factory::DVBS2O::build_bch_decoder      <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec_SIHO<>               > LDPC_cdc    (factory::DVBS2O::build_ldpc_cdc         <>(params                 ));
-	std::unique_ptr<module::Interleaver<>              > itl_tx      (factory::DVBS2O::build_itl              <>(params, *itl_core      ));
-	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (factory::DVBS2O::build_itl<float,uint32_t>(params, *itl_core      ));
-	std::unique_ptr<module::Modem<>                    > modem       (factory::DVBS2O::build_modem            <>(params, std::move(cstl)));
-	std::unique_ptr<module::Channel<>                  > channel     (factory::DVBS2O::build_channel          <>(params, tid*2+1, false ));
-	std::unique_ptr<module::Framer<>                   > framer      (factory::DVBS2O::build_framer           <>(params                 ));
-	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(factory::DVBS2O::build_pl_scrambler     <>(params                 ));
-	std::unique_ptr<module::Estimator<>                > estimator   (factory::DVBS2O::build_estimator        <>(params                 ));
-	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (factory::DVBS2O::build_monitor          <>(params                 ));
+	std::unique_ptr<module::Source<>                   > source      (factory::DVBS2O::build_source           <>(params, tid*2+0    ));
+	std::unique_ptr<module::Scrambler<>                > bb_scrambler(factory::DVBS2O::build_bb_scrambler     <>(params             ));
+	std::unique_ptr<module::Encoder<>                  > BCH_encoder (factory::DVBS2O::build_bch_encoder      <>(params, poly_gen   ));
+	std::unique_ptr<module::Decoder_HIHO<>             > BCH_decoder (factory::DVBS2O::build_bch_decoder      <>(params, poly_gen   ));
+	std::unique_ptr<tools ::Codec_SIHO<>               > LDPC_cdc    (factory::DVBS2O::build_ldpc_cdc         <>(params             ));
+	std::unique_ptr<module::Interleaver<>              > itl_tx      (factory::DVBS2O::build_itl              <>(params, *itl_core  ));
+	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx      (factory::DVBS2O::build_itl<float,uint32_t>(params, *itl_core  ));
+	std::unique_ptr<module::Modem<>                    > modem       (factory::DVBS2O::build_modem            <>(params, cstl.get() ));
+	std::unique_ptr<module::Channel<>                  > channel     (factory::DVBS2O::build_channel          <>(params, *gen, false));
+	std::unique_ptr<module::Framer<>                   > framer      (factory::DVBS2O::build_framer           <>(params             ));
+	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(factory::DVBS2O::build_pl_scrambler     <>(params             ));
+	std::unique_ptr<module::Estimator<>                > estimator   (factory::DVBS2O::build_estimator        <>(params             ));
+	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (factory::DVBS2O::build_monitor          <>(params             ));
 
 	auto& monitor = monitors[tid];
-	auto& LDPC_encoder = LDPC_cdc->get_encoder();
-	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
+	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
+	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 	LDPC_encoder->set_custom_name("LDPC Encoder");
 	LDPC_decoder->set_custom_name("LDPC Decoder");
@@ -110,8 +111,8 @@ int main(int argc, char** argv)
 // end of #pragma omp single
 
 	// fulfill the list of modules
-	modules[tid] = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder.get(), LDPC_encoder.get(),
-	                 LDPC_decoder.get(), itl_tx      .get(), itl_rx     .get(), modem       .get(),
+	modules[tid] = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder.get(), LDPC_encoder      ,
+	                 LDPC_decoder      , itl_tx      .get(), itl_rx     .get(), modem       .get(),
 	                 framer      .get(), pl_scrambler.get(), source     .get(), monitor     .get(),
 	                 channel     .get(), estimator   .get()                                        };
 
@@ -153,7 +154,8 @@ int main(int argc, char** argv)
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
 	// reset the memory of the decoder after the end of each communication
-	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
+	monitor->record_callback_check([LDPC_decoder]{LDPC_decoder->reset();});
+	// monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 
 	// a loop over the various SNRs
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
@@ -167,7 +169,7 @@ int main(int argc, char** argv)
 
 #pragma omp single
 {
-		noise.set_noise(sigma, ebn0, esn0);
+		noise.set_values(sigma, ebn0, esn0);
 
 		// display the performance (BER and FER) in real time (in a separate thread)
 		if(params.ter_freq != std::chrono::nanoseconds(0))
@@ -197,7 +199,7 @@ int main(int argc, char** argv)
 			const auto sigma_estimated = std::sqrt(estimator->get_sigma_n2() / 2);
 			const auto esn0_estimated  = tools::sigma_to_esn0(sigma_estimated);
 			const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, R, params.bps);
-			noise_estimated.set_noise(sigma_estimated, ebn0_estimated, esn0_estimated);
+			noise_estimated.set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
 			LDPC_cdc->set_noise(noise_estimated);
 			modem   ->set_noise(noise_estimated);
 
@@ -215,8 +217,8 @@ int main(int argc, char** argv)
 #pragma omp single
 {
 		// final reduction
-		const bool fully = true, final = true;
-		monitor_red->is_done_all(fully, final);
+		const bool fully = true;
+		monitor_red->is_done_all(fully);
 
 		// display the performance (BER and FER) in the terminal
 		terminal->final_report();
@@ -240,7 +242,7 @@ int main(int argc, char** argv)
 			for (size_t m = 0; m < modules[0].size(); m++)
 				for (size_t t = 0; t < modules.size(); t++)
 					for (auto &ta : modules_stats[m][t]->tasks)
-						ta->reset_stats();
+						ta->reset();
 
 			if (ebn0 + params.ebn0_step < params.ebn0_max)
 			{

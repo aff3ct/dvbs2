@@ -32,43 +32,44 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(factory::DVBS2O::build_itl_core<>(params));
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
+	std::unique_ptr<tools::Gaussian_noise_generator<R>    > gen(new tools::Gaussian_noise_generator_fast<R>(0));
 	                tools ::Sigma<>                         noise_estimated;
 
 	// construct modules
-	std::unique_ptr<module::Source<>                    > source      (factory::DVBS2O::build_source              <>(params                 ));
-	std::unique_ptr<module::Channel<>                   > channel     (factory::DVBS2O::build_channel             <>(params                 ));
-	std::unique_ptr<module::Scrambler<>                 > bb_scrambler(factory::DVBS2O::build_bb_scrambler        <>(params                 ));
-	std::unique_ptr<module::Encoder<>                   > BCH_encoder (factory::DVBS2O::build_bch_encoder         <>(params, poly_gen       ));
-	std::unique_ptr<module::Decoder_HIHO<>              > BCH_decoder (factory::DVBS2O::build_bch_decoder         <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec_SIHO<>                > LDPC_cdc    (factory::DVBS2O::build_ldpc_cdc            <>(params                 ));
-	std::unique_ptr<module::Interleaver<>               > itl_tx      (factory::DVBS2O::build_itl                 <>(params, *itl_core      ));
-	std::unique_ptr<module::Interleaver<float,uint32_t> > itl_rx      (factory::DVBS2O::build_itl<float,uint32_t>   (params, *itl_core      ));
-	std::unique_ptr<module::Modem<>                     > modem       (factory::DVBS2O::build_modem               <>(params, std::move(cstl)));
-	std::unique_ptr<module::Filter_UPRRC_ccr_naive<>    > shaping_flt (factory::DVBS2O::build_uprrc_filter        <>(params)                 );
-	std::unique_ptr<module::Multiplier_sine_ccc_naive<> > freq_shift  (factory::DVBS2O::build_freq_shift          <>(params)                 );
-	std::unique_ptr<module::Filter_Farrow_ccr_naive<>   > chn_frac_del(factory::DVBS2O::build_channel_frac_delay  <>(params)                 );
-	std::unique_ptr<module::Variable_delay_cc_naive<>   > chn_int_del (factory::DVBS2O::build_channel_int_delay   <>(params)                 );
-	std::unique_ptr<module::Synchronizer_frame<>        > sync_frame  (factory::DVBS2O::build_synchronizer_frame  <>(params                 ));
-	std::unique_ptr<module::Framer<>                    > framer      (factory::DVBS2O::build_framer              <>(params                 ));
-	std::unique_ptr<module::Scrambler<float>            > pl_scrambler(factory::DVBS2O::build_pl_scrambler        <>(params                 ));
-	std::unique_ptr<module::Filter_unit_delay<>         > delay       (factory::DVBS2O::build_unit_delay          <>(params                 ));
-	std::unique_ptr<module::Monitor_BFER<>              > monitor     (factory::DVBS2O::build_monitor             <>(params                 ));
-	std::unique_ptr<module::Filter_RRC_ccr_naive<>      > matched_flt (factory::DVBS2O::build_matched_filter      <>(params                 ));
-	std::unique_ptr<module::Synchronizer_timing<>       > sync_timing (factory::DVBS2O::build_synchronizer_timing <>(params                 ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > mult_agc    (factory::DVBS2O::build_agc_shift           <>(params                 ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > chn_agc     (factory::DVBS2O::build_channel_agc         <>(params                 ));
+	std::unique_ptr<module::Source<>                    > source      (factory::DVBS2O::build_source              <>(params                   ));
+	std::unique_ptr<module::Channel<>                   > channel     (factory::DVBS2O::build_channel             <>(params, *gen             ));
+	std::unique_ptr<module::Scrambler<>                 > bb_scrambler(factory::DVBS2O::build_bb_scrambler        <>(params                   ));
+	std::unique_ptr<module::Encoder<>                   > BCH_encoder (factory::DVBS2O::build_bch_encoder         <>(params, poly_gen         ));
+	std::unique_ptr<module::Decoder_HIHO<>              > BCH_decoder (factory::DVBS2O::build_bch_decoder         <>(params, poly_gen         ));
+	std::unique_ptr<tools ::Codec_SIHO<>                > LDPC_cdc    (factory::DVBS2O::build_ldpc_cdc            <>(params                   ));
+	std::unique_ptr<module::Interleaver<>               > itl_tx      (factory::DVBS2O::build_itl                 <>(params, *itl_core        ));
+	std::unique_ptr<module::Interleaver<float,uint32_t> > itl_rx      (factory::DVBS2O::build_itl<float,uint32_t>   (params, *itl_core        ));
+	std::unique_ptr<module::Modem<>                     > modem       (factory::DVBS2O::build_modem               <>(params, cstl.get()       ));
+	std::unique_ptr<module::Filter_UPRRC_ccr_naive<>    > shaping_flt (factory::DVBS2O::build_uprrc_filter        <>(params                   ));
+	std::unique_ptr<module::Multiplier_sine_ccc_naive<> > freq_shift  (factory::DVBS2O::build_freq_shift          <>(params                   ));
+	std::unique_ptr<module::Filter_Farrow_ccr_naive<>   > chn_frac_del(factory::DVBS2O::build_channel_frac_delay  <>(params                   ));
+	std::unique_ptr<module::Variable_delay_cc_naive<>   > chn_int_del (factory::DVBS2O::build_channel_int_delay   <>(params                   ));
+	std::unique_ptr<module::Synchronizer_frame<>        > sync_frame  (factory::DVBS2O::build_synchronizer_frame  <>(params                   ));
+	std::unique_ptr<module::Framer<>                    > framer      (factory::DVBS2O::build_framer              <>(params                   ));
+	std::unique_ptr<module::Scrambler<float>            > pl_scrambler(factory::DVBS2O::build_pl_scrambler        <>(params                   ));
+	std::unique_ptr<module::Filter_unit_delay<>         > delay       (factory::DVBS2O::build_unit_delay          <>(params                   ));
+	std::unique_ptr<module::Monitor_BFER<>              > monitor     (factory::DVBS2O::build_monitor             <>(params                   ));
+	std::unique_ptr<module::Filter_RRC_ccr_naive<>      > matched_flt (factory::DVBS2O::build_matched_filter      <>(params                   ));
+	std::unique_ptr<module::Synchronizer_timing<>       > sync_timing (factory::DVBS2O::build_synchronizer_timing <>(params                   ));
+	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > mult_agc    (factory::DVBS2O::build_agc_shift           <>(params                   ));
+	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > chn_agc     (factory::DVBS2O::build_channel_agc         <>(params                   ));
 	std::unique_ptr<module::Estimator<>                 > estimator   (factory::DVBS2O::build_estimator           <>(params                 ));
 
-	std::unique_ptr<module::Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse <>(params));
-	std::unique_ptr<module::Synchronizer_freq<>         > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase  <>(params));
-	std::unique_ptr<module::Synchronizer_freq<>         > sync_fine_lr (factory::DVBS2O::build_synchronizer_lr          <>(params));
+	std::unique_ptr<module::Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse <>(params             ));
+	std::unique_ptr<module::Synchronizer_freq<>         > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase  <>(params             ));
+	std::unique_ptr<module::Synchronizer_freq<>         > sync_fine_lr (factory::DVBS2O::build_synchronizer_lr          <>(params             ));
 	std::unique_ptr<module::Synchronizer_step_mf_cc<>   > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(params,
 	                                                                                                                       sync_coarse_f.get(),
 	                                                                                                                       matched_flt  .get(),
 	                                                                                                                       sync_timing  .get()));
 
-	auto& LDPC_encoder = LDPC_cdc->get_encoder();
-	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
+	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
+	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 	LDPC_encoder ->set_custom_name("LDPC Encoder");
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
@@ -95,8 +96,8 @@ int main(int argc, char** argv)
 	terminal->legend();
 
 	// fulfill the list of modules
-	modules = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder  .get(), LDPC_encoder  .get(),
-	            LDPC_decoder.get(), itl_tx      .get(), itl_rx       .get(), modem         .get(),
+	modules = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder  .get(), LDPC_encoder        ,
+	            LDPC_decoder      , itl_tx      .get(), itl_rx       .get(), modem         .get(),
 	            framer      .get(), pl_scrambler.get(), monitor      .get(), freq_shift    .get(),
 	            sync_fine_lr.get(), sync_fine_pf.get(), shaping_flt  .get(), chn_frac_del  .get(),
 	            mult_agc    .get(), sync_frame  .get(), delay        .get(), sync_coarse_f .get(),
@@ -145,7 +146,8 @@ int main(int argc, char** argv)
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
 	// reset the memory of the decoder after the end of each communication
-	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
+	monitor->record_callback_check([LDPC_decoder]{LDPC_decoder->reset();});
+	// monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 
 	// a loop over the various SNRs
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
@@ -165,7 +167,7 @@ int main(int argc, char** argv)
 		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.bps);
 		const auto sigma = tools::esn0_to_sigma(esn0);
 
-		noise.set_noise(sigma, ebn0, esn0);
+		noise.set_values(sigma, ebn0, esn0);
 
 		// update the sigma of the modem and the channel
 		LDPC_cdc->set_noise(noise);
@@ -297,7 +299,7 @@ int main(int argc, char** argv)
 
 		for (auto& m : modules)
 			for (auto& ta : m->tasks)
-				ta->reset_stats();
+				ta->reset();
 
 		int n_frames = 0;
 		while (!monitor->is_done() && !terminal->is_interrupt())
@@ -331,7 +333,7 @@ int main(int argc, char** argv)
 			const auto sigma_estimated = std::sqrt(estimator->get_sigma_n2() / 2);
 			const auto esn0_estimated  = tools::sigma_to_esn0(sigma_estimated);
 			const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, R, params.bps);
-			noise_estimated.set_noise(sigma_estimated, ebn0_estimated, esn0_estimated);
+			noise_estimated.set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
 			LDPC_cdc->set_noise(noise_estimated);
 			modem   ->set_noise(noise_estimated);
 
@@ -367,7 +369,7 @@ int main(int argc, char** argv)
 
 			for (auto& m : modules)
 				for (auto& ta : m->tasks)
-					ta->reset_stats();
+					ta->reset();
 
 			if (ebn0 + params.ebn0_step < params.ebn0_max)
 			{

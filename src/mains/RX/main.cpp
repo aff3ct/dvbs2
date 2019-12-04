@@ -28,38 +28,38 @@ int main(int argc, char** argv)
 	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	std::unique_ptr<module::Source<>                    > source       (factory::DVBS2O::build_source                  <>(params                 ));
-	std::unique_ptr<module::Sink<>                      > sink         (factory::DVBS2O::build_sink                    <>(params                 ));
-	std::unique_ptr<module::Radio<>                     > radio        (factory::DVBS2O::build_radio                   <>(params                 ));
-	std::unique_ptr<module::Scrambler<>                 > bb_scrambler (factory::DVBS2O::build_bb_scrambler            <>(params                 ));
-	std::unique_ptr<module::Decoder_HIHO<>              > BCH_decoder  (factory::DVBS2O::build_bch_decoder             <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec_SIHO<>                > LDPC_cdc     (factory::DVBS2O::build_ldpc_cdc                <>(params                 ));
-	std::unique_ptr<module::Interleaver<float,uint32_t> > itl_rx       (factory::DVBS2O::build_itl<float,uint32_t>       (params, *itl_core      ));
-	std::unique_ptr<module::Modem<>                     > modem        (factory::DVBS2O::build_modem                   <>(params, std::move(cstl)));
-	std::unique_ptr<module::Multiplier_sine_ccc_naive<> > freq_shift   (factory::DVBS2O::build_freq_shift              <>(params                 ));
-	std::unique_ptr<module::Synchronizer_frame<>        > sync_frame   (factory::DVBS2O::build_synchronizer_frame      <>(params                 ));
-	std::unique_ptr<module::Synchronizer_freq<>         > sync_lr      (factory::DVBS2O::build_synchronizer_lr         <>(params                 ));
-	std::unique_ptr<module::Synchronizer_freq<>         > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase <>(params                 ));
-	std::unique_ptr<module::Framer<>                    > framer       (factory::DVBS2O::build_framer                  <>(params                 ));
-	std::unique_ptr<module::Scrambler<float>            > pl_scrambler (factory::DVBS2O::build_pl_scrambler            <>(params                 ));
-	std::unique_ptr<module::Monitor_BFER<>              > monitor      (factory::DVBS2O::build_monitor                 <>(params                 ));
-	std::unique_ptr<module::Filter_RRC_ccr_naive<>      > matched_flt  (factory::DVBS2O::build_matched_filter          <>(params                 ));
-	std::unique_ptr<module::Synchronizer_timing <>      > sync_timing  (factory::DVBS2O::build_synchronizer_timing     <>(params                 ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > mult_agc     (factory::DVBS2O::build_agc_shift               <>(params                 ));
-	std::unique_ptr<module::Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse<>(params                 ));
-	std::unique_ptr<module::Estimator<>                 > estimator    (factory::DVBS2O::build_estimator               <>(params                 ));
+	std::unique_ptr<module::Source<>                    > source       (factory::DVBS2O::build_source                  <>(params              ));
+	std::unique_ptr<module::Sink<>                      > sink         (factory::DVBS2O::build_sink                    <>(params              ));
+	std::unique_ptr<module::Radio<>                     > radio        (factory::DVBS2O::build_radio                   <>(params              ));
+	std::unique_ptr<module::Scrambler<>                 > bb_scrambler (factory::DVBS2O::build_bb_scrambler            <>(params              ));
+	std::unique_ptr<module::Decoder_HIHO<>              > BCH_decoder  (factory::DVBS2O::build_bch_decoder             <>(params, poly_gen    ));
+	std::unique_ptr<tools ::Codec_SIHO<>                > LDPC_cdc     (factory::DVBS2O::build_ldpc_cdc                <>(params              ));
+	std::unique_ptr<module::Interleaver<float,uint32_t> > itl_rx       (factory::DVBS2O::build_itl<float,uint32_t>       (params, *itl_core   ));
+	std::unique_ptr<module::Modem<>                     > modem        (factory::DVBS2O::build_modem                   <>(params, cstl.get()  ));
+	std::unique_ptr<module::Multiplier_sine_ccc_naive<> > freq_shift   (factory::DVBS2O::build_freq_shift              <>(params              ));
+	std::unique_ptr<module::Synchronizer_frame<>        > sync_frame   (factory::DVBS2O::build_synchronizer_frame      <>(params              ));
+	std::unique_ptr<module::Synchronizer_freq<>         > sync_lr      (factory::DVBS2O::build_synchronizer_lr         <>(params              ));
+	std::unique_ptr<module::Synchronizer_freq<>         > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase <>(params              ));
+	std::unique_ptr<module::Framer<>                    > framer       (factory::DVBS2O::build_framer                  <>(params              ));
+	std::unique_ptr<module::Scrambler<float>            > pl_scrambler (factory::DVBS2O::build_pl_scrambler            <>(params              ));
+	std::unique_ptr<module::Monitor_BFER<>              > monitor      (factory::DVBS2O::build_monitor                 <>(params              ));
+	std::unique_ptr<module::Filter_RRC_ccr_naive<>      > matched_flt  (factory::DVBS2O::build_matched_filter          <>(params              ));
+	std::unique_ptr<module::Synchronizer_timing <>      > sync_timing  (factory::DVBS2O::build_synchronizer_timing     <>(params              ));
+	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > mult_agc     (factory::DVBS2O::build_agc_shift               <>(params              ));
+	std::unique_ptr<module::Estimator<>                 > estimator    (factory::DVBS2O::build_estimator               <>(params              ));
+	std::unique_ptr<module::Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse<>(params              ));
 	std::unique_ptr<module::Synchronizer_step_mf_cc<>   > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc <>(params,
 	                                                                                                                      sync_coarse_f.get(),
 	                                                                                                                      matched_flt  .get(),
-	                                                                                                                      sync_timing  .get()    ));
+	                                                                                                                      sync_timing  .get() ));
 
-	auto& LDPC_decoder = LDPC_cdc->get_decoder_siho();
+	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
 	BCH_decoder  ->set_custom_name("BCH Decoder" );
 	sync_lr      ->set_custom_name("L&R F Syn"   );
 	sync_fine_pf ->set_custom_name("Fine P/F Syn");
-	sync_timing ->set_custom_name("Gardner Syn" );
+	sync_timing  ->set_custom_name("Gardner Syn" );
 	sync_frame   ->set_custom_name("Frame Syn"   );
 	matched_flt  ->set_custom_name("Matched Flt" );
 	sync_coarse_f->set_custom_name("Coarse_Synch");
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
 	terminal->legend();
 
 	// fill the list of modules
-	modules = { bb_scrambler.get(), BCH_decoder .get(), source       .get(), LDPC_decoder .get(),
+	modules = { bb_scrambler.get(), BCH_decoder .get(), source       .get(), LDPC_decoder       ,
 	            itl_rx      .get(), modem       .get(), framer       .get(), pl_scrambler .get(),
 	            monitor     .get(), freq_shift  .get(), sync_lr      .get(), sync_fine_pf .get(),
 	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt  .get(),
@@ -118,7 +118,8 @@ int main(int argc, char** argv)
 	(*sink        )[snk::sck::send         ::X_N1].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
 	// reset the memory of the decoder after the end of each communication
-	monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
+	monitor->record_callback_check([LDPC_decoder]{LDPC_decoder->reset();});
+	// monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 
 	freq_shift   ->reset();
 	sync_coarse_f->reset();
@@ -211,7 +212,7 @@ int main(int argc, char** argv)
 
 	for (auto& m : modules)
 		for (auto& ta : m->tasks)
-			ta->reset_stats();
+			ta->reset();
 
 	// tasks execution
 	while (!terminal->is_interrupt())
@@ -233,7 +234,7 @@ int main(int argc, char** argv)
 		const auto sigma_estimated = std::sqrt(estimator->get_sigma_n2() / 2);
 		const auto esn0_estimated  = tools::sigma_to_esn0(sigma_estimated);
 		const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, R, params.bps);
-		noise.set_noise(sigma_estimated, ebn0_estimated, esn0_estimated);
+		noise.set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
 		LDPC_cdc->set_noise(noise);
 		modem   ->set_noise(noise);
 
