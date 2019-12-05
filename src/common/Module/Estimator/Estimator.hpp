@@ -71,6 +71,8 @@ public:
 
 	virtual void set_noise(const tools::Noise<>& noise);
 
+	void check_noise(); // check that the noise has the expected type
+
 	/*!
 	 * \brief Estimate the noise the frame.
 	 *

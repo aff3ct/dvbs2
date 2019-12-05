@@ -23,7 +23,7 @@ namespace module
 template <typename R>
 Estimator<R>::
 Estimator(const int N, const float code_rate, const int bps, const int n_frames)
-: Module(n_frames), N(N), bps(bps), code_rate(code_rate)
+: Module(n_frames), N(N), bps(bps), code_rate(code_rate), noise(nullptr)
 {
 	const std::string name = "Estimator";
 	this->set_name(name);
@@ -101,12 +101,21 @@ void Estimator<R>
 ::set_noise(const tools::Noise<>& noise)
 {
 	this->noise = &noise;
-	this->noise->is_of_type_throw(tools::Noise_type::SIGMA);
+	this->check_noise();
 }
 
 template<typename R>
 const tools::Noise<>& Estimator<R>
 ::get_noise() const
+{
+	this->check_noise();
+	return *this->noise;
+}
+
+
+template<typename R>
+void Estimator<R>
+::check_noise()
 {
 	if (this->noise == nullptr)
 	{
@@ -115,13 +124,16 @@ const tools::Noise<>& Estimator<R>
 		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	return *this->noise;
+	this->noise->is_of_type_throw(tools::Noise_type::SIGMA);
 }
+
 
 template <typename R>
 void Estimator<R>::
 _estimate(R *X_N, R *H_N, const int frame_id)
 {
+	this->check_noise();
+
 	float moment2 = 0, moment4 = 0;
 	float pow_tot, pow_sig_util;
 

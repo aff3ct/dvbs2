@@ -71,7 +71,6 @@ int main(int argc, char** argv)
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
-
 	// manage noise
 	LDPC_cdc ->set_noise(noise_estimated);
 	modem    ->set_noise(noise_estimated);
