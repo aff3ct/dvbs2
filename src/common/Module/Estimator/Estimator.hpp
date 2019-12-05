@@ -12,7 +12,7 @@
 #include <string>
 #include <iostream>
 
-#include "Module/Module.hpp"
+#include "Module/Estimator/Estimator.hpp"
 
 namespace aff3ct
 {
@@ -33,7 +33,7 @@ namespace module
  *
  * \brief Estimator prototype
  *
- * \tparam D: type of the data in the Estimator.
+ * \tparam R: type of the data in the Estimator.
  */
 template <typename R = float>
 class Estimator : public Module
@@ -44,8 +44,6 @@ public:
 
 protected:
 	const int N;                 // Size of one frame (= number of datas in one frame)
-	const int bps;               // bits per symbol for eb_n0 computation
-	const float code_rate;       // Code rate for eb_n0 computation
 	const tools::Noise<> *noise; // the estimated noise
 
 public:
@@ -55,7 +53,7 @@ public:
 	 * \param N:        size of one frame.
 	 * \param n_frames: number of frames to process in the Estimator.
 	 */
-	Estimator(const int N, const float code_rate, const int bps, const int n_frames = 1);
+	Estimator(const int N, const int n_frames = 1);
 
 	/*!
 	 * \brief Destructor.
@@ -80,7 +78,7 @@ public:
 	virtual void estimate(R *X_N, R *H_N, const int frame_id = -1);
 
 protected:
-	virtual void _estimate  (R *X_N, R *H_N, const int frame_id);
+	virtual void _estimate(R *X_N, R *H_N, const int frame_id);
 };
 }
 }

@@ -22,8 +22,8 @@ namespace module
 
 template <typename R>
 Estimator<R>::
-Estimator(const int N, const float code_rate, const int bps, const int n_frames)
-: Module(n_frames), N(N), bps(bps), code_rate(code_rate), noise(nullptr)
+Estimator(const int N, const int n_frames)
+: Module(n_frames), N(N), noise(nullptr)
 {
 	const std::string name = "Estimator";
 	this->set_name(name);
@@ -116,8 +116,6 @@ void Estimator<R>
 		message << "'noise' should not be nullptr.";
 		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
-
-	this->noise->is_of_type_throw(tools::Noise_type::SIGMA);
 }
 
 
@@ -125,41 +123,7 @@ template <typename R>
 void Estimator<R>::
 _estimate(R *X_N, R *H_N, const int frame_id)
 {
-	this->check_noise();
-
-	float moment2 = 0, moment4 = 0;
-	float pow_tot, pow_sig_util;
-
-	for (int i = 0; i < this->N / 2; i++)
-	{
-		float tmp = X_N[2 * i]*X_N[2 * i] + X_N[2 * i + 1]*X_N[2 * i + 1];
-		moment2 += tmp;
-		moment4 += tmp*tmp;
-	}
-	moment2 /= this->N / 2;
-	moment4 /= this->N / 2;
-
-	float Se      = std::sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
-	float Ne      = std::abs( moment2 - Se );
-	float esn0_estimated = 10 * std::log10(Se / Ne);
-
-	pow_tot = moment2;
-
-	pow_sig_util = pow_tot / (1+(std::pow(10, (-1 * esn0_estimated/10))));
-
-	const auto sigma_estimated = tools::esn0_to_sigma(esn0_estimated);
-	const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, code_rate, bps);
-
-	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(const_cast<tools::Noise<R>*>(this->noise));
-	sigma->set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
-
-	float H = std::sqrt(pow_sig_util);
-
-	for (int i = 0; i < this->N / 2; i++)
-	{
-		H_N[2*i] = H;
-		H_N[2*i+1] = 0;
-	}
+	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 }

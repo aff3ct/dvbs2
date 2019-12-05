@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Channel<>                  > channel     (factory::DVBS2O::build_channel          <>(params, *gen, false));
 	std::unique_ptr<module::Framer<>                   > framer      (factory::DVBS2O::build_framer           <>(params             ));
 	std::unique_ptr<module::Scrambler<float>           > pl_scrambler(factory::DVBS2O::build_pl_scrambler     <>(params             ));
-	std::unique_ptr<module::Estimator<>                > estimator   (factory::DVBS2O::build_estimator        <>(params             ));
+	std::unique_ptr<module::Estimator<>                > estimator   (factory::DVBS2O::build_estimator        <>(params, &noise     ));
 	monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>          (factory::DVBS2O::build_monitor          <>(params             ));
 
 	auto& monitor = monitors[tid];

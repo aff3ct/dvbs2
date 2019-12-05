@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Synchronizer_timing<>       > sync_timing (factory::DVBS2O::build_synchronizer_timing <>(params                   ));
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > mult_agc    (factory::DVBS2O::build_agc_shift           <>(params                   ));
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > chn_agc     (factory::DVBS2O::build_channel_agc         <>(params                   ));
-	std::unique_ptr<module::Estimator<>                 > estimator   (factory::DVBS2O::build_estimator           <>(params                 ));
+	std::unique_ptr<module::Estimator<>                 > estimator   (factory::DVBS2O::build_estimator           <>(params, &noise           ));
 
 	std::unique_ptr<module::Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse <>(params             ));
 	std::unique_ptr<module::Synchronizer_freq<>         > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase  <>(params             ));

@@ -94,6 +94,7 @@ public:
 	std::string src_type;
 	std::string src_path;
 	std::string sink_path;
+	std::string est_type;
 
 	factory::Radio p_rad;
 
@@ -185,7 +186,7 @@ public:
 
 	template <typename R = float>
 	static module::Estimator<R>*
-	build_estimator(const DVBS2O& params);
+	build_estimator(const DVBS2O& params, const tools::Noise<R>* noise_ref = nullptr);
 
 	template <typename R = float>
 	static module::Synchronizer_freq<R>*
