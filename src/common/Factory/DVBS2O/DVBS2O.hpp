@@ -186,7 +186,7 @@ public:
 
 	template <typename R = float>
 	static module::Estimator<R>*
-	build_estimator(const DVBS2O& params, const tools::Noise<R>* noise_ref = nullptr);
+	build_estimator(const DVBS2O& params, tools::Noise<R>* noise_ref = nullptr);
 
 	template <typename R = float>
 	static module::Synchronizer_freq<R>*

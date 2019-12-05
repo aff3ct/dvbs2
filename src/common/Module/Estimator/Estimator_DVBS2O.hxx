@@ -66,7 +66,7 @@ _estimate(R *X_N, R *H_N, const int frame_id)
 	const auto sigma_estimated = tools::esn0_to_sigma(esn0_estimated);
 	const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, code_rate, bps);
 
-	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(const_cast<tools::Noise<R>*>(this->noise));
+	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise);
 	sigma->set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
 
 	float H = std::sqrt(pow_sig_util);

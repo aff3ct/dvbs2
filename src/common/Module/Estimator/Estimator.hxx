@@ -8,9 +8,6 @@
 #ifndef ESTIMATOR_HXX_
 #define ESTIMATOR_HXX_
 
-#include <sstream>
-#include <complex>
-
 #include "Tools/Exception/exception.hpp"
 
 #include "Module/Estimator/Estimator.hpp"
@@ -91,20 +88,19 @@ estimate(R *X_N, R *H_N, const int frame_id)
 
 template <typename R>
 void Estimator<R>
-::set_noise(const tools::Noise<>& noise)
+::set_noise(tools::Noise<>& noise)
 {
 	this->noise = &noise;
 	this->check_noise();
 }
 
 template<typename R>
-const tools::Noise<>& Estimator<R>
+tools::Noise<>& Estimator<R>
 ::get_noise() const
 {
 	this->check_noise();
 	return *this->noise;
 }
-
 
 template<typename R>
 void Estimator<R>

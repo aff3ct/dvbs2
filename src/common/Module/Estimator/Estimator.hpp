@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include "Module/Estimator/Estimator.hpp"
+#include "Tools/Noise/Noise.hpp"
 
 namespace aff3ct
 {
@@ -44,7 +45,7 @@ public:
 
 protected:
 	const int N;                 // Size of one frame (= number of datas in one frame)
-	const tools::Noise<> *noise; // the estimated noise
+	tools::Noise<> *noise; // the estimated noise
 
 public:
 	/*!
@@ -62,9 +63,9 @@ public:
 
 	virtual int get_N() const;
 
-	const tools::Noise<>& get_noise() const;
+	tools::Noise<>& get_noise() const;
 
-	virtual void set_noise(const tools::Noise<>& noise);
+	virtual void set_noise(tools::Noise<>& noise);
 
 	void check_noise(); // check that the noise has the expected type
 

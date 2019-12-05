@@ -8,11 +8,7 @@
 #ifndef ESTIMATOR_DVBS2O_HPP
 #define ESTIMATOR_DVBS2O_HPP
 
-#include <vector>
-#include <string>
-#include <iostream>
-
-#include "Module/Module.hpp"
+#include "Module/Estimator/Estimator.hpp"
 
 namespace aff3ct
 {

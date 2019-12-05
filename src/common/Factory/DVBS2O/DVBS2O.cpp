@@ -18,6 +18,7 @@
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_perfect.hpp"
 
 #include "Module/Estimator/Estimator_DVBS2O.hpp"
+#include "Module/Estimator/Estimator_perfect.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::factory;
@@ -436,11 +437,11 @@ module::Filter_RRC_ccr_naive<R>* DVBS2O
 
 template <typename R>
 module::Estimator<R>* DVBS2O
-::build_estimator(const DVBS2O& params, const tools::Noise<R>* noise_ref)
+::build_estimator(const DVBS2O& params, tools::Noise<R>* noise_ref)
 {
 	const float code_rate = (float)params.K_bch / (float)params.N_ldpc;
 	if (params.est_type == "PERFECT")
-		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Estimator type.");
+		return new module::Estimator_perfect<R>(2 * params.N_xfec_frame, noise_ref, params.n_frames);
 	else if (params.est_type == "DVBS2O" )
 		return new module::Estimator_DVBS2O<R>(2 * params.N_xfec_frame, code_rate, params.bps, params.n_frames);
 
@@ -598,7 +599,7 @@ template aff3ct::module::Filter_UPRRC_ccr_naive<R>*    DVBS2O::build_uprrc_filte
 template aff3ct::module::Filter_Farrow_ccr_naive<R>*   DVBS2O::build_channel_frac_delay<R>      (const DVBS2O& params);
 template aff3ct::module::Variable_delay_cc_naive<R>*   DVBS2O::build_channel_int_delay<R>       (const DVBS2O& params);
 template aff3ct::module::Filter_RRC_ccr_naive<R>*      DVBS2O::build_matched_filter<R>          (const DVBS2O& params);
-template aff3ct::module::Estimator<R>*                 DVBS2O::build_estimator<R>               (const DVBS2O& params, const tools::Noise<R>* noise_ref);
+template aff3ct::module::Estimator<R>*                 DVBS2O::build_estimator<R>               (const DVBS2O& params, tools::Noise<R>* noise_ref);
 template aff3ct::module::Monitor_BFER<B>*              DVBS2O::build_monitor<B>                 (const DVBS2O& params);
 template aff3ct::module::Channel<R>*                   DVBS2O::build_channel<R>                 (const DVBS2O& params, tools::Gaussian_noise_generator<R>& gen, const bool filtered);
 template aff3ct::module::Multiplier_sine_ccc_naive<R>* DVBS2O::build_freq_shift<R>              (const DVBS2O& params);
