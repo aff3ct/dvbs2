@@ -37,7 +37,7 @@ template<typename R>
 void Estimator_perfect<R>
 ::check_noise_ref()
 {
-	if (this->noise == nullptr)
+	if (this->noise_ref == nullptr)
 	{
 		std::stringstream message;
 		message << "'noise' should not be nullptr.";
@@ -50,6 +50,7 @@ void Estimator_perfect<R>
 ::set_noise_ref(tools::Noise<>& noise)
 {
 	this->noise_ref = &noise;
+	this->check_noise_ref();
 	this->noise_ref->record_callback_update([this](){ this->notify_noise_update(); });
 	if (this->noise_ref->is_set())
 		this->notify_noise_update();
