@@ -496,9 +496,9 @@ module::Synchronizer_freq<R>* DVBS2O
 ::build_synchronizer_freq_phase(const DVBS2O& params)
 {
 	if (params.perfect_pf_freq_sync)
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>(2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
+		return dynamic_cast<module::Synchronizer_freq<R>*>(new module::Synchronizer_freq_fine_perfect<R>(2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
 	else
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
+		return dynamic_cast<module::Synchronizer_freq<R>*>(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
 }
 
 template <typename R>
@@ -508,10 +508,10 @@ module::Synchronizer_timing<R>* DVBS2O
 	module::Synchronizer_timing<R>* sync_timing;
 	if (params.perfect_timing_sync)
 	{
-		sync_timing = (module::Synchronizer_timing<R>*)(new module::Synchronizer_timing_perfect<R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay, params.n_frames));
+		sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_timing_perfect<R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay, params.n_frames));
 	}
 	else
-	 	sync_timing = (module::Synchronizer_timing<R>*)(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+	 	sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
 
 	return sync_timing;
 }
@@ -538,13 +538,13 @@ module::Synchronizer_frame<R>* DVBS2O
 	if (params.perfect_sync)
 	{
 		int delay = (R)2 * (R)params.grp_delay + ((int)std::floor(params.max_delay) + 1)/params.osf;
-		return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_perfect<R>(2 * params.pl_frame_size, delay, params.n_frames));
+		return dynamic_cast<module::Synchronizer_frame<R>*>(new module::Synchronizer_frame_perfect<R>(2 * params.pl_frame_size, delay, params.n_frames));
 	}
 
 	if (params.frame_sync_fast)
-		return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_DVBS2_fast<R>(2 * params.pl_frame_size, params.n_frames));
+		return dynamic_cast<module::Synchronizer_frame<R>*>(new module::Synchronizer_frame_DVBS2_fast<R>(2 * params.pl_frame_size, params.n_frames));
 
-	return (module::Synchronizer_frame<R> *)(new module::Synchronizer_frame_DVBS2_aib <R>(2 * params.pl_frame_size, params.n_frames));
+	return dynamic_cast<module::Synchronizer_frame<R>*>(new module::Synchronizer_frame_DVBS2_aib <R>(2 * params.pl_frame_size, params.n_frames));
 }
 
 template <typename R>
@@ -553,9 +553,9 @@ module::Synchronizer_freq_coarse<R>* DVBS2O
 {
 	module::Synchronizer_freq_coarse<R> * sync_freq_coarse;
 	if(params.perfect_coarse_freq_sync)
-		sync_freq_coarse =  (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_perfect<R>(2 * params.pl_frame_size * params.osf, params.max_freq_shift, params.n_frames));
+		sync_freq_coarse =  dynamic_cast<module::Synchronizer_freq_coarse<R>*>(new module::Synchronizer_freq_coarse_perfect<R>(2 * params.pl_frame_size * params.osf, params.max_freq_shift, params.n_frames));
 	else
-		sync_freq_coarse =  (module::Synchronizer_freq_coarse<R> *)(new module::Synchronizer_freq_coarse_DVBS2_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4, params.n_frames));
+		sync_freq_coarse =  dynamic_cast<module::Synchronizer_freq_coarse<R>*>(new module::Synchronizer_freq_coarse_DVBS2_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4, params.n_frames));
 
 	return sync_freq_coarse;
 }
