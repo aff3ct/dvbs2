@@ -90,13 +90,6 @@ estimate(R *X_N, R *H_N, const int frame_id)
 }
 
 template <typename R>
-R Estimator<R>::
-get_sigma_n2()
-{
-	return sigma_n2;
-}
-
-template <typename R>
 void Estimator<R>
 ::set_noise(const tools::Noise<>& noise)
 {
@@ -153,8 +146,6 @@ _estimate(R *X_N, R *H_N, const int frame_id)
 	pow_tot = moment2;
 
 	pow_sig_util = pow_tot / (1+(std::pow(10, (-1 * esn0_estimated/10))));
-
-	this->sigma_n2 = pow_tot - pow_sig_util;
 
 	const auto sigma_estimated = tools::esn0_to_sigma(esn0_estimated);
 	const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, code_rate, bps);

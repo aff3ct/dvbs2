@@ -47,7 +47,6 @@ protected:
 	const int bps;               // bits per symbol for eb_n0 computation
 	const float code_rate;       // Code rate for eb_n0 computation
 	const tools::Noise<> *noise; // the estimated noise
-	float sigma_n2;
 
 public:
 	/*!
@@ -64,8 +63,6 @@ public:
 	virtual ~Estimator() = default;
 
 	virtual int get_N() const;
-
-	R get_sigma_n2();
 
 	const tools::Noise<>& get_noise() const;
 
