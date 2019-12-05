@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	const float rate = (float)params.K_bch / (float)params.N_ldpc;
 	const auto esn0  = tools::ebn0_to_esn0 (ebn0, rate, params.bps);
 	const auto sigma = tools::esn0_to_sigma(esn0);
-	noise.set_noise(sigma, ebn0, esn0);
+	noise.set_values(sigma, ebn0, esn0);
 	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>(noise       ))); // report the noise values (Es/N0 and Eb/N0)
 	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
 
@@ -38,22 +38,22 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Source<>        > source        (factory::DVBS2O::build_source <>     (params, 0              ));
 	std::unique_ptr<module::Scrambler<>     > bb_scrambler  (factory::DVBS2O::build_bb_scrambler<>(params                 ));
 	std::unique_ptr<module::Encoder<>       > BCH_encoder   (factory::DVBS2O::build_bch_encoder <>(params, poly_gen       ));
-	std::unique_ptr<module::Codec<>         > LDPC_cdc      (factory::DVBS2O::build_ldpc_cdc    <>(params                 ));
+	std::unique_ptr<tools ::Codec<>         > LDPC_cdc      (factory::DVBS2O::build_ldpc_cdc    <>(params                 ));
 	std::unique_ptr<module::Interleaver<>   > itl           (factory::DVBS2O::build_itl         <>(params, *itl_core      ));
-	std::unique_ptr<module::Modem<>         > modem         (factory::DVBS2O::build_modem       <>(params, std::move(cstl)));
+	std::unique_ptr<module::Modem<>         > modem         (factory::DVBS2O::build_modem       <>(params, cstl.get()     ));
 	std::unique_ptr<module::Framer<>        > framer        (factory::DVBS2O::build_framer      <>(params                 ));
 	std::unique_ptr<module::Scrambler<float>> pl_scrambler  (factory::DVBS2O::build_pl_scrambler<>(params                 ));
 	std::unique_ptr<module::Filter<>        > shaping_filter(factory::DVBS2O::build_uprrc_filter<>(params                 ));
 	std::unique_ptr<module::Radio<>         > radio         (factory::DVBS2O::build_radio<>       (params                 ));
 
-	auto& LDPC_encoder = LDPC_cdc->get_encoder();
+	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 
 	// the list of the allocated modules for the simulation
 	std::vector<const module::Module*> modules;
 
 
-	modules = { radio.get(), source.get(),bb_scrambler.get(), BCH_encoder.get(),
-	            LDPC_encoder.get(), itl.get(), modem.get(), framer.get(),
+	modules = { radio       .get(), source        .get(), bb_scrambler.get(), BCH_encoder.get(),
+	            LDPC_encoder      , itl           .get(), modem       .get(), framer     .get(),
 	            pl_scrambler.get(), shaping_filter.get()};
 
 	// configuration of the module tasks

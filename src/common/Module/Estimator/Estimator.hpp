@@ -12,7 +12,8 @@
 #include <string>
 #include <iostream>
 
-#include "Module/Module.hpp"
+#include "Module/Estimator/Estimator.hpp"
+#include "Tools/Noise/Noise.hpp"
 
 namespace aff3ct
 {
@@ -24,7 +25,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class estimate   : uint8_t { Y_N, H_N, SIZE };
+			enum class estimate   : uint8_t { X_N, H_N, SIZE };
 		}
 	}
 
@@ -33,7 +34,7 @@ namespace module
  *
  * \brief Estimator prototype
  *
- * \tparam D: type of the data in the Estimator.
+ * \tparam R: type of the data in the Estimator.
  */
 template <typename R = float>
 class Estimator : public Module
@@ -43,8 +44,8 @@ public:
 	inline Socket& operator[](const est::sck::estimate   s) { return Module::operator[]((int)est::tsk::estimate)[(int)s]; }
 
 protected:
-	const int N;          // Size of one frame (= number of datas in one frame)
-	float sigma_n2;
+	const int N;                 // Size of one frame (= number of datas in one frame)
+	tools::Noise<> *noise; // the estimated noise
 
 public:
 	/*!
@@ -62,7 +63,11 @@ public:
 
 	virtual int get_N() const;
 
-	R get_sigma_n2();
+	tools::Noise<>& get_noise() const;
+
+	virtual void set_noise(tools::Noise<>& noise);
+
+	void check_noise(); // check that the noise has the expected type
 
 	/*!
 	 * \brief Estimate the noise the frame.
@@ -74,7 +79,7 @@ public:
 	virtual void estimate(R *X_N, R *H_N, const int frame_id = -1);
 
 protected:
-	virtual void _estimate  (R *X_N, R *H_N, const int frame_id);
+	virtual void _estimate(R *X_N, R *H_N, const int frame_id);
 };
 }
 }

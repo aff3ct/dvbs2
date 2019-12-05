@@ -17,6 +17,9 @@
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_fast.hpp"
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_perfect.hpp"
 
+#include "Module/Estimator/Estimator_DVBS2O.hpp"
+#include "Module/Estimator/Estimator_perfect.hpp"
+
 using namespace aff3ct;
 using namespace aff3ct::factory;
 
@@ -84,6 +87,7 @@ void DVBS2O
 	args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),    "LDPC number of iterations"                                           );
 	args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")), "LDPC Implem "                                                        );
 	args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),   "Display stats."                                                      );
+	args.add({"est-type"},           cli::Text(cli::Including_set("DVBS2O", "PERFECT")),"Type of estimator."                                                  );
 	args.add({"section"},            cli::Text(),                                       "Section to be used in bridge binary."                                );
 	args.add({"ter-freq"},           cli::Integer(cli::Positive()),                     "Terminal frequency."                                                 );
 	args.add({"frame-sync-fast"},    cli::None(),                                       "Enable fast frame synchronization."                                  );
@@ -114,6 +118,7 @@ void DVBS2O
 	sink_path                = vals.exist({"snk-path"}           ) ? vals.at      ({"snk-path"}          ) : ""          ;
 	ldpc_implem              = vals.exist({"dec-implem"}         ) ? vals.at      ({"dec-implem"}        ) : "SPA"       ;
 	ldpc_simd                = vals.exist({"dec-simd"}           ) ? vals.at      ({"dec-simd"}          ) : ""          ;
+	est_type                 = vals.exist({"est-type"}           ) ? vals.at      ({"est-type"}          ) : "DVBS2O"    ;
 	section                  = vals.exist({"section"}            ) ? vals.at      ({"section"}           ) : ""          ;
 	src_type                 = vals.exist({"src-type"}           ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
 	src_path                 = vals.exist({"src-path"}           ) ? vals.at      ({"src-path"}          ) : src_path    ;
@@ -200,6 +205,7 @@ void DVBS2O
 	if (this->src_path != "")
 		headers[p].push_back(std::make_pair("Path to source file"  , this->src_path                      ));
 	headers[p].push_back(std::make_pair("Perfect synchronization"         , this->perfect_sync ? "YES" : "NO"         ));
+	headers[p].push_back(std::make_pair("Estimator type"       , this->est_type                          ));
 	if(full)
 		p_rad.get_headers(headers);
 }
@@ -315,7 +321,7 @@ module::Decoder_BCH_std<B,Q>* DVBS2O
 }
 
 template <typename B,typename Q>
-module::Codec_LDPC<B,Q>* DVBS2O
+tools::Codec_LDPC<B,Q>* DVBS2O
 ::build_ldpc_cdc(const DVBS2O& params)
 {
 	factory::Codec_LDPC p_cdc;
@@ -362,9 +368,9 @@ module::Interleaver<D,T>* DVBS2O
 
 template <typename B, typename R, typename Q, tools::proto_max<Q> MAX>
 module::Modem_generic<B,R,Q,MAX>* DVBS2O
-::build_modem(const DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl)
+::build_modem(const DVBS2O& params, tools::Constellation<R>* cstl)
 {
-	 return new module::Modem_generic<B,R,Q,MAX>(params.N_ldpc, std::move(cstl), tools::Sigma<R >(1.0), false, params.n_frames);
+	 return new module::Modem_generic<B,R,Q,MAX>(params.N_ldpc, *cstl, false, params.n_frames);
 }
 
 template <typename R>
@@ -431,9 +437,15 @@ module::Filter_RRC_ccr_naive<R>* DVBS2O
 
 template <typename R>
 module::Estimator<R>* DVBS2O
-::build_estimator(const DVBS2O& params)
+::build_estimator(const DVBS2O& params, tools::Noise<R>* noise_ref)
 {
-	return new module::Estimator<R>(2 * params.N_xfec_frame, params.n_frames);
+	const float code_rate = (float)params.K_bch / (float)params.N_ldpc;
+	if (params.est_type == "PERFECT")
+		return new module::Estimator_perfect<R>(2 * params.N_xfec_frame, noise_ref, params.n_frames);
+	else if (params.est_type == "DVBS2O" )
+		return new module::Estimator_DVBS2O<R>(2 * params.N_xfec_frame, code_rate, params.bps, params.n_frames);
+
+	throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Estimator type.");
 }
 
 template <typename B>
@@ -444,7 +456,7 @@ module::Monitor_BFER<B>* DVBS2O
 	// Please comment the two following line to increase the simulation throughput
 	auto freq = std::chrono::milliseconds(0);
 
-	tools::Monitor_reduction::set_reduce_frequency(freq);
+	tools::Monitor_reduction_static::set_reduce_frequency(freq);
 	// END DEBUG
 
 	return new module::Monitor_BFER<B>(params.K_bch, params.max_fe, 0, false, params.n_frames);
@@ -452,16 +464,12 @@ module::Monitor_BFER<B>* DVBS2O
 
 template <typename R>
 module::Channel<R>* DVBS2O
-::build_channel(const DVBS2O& params, const int seed, const bool filtered)
+::build_channel(const DVBS2O& params, tools::Gaussian_noise_generator<R>& gen, const bool filtered)
 {
-	std::unique_ptr<tools::Gaussian_noise_generator<R>> n = nullptr;
-	n.reset(new tools::Gaussian_noise_generator_fast<R>(seed));
 	if (filtered)
-		return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size * params.osf, std::move(n),
-		                                       false, tools::Sigma<R>(), params.n_frames);
+		return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size * params.osf, gen, false, params.n_frames);
 	else
-		return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size             , std::move(n),
-		                                       false, tools::Sigma<R>(), params.n_frames);
+		return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size             , gen, false, params.n_frames);
 }
 
 template <typename R>
@@ -477,9 +485,9 @@ module::Synchronizer_freq<R>* DVBS2O
 ::build_synchronizer_lr(const DVBS2O& params)
 {
 	if (params.perfect_lr_freq_sync)
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>          (2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
+		return dynamic_cast<module::Synchronizer_freq<R>*>(new module::Synchronizer_freq_fine_perfect<R>(2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
 	else
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
+		return dynamic_cast<module::Synchronizer_freq<R>*>(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
 
 }
 
@@ -488,7 +496,7 @@ module::Synchronizer_freq<R>* DVBS2O
 ::build_synchronizer_freq_phase(const DVBS2O& params)
 {
 	if (params.perfect_pf_freq_sync)
-		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>   (2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
+		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_fine_perfect<R>(2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
 	else
 		return (module::Synchronizer_freq<R>*)(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
 }
@@ -580,10 +588,10 @@ template aff3ct::module::Source<B>*                    DVBS2O::build_source<B>  
 template aff3ct::module::Sink<B>*                      DVBS2O::build_sink<B>                    (const DVBS2O& params);
 template aff3ct::module::Encoder_BCH<B>*               DVBS2O::build_bch_encoder<B>             (const DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
 template aff3ct::module::Decoder_BCH_std<B>*           DVBS2O::build_bch_decoder<B>             (const DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen);
-template aff3ct::module::Codec_LDPC<B,Q>*              DVBS2O::build_ldpc_cdc<B,Q>              (const DVBS2O& params);
+template aff3ct::tools ::Codec_LDPC<B,Q>*              DVBS2O::build_ldpc_cdc<B,Q>              (const DVBS2O& params);
 template aff3ct::module::Interleaver<int32_t,uint32_t>*DVBS2O::build_itl<int32_t,uint32_t>      (const DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
 template aff3ct::module::Interleaver<float,uint32_t>*  DVBS2O::build_itl<float,uint32_t>        (const DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
-template aff3ct::module::Modem_generic<B,R,Q,tools::max_star>* DVBS2O::build_modem              (const DVBS2O& params, std::unique_ptr<tools::Constellation<R>> cstl);
+template aff3ct::module::Modem_generic<B,R,Q,tools::max_star>* DVBS2O::build_modem              (const DVBS2O& params, tools::Constellation<R>* cstl);
 template aff3ct::module::Framer<R>*                    DVBS2O::build_framer                     (const DVBS2O& params);
 template aff3ct::module::Scrambler_BB<B>*              DVBS2O::build_bb_scrambler<B>            (const DVBS2O& params);
 template aff3ct::module::Scrambler_PL<R>*              DVBS2O::build_pl_scrambler<R>            (const DVBS2O& params);
@@ -591,9 +599,9 @@ template aff3ct::module::Filter_UPRRC_ccr_naive<R>*    DVBS2O::build_uprrc_filte
 template aff3ct::module::Filter_Farrow_ccr_naive<R>*   DVBS2O::build_channel_frac_delay<R>      (const DVBS2O& params);
 template aff3ct::module::Variable_delay_cc_naive<R>*   DVBS2O::build_channel_int_delay<R>       (const DVBS2O& params);
 template aff3ct::module::Filter_RRC_ccr_naive<R>*      DVBS2O::build_matched_filter<R>          (const DVBS2O& params);
-template aff3ct::module::Estimator<R>*                 DVBS2O::build_estimator<R>               (const DVBS2O& params);
+template aff3ct::module::Estimator<R>*                 DVBS2O::build_estimator<R>               (const DVBS2O& params, tools::Noise<R>* noise_ref);
 template aff3ct::module::Monitor_BFER<B>*              DVBS2O::build_monitor<B>                 (const DVBS2O& params);
-template aff3ct::module::Channel<R>*                   DVBS2O::build_channel<R>                 (const DVBS2O& params, const int seed, const bool filtered);
+template aff3ct::module::Channel<R>*                   DVBS2O::build_channel<R>                 (const DVBS2O& params, tools::Gaussian_noise_generator<R>& gen, const bool filtered);
 template aff3ct::module::Multiplier_sine_ccc_naive<R>* DVBS2O::build_freq_shift<R>              (const DVBS2O& params);
 template aff3ct::module::Synchronizer_freq<R>*         DVBS2O::build_synchronizer_lr<R>         (const DVBS2O& params);
 template aff3ct::module::Synchronizer_freq<R>*         DVBS2O::build_synchronizer_freq_phase<R> (const DVBS2O& params);
