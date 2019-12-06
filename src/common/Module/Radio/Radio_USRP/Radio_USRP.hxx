@@ -91,8 +91,9 @@ _receive(R *Y_N1, const int frame_id)
 	auto num_rx_samps = 0;
 	while (num_rx_samps < this->N)
 	{
-		num_rx_samps += rx_stream->recv(Y_N1 + num_rx_samps, this->N - num_rx_samps, md);
-
+		num_rx_samps += rx_stream->recv(Y_N1 + 2 * num_rx_samps, this->N - num_rx_samps, md);
+		// if (num_rx_samps!= 33480)
+		// 	std::cout << num_rx_samps << std::endl;
 			// handle the error codes
 		switch (md.error_code)
 		{
@@ -117,12 +118,11 @@ _receive(R *Y_N1, const int frame_id)
 		        // Radio core will be in the idle state. Issue stream command to restart
 		        // streaming.
 		        // cmd.time_spec  = usrp->get_time_now() + uhd::time_spec_t(0.05);
-		        // cmd.stream_now = (buffs.size() == 1);
 		        // rx_stream->issue_stream_cmd(cmd);
 		        break;
 
 		    case uhd::rx_metadata_t::ERROR_CODE_TIMEOUT:
-		    	UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
+		    // timeout in recv method, not a problem as we handle it with the loop
 		        break;
 
 		        // Otherwise, it's an error
