@@ -39,7 +39,7 @@ private:
 
 	const bool threaded;
 
-	std::vector<std::vector<R>> fifo;
+	std::vector<std::unique_ptr<R[]>> fifo;
 	R * array;
 	std::atomic<std::uint64_t> idx_w;
 	std::atomic<std::uint64_t> idx_r;

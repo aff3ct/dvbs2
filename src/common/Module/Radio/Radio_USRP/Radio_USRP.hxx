@@ -11,8 +11,11 @@ Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const doub
            const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna, const double tx_rate,
            const double tx_freq, const std::string tx_subdev_spec, const std::string tx_antenna,
 		   const double rx_gain, const double tx_gain, const bool threaded, const uint64_t fifo_bytes, const int n_frames)
-: Radio<R>(N, n_frames), threaded(threaded), fifo(1ul + std::max(1ul, fifo_bytes / (2 * N * sizeof(R))), std::vector<R>(2 * N)), idx_w(0), idx_r(0)
+: Radio<R>(N, n_frames), threaded(threaded), fifo(1ul + std::max(1ul, fifo_bytes / (2 * N * sizeof(R)))), idx_w(0), idx_r(0)
 {
+	for (size_t i = 0; i < fifo.size(); i++)
+		fifo[i] = std::unique_ptr<R[]>(new R[2 * N]);
+
 	if (typeid(R) == typeid(R_8)  ||
 	    typeid(R) == typeid(R_16) ||
 	    typeid(R) == typeid(R_32) ||
@@ -91,7 +94,7 @@ _receive(R *Y_N1, const int frame_id)
 	if (threaded)
 	{
 		while (idx_w == idx_r);
-		std::copy(fifo[idx_r].begin(), fifo[idx_r].end(), Y_N1);
+		std::copy(fifo[idx_r].get(), fifo[idx_r].get() + 2 * this->N, Y_N1);
 		idx_r = (idx_r +1) % fifo.size();
 	}
 	else
@@ -104,25 +107,14 @@ template <typename R>
 void Radio_USRP<R>::
 thread_function()
 {
-	bool filled = false;
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 	while (true)
 	{
 		if (((idx_w +1) % fifo.size()) != idx_r)
 		{
-			receive_usrp(fifo[idx_w].data());
+			receive_usrp(fifo[idx_w].get());
 			idx_w = (idx_w +1) % fifo.size();
 		}
-		else
-		{
-			if (!filled)
-			{
-				filled = true;
-				std::cout << "filled" << std::endl;
-			}
-
-		}
-
 	}
 }
 
