@@ -10,8 +10,8 @@ Radio_USRP<R>::
 Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
            const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna, const double tx_rate,
            const double tx_freq, const std::string tx_subdev_spec, const std::string tx_antenna,
-		   const double rx_gain, const double tx_gain, const int n_frames)
-: Radio<R>(N, n_frames)
+		   const double rx_gain, const double tx_gain, const bool threaded, const uint64_t fifo_bytes, const int n_frames)
+: Radio<R>(N, n_frames), threaded(threaded), fifo(1ul + std::max(1ul, fifo_bytes / (2 * N * sizeof(R))), std::vector<R>(2 * N)), idx_w(0), idx_r(0)
 {
 	if (typeid(R) == typeid(R_8)  ||
 	    typeid(R) == typeid(R_16) ||
@@ -59,7 +59,10 @@ Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const doub
 	usrp->set_tx_antenna(tx_antenna);
 	tx_stream = usrp->get_tx_stream(stream_args);
 
-	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+	if (threaded)
+		receive_thread = std::thread(&Radio_USRP::thread_function, this);
+	else
+		usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 }
 
 template <typename R>
@@ -85,7 +88,48 @@ template <typename R>
 void Radio_USRP<R>::
 _receive(R *Y_N1, const int frame_id)
 {
-	std::vector<std::complex<R>> buff(this->N);
+	if (threaded)
+	{
+		while (idx_w == idx_r);
+		std::copy(fifo[idx_r].begin(), fifo[idx_r].end(), Y_N1);
+		idx_r = (idx_r +1) % fifo.size();
+	}
+	else
+	{
+		receive_usrp(Y_N1);
+	}
+}
+
+template <typename R>
+void Radio_USRP<R>::
+thread_function()
+{
+	bool filled = false;
+	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+	while (true)
+	{
+		if (((idx_w +1) % fifo.size()) != idx_r)
+		{
+			receive_usrp(fifo[idx_w].data());
+			idx_w = (idx_w +1) % fifo.size();
+		}
+		else
+		{
+			if (!filled)
+			{
+				filled = true;
+				std::cout << "filled" << std::endl;
+			}
+
+		}
+
+	}
+}
+
+template <typename R>
+void Radio_USRP<R>::
+receive_usrp(R *Y_N1)
+{
 	uhd::rx_metadata_t md;
 
 	auto num_rx_samps = 0;
@@ -121,7 +165,7 @@ _receive(R *Y_N1, const int frame_id)
 				break;
 
 			case uhd::rx_metadata_t::ERROR_CODE_TIMEOUT:
-			// timeout in recv method, not a problem as we handle it with the loop
+				UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
 				break;
 
 				// Otherwise, it's an error

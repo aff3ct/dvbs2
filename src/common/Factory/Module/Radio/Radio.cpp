@@ -29,6 +29,8 @@ void Radio
 	auto p = this->get_prefix();
 	args.add({p+"-fra-size",  "N"}, cli::Integer(cli::Positive(), cli::Non_zero())         , "");
 	args.add({p+"-type"          }, cli::Text(cli::Including_set("USRP", "USER_BIN", "NO")), "");
+	args.add({p+"-threaded"      }, cli::None()                                            , "");
+	args.add({p+"-fra",       "F"}, cli::Integer(cli::Positive(), cli::Non_zero())         , "");
 	args.add({p+"-clk-rate"      }, cli::Real(cli::Positive(), cli::Non_zero())            , "");
 	args.add({p+"-rx-subdev-spec"}, cli::Text()                                            , "");
 	args.add({p+"-rx-ant"        }, cli::Text()                                            , "");
@@ -42,7 +44,6 @@ void Radio
 	args.add({p+"-tx-freq"       }, cli::Real(cli::Positive(), cli::Non_zero())            , "");
 	args.add({p+"-tx-gain"       }, cli::Real(cli::Positive(), cli::Non_zero())            , "");
 	args.add({p+"-ip-addr"       }, cli::Text()                                            , "");
-	args.add({p+"-fra",       "F"}, cli::Integer(cli::Positive(), cli::Non_zero())         , "");
 }
 
 void Radio
@@ -52,6 +53,8 @@ void Radio
 
 	if(vals.exist({p+"-fra-size",  "N"})) this->N              = vals.to_int  ({p+"-fra-size",  "N"});
 	if(vals.exist({p+"-type"          })) this->type           = vals.at      ({p+"-type"          });
+	if(vals.exist({p+"-threaded"      })) this->threaded       = true                                ;
+	if(vals.exist({p+"-fra",       "F"})) this->n_frames       = vals.to_int  ({p+"-fra",       "F"});
 	if(vals.exist({p+"-clk-rate"      })) this->clk_rate       = vals.to_float({p+"-clk-rate"      });
 	if(vals.exist({p+"-rx-subdev-spec"})) this->rx_subdev_spec = vals.at      ({p+"-rx-subdev-spec"});
 	if(vals.exist({p+"-rx-ant"        })) this->rx_antenna     = vals.at      ({p+"-rx-ant"        });
@@ -65,7 +68,6 @@ void Radio
 	if(vals.exist({p+"-tx-freq"       })) this->tx_freq        = vals.to_float({p+"-tx-freq"       });
 	if(vals.exist({p+"-tx-gain"       })) this->tx_gain        = vals.to_float({p+"-tx-gain"       });
 	if(vals.exist({p+"-ip-addr"       })) this->usrp_addr      = vals.at      ({p+"-ip-addr"       });
-	if(vals.exist({p+"-fra",       "F"})) this->n_frames       = vals.to_int  ({p+"-fra",       "F"});
 }
 
 void Radio
@@ -75,6 +77,7 @@ void Radio
 
 	headers[p].push_back(std::make_pair("N. cw  (N)", std::to_string(this->N)));
 	headers[p].push_back(std::make_pair("Type      ", std::to_string(this->clk_rate)));
+	headers[p].push_back(std::make_pair("Threaded  ", this->threaded ? "YES" : "NO"));
 	headers[p].push_back(std::make_pair("Clk rate  ", std::to_string(this->clk_rate)));
 	headers[p].push_back(std::make_pair("Rx rate   ", std::to_string(this->rx_rate)));
 	headers[p].push_back(std::make_pair("Rx subdev ", this->rx_subdev_spec));
@@ -102,7 +105,7 @@ module::Radio<R>* Radio
 		return new module::Radio_USRP<R> (this->N, this->usrp_addr, this->clk_rate, this->rx_rate, this->rx_freq,
 		                                  this->rx_subdev_spec, this->rx_antenna,   this->tx_rate, this->tx_freq,
 		                                  this->tx_subdev_spec, this->tx_antenna,
-		                                  this->rx_gain, this->tx_gain, this->n_frames);
+		                                  this->rx_gain, this->tx_gain, this->threaded, 30000000000, this->n_frames);
 	#endif
 
 	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);

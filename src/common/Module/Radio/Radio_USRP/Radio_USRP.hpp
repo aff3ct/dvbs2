@@ -10,6 +10,7 @@
 
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd.h>
+#include <thread>
 
 #include "Module/Radio/Radio.hpp"
 
@@ -34,6 +35,15 @@ private:
 	uhd::rx_streamer::sptr      rx_stream;
 	uhd::tx_streamer::sptr      tx_stream;
 
+	std::thread receive_thread;
+
+	const bool threaded;
+
+	std::vector<std::vector<R>> fifo;
+	R * array;
+	std::atomic<std::uint64_t> idx_w;
+	std::atomic<std::uint64_t> idx_r;
+
 public:
 	/*!
 	 * \brief Constructor.
@@ -41,8 +51,10 @@ public:
 	 * \param N:     Radio_USRP frame length.
 	 */
 	Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
-	           const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna, const double tx_rate, const double tx_freq,
-	           const std::string tx_subdev_spec, const std::string tx_antenna, const double rx_gain, const double tx_gain, const int n_frames);
+	           const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna,
+	           const double tx_rate, const double tx_freq, const std::string tx_subdev_spec,
+	           const std::string tx_antenna, const double rx_gain, const double tx_gain, const bool threaded = false,
+	           const uint64_t fifo_bytes = 0, const int n_frames = 1);
 
 	/*!
 	 * \brief Destructor.
@@ -50,9 +62,14 @@ public:
 	 * \param N:     Radio_USRP frame length.
 	 */
 	~Radio_USRP();
+
 protected:
 	void _send   (const R *X_N1, const int frame_id);
 	void _receive(      R *Y_N1, const int frame_id);
+
+private:
+	void thread_function();
+	void receive_usrp(R *Y_N1);
 };
 }
 }

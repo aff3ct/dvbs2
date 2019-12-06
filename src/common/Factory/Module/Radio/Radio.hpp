@@ -21,8 +21,10 @@ public:
 
 	// optional parameters
 	int N                      = 0;
+	bool threaded              = false;
 	int n_frames               = 1;
 	std::string type           = "USRP";
+	std::string usrp_addr      = "192.168.20.2";
 	double clk_rate            = 125e6;
 
 	std::string rx_subdev_spec = "A:0";
@@ -33,12 +35,11 @@ public:
 	std::string rx_filepath    = "radio.bin";
 
 	std::string tx_subdev_spec = "A:0";
-	std::string tx_antenna      = "TX/RX";
+	std::string tx_antenna     = "TX/RX";
 	double tx_rate             = 8e6;
 	double tx_freq             = 1090e6;
 	double tx_gain             = 10;
 
-	std::string usrp_addr      = "192.168.20.2";
 	// deduced parameters
 
 	// ---------------------------------------------------------------------------------------------------- METHODS
