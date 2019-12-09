@@ -34,7 +34,7 @@ namespace module
 
 	template <typename R>
 	void Synchronizer_timing<R>
-	::pop(std::complex<R> *strobe)
+	::pull(std::complex<R> *strobe)
 	{
 		if	(this->outbuf_cur_sz > 0)
 		{
@@ -81,7 +81,7 @@ namespace module
 		for (auto i = 0; i<this->outbuf_max_sz ; i++)
 			this->output_buffer[i] = std::complex<R>((R)0,(R)0);
 
-		this->reset_();
+		this->_reset();
 	};
 
 }

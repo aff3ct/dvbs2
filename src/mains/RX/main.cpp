@@ -172,7 +172,8 @@ int main(int argc, char** argv)
 			(*radio        )[rad::tsk::receive    ].exec();
 			(*sync_coarse_f)[syn::tsk::synchronize].exec();
 			(*matched_flt  )[flt::tsk::filter     ].exec();
-			(*sync_timing )[syn::tsk::synchronize].exec();
+			(*sync_timing  )[syn::tsk::sync_push  ].exec();
+			(*sync_timing  )[syn::tsk::sync_pull  ].exec();
 			(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 			(*sync_frame   )[syn::tsk::synchronize].exec();
 			(*pl_scrambler )[scr::tsk::descramble ].exec();
@@ -202,11 +203,12 @@ int main(int argc, char** argv)
 			m = 300;
 			n_phase++;
 			std::cerr << buf << std::endl;
-			(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*radio        )[rad::sck::receive     ::Y_N1]);
-			(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
-			(*sync_timing )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
-			(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing )[syn::sck::synchronize ::Y_N2]);
-			(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
+			(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*radio        )[rad::sck::receive    ::Y_N1]);
+			(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize::Y_N2]);
+			(*sync_timing  )[syn::sck::sync_push   ::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+			(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[syn::sck::sync_pull  ::Y_N2]);
+			//(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing )[syn::sck::synchronize  ::Y_N2]);
+			(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 			sync_coarse_f->disable_update();
 		}
 	}
@@ -224,24 +226,31 @@ int main(int argc, char** argv)
 	// tasks execution
 	while (!terminal->is_interrupt())
 	{
-		(*source       )[src::tsk::generate    ].exec();
-		(*radio        )[rad::tsk::receive     ].exec();
-		(*sync_coarse_f)[syn::tsk::synchronize ].exec();
-		(*matched_flt  )[flt::tsk::filter      ].exec();
-		(*sync_timing )[syn::tsk::synchronize ].exec();
-		(*mult_agc     )[mlt::tsk::imultiply   ].exec();
-		(*sync_frame   )[syn::tsk::synchronize ].exec();
-		(*pl_scrambler )[scr::tsk::descramble  ].exec();
-		(*sync_lr      )[syn::tsk::synchronize ].exec();
-		(*sync_fine_pf )[syn::tsk::synchronize ].exec();
-		(*framer       )[frm::tsk::remove_plh  ].exec();
-		(*modem        )[mdm::tsk::demodulate  ].exec();
-		(*itl_rx       )[itl::tsk::deinterleave].exec();
-		(*LDPC_decoder )[dec::tsk::decode_siho ].exec();
-		(*BCH_decoder  )[dec::tsk::decode_hiho ].exec();
-		(*bb_scrambler )[scr::tsk::descramble  ].exec();
-		(*monitor      )[mnt::tsk::check_errors].exec();
-		(*sink         )[snk::tsk::send        ].exec();
+		while(!sync_timing->can_pull())
+		{
+			(*source       )[src::tsk::generate    ].exec();
+			(*radio        )[rad::tsk::receive     ].exec();
+			(*sync_coarse_f)[syn::tsk::synchronize ].exec();
+			(*matched_flt  )[flt::tsk::filter      ].exec();
+			(*sync_timing  )[syn::tsk::sync_push   ].exec();
+		}
+		while(sync_timing->can_pull())
+		{
+			(*sync_timing  )[syn::tsk::sync_pull   ].exec();
+			(*mult_agc     )[mlt::tsk::imultiply   ].exec();
+			(*sync_frame   )[syn::tsk::synchronize ].exec();
+			(*pl_scrambler )[scr::tsk::descramble  ].exec();
+			(*sync_lr      )[syn::tsk::synchronize ].exec();
+			(*sync_fine_pf )[syn::tsk::synchronize ].exec();
+			(*framer       )[frm::tsk::remove_plh  ].exec();
+			(*modem        )[mdm::tsk::demodulate  ].exec();
+			(*itl_rx       )[itl::tsk::deinterleave].exec();
+			(*LDPC_decoder )[dec::tsk::decode_siho ].exec();
+			(*BCH_decoder  )[dec::tsk::decode_hiho ].exec();
+			(*bb_scrambler )[scr::tsk::descramble  ].exec();
+			(*monitor      )[mnt::tsk::check_errors].exec();
+			(*sink         )[snk::tsk::send        ].exec();
+		}
 	}
 
 	if (params.stats)
