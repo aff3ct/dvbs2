@@ -91,49 +91,48 @@ _receive(R *Y_N1, const int frame_id)
 	auto num_rx_samps = 0;
 	while (num_rx_samps < this->N)
 	{
-		num_rx_samps += rx_stream->recv(Y_N1 + num_rx_samps, this->N - num_rx_samps, md);
+		num_rx_samps += rx_stream->recv(Y_N1 + 2 * num_rx_samps, this->N - num_rx_samps, md);
 
-			// handle the error codes
+		// handle the error codes
 		switch (md.error_code)
 		{
-		    case uhd::rx_metadata_t::ERROR_CODE_NONE:
-		        // possibility to log recovery after overflow
-		        break;
+			case uhd::rx_metadata_t::ERROR_CODE_NONE:
+				// possibility to log recovery after overflow
+				break;
 
-		    // ERROR_CODE_OVERFLOW can indicate overflow or sequence error
-		    case uhd::rx_metadata_t::ERROR_CODE_OVERFLOW:
-		        // count overflows ?
-		        if (!md.out_of_sequence)
-		        {
-		        	UHD_LOGGER_INFO("RADIO USRP") << "Detected overflow in Radio Rx.";
-		        } else
-		        {
-		            UHD_LOGGER_INFO("RADIO USRP") << "Detected Rx sequence error.";
-		        }
-		        break;
+			// ERROR_CODE_OVERFLOW can indicate overflow or sequence error
+			case uhd::rx_metadata_t::ERROR_CODE_OVERFLOW:
+				// count overflows ?
+				if (!md.out_of_sequence)
+				{
+					UHD_LOGGER_INFO("RADIO USRP") << "Detected overflow in Radio Rx.";
+				} else
+				{
+					UHD_LOGGER_INFO("RADIO USRP") << "Detected Rx sequence error.";
+				}
+				break;
 
-		    case uhd::rx_metadata_t::ERROR_CODE_LATE_COMMAND:
-		    	UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
-		        // Radio core will be in the idle state. Issue stream command to restart
-		        // streaming.
-		        // cmd.time_spec  = usrp->get_time_now() + uhd::time_spec_t(0.05);
-		        // cmd.stream_now = (buffs.size() == 1);
-		        // rx_stream->issue_stream_cmd(cmd);
-		        break;
+			case uhd::rx_metadata_t::ERROR_CODE_LATE_COMMAND:
+				UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
+				// Radio core will be in the idle state. Issue stream command to restart
+				// streaming.
+				// cmd.time_spec  = usrp->get_time_now() + uhd::time_spec_t(0.05);
+				// rx_stream->issue_stream_cmd(cmd);
+				break;
 
-		    case uhd::rx_metadata_t::ERROR_CODE_TIMEOUT:
-		    	UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
-		        break;
+			case uhd::rx_metadata_t::ERROR_CODE_TIMEOUT:
+			// timeout in recv method, not a problem as we handle it with the loop
+				break;
 
-		        // Otherwise, it's an error
-		    default:
-		    	// UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
-		    	throw::runtime_error(__FILE__, __LINE__, __func__, "Error in the Radio USRP streaming.");
-		        // std::cerr << "[" << "] Receiver error: " << md.strerror()
-		        //           << std::endl;
-		        // std::cerr << "[" << "] Unexpected error on recv, continuing..."
-		        //           << std::endl;
-		        break;
+				// Otherwise, it's an error
+			default:
+				// UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
+				throw::runtime_error(__FILE__, __LINE__, __func__, "Error in the Radio USRP streaming.");
+				// std::cerr << "[" << "] Receiver error: " << md.strerror()
+				//           << std::endl;
+				// std::cerr << "[" << "] Unexpected error on recv, continuing..."
+				//           << std::endl;
+				break;
 		}
 	}
 

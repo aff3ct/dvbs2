@@ -44,6 +44,7 @@ namespace module
 		}
 		else
 		{
+			// TODO : solve this
 			*strobe = std::complex<R>((R)0,(R)0);
 			this->underflow_cnt++;
 		}

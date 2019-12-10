@@ -39,10 +39,10 @@ Scrambler(const int N, const int n_frames)
 	auto &p1 = this->create_task("scramble");
 	auto p1s_X_N1 = this->template create_socket_in <D>(p1, "X_N1", this->N);
 	auto p1s_X_N2 = this->template create_socket_out<D>(p1, "X_N2", this->N);
-	this->create_codelet(p1, [this, p1s_X_N1, p1s_X_N2](Task &t) -> int
+	this->create_codelet(p1, [p1s_X_N1, p1s_X_N2](Module &m, Task &t) -> int
 	{
-		this->scramble(static_cast<D*>(t[p1s_X_N1].get_dataptr()),
-		               static_cast<D*>(t[p1s_X_N2].get_dataptr()));
+		static_cast<Scrambler<D>&>(m).scramble(static_cast<D*>(t[p1s_X_N1].get_dataptr()),
+		                                       static_cast<D*>(t[p1s_X_N2].get_dataptr()));
 
 		return 0;
 	});
@@ -50,10 +50,10 @@ Scrambler(const int N, const int n_frames)
 	auto &p2 = this->create_task("descramble");
 	auto p2s_Y_N1 = this->template create_socket_in <D>(p2, "Y_N1", this->N);
 	auto p2s_Y_N2 = this->template create_socket_out<D>(p2, "Y_N2", this->N);
-	this->create_codelet(p2, [this, p2s_Y_N1, p2s_Y_N2](Task &t) -> int
+	this->create_codelet(p2, [p2s_Y_N1, p2s_Y_N2](Module &m, Task &t) -> int
 	{
-		this->descramble(static_cast<D*>(t[p2s_Y_N1].get_dataptr()),
-		                 static_cast<D*>(t[p2s_Y_N2].get_dataptr()));
+		static_cast<Scrambler<D>&>(m).descramble(static_cast<D*>(t[p2s_Y_N1].get_dataptr()),
+		                                         static_cast<D*>(t[p2s_Y_N2].get_dataptr()));
 
 		return 0;
 	});
