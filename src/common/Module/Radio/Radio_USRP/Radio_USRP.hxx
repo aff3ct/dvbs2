@@ -12,7 +12,7 @@ Radio_USRP(const factory::Radio& params, const int n_frames)
   threaded(params.threaded),
   rx_enabled(params.rx_enabled),
   tx_enabled(params.tx_enabled),
-  fifo(1ul + std::max(1ul, params.fifo_size / (2 * params.N * sizeof(R)))),
+  fifo(uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R)))),
   idx_w(0),
   idx_r(0)
 {
