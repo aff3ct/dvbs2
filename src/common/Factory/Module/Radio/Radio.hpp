@@ -22,21 +22,24 @@ public:
 	// optional parameters
 	int N                      = 0;
 	bool threaded              = false;
+	uint64_t fifo_size         = uint64_t(10000000000);
 	int n_frames               = 1;
 	std::string type           = "USRP";
 	std::string usrp_addr      = "192.168.20.2";
 	double clk_rate            = 125e6;
 
+	bool rx_enabled            = false;
+	double rx_rate             = 0; // if rx_rate is not overriden, rx is disabled
 	std::string rx_subdev_spec = "A:0";
 	std::string rx_antenna      = "RX2";
-	double rx_rate             = 8e6;
 	double rx_freq             = 1090e6;
 	double rx_gain             = 10;
 	std::string rx_filepath    = "radio.bin";
 
+	bool tx_enabled            = false;
+	double tx_rate             = 0; // if tx_rate is not overriden, tx is disabled
 	std::string tx_subdev_spec = "A:0";
 	std::string tx_antenna     = "TX/RX";
-	double tx_rate             = 8e6;
 	double tx_freq             = 1090e6;
 	double tx_gain             = 10;
 

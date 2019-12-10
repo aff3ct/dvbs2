@@ -7,14 +7,17 @@ namespace module
 
 template <typename R>
 Radio_USRP<R>::
-Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
-           const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna, const double tx_rate,
-           const double tx_freq, const std::string tx_subdev_spec, const std::string tx_antenna,
-		   const double rx_gain, const double tx_gain, const bool threaded, const uint64_t fifo_bytes, const int n_frames)
-: Radio<R>(N, n_frames), threaded(threaded), fifo(1ul + std::max(1ul, fifo_bytes / (2 * N * sizeof(R)))), idx_w(0), idx_r(0)
+Radio_USRP(const factory::Radio& params, const int n_frames)
+: Radio<R>(params.N, params.n_frames),
+  threaded(params.threaded),
+  rx_enabled(params.rx_enabled),
+  tx_enabled(params.tx_enabled),
+  fifo(1ul + std::max(1ul, params.fifo_size / (2 * params.N * sizeof(R)))),
+  idx_w(0),
+  idx_r(0)
 {
 	for (size_t i = 0; i < fifo.size(); i++)
-		fifo[i] = std::unique_ptr<R[]>(new R[2 * N]);
+		fifo[i] = std::unique_ptr<R[]>(new R[2 * params.N]);
 
 	if (typeid(R) == typeid(R_8)  ||
 	    typeid(R) == typeid(R_16) ||
@@ -45,27 +48,38 @@ Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const doub
 	// uhd::log::set_console_level(uhd::log::severity_level(3));
 	// uhd::log::set_file_level   (uhd::log::severity_level(2));
 
-	usrp = uhd::usrp::multi_usrp::make("addr=" + usrp_addr);
-	usrp->set_master_clock_rate(clk_rate);
+	usrp = uhd::usrp::multi_usrp::make("addr=" + params.usrp_addr + ",master_clock_rate=" + std::to_string(params.clk_rate));
+	usrp->set_master_clock_rate(params.clk_rate);
 
-	usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t(rx_subdev_spec));
-	usrp->set_rx_antenna(rx_antenna);
-	usrp->set_rx_rate(rx_rate);
-	usrp->set_rx_freq(rx_freq);
-	usrp->set_rx_gain(rx_gain);
-	rx_stream = usrp->get_rx_stream(stream_args);
+	if (params.rx_enabled)
+	{
+		usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t(params.rx_subdev_spec));
+		usrp->set_rx_antenna(params.rx_antenna);
+		usrp->set_rx_freq(params.rx_freq);
+		usrp->set_rx_gain(params.rx_gain);
+		rx_stream = usrp->get_rx_stream(stream_args);
+		usrp->set_rx_rate(params.rx_rate);
+	}
 
-	usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t(tx_subdev_spec));
-	usrp->set_tx_rate(tx_rate);
-	usrp->set_tx_freq(tx_freq);
-	usrp->set_tx_gain(tx_gain);
-	usrp->set_tx_antenna(tx_antenna);
-	tx_stream = usrp->get_tx_stream(stream_args);
+	if (params.tx_enabled)
+	{
+		usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t(params.tx_subdev_spec));
+		usrp->set_tx_freq(params.tx_freq);
+		usrp->set_tx_gain(params.tx_gain);
+		usrp->set_tx_antenna(params.tx_antenna);
+		tx_stream = usrp->get_tx_stream(stream_args);
+		usrp->set_tx_rate(params.tx_rate);
+	}
 
 	if (threaded)
-		receive_thread = std::thread(&Radio_USRP::thread_function, this);
+	{
+		if(params.rx_enabled)
+			receive_thread = std::thread(&Radio_USRP::thread_function, this);
+	}
 	else
+	{
 		usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+	}
 }
 
 template <typename R>
@@ -79,6 +93,12 @@ template <typename R>
 void Radio_USRP<R>::
 _send(const R *X_N1, const int frame_id)
 {
+	if(!this->tx_enabled)
+	{
+		std::stringstream message;
+		message << "send has been called while tx_rate has not been set.";
+		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+	}
 	uhd::tx_metadata_t md;
     md.start_of_burst = true;
     md.end_of_burst   = false;
@@ -91,6 +111,12 @@ template <typename R>
 void Radio_USRP<R>::
 _receive(R *Y_N1, const int frame_id)
 {
+	if(!this->rx_enabled)
+	{
+		std::stringstream message;
+		message << "receive has been called while rx_rate has not been set.";
+		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+	}
 	if (threaded)
 	{
 		while (idx_w == idx_r);

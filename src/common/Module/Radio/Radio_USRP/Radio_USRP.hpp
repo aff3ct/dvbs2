@@ -13,6 +13,7 @@
 #include <thread>
 
 #include "Module/Radio/Radio.hpp"
+#include "Factory/Module/Radio/Radio.hpp"
 
 namespace aff3ct
 {
@@ -38,6 +39,8 @@ private:
 	std::thread receive_thread;
 
 	const bool threaded;
+	const bool rx_enabled;
+	const bool tx_enabled;
 
 	std::vector<std::unique_ptr<R[]>> fifo;
 	R * array;
@@ -50,11 +53,7 @@ public:
 	 *
 	 * \param N:     Radio_USRP frame length.
 	 */
-	Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
-	           const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna,
-	           const double tx_rate, const double tx_freq, const std::string tx_subdev_spec,
-	           const std::string tx_antenna, const double rx_gain, const double tx_gain, const bool threaded = false,
-	           const uint64_t fifo_bytes = 0, const int n_frames = 1);
+	Radio_USRP(const factory::Radio& params, const int n_frames = 1);
 
 	/*!
 	 * \brief Destructor.
