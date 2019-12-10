@@ -26,8 +26,9 @@ public:
 	int             get_overflow_cnt  (){return this->overflow_cnt; };
 	int             get_underflow_cnt (){return this->underflow_cnt;};
 	int             get_delay         (){return this->outbuf_cur_sz;};
+	bool            can_pull          (){return this->outbuf_cur_sz > this->N_out/2;};
 
-	void pop(std::complex<R> *strobe);
+	void pull(std::complex<R> *strobe);
 
 protected:
 	const int osf;
@@ -49,7 +50,7 @@ protected:
 
 
 	virtual void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id) = 0;
-	virtual void reset_      (                                           ) = 0;
+	virtual void _reset      (                                           ) = 0;
 
 	void push(const std::complex<R> strobe);
 

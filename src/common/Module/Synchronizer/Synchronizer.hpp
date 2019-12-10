@@ -19,11 +19,13 @@ namespace module
 {
 	namespace syn
 	{
-		enum class tsk : uint8_t { synchronize, SIZE };
+		enum class tsk : uint8_t { synchronize, sync_push, sync_pull, SIZE };
 
 		namespace sck
 		{
-			enum class synchronize       : uint8_t { X_N1, Y_N2, SIZE };
+			enum class synchronize : uint8_t { X_N1, Y_N2, SIZE };
+			enum class sync_push   : uint8_t { X_N1,       SIZE };
+			enum class sync_pull   : uint8_t { Y_N2,       SIZE };
 		}
 	}
 
@@ -42,7 +44,8 @@ class Synchronizer : public Module
 public:
 	inline Task&   operator[](const syn::tsk                      t) { return Module::operator[]((int)t);                                     }
 	inline Socket& operator[](const syn::sck::synchronize         s) { return Module::operator[]((int)syn::tsk::synchronize        )[(int)s]; }
-
+	inline Socket& operator[](const syn::sck::sync_push           s) { return Module::operator[]((int)syn::tsk::sync_push          )[(int)s]; }
+	inline Socket& operator[](const syn::sck::sync_pull           s) { return Module::operator[]((int)syn::tsk::sync_pull          )[(int)s]; }
 protected:
 	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */
 	const int N_out; /*!< Number of samples after the synchronization process */
@@ -82,8 +85,36 @@ public:
 
 	virtual void synchronize(const R *X_N1, R *Y_N2, const int frame_id = -1);
 
+	/*!
+	 * \brief Synchronizes a vector of samples.
+	 *
+	 * By default this method does nothing.
+	 *
+	 * \param X_N1: a vector of samples.
+	 */
+	template <class AR = std::allocator<R>>
+	void sync_push(const std::vector<R,AR>& X_N1, const int frame_id = -1);
+
+	virtual void sync_push(const R *X_N1, const int frame_id = -1);
+
+	/*!
+	 * \brief Synchronizes a vector of samples.
+	 *
+	 * By default this method does nothing.
+	 *
+	 * \param X_N1: a vector of samples.
+	 * \param Y_N2: a synchronized vector.
+	 */
+	template <class AR = std::allocator<R>>
+	void sync_pull(std::vector<R,AR>& Y_N2, const int frame_id = -1);
+
+	virtual void sync_pull(R *Y_N2, const int frame_id = -1);
+
+
 protected:
 	virtual void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
+	virtual void _sync_push  (const R *X_N1,           const int frame_id);
+	virtual void _sync_pull  (                R *Y_N2, const int frame_id);
 };
 }
 }

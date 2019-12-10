@@ -49,7 +49,7 @@ void Synchronizer_step_mf_cc<R>
 	auto cY_N2 = reinterpret_cast<std::complex<R>* >(Y_N2);
 
 	for (auto sym_idx = 0 ; sym_idx < frame_sym_sz / 2 ; sym_idx++)
-		this->sync_timing->pop(&cY_N2[sym_idx]);
+		this->sync_timing->pull(&cY_N2[sym_idx]);
 }
 
 template <typename R>

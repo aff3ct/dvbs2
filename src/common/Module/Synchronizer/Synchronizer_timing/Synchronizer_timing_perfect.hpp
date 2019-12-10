@@ -25,11 +25,13 @@ public:
 	Synchronizer_timing_perfect (const int N, const int osf, const R channel_delay, const int n_frames = 1);
 	virtual ~Synchronizer_timing_perfect();
 
-	void reset_();
 	void step(const std::complex<R> *X_N1);
 
 protected:
+	void _reset();
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
+	void _sync_push  (const R *X_N1,           const int frame_id);
+	void _sync_pull  (                R *Y_N2, const int frame_id);
 
 };
 

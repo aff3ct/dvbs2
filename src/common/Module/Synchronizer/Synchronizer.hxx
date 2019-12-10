@@ -61,6 +61,22 @@ init_processes()
 
 		return 0;
 	});
+
+	auto &p2 = this->create_task("sync_push");
+	auto p2s_X_N1 = this->template create_socket_in <R>(p2, "X_N1", this->N_in );
+	this->create_codelet(p2, [p2s_X_N1](Module &m, Task &t) -> int
+	{
+		static_cast<Synchronizer<R>&>(m).sync_push(static_cast<R*>(t[p2s_X_N1].get_dataptr()));
+		return 0;
+	});
+
+	auto &p3 = this->create_task("sync_pull");
+	auto p3s_Y_N2 = this->template create_socket_out <R>(p3, "Y_N2", this->N_out );
+	this->create_codelet(p3, [p3s_Y_N2](Module &m, Task &t) -> int
+	{
+		static_cast<Synchronizer<R>&>(m).sync_pull(static_cast<R*>(t[p3s_Y_N2].get_dataptr()));
+		return 0;
+	});
 }
 
 template <typename R>
@@ -121,6 +137,73 @@ _synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
+template <typename R>
+template <class AR>
+void Synchronizer<R>::
+sync_push(const std::vector<R,AR>& X_N1, const int frame_id)
+{
+	if (this->N_in * this->n_frames != (int)X_N1.size())
+	{
+		std::stringstream message;
+		message << "'X_N1.size()' has to be equal to 'N' * 'n_frames' ('X_N1.size()' = " << X_N1.size()
+		        << ", 'N' = " << this->N_in << ", 'n_frames' = " << this->n_frames << ").";
+		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+	}
+
+	this->sync_push(X_N1.data(), frame_id);
+}
+
+template <typename R>
+void Synchronizer<R>::
+sync_push(const R *X_N1, const int frame_id)
+{
+	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
+	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
+
+	for (auto f = f_start; f < f_stop; f++)
+		this->_sync_push(X_N1 + f * this->N_in,f);
+}
+
+template <typename R>
+void Synchronizer<R>::
+_sync_push(const R *X_N1, const int frame_id)
+{
+	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+}
+
+template <typename R>
+template <class AR>
+void Synchronizer<R>::
+sync_pull(std::vector<R,AR>& Y_N2, const int frame_id)
+{
+	if (this->N_out * this->n_frames != (int)Y_N2.size())
+	{
+		std::stringstream message;
+		message << "'Y_N2.size()' has to be equal to 'N_fil' * 'n_frames' ('Y_N2.size()' = " << Y_N2.size()
+		        << ", 'N_fil' = " << this->N_out << ", 'n_frames' = " << this->n_frames << ").";
+		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+	}
+
+	this->sync_pull(Y_N2.data(), frame_id);
+}
+
+template <typename R>
+void Synchronizer<R>::
+sync_pull(R *Y_N2, const int frame_id)
+{
+	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
+	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
+
+	for (auto f = f_start; f < f_stop; f++)
+		this->_sync_pull(Y_N2 + f * this->N_out,f);
+}
+
+template <typename R>
+void Synchronizer<R>::
+_sync_pull(R *Y_N2, const int frame_id)
+{
+	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+}
 
 }
 }
