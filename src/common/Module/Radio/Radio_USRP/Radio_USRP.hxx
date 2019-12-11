@@ -13,6 +13,7 @@ Radio_USRP(const factory::Radio& params, const int n_frames)
   rx_enabled(params.rx_enabled),
   tx_enabled(params.tx_enabled),
   fifo(uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R)))),
+  end(false),
   idx_w(0),
   idx_r(0)
 {
@@ -86,6 +87,8 @@ template <typename R>
 Radio_USRP<R>::
 ~Radio_USRP()
 {
+	end = true;
+	receive_thread.join();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
 }
 
@@ -117,15 +120,46 @@ _receive(R *Y_N1, const int frame_id)
 		message << "receive has been called while rx_rate has not been set.";
 		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
+
 	if (threaded)
-	{
-		while (idx_w == idx_r);
-		std::copy(fifo[idx_r].get(), fifo[idx_r].get() + 2 * this->N, Y_N1);
-		idx_r = (idx_r +1) % fifo.size();
-	}
+		fifo_read(Y_N1);
 	else
-	{
 		receive_usrp(Y_N1);
+}
+
+template <typename R>
+void Radio_USRP<R>::
+fifo_read(R * Y_N1)
+{
+	bool has_read = false;
+	while(!has_read)
+	{
+		fifo_mutex.lock();
+		if (idx_w != idx_r)
+		{
+			std::copy(fifo[idx_r].get(), fifo[idx_r].get() + 2 * this->N, Y_N1);
+			idx_r = (idx_r +1) % fifo.size();
+			has_read = true;
+		}
+		fifo_mutex.unlock();
+	}
+}
+
+template <typename R>
+void Radio_USRP<R>::
+fifo_write(const std::vector<R>& tmp)
+{
+	bool has_written = false;
+	while(!has_written)
+	{
+		fifo_mutex.lock();
+		if (((idx_w +1) % fifo.size()) != idx_r)
+		{
+			std::copy(tmp.begin(), tmp.end(), fifo[idx_w].get());
+			idx_w = (idx_w +1) % fifo.size();
+			has_written = true;
+		}
+		fifo_mutex.unlock();
 	}
 }
 
@@ -133,14 +167,12 @@ template <typename R>
 void Radio_USRP<R>::
 thread_function()
 {
+	std::vector<R> tmp(2 * this->N);
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
-	while (true)
+	while (!end)
 	{
-		if (((idx_w +1) % fifo.size()) != idx_r)
-		{
-			receive_usrp(fifo[idx_w].get());
-			idx_w = (idx_w +1) % fifo.size();
-		}
+		receive_usrp(tmp.data());
+		fifo_write(tmp);
 	}
 }
 

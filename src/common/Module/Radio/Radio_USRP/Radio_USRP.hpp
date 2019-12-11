@@ -11,6 +11,7 @@
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd.h>
 #include <thread>
+#include <mutex>
 
 #include "Module/Radio/Radio.hpp"
 #include "Factory/Module/Radio/Radio.hpp"
@@ -43,9 +44,12 @@ private:
 	const bool tx_enabled;
 
 	std::vector<std::unique_ptr<R[]>> fifo;
-	R * array;
-	std::atomic<std::uint64_t> idx_w;
-	std::atomic<std::uint64_t> idx_r;
+
+	std::mutex fifo_mutex;
+	std::atomic<bool> end;
+
+	std::uint64_t idx_w;
+	std::uint64_t idx_r;
 
 public:
 	/*!
@@ -69,6 +73,8 @@ protected:
 private:
 	void thread_function();
 	void receive_usrp(R *Y_N1);
+	void fifo_read (R* Y_N1);
+	void fifo_write(const std::vector<R>& tmp);
 };
 }
 }
