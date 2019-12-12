@@ -1,4 +1,5 @@
 #include <typeinfo>
+#include <uhd/utils/thread.hpp>
 
 namespace aff3ct
 {
@@ -18,7 +19,7 @@ Radio_USRP(const factory::Radio& params, const int n_frames)
   idx_r(0)
 {
 	for (size_t i = 0; i < fifo.size(); i++)
-		fifo[i] = std::unique_ptr<R[]>(new R[2 * params.N]);
+		fifo[i] = new R[2 * params.N];
 
 	if (typeid(R) == typeid(R_8)  ||
 	    typeid(R) == typeid(R_16) ||
@@ -75,7 +76,7 @@ Radio_USRP(const factory::Radio& params, const int n_frames)
 	if (threaded)
 	{
 		if(params.rx_enabled)
-			receive_thread = std::thread(&Radio_USRP::thread_function, this);
+			receive_thread = boost::thread(&Radio_USRP::thread_function, this);
 	}
 	else
 	{
@@ -90,6 +91,8 @@ Radio_USRP<R>::
 	end = true;
 	receive_thread.join();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
+	for (auto i = 0u; i < fifo.size(); i++)
+		delete[] fifo[i];
 }
 
 template <typename R>
@@ -134,14 +137,12 @@ fifo_read(R * Y_N1)
 	bool has_read = false;
 	while(!has_read)
 	{
-		fifo_mutex.lock();
-		if (idx_w != idx_r)
+		if (this->idx_w != this->idx_r)
 		{
-			std::copy(fifo[idx_r].get(), fifo[idx_r].get() + 2 * this->N, Y_N1);
-			idx_r = (idx_r +1) % fifo.size();
+			std::copy(fifo[this->idx_r], fifo[this->idx_r] + 2 * this->N, Y_N1);
+			this->idx_r = (this->idx_r +1) % fifo.size();
 			has_read = true;
 		}
-		fifo_mutex.unlock();
 	}
 }
 
@@ -152,14 +153,12 @@ fifo_write(const std::vector<R>& tmp)
 	bool has_written = false;
 	while(!has_written)
 	{
-		fifo_mutex.lock();
-		if (((idx_w +1) % fifo.size()) != idx_r)
+		if (((this->idx_w +1) % fifo.size()) != this->idx_r)
 		{
-			std::copy(tmp.begin(), tmp.end(), fifo[idx_w].get());
-			idx_w = (idx_w +1) % fifo.size();
+			receive_usrp(fifo[this->idx_w]);
+			this->idx_w = (this->idx_w +1) % fifo.size();
 			has_written = true;
 		}
-		fifo_mutex.unlock();
 	}
 }
 
@@ -167,12 +166,22 @@ template <typename R>
 void Radio_USRP<R>::
 thread_function()
 {
+    uhd::set_thread_priority_safe();
 	std::vector<R> tmp(2 * this->N);
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+
 	while (!end)
 	{
-		receive_usrp(tmp.data());
-		fifo_write(tmp);
+		bool has_written = false;
+		while(!has_written)
+		{
+			if (((this->idx_w +1) % fifo.size()) != this->idx_r)
+			{
+				receive_usrp(fifo[this->idx_w]);
+				this->idx_w = (this->idx_w +1) % fifo.size();
+				has_written = true;
+			}
+		}
 	}
 }
 
@@ -186,7 +195,6 @@ receive_usrp(R *Y_N1)
 	while (num_rx_samps < this->N)
 	{
 		num_rx_samps += rx_stream->recv(Y_N1 + 2 * num_rx_samps, this->N - num_rx_samps, md);
-
 		// handle the error codes
 		switch (md.error_code)
 		{

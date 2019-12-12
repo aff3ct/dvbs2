@@ -127,10 +127,11 @@ if(DVBS2O_LINK_UHD)
     endif (UHD_FOUND)
 
     # Link Boost
-    find_package(Boost QUIET COMPONENTS system filesystem REQUIRED)
+    find_package(Boost QUIET COMPONENTS system filesystem thread REQUIRED)
     if (Boost_FOUND)
         target_link_libraries(dvbs2_optique_common PRIVATE ${Boost_FILESYSTEM_LIBRARY}
-                                                           ${Boost_SYSTEM_LIBRARY})
+                                                           ${Boost_SYSTEM_LIBRARY}
+                                                           ${Boost_THREAD_LIBRARY})
     endif (Boost_FOUND)
 else()
     message(STATUS "DVBS2O - UHD: off")

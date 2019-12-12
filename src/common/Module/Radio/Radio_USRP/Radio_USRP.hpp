@@ -8,10 +8,8 @@
 #ifndef RADIO_USRP_HPP
 #define RADIO_USRP_HPP
 
-#include <uhd/usrp/multi_usrp.hpp>
 #include <uhd.h>
-#include <thread>
-#include <mutex>
+#include <uhd/usrp/multi_usrp.hpp>
 
 #include "Module/Radio/Radio.hpp"
 #include "Factory/Module/Radio/Radio.hpp"
@@ -37,19 +35,18 @@ private:
 	uhd::rx_streamer::sptr      rx_stream;
 	uhd::tx_streamer::sptr      tx_stream;
 
-	std::thread receive_thread;
+	boost::thread receive_thread;
 
 	const bool threaded;
 	const bool rx_enabled;
 	const bool tx_enabled;
 
-	std::vector<std::unique_ptr<R[]>> fifo;
+	std::vector<R*> fifo;
 
-	std::mutex fifo_mutex;
 	std::atomic<bool> end;
 
-	std::uint64_t idx_w;
-	std::uint64_t idx_r;
+	std::atomic<std::uint64_t> idx_w;
+	std::atomic<std::uint64_t> idx_r;
 
 public:
 	/*!
