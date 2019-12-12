@@ -2,15 +2,17 @@
 ##Machines installation
 
 - Ubuntu 16.04 Desktop and 18.04 Server have been tested)
-- Needs Git && CMake : 
+- Needs Git && CMake :
 ```bash
 sudo apt install git cmake
 ```
 ### UHD Installation
 UHD is the software library that is needed for controlling the USRPs. Follow the instructions in "Install Linux" part at  [Ettus N310 Building](https://kb.ettus.com/Building_and_Installing_the_USRP_Open-Source_Toolchain_(UHD_and_GNU_Radio)_on_Linux).
 
-When asked to checkout a specific tag for UHD, use the following: `v3.14.1.1-rc1` 
-When asked to checkout a specific tag for GNU radio, use the following: `3.7.13.4` 
+When asked to checkout a specific tag for UHD, use the following: `v3.14.1.1-rc1`
+When asked to checkout a specific tag for GNU radio, use the following: `3.7.13.4`
+
+To update the USRP's FPGA images to switch between 1G / 10G / Dual 10G Ethernet, follow the instructions at [Ettus N310 Getting Started](https://kb.ettus.com/USRP_N300/N310/N320/N321_Getting_Started_Guide), "Updating the FPGA Image".
 
 ### Ethernet configuration
 Connect the USRP on a 10G ports. Then configure the IP address and MTU.
@@ -34,7 +36,7 @@ network:
         enp0s31f6:
             addresses: [192.168.222.59/24]
             gateway4: 192.168.222.254
-            nameservers: 
+            nameservers:
               addresses: [192.168.222.8]
         enp79s0f0:
             addresses: [192.168.20.1/24]
@@ -46,6 +48,16 @@ network:
             mtu: 8000
     version: 2
 ```
+### Benchmark
+To validate the installation, you may run the following benchmark :
+   /usr/local/lib/uhd/examples/benchmark_rate  \
+   --args "type=n3xx,addr=192.168.20.2,master_clock_rate=125e6" \
+   --duration 60 \
+   --channels "0" \
+   --rx_rate 31.25e6 \
+   --rx_subdev "A:0" \
+   --tx_rate 31.25e6 \
+   --tx_subdev "A:0"
 
 ## Compile & Install
 
@@ -100,7 +112,7 @@ The compiled binaries are:
 
 Some refs with according command line instructions can be found in the `refs/` directory for  `build/bin/dvbs2_optique_tx_rx` and `build/bin/dvbs2_optique_tx_rx_bb`.
 
-Here are example command lines for TX and RX, considering 8PSK-S8_9 : 
+Here are example command lines for TX and RX, considering 8PSK-S8_9 :
 ```bash
 ./bin/dvbs2_optique_tx --rad-tx-rate 1.953125e6 --rad-tx-freq 2360e6 --rad-tx-gain 60 --src-type USER  --sim-stats --mod-cod QPSK-S_8/9
 ```
@@ -111,7 +123,7 @@ Here are example command lines for TX and RX, considering 8PSK-S8_9 :
 ## OpenMP
 
 To avoid OpenMP linking, add the following cmake option: `-DDVBS2O_LINK_OPENMP=OFF`.
-To select the number of threads used by openmp in dvbs2_optique_tx_rx_bb, run the binary while setting the `OMP_NUM_THREADS` variable : 
-```bash 
+To select the number of threads used by openmp in dvbs2_optique_tx_rx_bb, run the binary while setting the `OMP_NUM_THREADS` variable :
+```bash
 OMP_NUM_THREADS=8 ./bin/dvbs2_optique_tx_rx_bb
 ```
