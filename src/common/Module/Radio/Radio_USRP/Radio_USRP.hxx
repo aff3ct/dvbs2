@@ -1,4 +1,5 @@
 #include <typeinfo>
+#include <uhd/utils/thread.hpp>
 
 namespace aff3ct
 {
@@ -7,12 +8,19 @@ namespace module
 
 template <typename R>
 Radio_USRP<R>::
-Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
-           const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna, const double tx_rate,
-           const double tx_freq, const std::string tx_subdev_spec, const std::string tx_antenna,
-		   const double rx_gain, const double tx_gain, const int n_frames)
-: Radio<R>(N, n_frames)
+Radio_USRP(const factory::Radio& params, const int n_frames)
+: Radio<R>(params.N, params.n_frames),
+  threaded(params.threaded),
+  rx_enabled(params.rx_enabled),
+  tx_enabled(params.tx_enabled),
+  fifo(uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R)))),
+  end(false),
+  idx_w(0),
+  idx_r(0)
 {
+	for (size_t i = 0; i < fifo.size(); i++)
+		fifo[i] = new R[2 * params.N];
+
 	if (typeid(R) == typeid(R_8)  ||
 	    typeid(R) == typeid(R_16) ||
 	    typeid(R) == typeid(R_32) ||
@@ -42,37 +50,61 @@ Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const doub
 	// uhd::log::set_console_level(uhd::log::severity_level(3));
 	// uhd::log::set_file_level   (uhd::log::severity_level(2));
 
-	usrp = uhd::usrp::multi_usrp::make("addr=" + usrp_addr);
-	usrp->set_master_clock_rate(clk_rate);
+	usrp = uhd::usrp::multi_usrp::make("addr=" + params.usrp_addr + ",master_clock_rate=" + std::to_string(params.clk_rate));
+	usrp->set_master_clock_rate(params.clk_rate);
 
-	usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t(rx_subdev_spec));
-	usrp->set_rx_antenna(rx_antenna);
-	usrp->set_rx_rate(rx_rate);
-	usrp->set_rx_freq(rx_freq);
-	usrp->set_rx_gain(rx_gain);
-	rx_stream = usrp->get_rx_stream(stream_args);
+	if (params.rx_enabled)
+	{
+		usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t(params.rx_subdev_spec));
+		usrp->set_rx_antenna(params.rx_antenna);
+		usrp->set_rx_freq(params.rx_freq);
+		usrp->set_rx_gain(params.rx_gain);
+		rx_stream = usrp->get_rx_stream(stream_args);
+		usrp->set_rx_rate(params.rx_rate);
+	}
 
-	usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t(tx_subdev_spec));
-	usrp->set_tx_rate(tx_rate);
-	usrp->set_tx_freq(tx_freq);
-	usrp->set_tx_gain(tx_gain);
-	usrp->set_tx_antenna(tx_antenna);
-	tx_stream = usrp->get_tx_stream(stream_args);
+	if (params.tx_enabled)
+	{
+		usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t(params.tx_subdev_spec));
+		usrp->set_tx_freq(params.tx_freq);
+		usrp->set_tx_gain(params.tx_gain);
+		usrp->set_tx_antenna(params.tx_antenna);
+		tx_stream = usrp->get_tx_stream(stream_args);
+		usrp->set_tx_rate(params.tx_rate);
+	}
 
-	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+	if (threaded)
+	{
+		if(params.rx_enabled)
+			receive_thread = boost::thread(&Radio_USRP::thread_function, this);
+	}
+	else
+	{
+		usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+	}
 }
 
 template <typename R>
 Radio_USRP<R>::
 ~Radio_USRP()
 {
+	end = true;
+	receive_thread.join();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
+	for (auto i = 0u; i < fifo.size(); i++)
+		delete[] fifo[i];
 }
 
 template <typename R>
 void Radio_USRP<R>::
 _send(const R *X_N1, const int frame_id)
 {
+	if(!this->tx_enabled)
+	{
+		std::stringstream message;
+		message << "send has been called while tx_rate has not been set.";
+		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+	}
 	uhd::tx_metadata_t md;
     md.start_of_burst = true;
     md.end_of_burst   = false;
@@ -85,14 +117,84 @@ template <typename R>
 void Radio_USRP<R>::
 _receive(R *Y_N1, const int frame_id)
 {
-	std::vector<std::complex<R>> buff(this->N);
+	if(!this->rx_enabled)
+	{
+		std::stringstream message;
+		message << "receive has been called while rx_rate has not been set.";
+		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+	}
+
+	if (threaded)
+		fifo_read(Y_N1);
+	else
+		receive_usrp(Y_N1);
+}
+
+template <typename R>
+void Radio_USRP<R>::
+fifo_read(R * Y_N1)
+{
+	bool has_read = false;
+	while(!has_read)
+	{
+		if (this->idx_w != this->idx_r)
+		{
+			std::copy(fifo[this->idx_r], fifo[this->idx_r] + 2 * this->N, Y_N1);
+			this->idx_r = (this->idx_r +1) % fifo.size();
+			has_read = true;
+		}
+	}
+}
+
+template <typename R>
+void Radio_USRP<R>::
+fifo_write(const std::vector<R>& tmp)
+{
+	bool has_written = false;
+	while(!has_written)
+	{
+		if (((this->idx_w +1) % fifo.size()) != this->idx_r)
+		{
+			receive_usrp(fifo[this->idx_w]);
+			this->idx_w = (this->idx_w +1) % fifo.size();
+			has_written = true;
+		}
+	}
+}
+
+template <typename R>
+void Radio_USRP<R>::
+thread_function()
+{
+    uhd::set_thread_priority_safe();
+	std::vector<R> tmp(2 * this->N);
+	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+
+	while (!end)
+	{
+		bool has_written = false;
+		while(!has_written)
+		{
+			if (((this->idx_w +1) % fifo.size()) != this->idx_r)
+			{
+				receive_usrp(fifo[this->idx_w]);
+				this->idx_w = (this->idx_w +1) % fifo.size();
+				has_written = true;
+			}
+		}
+	}
+}
+
+template <typename R>
+void Radio_USRP<R>::
+receive_usrp(R *Y_N1)
+{
 	uhd::rx_metadata_t md;
 
 	auto num_rx_samps = 0;
 	while (num_rx_samps < this->N)
 	{
 		num_rx_samps += rx_stream->recv(Y_N1 + 2 * num_rx_samps, this->N - num_rx_samps, md);
-
 		// handle the error codes
 		switch (md.error_code)
 		{
@@ -121,7 +223,7 @@ _receive(R *Y_N1, const int frame_id)
 				break;
 
 			case uhd::rx_metadata_t::ERROR_CODE_TIMEOUT:
-			// timeout in recv method, not a problem as we handle it with the loop
+				UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
 				break;
 
 				// Otherwise, it's an error
