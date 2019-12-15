@@ -14,6 +14,11 @@ When asked to checkout a specific tag for GNU radio, use the following: `3.7.13.
 
 To update the USRP's FPGA images to switch between 1G / 10G / Dual 10G Ethernet, follow the instructions at [Ettus N310 Getting Started](https://kb.ettus.com/USRP_N300/N310/N320/N321_Getting_Started_Guide), "Updating the FPGA Image".
 
+Finally, add the following in ~/.bashrc or /etc/profile:
+```bash
+    export UHD_LOG_FILE="./usrp.log"
+```
+
 ### Ethernet configuration
 Connect the USRP on a 10G ports. Then configure the IP address and MTU.
 
