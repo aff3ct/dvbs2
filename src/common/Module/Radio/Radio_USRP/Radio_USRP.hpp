@@ -8,10 +8,11 @@
 #ifndef RADIO_USRP_HPP
 #define RADIO_USRP_HPP
 
-#include <uhd/usrp/multi_usrp.hpp>
 #include <uhd.h>
+#include <uhd/usrp/multi_usrp.hpp>
 
 #include "Module/Radio/Radio.hpp"
+#include "Factory/Module/Radio/Radio.hpp"
 
 namespace aff3ct
 {
@@ -34,15 +35,26 @@ private:
 	uhd::rx_streamer::sptr      rx_stream;
 	uhd::tx_streamer::sptr      tx_stream;
 
+	boost::thread receive_thread;
+
+	const bool threaded;
+	const bool rx_enabled;
+	const bool tx_enabled;
+
+	std::vector<R*> fifo;
+
+	std::atomic<bool> end;
+
+	std::atomic<std::uint64_t> idx_w;
+	std::atomic<std::uint64_t> idx_r;
+
 public:
 	/*!
 	 * \brief Constructor.
 	 *
 	 * \param N:     Radio_USRP frame length.
 	 */
-	Radio_USRP(const int N, std::string usrp_addr, const double clk_rate, const double rx_rate,
-	           const double rx_freq, const std::string rx_subdev_spec, const std::string rx_antenna, const double tx_rate, const double tx_freq,
-	           const std::string tx_subdev_spec, const std::string tx_antenna, const double rx_gain, const double tx_gain, const int n_frames);
+	Radio_USRP(const factory::Radio& params, const int n_frames = 1);
 
 	/*!
 	 * \brief Destructor.
@@ -50,9 +62,16 @@ public:
 	 * \param N:     Radio_USRP frame length.
 	 */
 	~Radio_USRP();
+
 protected:
 	void _send   (const R *X_N1, const int frame_id);
 	void _receive(      R *Y_N1, const int frame_id);
+
+private:
+	void thread_function();
+	void receive_usrp(R *Y_N1);
+	void fifo_read (R* Y_N1);
+	void fifo_write(const std::vector<R>& tmp);
 };
 }
 }

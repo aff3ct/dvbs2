@@ -45,9 +45,27 @@ void Synchronizer_timing_perfect<R>
 		this->step(&cX_N1[i]);
 
 	for (auto i = 0; i < this->N_out/2; i++)
-		this->pop(&cY_N2[i]);
+		this->pull(&cY_N2[i]);
 }
 
+template <typename R>
+void Synchronizer_timing_perfect<R>
+::_sync_push (const R *X_N1, const int frame_id)
+{
+	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
+
+	for (auto i = 0; i < this->N_in/2 ; i++)
+		this->step(&cX_N1[i]);
+}
+template <typename R>
+void Synchronizer_timing_perfect<R>
+::_sync_pull (R *Y_N2, const int frame_id)
+{
+	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
+
+	for (auto i = 0; i < this->N_out/2; i++)
+		this->pull(&cY_N2[i]);
+}
 
 template <typename R>
 void Synchronizer_timing_perfect<R>
@@ -70,7 +88,7 @@ void Synchronizer_timing_perfect<R>
 
 template <typename R>
 void Synchronizer_timing_perfect<R>
-::reset_()
+::_reset()
 {
 	this->farrow_flt.reset();
 	this->farrow_flt.set_mu(this->mu);

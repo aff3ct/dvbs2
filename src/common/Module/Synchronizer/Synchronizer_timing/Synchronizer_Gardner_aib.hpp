@@ -44,7 +44,6 @@ public:
 	Synchronizer_Gardner_aib (const int N, int osf, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2, const int n_frames = 1);
 	virtual ~Synchronizer_Gardner_aib();
 
-	void reset_();
 
 	void step(const std::complex<R> *X_N1);
 
@@ -53,8 +52,10 @@ public:
 	                            const R detector_gain        );
 
 protected:
+	void _reset();
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
-
+	void _sync_push  (const R *X_N1,           const int frame_id);
+	void _sync_pull  (                R *Y_N2, const int frame_id);
 };
 
 }

@@ -19,11 +19,11 @@ namespace module
 {
 	namespace flt
 	{
-		enum class tsk : uint8_t { filter, SIZE };
+		enum class tsk : size_t { filter, SIZE };
 
 		namespace sck
 		{
-			enum class filter       : uint8_t { X_N1, Y_N2, SIZE };
+			enum class filter       : size_t { X_N1, Y_N2, SIZE };
 		}
 	}
 

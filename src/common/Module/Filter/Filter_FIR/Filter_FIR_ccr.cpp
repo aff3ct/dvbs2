@@ -47,10 +47,10 @@ void Filter_FIR_ccr<R>
 	mipp::Reg<R> ps;
 	mipp::Reg<R> reg_x;
 	mipp::Reg<R> reg_b;
-	for(auto i = rest ; i<this->N ; i+=this->M)
+	for(auto i = rest ; i < this->N ; i += this->M)
 	{
 		ps = (R)0;
-		for(int k = 0; k < b.size() ; k++)
+		for(size_t k = 0; k < b.size() ; k++)
 		{
 			reg_b = b[k];
 			reg_x.load(X_N1 + i - 2*(b.size() - 1 - k));
@@ -69,7 +69,7 @@ template <typename R>
 void Filter_FIR_ccr<R>
 ::reset()
 {
-	for (size_t i = 0; i<this->buff.size(); i++)
+	for (size_t i = 0; i < this->buff.size(); i++)
 		this->buff[i] = std::complex<R>(R(0),R(0));
 
 	this->head = 0;
@@ -80,7 +80,7 @@ std::vector<R> Filter_FIR_ccr<R>
 ::get_filter_coefs()
 {
 	std::vector<R> flipped_b(this->b.size(),(R)0);
-	for (size_t i=0; i<this->b.size();i++)
+	for (size_t i=0; i < this->b.size(); i++)
 		flipped_b[i] = this->b[this->b.size()-1-i];
 
 	return flipped_b;

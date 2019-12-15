@@ -3,6 +3,11 @@
 
 #include "Synchronizer_freq_fine_perfect.hpp"
 
+// _USE_MATH_DEFINES does not seem to work on MSVC...
+#ifndef M_PI
+#define M_PI 3.1415926535897932384626433832795
+#endif
+
 using namespace aff3ct::module;
 
 template <typename R>
