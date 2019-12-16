@@ -132,10 +132,10 @@ int main(int argc, char** argv)
 	for (auto& m : modules[tid])
 		for (auto& ta : m->tasks)
 		{
-			ta->set_autoalloc  (true        ); // enable the automatic allocation of the data in the tasks
-			ta->set_debug      (params.debug); // disable the debug mode
-			ta->set_debug_limit(16          ); // display only the 16 first bits if the debug mode is enabled
-			ta->set_stats      (params.stats); // enable the statistics
+			ta->set_autoalloc  (true              ); // enable the automatic allocation of the data in the tasks
+			ta->set_debug      (params.debug      ); // disable the debug mode
+			ta->set_debug_limit(params.debug_limit); // display only the 16 first bits if the debug mode is enabled
+			ta->set_stats      (params.stats      ); // enable the statistics
 
 			// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
 			ta->set_fast(false);

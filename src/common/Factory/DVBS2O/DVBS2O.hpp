@@ -80,6 +80,7 @@ public:
 	int   osf;
 	int   grp_delay;
 	int   n_frames;
+	int   debug_limit;
 
 	std::chrono::milliseconds ter_freq;
 

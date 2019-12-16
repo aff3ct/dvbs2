@@ -80,6 +80,7 @@ void DVBS2O
 	args.add({"sim-noise-step","s"}, cli::Real(),                                       "Step Eb/N0"                                                          );
 	args.add({"no-sync-info"},       cli::None(),                                       "Disable sync information logging."                                   );
 	args.add({"sim-debug", "d"},     cli::None(),                                       "Display debug."                                                      );
+	args.add({"sim-debug-limit"},    cli::Integer(cli::Non_zero()),                     "Set max number of elts per frame to be displayed in debug mode."     );
 	args.add({"sim-stats"},          cli::None(),                                       "Display stats."                                                      );
 	args.add({"src-type"},           src_type_format,                                   "Type of the binary source"                                           );
 	args.add({"src-path"},           cli::Text(),                                       "Path of the binary source"                                           );
@@ -123,6 +124,7 @@ void DVBS2O
 	src_type                 = vals.exist({"src-type"}           ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
 	src_path                 = vals.exist({"src-path"}           ) ? vals.at      ({"src-path"}          ) : src_path    ;
 	debug                    = vals.exist({"sim-debug","d"}      ) ? true                                  : false       ;
+	debug_limit              = vals.exist({"sim-debug-limit"}    ) ? vals.to_int  ({"sim-debug-limit"})    : -1          ;
 	stats                    = vals.exist({"sim-stats"}          ) ? true                                  : false       ;
 	no_sync_info             = vals.exist({"no-sync-info"}       ) ? true                                  : false       ;
 	rolloff                  = vals.exist({"shp-rolloff"}        ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f        ;
