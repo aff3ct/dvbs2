@@ -21,9 +21,6 @@ public:
 	virtual void step (const std::complex<R>* x_elt, std::complex<R>* y_elt) = 0;
 	virtual void set_PLL_coeffs (const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth) = 0;
 
-	void enable_update (){this->is_active = true; };
-	void disable_update(){this->is_active = false;};
-
 	void set_curr_idx(int curr_idx) {this->curr_idx = curr_idx;};
 
 protected:

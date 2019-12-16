@@ -131,7 +131,6 @@ int main(int argc, char** argv)
 
 	freq_shift   ->reset();
 	sync_coarse_f->reset();
-	sync_coarse_f->disable_update();
 	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 	matched_flt  ->reset();
 	sync_timing  ->reset();
@@ -157,7 +156,6 @@ int main(int argc, char** argv)
 			(*sync_step_mf )[syn::tsk::synchronize].exec();
 			(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 			(*sync_frame   )[syn::tsk::synchronize].exec();
-			sync_coarse_f->enable_update();
 			the_delay = (2*params.pl_frame_size - sync_frame->get_delay() + the_delay) %  params.pl_frame_size;
 			sync_coarse_f->set_curr_idx(the_delay);
 			(*pl_scrambler )[scr::tsk::descramble].exec();
@@ -202,9 +200,7 @@ int main(int argc, char** argv)
 			(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize::Y_N2]);
 			(*sync_timing  )[syn::sck::sync_push   ::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
 			(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[syn::sck::sync_pull  ::Y_N2]);
-			//(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing )[syn::sck::synchronize  ::Y_N2]);
 			(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
-			sync_coarse_f->disable_update();
 		}
 	}
 

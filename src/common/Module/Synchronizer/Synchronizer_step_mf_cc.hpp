@@ -31,7 +31,7 @@ public:
 	aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter;
 	aff3ct::module::Synchronizer_timing<R>      *sync_timing;
 
-	int get_delay(){return this->sync_timing->get_delay();};
+	int get_delay();
 
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);

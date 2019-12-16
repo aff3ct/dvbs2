@@ -20,13 +20,13 @@ public:
 
 	virtual void step (const std::complex<R> *X_N1) = 0;
 
-	R               get_mu            (){return this->mu;           };
-	std::complex<R> get_last_symbol   (){return this->last_symbol;  };
-	int             get_is_strobe     (){return this->is_strobe;    };
-	int             get_overflow_cnt  (){return this->overflow_cnt; };
-	int             get_underflow_cnt (){return this->underflow_cnt;};
-	int             get_delay         (){return this->outbuf_cur_sz;};
-	bool            can_pull          (){return this->outbuf_cur_sz > this->N_out/2;};
+	R               get_mu            ();
+	std::complex<R> get_last_symbol   ();
+	int             get_is_strobe     ();
+	int             get_overflow_cnt  ();
+	int             get_underflow_cnt ();
+	int             get_delay         ();
+	bool            can_pull          ();
 
 	void pull(std::complex<R> *strobe);
 

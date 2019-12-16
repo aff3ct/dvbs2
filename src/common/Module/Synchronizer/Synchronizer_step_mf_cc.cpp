@@ -26,6 +26,13 @@ Synchronizer_step_mf_cc<R>
 {}
 
 template <typename R>
+int Synchronizer_step_mf_cc<R>
+::get_delay()
+{
+	return this->sync_timing->get_delay();
+}
+
+template <typename R>
 void Synchronizer_step_mf_cc<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
