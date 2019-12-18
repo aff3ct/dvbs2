@@ -17,7 +17,7 @@ namespace sfm
 
 	namespace sck
 	{
-		enum class synchronize : uint8_t { X_N1, Y_N2, SIZE };
+		enum class synchronize : uint8_t { X_N1, Y_N2, delay, SIZE };
 	}
 }
 template <typename R = float>
@@ -39,8 +39,6 @@ public:
 
 	int get_N_out() const;
 
-	int get_delay(){return this->delay;};
-
 	virtual void reset() = 0;
 
 	/*!
@@ -52,13 +50,12 @@ public:
 	 * \param Y_N2: a synchronized vector.
 	 */
 	template <class AR = std::allocator<R>>
-	void synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_id = -1);
+	void synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, std::vector<int>& delay, const int frame_id = -1);
 
-	virtual void synchronize(const R *X_N1, R *Y_N2, const int frame_id = -1);
+	virtual void synchronize(const R *X_N1, R *Y_N2, int* delay, const int frame_id = -1);
 
 protected:
-	virtual void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id) = 0;
-	int delay;
+	virtual void _synchronize(const R *X_N1,  R *Y_N2, int* delay, const int frame_id) = 0;
 };
 
 }

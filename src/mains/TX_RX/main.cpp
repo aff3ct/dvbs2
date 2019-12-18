@@ -231,11 +231,11 @@ int main(int argc, char** argv)
 
 				if (n_phase < 3)
 				{
-					(*sync_step_mf )[smf::tsk::synchronize].exec();
 					the_delay = sync_step_mf->get_delay();
+					(*sync_step_mf )[smf::tsk::synchronize].exec();
 					(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 					(*sync_frame   )[sfm::tsk::synchronize].exec();
-					the_delay = (2*params.pl_frame_size - sync_frame->get_delay() + the_delay) % params.pl_frame_size;
+					the_delay = (2*params.pl_frame_size - *(static_cast<int*>((*sync_frame)[sfm::sck::synchronize::delay].get_dataptr())) + the_delay) % params.pl_frame_size;
 					sync_coarse_f->set_curr_idx(the_delay);
 					(*pl_scrambler )[scr::tsk::descramble].exec();
 				}

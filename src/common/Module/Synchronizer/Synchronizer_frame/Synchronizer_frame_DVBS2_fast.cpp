@@ -13,7 +13,13 @@ using namespace aff3ct::module;
 template <typename R>
 Synchronizer_frame_DVBS2_fast<R>
 ::Synchronizer_frame_DVBS2_fast(const int N, const int n_frames)
-: Synchronizer_frame<R>(N, n_frames), reg_channel(std::complex<R>((R)1,(R)0)), corr_vec(N/2, (R)0), output_delay(N, N/2, N/2), corr_SOF(N, conj_SOF), corr_PLSC(N, conj_PLSC), SOF_PLSC_delay(N, 64, 64)
+: Synchronizer_frame<R>(N, n_frames),
+  reg_channel(std::complex<R>((R)1,(R)0)),
+  corr_vec(N/2, (R)0),
+  output_delay(N, N / 2, N / 2),
+  corr_SOF(N, conj_SOF),
+  corr_PLSC(N, conj_PLSC),
+  SOF_PLSC_delay(N, 64, 64)
 {
 }
 
@@ -24,7 +30,7 @@ Synchronizer_frame_DVBS2_fast<R>
 
 template <typename R>
 void Synchronizer_frame_DVBS2_fast<R>
-::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
+::_synchronize(const R *X_N1, R *Y_N2, int* delay, const int frame_id)
 {
 	int cplx_in_sz = this->N_in/2;
 
@@ -69,8 +75,8 @@ void Synchronizer_frame_DVBS2_fast<R>
 
 	this->reg_channel = std::complex<R> (X_N1[2*cplx_in_sz - 2], X_N1[2*cplx_in_sz - 1]);
 
-	this->delay = (cplx_in_sz + max_idx - conj_SOF.size() - conj_PLSC.size())%cplx_in_sz;
-	this->output_delay.set_delay((cplx_in_sz - this->delay)%cplx_in_sz);
+	*delay = (cplx_in_sz + max_idx - conj_SOF.size() - conj_PLSC.size())%cplx_in_sz;
+	this->output_delay.set_delay((cplx_in_sz - *delay)%cplx_in_sz);
 	this->output_delay.filter(X_N1,Y_N2);
 }
 
@@ -86,7 +92,6 @@ void Synchronizer_frame_DVBS2_fast<R>
 	for (size_t i = 0; i < this->corr_vec.size();i++)
 		this->corr_vec[i] = (R)0;
 
-	this->delay = 0;
 	corr_SOF.reset();
 	corr_PLSC.reset();
 }

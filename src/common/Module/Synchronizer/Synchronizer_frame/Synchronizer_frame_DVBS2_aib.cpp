@@ -13,7 +13,14 @@ using namespace aff3ct::module;
 template <typename R>
 Synchronizer_frame_DVBS2_aib<R>
 ::Synchronizer_frame_DVBS2_aib(const int N, const int n_frames)
-: Synchronizer_frame<R>(N, n_frames), reg_channel(std::complex<R>((R)1,(R)0)), sec_SOF_sz(25), sec_PLSC_sz(64), corr_buff(89*2, std::complex<R>((R)0,(R)0)), corr_vec(N/2, (R)0), head(0), SOF_PLSC_sz(89), output_delay(N, N/2, N/2)
+: Synchronizer_frame<R>(N, n_frames),
+  reg_channel(std::complex<R>((R)1,(R)0)),
+  sec_SOF_sz(25), sec_PLSC_sz(64),
+  corr_buff(89*2, std::complex<R>((R)0,(R)0)),
+  corr_vec(N/2, (R)0),
+  head(0),
+  SOF_PLSC_sz(89),
+  output_delay(N, N/2, N/2)
 {
 }
 
@@ -24,7 +31,7 @@ Synchronizer_frame_DVBS2_aib<R>
 
 template <typename R>
 void Synchronizer_frame_DVBS2_aib<R>
-::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
+::_synchronize(const R *X_N1, R *Y_N2, int* delay, const int frame_id)
 {
 	int cplx_in_sz = this->N_in/2;
 	R y_corr = 0;
@@ -63,10 +70,9 @@ void Synchronizer_frame_DVBS2_aib<R>
 	}
 	this->reg_channel = cX_N1[cplx_in_sz - 1];
 		//std::cout << "Hi befor delay" << std::endl;
-	this->delay = (cplx_in_sz + max_idx - this->SOF_PLSC_sz)%cplx_in_sz;
-
+	*delay = (cplx_in_sz + max_idx - this->SOF_PLSC_sz)%cplx_in_sz;
 	//std::cout << "delay : " << delay<< std::endl;
-	this->output_delay.set_delay((cplx_in_sz - this->delay)%cplx_in_sz);
+	this->output_delay.set_delay((cplx_in_sz - *delay)%cplx_in_sz);
 	//std::cout << "Delay set" <<std::endl;
 	this->output_delay.filter(X_N1,Y_N2);
 	//std::cout << "Compute output"<< std::endl;
@@ -109,7 +115,6 @@ void Synchronizer_frame_DVBS2_aib<R>
 		this->corr_vec[i] = (R)0;
 
 	this->head = 0;
-	this->delay = 0;
 }
 
 // ==================================================================================== explicit template instantiation
