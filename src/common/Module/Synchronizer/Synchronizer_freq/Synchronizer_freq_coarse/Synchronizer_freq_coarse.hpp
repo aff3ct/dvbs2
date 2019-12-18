@@ -43,6 +43,7 @@ public:
 	virtual void set_PLL_coeffs (const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth) = 0;
 
 	void set_curr_idx(int curr_idx) {this->curr_idx = curr_idx;};
+	int get_curr_idx() {return this->curr_idx;};
 	R get_estimated_freq () {return this->estimated_freq; };
 	R get_estimated_phase() {return this->estimated_phase;};
 	int get_N() const;

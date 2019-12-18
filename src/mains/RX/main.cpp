@@ -107,23 +107,24 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
-	(*sync_lr     )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2]);
-	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*sync_lr     )[sff::sck::synchronize  ::Y_N2]);
-	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
-	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
-	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
-	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
-	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
-	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
-	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
-	(*sync_step_mf)[smf::sck::synchronize  ::X_N1].bind((*radio       )[rad::sck::receive      ::Y_N1]);
-	(*mult_agc    )[mlt::sck::imultiply    ::X_N ].bind((*sync_step_mf)[smf::sck::synchronize  ::Y_N2]);
-	(*sync_frame  )[sfm::sck::synchronize  ::X_N1].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N ]);
-	(*pl_scrambler)[scr::sck::descramble   ::Y_N1].bind((*sync_frame  )[sfm::sck::synchronize  ::Y_N2]);
-	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
-	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
-	(*sink        )[snk::sck::send         ::X_N1].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*sync_lr     )[sff::sck::synchronize  ::X_N1 ].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2 ]);
+	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1 ].bind((*sync_lr     )[sff::sck::synchronize  ::Y_N2 ]);
+	(*framer      )[frm::sck::remove_plh   ::Y_N1 ].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2 ]);
+	(*estimator   )[est::sck::estimate     ::X_N  ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2 ]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N  ].bind((*estimator   )[est::sck::estimate     ::H_N  ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1 ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2 ]);
+	(*itl_rx      )[itl::sck::deinterleave ::itl  ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2 ]);
+	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N  ].bind((*itl_rx      )[itl::sck::deinterleave ::nat  ]);
+	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N  ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K  ]);
+	(*bb_scrambler)[scr::sck::descramble   ::Y_N1 ].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K  ]);
+	(*sync_step_mf)[smf::sck::synchronize  ::X_N1 ].bind((*radio       )[rad::sck::receive      ::Y_N1 ]);
+	(*sync_step_mf)[smf::sck::synchronize  ::delay].bind((*sync_frame  )[sfm::sck::synchronize  ::delay]);
+	(*mult_agc    )[mlt::sck::imultiply    ::X_N  ].bind((*sync_step_mf)[smf::sck::synchronize  ::Y_N2 ]);
+	(*sync_frame  )[sfm::sck::synchronize  ::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N  ]);
+	(*pl_scrambler)[scr::sck::descramble   ::Y_N1 ].bind((*sync_frame  )[sfm::sck::synchronize  ::Y_N2 ]);
+	(*monitor     )[mnt::sck::check_errors ::U    ].bind((*source      )[src::sck::generate     ::U_K  ]);
+	(*monitor     )[mnt::sck::check_errors ::V    ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2 ]);
+	(*sink        )[snk::sck::send         ::X_N1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2 ]);
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->record_callback_check([LDPC_decoder]{LDPC_decoder->reset();});
@@ -145,19 +146,15 @@ int main(int argc, char** argv)
 	std::cerr <<head_lines <<"\n" << heads <<"\n" <<head_lines <<"\n";
 	std::cerr.flush();
 
-	int the_delay = 0;
 	int n_phase   = 1;
 	for (int m = 0; m < 500; m += params.n_frames)
 	{
 		if (n_phase < 3)
 		{
 			(*radio        )[rad::tsk::receive    ].exec();
-			the_delay = sync_step_mf->get_delay();
 			(*sync_step_mf )[smf::tsk::synchronize].exec();
 			(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 			(*sync_frame   )[sfm::tsk::synchronize].exec();
-			the_delay = (2*params.pl_frame_size - *(static_cast<int*>((*sync_frame)[sfm::sck::synchronize::delay].get_dataptr())) + the_delay) %  params.pl_frame_size;
-			sync_coarse_f->set_curr_idx(the_delay);
 			(*pl_scrambler )[scr::tsk::descramble].exec();
 		}
 		else // n_phase == 3
@@ -177,7 +174,7 @@ int main(int argc, char** argv)
 		sprintf(buf, pattern, n_phase, m+1,
 				sync_timing ->get_mu(),
 				sync_coarse_f->get_estimated_freq(),
-				the_delay,
+				sync_coarse_f->get_curr_idx(),
 				sync_lr      ->get_estimated_freq() / (float)params.osf,
 				sync_fine_pf ->get_estimated_freq() / (float)params.osf);
 		std::cerr << buf << "\r";

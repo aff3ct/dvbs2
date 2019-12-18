@@ -163,13 +163,14 @@ int main(int argc, char** argv)
 	// a loop over the various SNRs
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
 	{
-		(*bb_scrambler)[scr::sck::scramble   ::X_N1].bind((*source      )[src::sck::generate   ::U_K ]);
-		(*channel     )[chn::sck::add_noise  ::X_N ].bind((*freq_shift  )[mlt::sck::imultiply  ::Z_N ]);
-		(*sync_step_mf)[smf::sck::synchronize::X_N1].bind((*channel     )[chn::sck::add_noise  ::Y_N ]);
-		(*mult_agc    )[mlt::sck::imultiply  ::X_N ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N2]);
-		(*sync_frame  )[sfm::sck::synchronize::X_N1].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N ]);
-		(*pl_scrambler)[scr::sck::descramble ::Y_N1].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2]);
-		(*delay       )[flt::sck::filter     ::X_N1].bind((*source      )[src::sck::generate   ::U_K ]);
+		(*bb_scrambler)[scr::sck::scramble   ::X_N1 ].bind((*source      )[src::sck::generate   ::U_K  ]);
+		(*channel     )[chn::sck::add_noise  ::X_N  ].bind((*freq_shift  )[mlt::sck::imultiply  ::Z_N  ]);
+		(*sync_step_mf)[smf::sck::synchronize::X_N1 ].bind((*channel     )[chn::sck::add_noise  ::Y_N  ]);
+		(*sync_step_mf)[smf::sck::synchronize::delay].bind((*sync_frame  )[sfm::sck::synchronize::delay]);
+		(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N2 ]);
+		(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N  ]);
+		(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2 ]);
+		(*delay       )[flt::sck::filter     ::X_N1 ].bind((*source      )[src::sck::generate   ::U_K  ]);
 
 		// compute the code rate
 		const float R = (float)params.K_bch / (float)params.N_ldpc;
@@ -208,7 +209,6 @@ int main(int argc, char** argv)
 				std::cerr.flush();
 			}
 			// tasks execution
-			int the_delay = 0;
 			auto n_phase = 1;
 
 			for (int m = 0; m < 500; m += params.n_frames)
@@ -231,12 +231,9 @@ int main(int argc, char** argv)
 
 				if (n_phase < 3)
 				{
-					the_delay = sync_step_mf->get_delay();
 					(*sync_step_mf )[smf::tsk::synchronize].exec();
 					(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 					(*sync_frame   )[sfm::tsk::synchronize].exec();
-					the_delay = (2*params.pl_frame_size - *(static_cast<int*>((*sync_frame)[sfm::sck::synchronize::delay].get_dataptr())) + the_delay) % params.pl_frame_size;
-					sync_coarse_f->set_curr_idx(the_delay);
 					(*pl_scrambler )[scr::tsk::descramble].exec();
 				}
 				else // n_phase == 3
@@ -257,7 +254,7 @@ int main(int argc, char** argv)
 					sprintf(buf, pattern, n_phase, m+1,
 							sync_timing  ->get_mu(),
 							sync_coarse_f->get_estimated_freq(),
-							the_delay,
+							sync_coarse_f->get_curr_idx(),
 							sync_fine_lr ->get_estimated_freq() / (float)params.osf,
 							sync_fine_pf ->get_estimated_freq() / (float)params.osf);
 					std::cerr << buf << "\r";

@@ -17,6 +17,7 @@ Synchronizer_step_mf_cc<R>
 	                         aff3ct::module::Synchronizer_timing<R>      *sync_timing,
 	                         const int n_frames)
 : Module(n_frames),
+  last_delay(0),
   N_in(sync_coarse_f->get_N()),
   N_out(sync_timing->get_N_out()),
   sync_coarse_f(sync_coarse_f),
@@ -42,12 +43,14 @@ Synchronizer_step_mf_cc<R>
 	}
 
 	auto &p1 = this->create_task("synchronize");
-	auto p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", this->N_in );
-	auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N_out);
-	this->create_codelet(p1, [p1s_X_N1, p1s_Y_N2](Module &m, Task &t) -> int
+	auto p1s_X_N1  = this->template create_socket_in <R  >(p1, "X_N1" , this->N_in );
+	auto p1s_delay = this->template create_socket_in <int>(p1, "delay", 1          );
+	auto p1s_Y_N2  = this->template create_socket_out<R  >(p1, "Y_N2" , this->N_out);
+	this->create_codelet(p1, [p1s_X_N1, p1s_delay, p1s_Y_N2](Module &m, Task &t) -> int
 	{
-		static_cast<Synchronizer<R>&>(m).synchronize(static_cast<R*>(t[p1s_X_N1].get_dataptr()),
-		                                             static_cast<R*>(t[p1s_Y_N2].get_dataptr()));
+		static_cast<Synchronizer_step_mf_cc<R>&>(m).synchronize(static_cast<R*  >(t[p1s_X_N1 ].get_dataptr()),
+		                                                        static_cast<int*>(t[p1s_delay].get_dataptr()),
+		                                                        static_cast<R*  >(t[p1s_Y_N2 ].get_dataptr()));
 
 		return 0;
 	});
@@ -82,7 +85,7 @@ int Synchronizer_step_mf_cc<R>
 template <typename R>
 template <class AR>
 void Synchronizer_step_mf_cc<R>::
-synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_id)
+synchronize(const std::vector<R,AR>& X_N1, const std::vector<int>& delay, std::vector<R,AR>& Y_N2, const int frame_id)
 {
 	if (this->N_in * this->n_frames != (int)X_N1.size())
 	{
@@ -105,23 +108,29 @@ synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int fr
 
 template <typename R>
 void Synchronizer_step_mf_cc<R>::
-synchronize(const R *X_N1, R *Y_N2, const int frame_id)
+synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
 		this->_synchronize(X_N1 + f * this->N_in,
+		                   delay + f,
 		                   Y_N2 + f * this->N_out,
 		                   f);
 }
 
 template <typename R>
 void Synchronizer_step_mf_cc<R>
-::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
+::_synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id)
 {
+	int coarse_delay = (this->N_out - delay[frame_id] + this->last_delay) % (this->N_out / 2);
+	sync_coarse_f->set_curr_idx(coarse_delay);
+	this->last_delay = this->sync_timing->get_delay();
+
 	int frame_sym_sz = this->N_out;
 	int frame_sps_sz = this->N_in;
+
 	for (int spl_idx = 0; spl_idx < frame_sps_sz/2; spl_idx++)
 	{
 		std::complex<R> sync_coarse_f_in(X_N1[spl_idx*2], X_N1[spl_idx*2 + 1]);
