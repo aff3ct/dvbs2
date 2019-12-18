@@ -167,8 +167,8 @@ int main(int argc, char** argv)
 		(*channel     )[chn::sck::add_noise  ::X_N ].bind((*freq_shift  )[mlt::sck::imultiply  ::Z_N ]);
 		(*sync_step_mf)[syn::sck::synchronize::X_N1].bind((*channel     )[chn::sck::add_noise  ::Y_N ]);
 		(*mult_agc    )[mlt::sck::imultiply  ::X_N ].bind((*sync_step_mf)[syn::sck::synchronize::Y_N2]);
-		(*sync_frame  )[syn::sck::synchronize::X_N1].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N ]);
-		(*pl_scrambler)[scr::sck::descramble ::Y_N1].bind((*sync_frame  )[syn::sck::synchronize::Y_N2]);
+		(*sync_frame  )[sfm::sck::synchronize::X_N1].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N ]);
+		(*pl_scrambler)[scr::sck::descramble ::Y_N1].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2]);
 		(*delay       )[flt::sck::filter     ::X_N1].bind((*source      )[src::sck::generate   ::U_K ]);
 
 		// compute the code rate
@@ -234,7 +234,7 @@ int main(int argc, char** argv)
 					(*sync_step_mf )[syn::tsk::synchronize].exec();
 					the_delay = sync_step_mf->get_delay();
 					(*mult_agc     )[mlt::tsk::imultiply  ].exec();
-					(*sync_frame   )[syn::tsk::synchronize].exec();
+					(*sync_frame   )[sfm::tsk::synchronize].exec();
 					the_delay = (2*params.pl_frame_size - sync_frame->get_delay() + the_delay) % params.pl_frame_size;
 					sync_coarse_f->set_curr_idx(the_delay);
 					(*pl_scrambler )[scr::tsk::descramble].exec();
@@ -246,7 +246,7 @@ int main(int argc, char** argv)
 					(*sync_timing  )[stm::tsk::sync_push  ].exec();
 					(*sync_timing  )[stm::tsk::sync_pull  ].exec();
 					(*mult_agc     )[mlt::tsk::imultiply  ].exec();
-					(*sync_frame   )[syn::tsk::synchronize].exec();
+					(*sync_frame   )[sfm::tsk::synchronize].exec();
 					(*pl_scrambler )[scr::tsk::descramble ].exec();
 					(*sync_fine_lr )[syn::tsk::synchronize].exec();
 					(*sync_fine_pf )[syn::tsk::synchronize].exec();
@@ -281,7 +281,7 @@ int main(int argc, char** argv)
 					(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
 					(*sync_timing  )[stm::sck::sync_push   ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
 					(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull   ::Y_N2]);
-					(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
+					(*sync_frame   )[sfm::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
 					if (!params.no_sync_info)
 						std::cerr << buf << std::endl;
 				}
@@ -295,7 +295,7 @@ int main(int argc, char** argv)
 			(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize ::Y_N2]);
 			(*sync_timing  )[stm::sck::sync_push   ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
 			(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull   ::Y_N2]);
-			(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
+			(*sync_frame   )[sfm::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
 		}
 		monitor->reset();
 		if (params.ter_freq != std::chrono::nanoseconds(0))
@@ -328,7 +328,7 @@ int main(int argc, char** argv)
 			(*sync_timing  )[stm::tsk::sync_push    ].exec();
 			(*sync_timing  )[stm::tsk::sync_pull    ].exec();
 			(*mult_agc     )[mlt::tsk::imultiply    ].exec();
-			(*sync_frame   )[syn::tsk::synchronize  ].exec();
+			(*sync_frame   )[sfm::tsk::synchronize  ].exec();
 			(*pl_scrambler )[scr::tsk::descramble   ].exec();
 			(*sync_fine_lr )[syn::tsk::synchronize  ].exec();
 			(*sync_fine_pf )[syn::tsk::synchronize  ].exec();
