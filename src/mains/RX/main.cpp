@@ -165,8 +165,8 @@ int main(int argc, char** argv)
 			(*radio        )[rad::tsk::receive    ].exec();
 			(*sync_coarse_f)[syn::tsk::synchronize].exec();
 			(*matched_flt  )[flt::tsk::filter     ].exec();
-			(*sync_timing  )[syn::tsk::sync_push  ].exec();
-			(*sync_timing  )[syn::tsk::sync_pull  ].exec();
+			(*sync_timing  )[stm::tsk::sync_push  ].exec();
+			(*sync_timing  )[stm::tsk::sync_pull  ].exec();
 			(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 			(*sync_frame   )[syn::tsk::synchronize].exec();
 			(*pl_scrambler )[scr::tsk::descramble ].exec();
@@ -198,8 +198,8 @@ int main(int argc, char** argv)
 			std::cerr << buf << std::endl;
 			(*sync_coarse_f)[syn::sck::synchronize ::X_N1].bind((*radio        )[rad::sck::receive    ::Y_N1]);
 			(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[syn::sck::synchronize::Y_N2]);
-			(*sync_timing  )[syn::sck::sync_push   ::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
-			(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[syn::sck::sync_pull  ::Y_N2]);
+			(*sync_timing  )[stm::sck::sync_push   ::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+			(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull  ::Y_N2]);
 			(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 		}
 	}
@@ -223,11 +223,11 @@ int main(int argc, char** argv)
 			(*radio        )[rad::tsk::receive      ].exec();
 			(*sync_coarse_f)[syn::tsk::synchronize  ].exec();
 			(*matched_flt  )[flt::tsk::filter       ].exec();
-			(*sync_timing  )[syn::tsk::sync_push    ].exec();
+			(*sync_timing  )[stm::tsk::sync_push    ].exec();
 		}
 		while (sync_timing->can_pull())
 		{
-			(*sync_timing  )[syn::tsk::sync_pull    ].exec();
+			(*sync_timing  )[stm::tsk::sync_pull    ].exec();
 			(*mult_agc     )[mlt::tsk::imultiply    ].exec();
 			(*sync_frame   )[syn::tsk::synchronize  ].exec();
 			(*pl_scrambler )[scr::tsk::descramble   ].exec();
