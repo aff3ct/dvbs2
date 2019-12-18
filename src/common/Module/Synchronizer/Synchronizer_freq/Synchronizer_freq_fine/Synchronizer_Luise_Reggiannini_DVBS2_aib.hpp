@@ -4,14 +4,14 @@
 #include <vector>
 #include <complex>
 
-#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq.hpp"
+#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_freq_fine.hpp"
 
 namespace aff3ct
 {
 namespace module
 {
 template <typename R = float>
-class Synchronizer_Luise_Reggiannini_DVBS2_aib : public Synchronizer_freq<R>
+class Synchronizer_Luise_Reggiannini_DVBS2_aib : public Synchronizer_freq_fine<R>
 {
 private:
 	int                pilot_nbr;

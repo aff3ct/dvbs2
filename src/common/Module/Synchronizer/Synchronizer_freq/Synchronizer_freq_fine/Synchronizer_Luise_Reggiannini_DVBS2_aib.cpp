@@ -13,7 +13,7 @@ using namespace aff3ct::module;
 template <typename R>
 Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 ::Synchronizer_Luise_Reggiannini_DVBS2_aib(const int N, const int n_frames)
-: Synchronizer_freq<R>(N, n_frames), pilot_nbr(0), pilot_start(), R_l(2,(R)0.0)
+: Synchronizer_freq_fine<R>(N, n_frames), pilot_nbr(0), pilot_start(), R_l(2,(R)0.0)
 {
 	int idx = 1530;
 	while (idx < N/2)
@@ -69,7 +69,7 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 	this->estimated_freq = std::atan2(this->R_l[1], this->R_l[0]);
 	this->estimated_freq /= (Lp_2 + 1) * M_PI;
 
-	for (int n = 0 ; n < this->N_in/2 ; n++)
+	for (int n = 0 ; n < this->N/2 ; n++)
 	{
 		R theta = 2 * M_PI * this->estimated_freq * (R)n;
 		R cos_theta = std::cos(theta);

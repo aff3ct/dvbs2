@@ -1,5 +1,5 @@
-#ifndef SYNCHRONIZER_FREQ_COARSE_HPP
-#define SYNCHRONIZER_FREQ_COARSE_HPP
+#ifndef SYNCHRONIZER_FREQ_FINE_HPP
+#define SYNCHRONIZER_FREQ_FINE_HPP
 
 #include <vector>
 #include <complex>
@@ -10,7 +10,7 @@ namespace aff3ct
 {
 namespace module
 {
-	namespace sfc
+	namespace sff
 	{
 		enum class tsk : uint8_t { synchronize, SIZE };
 
@@ -21,30 +21,22 @@ namespace module
 	}
 
 template <typename R = float>
-class Synchronizer_freq_coarse : public Module
+class Synchronizer_freq_fine : public Module
 {
 public:
-	inline Task&   operator[](const sfc::tsk                      t) { return Module::operator[]((int)t);                                     }
-	inline Socket& operator[](const sfc::sck::synchronize         s) { return Module::operator[]((int)sfc::tsk::synchronize        )[(int)s]; }
+	inline Task&   operator[](const sff::tsk                      t) { return Module::operator[]((int)t);                                     }
+	inline Socket& operator[](const sff::sck::synchronize         s) { return Module::operator[]((int)sff::tsk::synchronize        )[(int)s]; }
 
 protected:
 	const int N;  /*!< Size of one frame (= number of samples in one frame) */
-	bool is_active;
-	int curr_idx;
-	R estimated_freq;
-	R estimated_phase;
 
 public:
-	Synchronizer_freq_coarse(const int N, const int n_frames = 1);
-	virtual ~Synchronizer_freq_coarse() = default;
+	Synchronizer_freq_fine(const int N, const int n_frames = 1);
+	virtual ~Synchronizer_freq_fine() = default;
 
-	virtual void update_phase(const std::complex<R> spl) = 0;
-	virtual void step (const std::complex<R>* x_elt, std::complex<R>* y_elt) = 0;
-	virtual void set_PLL_coeffs (const int samples_per_symbol, const R damping_factor, const R normalized_bandwidth) = 0;
-
-	void set_curr_idx(int curr_idx) {this->curr_idx = curr_idx;};
 	R get_estimated_freq () {return this->estimated_freq; };
 	R get_estimated_phase() {return this->estimated_phase;};
+
 	int get_N() const;
 
 	void reset();
@@ -62,11 +54,14 @@ public:
 	virtual void synchronize(const R *X_N1, R *Y_N2, const int frame_id = -1);
 
 protected:
+	R estimated_freq;
+	R estimated_phase;
+
 	virtual void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id) = 0;
 	virtual void _reset      (                                           ) = 0;
 };
 
 }
 }
-#include "Synchronizer_freq_coarse.hxx"
-#endif //SYNCHRONIZER_FREQ_COARSE_HPP
+#include "Synchronizer_freq_fine.hxx"
+#endif //SYNCHRONIZER_FREQ_FINE_HPP

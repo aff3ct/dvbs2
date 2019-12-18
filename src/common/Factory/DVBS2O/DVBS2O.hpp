@@ -17,10 +17,10 @@
 #include "Module/Filter/Variable_delay/Variable_delay_cc_naive.hpp"
 #include "Module/Multiplier/Sine/Multiplier_sine_ccc_naive.hpp"
 #include "Module/Multiplier/Sequence/Multiplier_AGC_cc_naive.hpp"
-#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq.hpp"
+#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_coarse/Synchronizer_freq_coarse.hpp"
+#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_freq_fine.hpp"
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing.hpp"
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame.hpp"
-#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_coarse/Synchronizer_freq_coarse.hpp"
 #include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "Module/Estimator/Estimator.hpp"
 #include "Module/Radio/Radio.hpp"
@@ -190,11 +190,11 @@ public:
 	build_estimator(const DVBS2O& params, tools::Noise<R>* noise_ref = nullptr);
 
 	template <typename R = float>
-	static module::Synchronizer_freq<R>*
+	static module::Synchronizer_freq_fine<R>*
 	build_synchronizer_lr(const DVBS2O& params);
 
 	template <typename R = float>
-	static module::Synchronizer_freq<R>*
+	static module::Synchronizer_freq_fine<R>*
 	build_synchronizer_freq_phase(const DVBS2O& params);
 
 	template <typename R = float>

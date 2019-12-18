@@ -17,7 +17,7 @@ Synchronizer_step_mf_cc<R>
 	                         aff3ct::module::Synchronizer_timing<R>      *sync_timing,
 	                         const int n_frames)
 : Module(n_frames),
-  N_in(sync_coarse_f->get_N_in()),
+  N_in(sync_coarse_f->get_N()),
   N_out(sync_timing->get_N_out()),
   sync_coarse_f(sync_coarse_f),
   matched_filter(matched_filter),

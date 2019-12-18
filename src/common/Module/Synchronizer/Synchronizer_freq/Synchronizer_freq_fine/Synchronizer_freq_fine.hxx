@@ -1,6 +1,5 @@
-
-#ifndef SYNCHRONIZER_FREQ_COARSE_HXX
-#define SYNCHRONIZER_FREQ_COARSE_HXX
+#ifndef SYNCHRONIZER_FREQ_FINE_HXX_
+#define SYNCHRONIZER_FREQ_FINE_HXX_
 
 #include <string>
 #include <memory>
@@ -8,7 +7,6 @@
 #include <cmath>
 #include <sstream>
 
-#include "Synchronizer_freq_coarse.hpp"
 #include "Tools/Exception/exception.hpp"
 
 namespace aff3ct
@@ -16,11 +14,11 @@ namespace aff3ct
 namespace module
 {
 	template <typename R>
-	Synchronizer_freq_coarse<R>::
-	Synchronizer_freq_coarse(const int N, const int n_frames)
-	: Module(n_frames), N(N), is_active(false), curr_idx(0)
+	Synchronizer_freq_fine<R>::
+	Synchronizer_freq_fine(const int N, const int n_frames)
+	: Module(n_frames), N(N), estimated_freq((R)0.0), estimated_phase((R)0.0)
 	{
-		const std::string name = "Synchronizer_freq_coarse";
+		const std::string name = "Synchronizer_freq_fine";
 		this->set_name(name);
 		this->set_short_name(name);
 
@@ -36,22 +34,22 @@ namespace module
 		auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N);
 		this->create_codelet(p1, [p1s_X_N1, p1s_Y_N2](Module &m, Task &t) -> int
 		{
-			static_cast<Synchronizer_freq_coarse<R>&>(m).synchronize(static_cast<R*>(t[p1s_X_N1].get_dataptr()),
-			                                                         static_cast<R*>(t[p1s_Y_N2].get_dataptr()));
+			static_cast<Synchronizer_freq_fine<R>&>(m).synchronize(static_cast<R*>(t[p1s_X_N1].get_dataptr()),
+			                                                  static_cast<R*>(t[p1s_Y_N2].get_dataptr()));
 
 			return 0;
 		});
 	}
 
 	template <typename R>
-	int Synchronizer_freq_coarse<R>::
+	int Synchronizer_freq_fine<R>::
 	get_N() const
 	{
 		return this->N;
 	}
 
 	template <typename R>
-	void Synchronizer_freq_coarse<R>
+	void Synchronizer_freq_fine<R>
 	::reset()
 	{
 		this->estimated_freq  = (R)0.0;
@@ -59,10 +57,9 @@ namespace module
 		this->_reset();
 	};
 
-
 	template <typename R>
 	template <class AR>
-	void Synchronizer_freq_coarse<R>::
+	void Synchronizer_freq_fine<R>::
 	synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_id)
 	{
 		if (this->N * this->n_frames != (int)X_N1.size())
@@ -85,7 +82,7 @@ namespace module
 	}
 
 	template <typename R>
-	void Synchronizer_freq_coarse<R>::
+	void Synchronizer_freq_fine<R>::
 	synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 	{
 		const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
@@ -98,12 +95,11 @@ namespace module
 	}
 
 	template <typename R>
-	void Synchronizer_freq_coarse<R>::
+	void Synchronizer_freq_fine<R>::
 	_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 	{
 		throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 	}
-
 }
 }
 
