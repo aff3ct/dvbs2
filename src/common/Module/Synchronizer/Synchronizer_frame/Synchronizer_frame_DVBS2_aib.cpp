@@ -33,7 +33,7 @@ void Synchronizer_frame_DVBS2_aib<R>
 
 	this->step(&symb_diff, &y_corr);
 
-	/*if((*this)[syn::tsk::synchronize].is_debug())
+	/*if ((*this)[syn::tsk::synchronize].is_debug())
 		std::cout << "# {INTERNAL} CORR = [ " << y_corr << " ";*/
 	corr_vec[0] = y_corr;
 	R max_corr = corr_vec[0];
@@ -46,7 +46,7 @@ void Synchronizer_frame_DVBS2_aib<R>
 		this->step(&symb_diff, &y_corr);
 		//corr_vec[i] += y_corr;
 		corr_vec[i] = y_corr;
-		/*if((*this)[syn::tsk::synchronize].is_debug())
+		/*if ((*this)[syn::tsk::synchronize].is_debug())
 		{
 			if (i < cplx_in_sz -1)
 				std::cout << y_corr << " ";

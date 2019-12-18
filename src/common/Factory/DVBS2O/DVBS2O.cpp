@@ -208,7 +208,7 @@ void DVBS2O
 		headers[p].push_back(std::make_pair("Path to source file"  , this->src_path                      ));
 	headers[p].push_back(std::make_pair("Perfect synchronization"         , this->perfect_sync ? "YES" : "NO"         ));
 	headers[p].push_back(std::make_pair("Estimator type"       , this->est_type                          ));
-	if(full)
+	if (full)
 		p_rad.get_headers(headers);
 }
 
@@ -246,7 +246,7 @@ modcod_init(std::string modcod)
 	else
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not supported.");
 
-	if( mod == "QPSK"  )
+	if ( mod == "QPSK"  )
 	{
 		bps = 2;
 		constellation_file = "../conf/mod/4QAM_GRAY.mod";
@@ -554,7 +554,7 @@ module::Synchronizer_freq_coarse<R>* DVBS2O
 ::build_synchronizer_freq_coarse(const DVBS2O& params)
 {
 	module::Synchronizer_freq_coarse<R> * sync_freq_coarse;
-	if(params.perfect_coarse_freq_sync)
+	if (params.perfect_coarse_freq_sync)
 		sync_freq_coarse =  dynamic_cast<module::Synchronizer_freq_coarse<R>*>(new module::Synchronizer_freq_coarse_perfect<R>(2 * params.pl_frame_size * params.osf, params.max_freq_shift, params.n_frames));
 	else
 		sync_freq_coarse =  dynamic_cast<module::Synchronizer_freq_coarse<R>*>(new module::Synchronizer_freq_coarse_DVBS2_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4, params.n_frames));

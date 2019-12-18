@@ -75,7 +75,7 @@ Radio_USRP(const factory::Radio& params, const int n_frames)
 
 	if (threaded)
 	{
-		if(params.rx_enabled)
+		if (params.rx_enabled)
 			receive_thread = boost::thread(&Radio_USRP::thread_function, this);
 	}
 	else
@@ -99,7 +99,7 @@ template <typename R>
 void Radio_USRP<R>::
 _send(const R *X_N1, const int frame_id)
 {
-	if(!this->tx_enabled)
+	if (!this->tx_enabled)
 	{
 		std::stringstream message;
 		message << "send has been called while tx_rate has not been set.";
@@ -117,7 +117,7 @@ template <typename R>
 void Radio_USRP<R>::
 _receive(R *Y_N1, const int frame_id)
 {
-	if(!this->rx_enabled)
+	if (!this->rx_enabled)
 	{
 		std::stringstream message;
 		message << "receive has been called while rx_rate has not been set.";
@@ -135,7 +135,7 @@ void Radio_USRP<R>::
 fifo_read(R * Y_N1)
 {
 	bool has_read = false;
-	while(!has_read)
+	while (!has_read)
 	{
 		if (this->idx_w != this->idx_r)
 		{
@@ -151,7 +151,7 @@ void Radio_USRP<R>::
 fifo_write(const std::vector<R>& tmp)
 {
 	bool has_written = false;
-	while(!has_written)
+	while (!has_written)
 	{
 		if (((this->idx_w +1) % fifo.size()) != this->idx_r)
 		{
@@ -173,7 +173,7 @@ thread_function()
 	while (!end)
 	{
 		bool has_written = false;
-		while(!has_written)
+		while (!has_written)
 		{
 			if (((this->idx_w +1) % fifo.size()) != this->idx_r)
 			{

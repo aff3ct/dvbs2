@@ -200,9 +200,9 @@ int main(int argc, char** argv)
 		char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
 		char heads[]       = "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
 		char pattern[]     = "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
-		if(!params.perfect_sync)
+		if (!params.perfect_sync)
 		{
-			if(!params.no_sync_info)
+			if (!params.no_sync_info)
 			{
 				std::cerr << head_lines << "\n" << heads << "\n" <<head_lines << "\n";
 				std::cerr.flush();
@@ -229,10 +229,10 @@ int main(int argc, char** argv)
 				(*freq_shift    )[mlt::tsk::imultiply  ].exec();
 				(*channel       )[chn::tsk::add_noise  ].exec();
 
-				if(n_phase < 3)
+				if (n_phase < 3)
 				{
-					the_delay = sync_step_mf->get_delay();
 					(*sync_step_mf )[syn::tsk::synchronize].exec();
+					the_delay = sync_step_mf->get_delay();
 					(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 					(*sync_frame   )[syn::tsk::synchronize].exec();
 					the_delay = (2*params.pl_frame_size - sync_frame->get_delay() + the_delay) % params.pl_frame_size;
@@ -251,7 +251,7 @@ int main(int argc, char** argv)
 					(*sync_fine_pf )[syn::tsk::synchronize].exec();
 				}
 
-				if(!params.no_sync_info)
+				if (!params.no_sync_info)
 				{
 					sprintf(buf, pattern, n_phase, m+1,
 							sync_timing  ->get_mu(),
@@ -268,7 +268,7 @@ int main(int argc, char** argv)
 					m = 150;
 					n_phase++;
 					sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
-					if(!params.no_sync_info)
+					if (!params.no_sync_info)
 						std::cerr << buf << std::endl;
 				}
 
@@ -281,11 +281,11 @@ int main(int argc, char** argv)
 					(*sync_timing  )[syn::sck::synchronize ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
 					(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[syn::sck::synchronize ::Y_N2]);
 					(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
-					if(!params.no_sync_info)
+					if (!params.no_sync_info)
 						std::cerr << buf << std::endl;
 				}
 			}
-			if(!params.no_sync_info)
+			if (!params.no_sync_info)
 				std::cerr << buf << "\n" << head_lines << "\n";
 		}
 		else
@@ -297,7 +297,7 @@ int main(int argc, char** argv)
 			(*sync_frame   )[syn::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
 		}
 		monitor->reset();
-		if(params.ter_freq != std::chrono::nanoseconds(0))
+		if (params.ter_freq != std::chrono::nanoseconds(0))
 			terminal->start_temp_report(params.ter_freq);
 
 		for (auto& m : modules)

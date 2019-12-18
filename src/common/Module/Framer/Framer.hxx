@@ -99,15 +99,15 @@ generate_plh( void )
 	const std::vector <int > mod_cod_8_8_9 {0, 1, 0, 0, 0, 0, 1};
 	const std::vector <int > mod_cod_16_8_9{0, 1, 0, 1, 1, 0, 1};
 
-	if(modcod == "QPSK-S_8/9")
+	if (modcod == "QPSK-S_8/9")
 		mod_cod = mod_cod_Q_8_9; // QPSK 8/9 : 21
-	else if(modcod == "QPSK-S_3/5")
+	else if (modcod == "QPSK-S_3/5")
 		mod_cod = mod_cod_Q_3_5; // QPSK 3/5 : 11
-	else if(modcod == "8PSK-S_3/5")
+	else if (modcod == "8PSK-S_3/5")
 		mod_cod = mod_cod_8_3_5; // 8PSK 3/5 : 25
-	else if(modcod == "8PSK-S_8/9")
+	else if (modcod == "8PSK-S_8/9")
 		mod_cod = mod_cod_8_8_9; // 8PSK 8/9 : 33
-	else if(modcod == "16APSK-S_8/9")
+	else if (modcod == "16APSK-S_8/9")
 		mod_cod = mod_cod_16_8_9; // 16APSK 8/9 : 45
 
 	//const int pilot_insert = 1; // pilots are inserted
@@ -158,7 +158,7 @@ generate_plh( void )
 	for( int i = 0; i < 64; i++)
 		final_PLS_bpsk[i] = (1 - 2*final_PLS[i]);
 
-	if(mod_cod[0] == 0)
+	if (mod_cod[0] == 0)
 		for( int i = 0; i < 32; i++)
 		{
 			final_PLS_mod[4*i    ] =      (1/std::sqrt(2)) * final_PLS_bpsk[2*i]; // real part of the even symbols (starting index = 0)

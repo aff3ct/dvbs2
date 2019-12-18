@@ -1,20 +1,22 @@
 [metadata]
-command=dvbs2_optique_tx_rx -m 3.4 -M 3.71 -s 0.1 --chn-max-freq-shift 0.05 --chn-max-delay 4.0 --no-sync-info --frame-sync-fast
+command=dvbs2_optique_tx_rx -m 3.4 -M 3.81 -s 0.1 --chn-max-freq-shift 0.05 --chn-max-delay 4.0 --no-sync-info --frame-sync-fast
 
 [trace]
 # * DVBS2O ----------------------------------------
-#    ** Modulation and coding = QPSK-S_8/9
-#    ** Min  Eb/N0            = 3.000000
-#    ** Max  Eb/N0            = 4.000000
-#    ** Step Eb/N0            = 0.100000
-#    ** Max frame errors      = 100
-#    ** Maximum Doppler shift = 0.050000
-#    ** LDPC implem           = SPA
-#    ** LDPC n iterations     = 50
-#    ** LDPC simd             =
-#    ** Type of source        = RAND
-#    ** Path to source file   = ../conf/src/K_14232.src
-#    ** Pll disabled          = NO
+#    ** Modulation and coding   = QPSK-S_8/9
+#    ** Min  Eb/N0              = 3.400000
+#    ** Max  Eb/N0              = 4.010000
+#    ** Step Eb/N0              = 0.100000
+#    ** Max frame errors        = 100
+#    ** Maximum Doppler shift   = 0.050000
+#    ** Maximum Channel Delay   = 4.000000
+#    ** LDPC implem             = SPA
+#    ** LDPC n iterations       = 50
+#    ** LDPC simd               =
+#    ** Type of source          = RAND
+#    ** Path to source file     = ../conf/src/K_14232.src
+#    ** Perfect synchronization = NO
+#    ** Estimator type          = DVBS2O
 # ---------------------||------------------------------------------------------||---------------------
 #  Signal Noise Ratio  ||   Bit Error Rate (BER) and Frame Error Rate (FER)    ||  Global throughput
 #         (SNR)        ||                                                      ||  and elapsed time
@@ -23,10 +25,12 @@ command=dvbs2_optique_tx_rx -m 3.4 -M 3.71 -s 0.1 --chn-max-freq-shift 0.05 --ch
 #     Es/N0 |    Eb/N0 ||      FRA |       BE |       FE |      BER |      FER ||  SIM_THR |    ET/RT
 #      (dB) |     (dB) ||          |          |          |          |          ||   (Mb/s) | (hhmmss)
 # ----------|----------||----------|----------|----------|----------|----------||----------|----------
-       5.85 |     3.40 ||      101 |    20510 |      100 | 1.43e-02 | 9.90e-01 ||    0.049 | 00h00'29
-       5.95 |     3.50 ||      127 |    16523 |      100 | 9.14e-03 | 7.87e-01 ||    0.058 | 00h00'31
-       6.05 |     3.60 ||      158 |    14140 |      100 | 6.29e-03 | 6.33e-01 ||    0.067 | 00h00'33
-       6.15 |     3.70 ||      720 |    12068 |      100 | 1.18e-03 | 1.39e-01 ||    0.156 | 00h01'05
-#       6.25 |     3.80 ||     7187 |    11688 |      100 | 1.14e-04 | 1.39e-02 ||    0.260 | 00h06'33
+       5.85 |     3.40 ||      100 |    20702 |      100 | 1.45e-02 | 1.00e+00 ||    0.042 | 00h00'33
+       5.95 |     3.50 ||      116 |    16957 |      100 | 1.03e-02 | 8.62e-01 ||    0.046 | 00h00'35
+       6.05 |     3.60 ||      196 |    14192 |      100 | 5.09e-03 | 5.10e-01 ||    0.062 | 00h00'44
+       6.15 |     3.70 ||      726 |    11918 |      100 | 1.15e-03 | 1.38e-01 ||    0.125 | 00h01'22
+       6.25 |     3.80 ||     5080 |    11071 |      100 | 1.53e-04 | 1.97e-02 ||    0.226 | 00h05'19
+#       6.35 |     3.90 ||    65749 |    10510 |      100 | 1.12e-05 | 1.52e-03 ||    0.305 | 00h51'10
+#       6.45 |     4.00 ||   657232 |   288685 |      100 | 3.09e-05 | 1.52e-04 ||    0.358 | 07h15'43
 #
 # End of the simulation

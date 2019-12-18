@@ -16,7 +16,7 @@ Synchronizer_freq_phase_DVBS2_aib<R>
 : Synchronizer_freq<R>(N, n_frames), pilot_start()
 {
 	int idx = 1530;
-	while(idx < N/2)
+	while (idx < N/2)
 	{
 		pilot_start.push_back(idx);
 		idx += 1476;

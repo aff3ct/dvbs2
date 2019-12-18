@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 	(*shaping_filter)[flt::sck::filter    ::X_N1].bind(shaping_in);
 	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter  ::Y_N2]);
 
-	while(!terminal->is_interrupt())
+	while (!terminal->is_interrupt())
 	{
 		(*source)      [src::tsk::generate  ].exec();
 		(*bb_scrambler)[scr::tsk::scramble  ].exec();
