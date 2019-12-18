@@ -117,8 +117,8 @@ int main(int argc, char** argv)
 	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
 	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
 	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
-	(*sync_step_mf)[syn::sck::synchronize  ::X_N1].bind((*radio       )[rad::sck::receive      ::Y_N1]);
-	(*mult_agc    )[mlt::sck::imultiply    ::X_N ].bind((*sync_step_mf)[syn::sck::synchronize  ::Y_N2]);
+	(*sync_step_mf)[smf::sck::synchronize  ::X_N1].bind((*radio       )[rad::sck::receive      ::Y_N1]);
+	(*mult_agc    )[mlt::sck::imultiply    ::X_N ].bind((*sync_step_mf)[smf::sck::synchronize  ::Y_N2]);
 	(*sync_frame  )[sfm::sck::synchronize  ::X_N1].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N ]);
 	(*pl_scrambler)[scr::sck::descramble   ::Y_N1].bind((*sync_frame  )[sfm::sck::synchronize  ::Y_N2]);
 	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
@@ -153,7 +153,7 @@ int main(int argc, char** argv)
 		{
 			(*radio        )[rad::tsk::receive    ].exec();
 			the_delay = sync_step_mf->get_delay();
-			(*sync_step_mf )[syn::tsk::synchronize].exec();
+			(*sync_step_mf )[smf::tsk::synchronize].exec();
 			(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 			(*sync_frame   )[sfm::tsk::synchronize].exec();
 			the_delay = (2*params.pl_frame_size - sync_frame->get_delay() + the_delay) %  params.pl_frame_size;

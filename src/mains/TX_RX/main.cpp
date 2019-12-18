@@ -165,8 +165,8 @@ int main(int argc, char** argv)
 	{
 		(*bb_scrambler)[scr::sck::scramble   ::X_N1].bind((*source      )[src::sck::generate   ::U_K ]);
 		(*channel     )[chn::sck::add_noise  ::X_N ].bind((*freq_shift  )[mlt::sck::imultiply  ::Z_N ]);
-		(*sync_step_mf)[syn::sck::synchronize::X_N1].bind((*channel     )[chn::sck::add_noise  ::Y_N ]);
-		(*mult_agc    )[mlt::sck::imultiply  ::X_N ].bind((*sync_step_mf)[syn::sck::synchronize::Y_N2]);
+		(*sync_step_mf)[smf::sck::synchronize::X_N1].bind((*channel     )[chn::sck::add_noise  ::Y_N ]);
+		(*mult_agc    )[mlt::sck::imultiply  ::X_N ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N2]);
 		(*sync_frame  )[sfm::sck::synchronize::X_N1].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N ]);
 		(*pl_scrambler)[scr::sck::descramble ::Y_N1].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2]);
 		(*delay       )[flt::sck::filter     ::X_N1].bind((*source      )[src::sck::generate   ::U_K ]);
@@ -231,7 +231,7 @@ int main(int argc, char** argv)
 
 				if (n_phase < 3)
 				{
-					(*sync_step_mf )[syn::tsk::synchronize].exec();
+					(*sync_step_mf )[smf::tsk::synchronize].exec();
 					the_delay = sync_step_mf->get_delay();
 					(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 					(*sync_frame   )[sfm::tsk::synchronize].exec();
