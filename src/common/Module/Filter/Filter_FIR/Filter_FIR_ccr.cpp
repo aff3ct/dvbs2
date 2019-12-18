@@ -20,7 +20,7 @@ P((N-2*(b.size()-1))/mipp::N<R>())
 	assert(size > 0);
 	assert(mipp::N<R>() > 1);
 
-	if(P < 0)
+	if (P < 0)
 		P = 0;
 
 	for (size_t i = 0; i < b.size(); i++)

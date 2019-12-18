@@ -16,7 +16,7 @@ Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 : Synchronizer_freq<R>(N, n_frames), pilot_nbr(0), pilot_start(), R_l(2,(R)0.0)
 {
 	int idx = 1530;
-	while(idx < N/2)
+	while (idx < N/2)
 	{
 		pilot_start.push_back(idx);
 		pilot_nbr++;

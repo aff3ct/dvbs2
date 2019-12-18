@@ -183,7 +183,7 @@ int main(int argc, char** argv)
 		noise.set_values(sigma, ebn0, esn0);
 
 		// display the performance (BER and FER) in real time (in a separate thread)
-		if(params.ter_freq != std::chrono::nanoseconds(0))
+		if (params.ter_freq != std::chrono::nanoseconds(0))
 			terminal->start_temp_report(params.ter_freq);
 }
 // end of #pragma omp single

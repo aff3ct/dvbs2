@@ -18,7 +18,7 @@ Radio_user_binary(const int N, const std::string filename, const int n_frames)
 	const std::string name = "Radio_user_binary";
 	this->set_name(name);
 
-	if(this->master_thread_id != std::this_thread::get_id())
+	if (this->master_thread_id != std::this_thread::get_id())
 	{
 		std::stringstream message;
 		message << name << " is not thread safe.";

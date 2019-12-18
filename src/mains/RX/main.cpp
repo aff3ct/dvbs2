@@ -150,7 +150,7 @@ int main(int argc, char** argv)
 	int n_phase   = 1;
 	for (int m = 0; m < 500; m += params.n_frames)
 	{
-		if(n_phase < 3)
+		if (n_phase < 3)
 		{
 			(*radio        )[rad::tsk::receive    ].exec();
 			the_delay = sync_step_mf->get_delay();
@@ -211,7 +211,7 @@ int main(int argc, char** argv)
 	std::cerr << buf << "\n" << head_lines << "\n";
 	monitor ->reset();
 	terminal->reset();
-	if(params.ter_freq != std::chrono::nanoseconds(0))
+	if (params.ter_freq != std::chrono::nanoseconds(0))
 		terminal->start_temp_report(params.ter_freq);
 
 	for (auto& m : modules)
@@ -221,7 +221,7 @@ int main(int argc, char** argv)
 	// tasks execution
 	while (!terminal->is_interrupt())
 	{
-		while(!sync_timing->can_pull())
+		while (!sync_timing->can_pull())
 		{
 			(*source       )[src::tsk::generate     ].exec();
 			(*radio        )[rad::tsk::receive      ].exec();
@@ -229,7 +229,7 @@ int main(int argc, char** argv)
 			(*matched_flt  )[flt::tsk::filter       ].exec();
 			(*sync_timing  )[syn::tsk::sync_push    ].exec();
 		}
-		while(sync_timing->can_pull())
+		while (sync_timing->can_pull())
 		{
 			(*sync_timing  )[syn::tsk::sync_pull    ].exec();
 			(*mult_agc     )[mlt::tsk::imultiply    ].exec();
