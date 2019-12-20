@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 		dumper.add(i);
 	}
 
-	dumper.dump(std::string("radio"));
+	dumper.dump(params.dump_filename);
 
 	terminal->final_report();
 	terminal->final_report(std::cerr);
