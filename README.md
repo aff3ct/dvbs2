@@ -1,7 +1,7 @@
 #DVBS2 Optique
 ##Machines installation
 
-- Ubuntu 16.04 Desktop and 18.04 Server have been tested)
+- Ubuntu 16.04 Desktop and 18.04 Server have been tested
 - Needs Git && CMake :
 ```bash
 sudo apt install git cmake
@@ -55,6 +55,7 @@ network:
 ```
 ### Benchmark
 To validate the installation, you may run the following benchmark :
+```bash
    /usr/local/lib/uhd/examples/benchmark_rate  \
    --args "type=n3xx,addr=192.168.20.2,master_clock_rate=125e6" \
    --duration 60 \
@@ -63,6 +64,7 @@ To validate the installation, you may run the following benchmark :
    --rx_subdev "A:0" \
    --tx_rate 31.25e6 \
    --tx_subdev "A:0"
+```
 
 ## Compile & Install
 
@@ -114,15 +116,33 @@ The compiled binaries are:
 - `build/bin/dvbs2_optique_matlab_tx`: the receiver to be launched from matlab.
 
 ## Run
-
+### Offline 
 Some refs with according command line instructions can be found in the `refs/` directory for  `build/bin/dvbs2_optique_tx_rx` and `build/bin/dvbs2_optique_tx_rx_bb`.
-
+### With Radio, BER / FER
 Here are example command lines for TX and RX, considering 8PSK-S8_9 :
 ```bash
 ./bin/dvbs2_optique_tx --rad-tx-rate 1.953125e6 --rad-tx-freq 2360e6 --rad-tx-gain 60 --src-type USER  --sim-stats --mod-cod QPSK-S_8/9
 ```
 ```bash
-./bin/dvbs2_optique_rx --rad-rx-rate 1.953125e6 --snk-path "dummy.ts" --rad-rx-freq 2360e6 --rad-rx-gain 60 --src-type USER --dec-implem MS --dec-ite 10 --sim-stats  --src-fra 1 --dec-simd INTER  --frame-sync-fast --sim-threaded  --mod-cod 8PSK-S_8/9
+./bin/dvbs2_optique_rx --rad-rx-rate 1.953125e6 --snk-path "dummy.ts" --rad-rx-freq 2360e6 --rad-rx-gain 60 --src-type USER --dec-implem MS --dec-ite 10 --sim-stats --frame-sync-fast --sim-threaded  --mod-cod QPSK-S_8/9
+```
+### With Radio, Video Streaming
+An convenient setup is to use a first computer for TX, a second computer for RX, and a third for displaying the video.
+
+- Convert a video to TS format (transport stream) using vlc for example
+- Stream that video from TX computer :
+```
+./bin/dvbs2_optique_tx --rad-tx-rate 1.953125e6 --rad-tx-freq 2360e6 --rad-tx-gain 60 --src-type USER_BIN --sim-stats --shp-osf 4 --mod-cod QPSK-S_8/9 --src-path airbus.ts
+```
+- Create a fifo on RX computer `mkfifo stream.fifo`
+- Receive the video and write into this fifo
+```
+./bin/dvbs2_optique_rx --rad-rx-rate 1.953125e6 --snk-path "dump.bin" --rad-rx-freq 2360e6 --rad-rx-gain 40 --src-type USER --dec-implem MS --dec-ite 10 --mod-c
+od QPSK-S_8/9 --rad-rx-subdev-spec "A:0" --rad-threaded --snk-path stream.fifo
+```
+- On the third computer, connected by ssh to the RX computer, stream and display the video via ssh :
+```
+ ssh <rx ip address>  "cat /path/to/fifo/stream.fifo" | cvlc -
 ```
 
 ## OpenMP
