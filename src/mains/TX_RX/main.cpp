@@ -20,20 +20,20 @@ int main(int argc, char** argv)
 	param_vec.push_back(&params);
 	tools::Header::print_parameters(param_vec, false, std::cout);
 
-	std::vector<std::unique_ptr<tools ::Reporter>>              reporters;
-	            std::unique_ptr<tools ::Terminal>               terminal;
-	                            tools ::Sigma<>                 noise;
+	std::vector<std::unique_ptr<tools::Reporter>> reporters;
+	std::unique_ptr<tools::Terminal> terminal;
+	tools::Sigma<> noise;
 
 	// the list of the allocated modules for the simulation
 	std::vector<const module::Module*> modules;
 	std::vector<const module::Module*> modules_each_snr;
 
 	// construct tools
-	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
-	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(factory::DVBS2O::build_itl_core<>(params));
-	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
-	std::unique_ptr<tools::Gaussian_noise_generator<R>    > gen(new tools::Gaussian_noise_generator_fast<R>(0));
-	                tools ::Sigma<>                         noise_estimated;
+	std::unique_ptr<tools::Constellation<float>> cstl(new tools::Constellation_user<float>(params.constellation_file));
+	std::unique_ptr<tools::Interleaver_core<>> itl_core(factory::DVBS2O::build_itl_core<>(params));
+	tools::BCH_polynomial_generator<> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
+	std::unique_ptr<tools::Gaussian_noise_generator<R>> gen(new tools::Gaussian_noise_generator_fast<R>(0));
+	tools::Sigma<> noise_estimated;
 
 	// construct modules
 	std::unique_ptr<module::Source<>                    > source      (factory::DVBS2O::build_source              <>(params                   ));
@@ -60,10 +60,10 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > chn_agc     (factory::DVBS2O::build_channel_agc         <>(params                   ));
 	std::unique_ptr<module::Estimator<>                 > estimator   (factory::DVBS2O::build_estimator           <>(params, &noise           ));
 
-	std::unique_ptr<module::Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse <>(params             ));
-	std::unique_ptr<module::Synchronizer_freq_fine<>    > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase  <>(params             ));
-	std::unique_ptr<module::Synchronizer_freq_fine<>    > sync_fine_lr (factory::DVBS2O::build_synchronizer_lr          <>(params             ));
-	std::unique_ptr<module::Synchronizer_step_mf_cc<>   > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(params,
+	std::unique_ptr<module::Synchronizer_freq_coarse<>> sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse <>(params             ));
+	std::unique_ptr<module::Synchronizer_freq_fine<>  > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase  <>(params             ));
+	std::unique_ptr<module::Synchronizer_freq_fine<>  > sync_fine_lr (factory::DVBS2O::build_synchronizer_lr          <>(params             ));
+	std::unique_ptr<module::Synchronizer_step_mf_cc<> > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(params,
 	                                                                                                                       sync_coarse_f.get(),
 	                                                                                                                       matched_flt  .get(),
 	                                                                                                                       sync_timing  .get()));
@@ -158,7 +158,6 @@ int main(int argc, char** argv)
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->record_callback_check([LDPC_decoder]{LDPC_decoder->reset();});
-	// monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 
 	// a loop over the various SNRs
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
@@ -181,19 +180,19 @@ int main(int argc, char** argv)
 
 		noise.set_values(sigma, ebn0, esn0);
 
-		shaping_flt   ->reset();
-		chn_frac_del  ->reset();
-		chn_int_del   ->reset();
-		freq_shift    ->reset();
-		sync_coarse_f ->reset();
-		matched_flt   ->reset();
-		sync_timing   ->reset();
-		sync_frame    ->reset();
-		sync_fine_lr  ->reset();
-		sync_fine_pf  ->reset();
-		delay         ->reset();
+		shaping_flt  ->reset();
+		chn_frac_del ->reset();
+		chn_int_del  ->reset();
+		freq_shift   ->reset();
+		sync_coarse_f->reset();
+		matched_flt  ->reset();
+		sync_timing  ->reset();
+		sync_frame   ->reset();
+		sync_fine_lr ->reset();
+		sync_fine_pf ->reset();
+		delay        ->reset();
 
-		sync_coarse_f ->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
+		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 
 		//(*sync_fine_pf )[syn::tsk::synchronize].set_debug(true);
 
@@ -274,11 +273,11 @@ int main(int argc, char** argv)
 				{
 					m = 300;
 					n_phase++;
-					(*sync_coarse_f)[sfc::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
-					(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize ::Y_N2]);
-					(*sync_timing  )[stm::sck::sync_push   ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
-					(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull   ::Y_N2]);
-					(*sync_frame   )[sfm::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
+					(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N ]);
+					(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
+					(*sync_timing  )[stm::sck::sync_push  ::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+					(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull  ::Y_N2]);
+					(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 					if (!params.no_sync_info)
 						std::cerr << buf << std::endl;
 				}
@@ -288,11 +287,11 @@ int main(int argc, char** argv)
 		}
 		else
 		{
-			(*sync_coarse_f)[sfc::sck::synchronize ::X_N1].bind((*channel      )[chn::sck::add_noise   ::Y_N ]);
-			(*matched_flt  )[flt::sck::filter      ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize ::Y_N2]);
-			(*sync_timing  )[stm::sck::sync_push   ::X_N1].bind((*matched_flt  )[flt::sck::filter      ::Y_N2]);
-			(*mult_agc     )[mlt::sck::imultiply   ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull   ::Y_N2]);
-			(*sync_frame   )[sfm::sck::synchronize ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply   ::Z_N ]);
+			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N ]);
+			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
+			(*sync_timing  )[stm::sck::sync_push  ::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull  ::Y_N2]);
+			(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 		}
 		monitor->reset();
 		if (params.ter_freq != std::chrono::nanoseconds(0))

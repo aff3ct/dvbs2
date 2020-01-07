@@ -57,11 +57,11 @@ int main(int argc, char** argv)
 // end of #pragma omp single
 
 	// construct tools
-	std::unique_ptr<tools::Constellation           <float>> cstl    (new tools::Constellation_user<float>(params.constellation_file));
-	std::unique_ptr<tools::Interleaver_core        <     >> itl_core(factory::DVBS2O::build_itl_core<>(params));
-	                tools::BCH_polynomial_generator<      > poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
+	std::unique_ptr<tools::Constellation<float>> cstl(new tools::Constellation_user<float>(params.constellation_file));
+	std::unique_ptr<tools::Interleaver_core<>> itl_core(factory::DVBS2O::build_itl_core<>(params));
+	tools::BCH_polynomial_generator<> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 	std::unique_ptr<tools::Gaussian_noise_generator<R>> gen(new tools::Gaussian_noise_generator_fast<R>(tid*2+1));
-	                            tools ::Sigma<>                 noise_estimated;
+	tools::Sigma<> noise_estimated;
 
 	// construct modules
 	std::unique_ptr<module::Source<>                   > source      (factory::DVBS2O::build_source           <>(params, tid*2+0    ));
@@ -126,7 +126,7 @@ int main(int argc, char** argv)
 	modules[tid] = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder.get(), LDPC_encoder      ,
 	                 LDPC_decoder      , itl_tx      .get(), itl_rx     .get(), modem       .get(),
 	                 framer      .get(), pl_scrambler.get(), source     .get(), monitor     .get(),
-	                 channel     .get(), estimator   .get()                                        };
+	                 channel     .get(), estimator   .get()                                         };
 
 	// configuration of the module tasks
 	for (auto& m : modules[tid])
@@ -166,7 +166,6 @@ int main(int argc, char** argv)
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->record_callback_check([LDPC_decoder]{LDPC_decoder->reset();});
-	// monitor->add_handler_check(std::bind(&module::Decoder::reset, LDPC_decoder));
 
 	// a loop over the various SNRs
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
