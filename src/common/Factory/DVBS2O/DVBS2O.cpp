@@ -20,6 +20,8 @@
 #include "Module/Estimator/Estimator_DVBS2O.hpp"
 #include "Module/Estimator/Estimator_perfect.hpp"
 
+#include "Module/Sink/User/Sink_user_binary.hpp"
+
 using namespace aff3ct;
 using namespace aff3ct::factory;
 
@@ -307,7 +309,7 @@ template <typename B>
 module::Sink<B>* DVBS2O
 ::build_sink(const DVBS2O& params)
 {
-	return new module::Sink_binary<B>(params.K_bch, params.sink_path, params.n_frames);
+	return new module::Sink_user_binary<B>(params.K_bch, params.sink_path, params.n_frames);
 }
 
 template <typename B>

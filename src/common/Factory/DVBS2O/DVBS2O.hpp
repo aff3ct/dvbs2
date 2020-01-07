@@ -24,7 +24,7 @@
 #include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "Module/Estimator/Estimator.hpp"
 #include "Module/Radio/Radio.hpp"
-#include "Module/Sink/Sink_binary/Sink_binary.hpp"
+#include "Module/Sink/Sink.hpp"
 
 namespace aff3ct
 {

@@ -124,7 +124,7 @@ int main(int argc, char** argv)
 	(*pl_scrambler)[scr::sck::descramble   ::Y_N1 ].bind((*sync_frame  )[sfm::sck::synchronize  ::Y_N2 ]);
 	(*monitor     )[mnt::sck::check_errors ::U    ].bind((*source      )[src::sck::generate     ::U_K  ]);
 	(*monitor     )[mnt::sck::check_errors ::V    ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2 ]);
-	(*sink        )[snk::sck::send         ::X_N1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2 ]);
+	(*sink        )[snk::sck::send         ::V    ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2 ]);
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->record_callback_check([LDPC_decoder]{LDPC_decoder->reset();});
