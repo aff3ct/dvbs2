@@ -10,12 +10,12 @@ template <typename R>
 Filter_FIR_ccr<R>
 ::Filter_FIR_ccr(const int N, const std::vector<R> b, const int n_frames)
 : Filter<R>(N, N, n_frames),
-b(b.size(), R(0)),
 buff(2*b.size(), std::complex<R>(R(0))),
 head(0),
 size((int)b.size()),
 M(mipp::N<R>()),
-P((N-2*(b.size()-1))/mipp::N<R>())
+P((N-2*(b.size()-1))/mipp::N<R>()),
+b(b.size(), R(0))
 {
 	assert(size > 0);
 	assert(mipp::N<R>() > 1);

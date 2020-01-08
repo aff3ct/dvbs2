@@ -14,7 +14,6 @@ template <typename R = float>
 class Filter_FIR_ccr : public Filter<R>
 {
 private:
-	std::vector<R> b;
 	std::vector<std::complex<R> > buff;
 	int head;
 	int size;
@@ -29,6 +28,7 @@ public:
 	std::vector<R> get_filter_coefs();
 
 protected:
+	std::vector<R> b;
 	void _filter(const R *X_N1,  R *Y_N2, const int frame_id);
 
 };
