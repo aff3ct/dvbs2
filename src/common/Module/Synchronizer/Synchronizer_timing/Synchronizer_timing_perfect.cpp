@@ -18,13 +18,12 @@ farrow_flt   (N, (R)0),
 NCO_counter_0((R)0),
 NCO_counter  ((R)0)
 {
-	//01230123
-	//3012301230123
 	R frac_delay = channel_delay - std::floor(channel_delay);
-	R int_delay  = channel_delay - frac_delay + (R)1;
+	R int_delay  = channel_delay - frac_delay + (R)3;
 
 	NCO_counter_0 = osf - (R)((int)int_delay % osf);
 	NCO_counter   = NCO_counter_0;
+	this->is_strobe = ((int)this->NCO_counter % this->osf == 0) ? 1:0;
 	this->mu = (R)1-frac_delay;
 	this->farrow_flt.set_mu(this->mu);
 }
@@ -71,7 +70,6 @@ template <typename R>
 void Synchronizer_timing_perfect<R>
 ::step(const std::complex<R> *X_N1)
 {
-	this->is_strobe = ((int)this->NCO_counter % this->osf == 0) ? 1:0; // Check if a strobe
 
 	std::complex<R> farrow_output(0,0);
 	farrow_flt.step( X_N1, &farrow_output);
@@ -84,6 +82,7 @@ void Synchronizer_timing_perfect<R>
 	this->NCO_counter += 1.0f;
 	this->NCO_counter = (R)((int)this->NCO_counter % this->osf);
 
+	this->is_strobe = ((int)this->NCO_counter % this->osf == 0) ? 1:0; // Check if a strobe
 }
 
 template <typename R>
@@ -94,6 +93,7 @@ void Synchronizer_timing_perfect<R>
 	this->farrow_flt.set_mu(this->mu);
 
 	this->NCO_counter = this->NCO_counter_0;
+	this->is_strobe = ((int)this->NCO_counter % this->osf == 0) ? 1:0;
 }
 
 // ==================================================================================== explicit template instantiation
