@@ -196,7 +196,7 @@ int main(int argc, char** argv)
 			m = 300;
 			n_phase++;
 			std::cerr << buf << std::endl;
-			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc   )[mlt::sck::imultiply    ::Z_N]);
+			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
 			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
 			(*sync_timing  )[stm::sck::sync_push  ::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
 			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull  ::Y_N2]);
