@@ -45,6 +45,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Monitor_BFER<>             > monitor      (factory::DVBS2O::build_monitor                 <>(params              ));
 	std::unique_ptr<module::Filter_RRC_ccr_naive<>     > matched_flt  (factory::DVBS2O::build_matched_filter          <>(params              ));
 	std::unique_ptr<module::Synchronizer_timing <>     > sync_timing  (factory::DVBS2O::build_synchronizer_timing     <>(params              ));
+	std::unique_ptr<module::Multiplier_AGC_cc_naive<>  > front_agc    (factory::DVBS2O::build_channel_agc             <>(params              ));
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>  > mult_agc     (factory::DVBS2O::build_agc_shift               <>(params              ));
 	std::unique_ptr<module::Estimator<>                > estimator    (factory::DVBS2O::build_estimator               <>(params              ));
 	std::unique_ptr<module::Synchronizer_freq_coarse<> > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse<>(params              ));
@@ -91,7 +92,7 @@ int main(int argc, char** argv)
 	            monitor     .get(), freq_shift  .get(), sync_lr      .get(), sync_fine_pf .get(),
 	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt  .get(),
 	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink         .get(),
-	            estimator   .get()                                                                };
+	            estimator   .get(), front_agc.get()                                                     };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -117,7 +118,8 @@ int main(int argc, char** argv)
 	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N  ].bind((*itl_rx      )[itl::sck::deinterleave ::nat  ]);
 	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N  ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K  ]);
 	(*bb_scrambler)[scr::sck::descramble   ::Y_N1 ].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K  ]);
-	(*sync_step_mf)[smf::sck::synchronize  ::X_N1 ].bind((*radio       )[rad::sck::receive      ::Y_N1 ]);
+	(*front_agc   )[mlt::sck::imultiply    ::X_N  ].bind((*radio       )[rad::sck::receive      ::Y_N1 ]);
+	(*sync_step_mf)[smf::sck::synchronize  ::X_N1 ].bind((*front_agc   )[mlt::sck::imultiply    ::Z_N  ]);
 	(*sync_step_mf)[smf::sck::synchronize  ::delay].bind((*sync_frame  )[sfm::sck::synchronize  ::delay]);
 	(*mult_agc    )[mlt::sck::imultiply    ::X_N  ].bind((*sync_step_mf)[smf::sck::synchronize  ::Y_N2 ]);
 	(*sync_frame  )[sfm::sck::synchronize  ::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N  ]);
@@ -151,6 +153,7 @@ int main(int argc, char** argv)
 		if (n_phase < 3)
 		{
 			(*radio        )[rad::tsk::receive    ].exec();
+			(*front_agc    )[mlt::tsk::imultiply  ].exec();
 			(*sync_step_mf )[smf::tsk::synchronize].exec();
 			(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 			(*sync_frame   )[sfm::tsk::synchronize].exec();
@@ -159,6 +162,7 @@ int main(int argc, char** argv)
 		else // n_phase == 3
 		{
 			(*radio        )[rad::tsk::receive    ].exec();
+			(*front_agc    )[mlt::tsk::imultiply  ].exec();
 			(*sync_coarse_f)[sfc::tsk::synchronize].exec();
 			(*matched_flt  )[flt::tsk::filter     ].exec();
 			(*sync_timing  )[stm::tsk::sync_push  ].exec();
@@ -192,7 +196,7 @@ int main(int argc, char** argv)
 			m = 300;
 			n_phase++;
 			std::cerr << buf << std::endl;
-			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*radio        )[rad::sck::receive    ::Y_N1]);
+			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc   )[mlt::sck::imultiply    ::Z_N]);
 			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
 			(*sync_timing  )[stm::sck::sync_push  ::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
 			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull  ::Y_N2]);
@@ -217,6 +221,7 @@ int main(int argc, char** argv)
 		{
 			(*source       )[src::tsk::generate     ].exec();
 			(*radio        )[rad::tsk::receive      ].exec();
+			(*front_agc    )[mlt::tsk::imultiply    ].exec();
 			(*sync_coarse_f)[sfc::tsk::synchronize  ].exec();
 			(*matched_flt  )[flt::tsk::filter       ].exec();
 			(*sync_timing  )[stm::tsk::sync_push    ].exec();
