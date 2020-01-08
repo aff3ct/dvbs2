@@ -11,6 +11,7 @@
 #include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_freq_fine_perfect.hpp"
 
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_aib.hpp"
+#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_fast.hpp"
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing_perfect.hpp"
 
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_aib.hpp"
@@ -99,6 +100,7 @@ void DVBS2O
 	args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
 	args.add({"perfect-timing-sync"},cli::None(),                                       "Enable genie aided timing synchronization."                          );
 	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),    "Inter frame level."                                                  );
+	args.add({"timing-sync-fast"},   cli::None(),                                       "Enable fast timing synchronization."                                 );
 
 	p_rad.get_description(args);
 }
@@ -133,6 +135,7 @@ void DVBS2O
 	osf                      = vals.exist({"shp-osf"}            ) ? vals.to_int  ({"shp-osf"}           ) : 4           ;
 	grp_delay                = vals.exist({"shp-grp-delay"}      ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15          ;
 	frame_sync_fast          = vals.exist({"frame-sync-fast"}    ) ? true                                  : false       ;
+	timing_sync_fast         = vals.exist({"timing-sync-fast"})    ? true                                  : false       ;
 	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
 	perfect_timing_sync      = vals.exist({"perfect-timing-sync"}) ? true                                  : false       ;
 	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false       ;
@@ -515,7 +518,13 @@ module::Synchronizer_timing<R>* DVBS2O
 		sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_timing_perfect<R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay, params.n_frames));
 	}
 	else
-	 	sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+	{
+		if (params.timing_sync_fast)
+			sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_Gardner_fast<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+		else
+			sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+	}
+
 
 	return sync_timing;
 }

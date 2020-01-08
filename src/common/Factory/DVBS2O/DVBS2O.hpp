@@ -59,6 +59,7 @@ public:
 	bool  stats;
 	bool  no_sync_info;
 	bool  frame_sync_fast;
+	bool  timing_sync_fast;
 	bool  perfect_sync;
 	bool  perfect_timing_sync;
 	bool  perfect_coarse_freq_sync;
