@@ -524,6 +524,10 @@ module::Synchronizer_timing<R>* DVBS2O
 	{
 		sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_Gardner_fast<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
 	}
+	else
+	{
+		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
+	}
 
 	return sync_timing;
 }
