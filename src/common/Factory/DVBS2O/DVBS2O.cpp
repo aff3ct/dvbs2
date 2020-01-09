@@ -69,6 +69,7 @@ void DVBS2O
 
 	auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"                                ));
 	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                                                    ));
+	auto stm_type_format = cli::Text(cli::Including_set("NORMAL", "PERFECT", "FAST"                                                                           ));
 	args.add({"mod-cod"},            modcod_format,                                     "Modulation and coding scheme."                                       );
 	args.add({"chn-max-freq-shift"}, cli::Real(),                                       "Maximum Doppler shift."                                              );
 	args.add({"chn-max-delay"},      cli::Real(),                                       "Maximum Channel Delay."                                              );
@@ -98,9 +99,8 @@ void DVBS2O
 	args.add({"perfect-cf-sync"},    cli::None(),                                       "Enable genie aided coarse frequency synchronization."                );
 	args.add({"perfect-lr-sync"},    cli::None(),                                       "Enable genie aided Luise and Reggiannini frequency synchronization." );
 	args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
-	args.add({"perfect-timing-sync"},cli::None(),                                       "Enable genie aided timing synchronization."                          );
+	args.add({"stm-type"},           stm_type_format,                                   "Type of timing synchronization."                                     );
 	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),    "Inter frame level."                                                  );
-	args.add({"timing-sync-fast"},   cli::None(),                                       "Enable fast timing synchronization."                                 );
 
 	p_rad.get_description(args);
 }
@@ -135,9 +135,8 @@ void DVBS2O
 	osf                      = vals.exist({"shp-osf"}            ) ? vals.to_int  ({"shp-osf"}           ) : 4           ;
 	grp_delay                = vals.exist({"shp-grp-delay"}      ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15          ;
 	frame_sync_fast          = vals.exist({"frame-sync-fast"}    ) ? true                                  : false       ;
-	timing_sync_fast         = vals.exist({"timing-sync-fast"})    ? true                                  : false       ;
+	stm_type                 = vals.exist({"stm-type"}           ) ? vals.at      ({"stm-type"}          ) : "NORMAL"    ;
 	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
-	perfect_timing_sync      = vals.exist({"perfect-timing-sync"}) ? true                                  : false       ;
 	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false       ;
 	perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false       ;
 	perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false       ;
@@ -145,8 +144,8 @@ void DVBS2O
 
 	if (perfect_sync)
 	{
-		perfect_timing_sync      = true;
 		perfect_coarse_freq_sync = true;
+		stm_type                 = "PERFECT";
 		perfect_pf_freq_sync     = true;
 		perfect_lr_freq_sync     = true;
 	}
@@ -513,18 +512,18 @@ module::Synchronizer_timing<R>* DVBS2O
 ::build_synchronizer_timing(const DVBS2O& params)
 {
 	module::Synchronizer_timing<R>* sync_timing;
-	if (params.perfect_timing_sync)
+	if (params.stm_type == "NORMAL")
+	{
+		sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+	}
+	else if (params.stm_type == "PERFECT")
 	{
 		sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_timing_perfect<R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay, params.n_frames));
 	}
-	else
+	else if(params.stm_type == "FAST")
 	{
-		if (params.timing_sync_fast)
-			sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_Gardner_fast<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
-		else
-			sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+		sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_Gardner_fast<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
 	}
-
 
 	return sync_timing;
 }

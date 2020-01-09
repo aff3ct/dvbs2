@@ -59,9 +59,7 @@ public:
 	bool  stats;
 	bool  no_sync_info;
 	bool  frame_sync_fast;
-	bool  timing_sync_fast;
 	bool  perfect_sync;
-	bool  perfect_timing_sync;
 	bool  perfect_coarse_freq_sync;
 	bool  perfect_lr_freq_sync;
 	bool  perfect_pf_freq_sync;
@@ -94,6 +92,7 @@ public:
 	std::string constellation_file;
 	std::string section;
 	std::string src_type;
+	std::string stm_type;
 	std::string src_path;
 	std::string sink_path;
 	std::string est_type;
