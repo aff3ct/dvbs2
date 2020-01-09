@@ -165,8 +165,9 @@ int main(int argc, char** argv)
 			(*front_agc    )[mlt::tsk::imultiply  ].exec();
 			(*sync_coarse_f)[sfc::tsk::synchronize].exec();
 			(*matched_flt  )[flt::tsk::filter     ].exec();
-			(*sync_timing  )[stm::tsk::sync_push  ].exec();
-			(*sync_timing  )[stm::tsk::sync_pull  ].exec();
+			(*sync_timing  )[stm::tsk::synchronize].exec();
+			(*sync_timing  )[stm::tsk::push       ].exec();
+			(*sync_timing  )[stm::tsk::pull       ].exec();
 			(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 			(*sync_frame   )[sfm::tsk::synchronize].exec();
 			(*pl_scrambler )[scr::tsk::descramble ].exec();
@@ -198,8 +199,10 @@ int main(int argc, char** argv)
 			std::cerr << buf << std::endl;
 			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
 			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
-			(*sync_timing  )[stm::sck::sync_push  ::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
-			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull  ::Y_N2]);
+			(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+			(*sync_timing  )[stm::sck::push       ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+			(*sync_timing  )[stm::sck::push       ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::pull       ::Y_N2]);
 			(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 		}
 	}
@@ -224,11 +227,12 @@ int main(int argc, char** argv)
 			(*front_agc    )[mlt::tsk::imultiply    ].exec();
 			(*sync_coarse_f)[sfc::tsk::synchronize  ].exec();
 			(*matched_flt  )[flt::tsk::filter       ].exec();
-			(*sync_timing  )[stm::tsk::sync_push    ].exec();
+			(*sync_timing  )[stm::tsk::synchronize  ].exec();
+			(*sync_timing  )[stm::tsk::push         ].exec();
 		}
 		while (sync_timing->can_pull())
 		{
-			(*sync_timing  )[stm::tsk::sync_pull    ].exec();
+			(*sync_timing  )[stm::tsk::pull         ].exec();
 			(*mult_agc     )[mlt::tsk::imultiply    ].exec();
 			(*sync_frame   )[sfm::tsk::synchronize  ].exec();
 			(*pl_scrambler )[scr::tsk::descramble   ].exec();

@@ -10,11 +10,11 @@
 
 using namespace aff3ct::module;
 
-template <typename R>
-Synchronizer_step_mf_cc<R>
+template <typename B, typename R>
+Synchronizer_step_mf_cc<B,R>
 ::	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                         aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
-	                         aff3ct::module::Synchronizer_timing<R>      *sync_timing,
+	                         aff3ct::module::Synchronizer_timing<B,R>    *sync_timing,
 	                         const int n_frames)
 : Module(n_frames),
   last_delay(0),
@@ -48,7 +48,7 @@ Synchronizer_step_mf_cc<R>
 	auto p1s_Y_N2  = this->template create_socket_out<R  >(p1, "Y_N2" , this->N_out);
 	this->create_codelet(p1, [p1s_X_N1, p1s_delay, p1s_Y_N2](Module &m, Task &t) -> int
 	{
-		static_cast<Synchronizer_step_mf_cc<R>&>(m).synchronize(static_cast<R*  >(t[p1s_X_N1 ].get_dataptr()),
+		static_cast<Synchronizer_step_mf_cc<B,R>&>(m).synchronize(static_cast<R*  >(t[p1s_X_N1 ].get_dataptr()),
 		                                                        static_cast<int*>(t[p1s_delay].get_dataptr()),
 		                                                        static_cast<R*  >(t[p1s_Y_N2 ].get_dataptr()));
 
@@ -56,35 +56,35 @@ Synchronizer_step_mf_cc<R>
 	});
 }
 
-template <typename R>
-Synchronizer_step_mf_cc<R>
+template <typename B, typename R>
+Synchronizer_step_mf_cc<B,R>
 ::~Synchronizer_step_mf_cc()
 {}
 
-template <typename R>
-int Synchronizer_step_mf_cc<R>::
+template <typename B, typename R>
+int Synchronizer_step_mf_cc<B,R>::
 get_N_in() const
 {
 	return this->N_in;
 }
 
-template <typename R>
-int Synchronizer_step_mf_cc<R>::
+template <typename B, typename R>
+int Synchronizer_step_mf_cc<B,R>::
 get_N_out() const
 {
 	return this->N_out;
 }
 
-template <typename R>
-int Synchronizer_step_mf_cc<R>
+template <typename B, typename R>
+int Synchronizer_step_mf_cc<B,R>
 ::get_delay()
 {
 	return this->sync_timing->get_delay();
 }
 
-template <typename R>
-template <class AR>
-void Synchronizer_step_mf_cc<R>::
+template <typename B, typename R>
+template <class AB, class AR>
+void Synchronizer_step_mf_cc<B,R>::
 synchronize(const std::vector<R,AR>& X_N1, const std::vector<int>& delay, std::vector<R,AR>& Y_N2, const int frame_id)
 {
 	if (this->N_in * this->n_frames != (int)X_N1.size())
@@ -106,8 +106,8 @@ synchronize(const std::vector<R,AR>& X_N1, const std::vector<int>& delay, std::v
 	this->synchronize(X_N1.data(), Y_N2.data(), frame_id);
 }
 
-template <typename R>
-void Synchronizer_step_mf_cc<R>::
+template <typename B, typename R>
+void Synchronizer_step_mf_cc<B,R>::
 synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
@@ -120,8 +120,8 @@ synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id)
 		                   f);
 }
 
-template <typename R>
-void Synchronizer_step_mf_cc<R>
+template <typename B, typename R>
+void Synchronizer_step_mf_cc<B,R>
 ::_synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id)
 {
 	int coarse_delay = (this->N_out - delay[frame_id] + this->last_delay) % (this->N_out / 2);
@@ -131,6 +131,9 @@ void Synchronizer_step_mf_cc<R>
 	int frame_sym_sz = this->N_out;
 	int frame_sps_sz = this->N_in;
 
+	std::vector<R> Y_N1 (frame_sps_sz,(R)0);
+	std::vector<B> B_N1 (frame_sps_sz,(B)0);
+
 	for (int spl_idx = 0; spl_idx < frame_sps_sz/2; spl_idx++)
 	{
 		std::complex<R> sync_coarse_f_in(X_N1[spl_idx*2], X_N1[spl_idx*2 + 1]);
@@ -139,21 +142,20 @@ void Synchronizer_step_mf_cc<R>
 
 		this->sync_coarse_f ->step (&sync_coarse_f_in,  &sync_coarse_f_out);
 		this->matched_filter->step (&sync_coarse_f_out, &matched_filter_out);
+		this->sync_timing  ->step (&matched_filter_out, &matched_filter_out, &B_N1[2*spl_idx]);
+		B_N1[2*spl_idx + 1] = B_N1[2*spl_idx];
+		Y_N1[2*spl_idx    ] = std::real(matched_filter_out);
+		Y_N1[2*spl_idx + 1] = std::imag(matched_filter_out);
 
-		int is_strobe = this->sync_timing->get_is_strobe();
-		this->sync_timing  ->step (&matched_filter_out);
-		if (is_strobe == 1)
+		if (B_N1[2*spl_idx] == 1)
 			this->sync_coarse_f->update_phase(this->sync_timing->get_last_symbol());
 	}
-
-	auto cY_N2 = reinterpret_cast<std::complex<R>* >(Y_N2);
-
-	for (auto sym_idx = 0 ; sym_idx < frame_sym_sz / 2 ; sym_idx++)
-		this->sync_timing->pull(&cY_N2[sym_idx]);
+	this->sync_timing->push(Y_N1.data(), B_N1.data());
+	this->sync_timing->pull(Y_N2);
 }
 
-template <typename R>
-void Synchronizer_step_mf_cc<R>
+template <typename B, typename R>
+void Synchronizer_step_mf_cc<B,R>
 ::reset()
 {
 	this->sync_coarse_f ->reset();
@@ -162,6 +164,6 @@ void Synchronizer_step_mf_cc<R>
 }
 
 // ==================================================================================== explicit template instantiation
-template class aff3ct::module::Synchronizer_step_mf_cc<float>;
-template class aff3ct::module::Synchronizer_step_mf_cc<double>;
+template class aff3ct::module::Synchronizer_step_mf_cc<int, float>;
+template class aff3ct::module::Synchronizer_step_mf_cc<int, double>;
 // ==================================================================================== explicit template instantiation

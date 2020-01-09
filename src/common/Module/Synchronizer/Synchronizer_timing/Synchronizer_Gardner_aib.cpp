@@ -10,10 +10,10 @@
 
 using namespace aff3ct::module;
 
-template <typename R>
-Synchronizer_Gardner_aib<R>
+template <typename B, typename R>
+Synchronizer_Gardner_aib<B, R>
 ::Synchronizer_Gardner_aib(const int N, int osf, const R damping_factor, const R normalized_bandwidth, const R detector_gain, const int n_frames)
-: Synchronizer_timing<R>(N, osf, n_frames),
+: Synchronizer_timing<B,R>(N, osf, n_frames),
 farrow_flt(N,(R)0),
 strobe_history(0),
 TED_error((R)0),
@@ -32,44 +32,39 @@ NCO_counter((R)0)
 	// std::cerr << "# Gardner proportional_gain = " << this->lf_proportional_gain << std::endl;
 }
 
-template <typename R>
-Synchronizer_Gardner_aib<R>
+template <typename B, typename R>
+Synchronizer_Gardner_aib<B, R>
 ::~Synchronizer_Gardner_aib()
 {}
 
-template <typename R>
-void Synchronizer_Gardner_aib<R>
-::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
+template <typename B, typename R>
+void Synchronizer_Gardner_aib<B, R>
+::_synchronize(const R *X_N1, R *Y_N1, B *B_N1, const int frame_id)
 {
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
+	auto cY_N1 = reinterpret_cast<      std::complex<R>* >(Y_N1);
 
 	for (auto i = 0; i < this->N_in/2 ; i++)
-		this->step(&cX_N1[i]);
-
-	for (auto i = 0; i < this->N_out/2; i++)
-		this->pull(&cY_N2[i]);
+		this->step(&cX_N1[i], &cY_N1[i], &B_N1[i]);
 }
 
 
-template <typename R>
-void Synchronizer_Gardner_aib<R>
-::step(const std::complex<R> *X_N1)
+template <typename B, typename R>
+void Synchronizer_Gardner_aib<B, R>
+::step(const std::complex<R> *X_N1, std::complex<R>* Y_N1, B* B_N1)
 {
-	std::complex<R> farrow_output(0,0);
-	farrow_flt.step( X_N1, &farrow_output);
-	if (this->is_strobe)
-	{
-		this->push(farrow_output);
-		this->last_symbol = farrow_output;
-	}
-	this->TED_update(farrow_output);
+	farrow_flt.step( X_N1, Y_N1);
+	*B_N1 = this->is_strobe;
+
+	this->last_symbol = (this->is_strobe == 1)?*Y_N1:this->last_symbol;
+
+	this->TED_update(*Y_N1);
 	this->loop_filter();
 	this->interpolation_control();
 }
 
-template <typename R>
-void Synchronizer_Gardner_aib<R>
+template <typename B, typename R>
+void Synchronizer_Gardner_aib<B, R>
 ::_reset()
 {
 	this->mu = (R)0;
@@ -89,8 +84,8 @@ void Synchronizer_Gardner_aib<R>
 	this->NCO_counter      = (R)0;
 }
 
-template <typename R>
-void Synchronizer_Gardner_aib<R>
+template <typename B, typename R>
+void Synchronizer_Gardner_aib<B, R>
 ::loop_filter()
 {
 	//this->lf_filter_state += this->lf_prev_in;
@@ -103,8 +98,8 @@ void Synchronizer_Gardner_aib<R>
 	this->lf_output = vp + vi;
 }
 
-template <typename R>
-void Synchronizer_Gardner_aib<R>
+template <typename B, typename R>
+void Synchronizer_Gardner_aib<B, R>
 ::interpolation_control()
 {
 	// Interpolation Control
@@ -123,8 +118,8 @@ void Synchronizer_Gardner_aib<R>
 	//this->NCO_counter = (R)((int)this->NCO_counter % 4);
 }
 
-template <typename R>
-void Synchronizer_Gardner_aib<R>
+template <typename B, typename R>
+void Synchronizer_Gardner_aib<B, R>
 ::TED_update(std::complex<R> sample)
 {
 	this->strobe_history = (this->strobe_history << 1) % this->POW_osf + this->is_strobe;
@@ -159,8 +154,8 @@ void Synchronizer_Gardner_aib<R>
 	}
 }
 
-template <typename R>
-void Synchronizer_Gardner_aib<R>
+template <typename B, typename R>
+void Synchronizer_Gardner_aib<B, R>
 ::set_loop_filter_coeffs (const R damping_factor, const R normalized_bandwidth, const R detector_gain)
 {
 	R K0   = -1;
@@ -171,26 +166,7 @@ void Synchronizer_Gardner_aib<R>
 	this->lf_integrator_gain   = (4*theta*theta)/d;
 }
 
-template <typename R>
-void Synchronizer_Gardner_aib<R>
-::_sync_push (const R *X_N1, const int frame_id)
-{
-	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-
-	for (auto i = 0; i < this->N_in/2 ; i++)
-		this->step(&cX_N1[i]);
-}
-template <typename R>
-void Synchronizer_Gardner_aib<R>
-::_sync_pull (R *Y_N2, const int frame_id)
-{
-	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
-
-	for (auto i = 0; i < this->N_out/2; i++)
-		this->pull(&cY_N2[i]);
-}
-
 // ==================================================================================== explicit template instantiation
-template class aff3ct::module::Synchronizer_Gardner_aib<float>;
-template class aff3ct::module::Synchronizer_Gardner_aib<double>;
+template class aff3ct::module::Synchronizer_Gardner_aib<int, float>;
+template class aff3ct::module::Synchronizer_Gardner_aib<int, double>;
 // ==================================================================================== explicit template instantiation

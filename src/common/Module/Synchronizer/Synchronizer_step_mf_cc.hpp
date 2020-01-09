@@ -33,7 +33,7 @@ namespace module
  *
  * Please use Synchronizer for inheritance (instead of Synchronizer)
  */
-template <typename R = float>
+template <typename B = int, typename R = float>
 class Synchronizer_step_mf_cc : public Module
 {
 public:
@@ -50,14 +50,14 @@ protected:
 public:
 	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                         aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
-	                         aff3ct::module::Synchronizer_timing<R>      *sync_timing,
+	                         aff3ct::module::Synchronizer_timing<B,R>    *sync_timing,
 	                         const int n_frames = 1);
 
 	virtual ~Synchronizer_step_mf_cc();
 
 	aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f;
 	aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter;
-	aff3ct::module::Synchronizer_timing<R>      *sync_timing;
+	aff3ct::module::Synchronizer_timing<B,R>    *sync_timing;
 
 	int get_N_in() const;
 
@@ -74,7 +74,7 @@ public:
 	 * \param X_N1: a vector of samples.
 	 * \param Y_N2: a synchronized vector.
 	 */
-	template <class AR = std::allocator<R>>
+	template <class AB = std::allocator<B>, class AR = std::allocator<R>>
 	void synchronize(const std::vector<R,AR>& X_N1, const std::vector<int>& delay, std::vector<R,AR>& Y_N2, const int frame_id = -1);
 
 	virtual void synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id = -1);

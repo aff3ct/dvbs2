@@ -11,8 +11,8 @@ namespace aff3ct
 {
 namespace module
 {
-template <typename R = float>
-class Synchronizer_timing_perfect : public Synchronizer_timing<R>
+template <typename B = int, typename R = float>
+class Synchronizer_timing_perfect : public Synchronizer_timing<B, R>
 {
 private:
 	// Interpolation filter
@@ -25,13 +25,11 @@ public:
 	Synchronizer_timing_perfect (const int N, const int osf, const R channel_delay, const int n_frames = 1);
 	virtual ~Synchronizer_timing_perfect();
 
-	void step(const std::complex<R> *X_N1);
+	void step(const std::complex<R> *X_N1, std::complex<R>* Y_N1, B* B_N1);
 
 protected:
 	void _reset();
-	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
-	void _sync_push  (const R *X_N1,           const int frame_id);
-	void _sync_pull  (                R *Y_N2, const int frame_id);
+	void _synchronize(const R *X_N1,  R *Y_N1, B *B_N1, const int frame_id);
 
 };
 

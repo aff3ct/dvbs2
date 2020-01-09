@@ -11,8 +11,8 @@ namespace aff3ct
 {
 namespace module
 {
-template <typename R = float>
-class Synchronizer_Gardner_aib : public Synchronizer_timing<R>
+template <typename B = int, typename R = float>
+class Synchronizer_Gardner_aib : public Synchronizer_timing<B,R>
 {
 private:
 	const std::vector<int>  set_bits_nbr = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
@@ -44,8 +44,7 @@ public:
 	Synchronizer_Gardner_aib (const int N, int osf, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2, const int n_frames = 1);
 	virtual ~Synchronizer_Gardner_aib();
 
-
-	void step(const std::complex<R> *X_N1);
+	void step(const std::complex<R> *X_N1, std::complex<R>* Y_N1, B* B_N1);
 
 	void set_loop_filter_coeffs(const R damping_factor,
 	                            const R normalized_bandwidth,
@@ -53,9 +52,7 @@ public:
 
 protected:
 	void _reset();
-	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
-	void _sync_push  (const R *X_N1,           const int frame_id);
-	void _sync_pull  (                R *Y_N2, const int frame_id);
+	void _synchronize(const R *X_N1,  R *Y_N1, B *B_N1, const int frame_id);
 };
 
 }

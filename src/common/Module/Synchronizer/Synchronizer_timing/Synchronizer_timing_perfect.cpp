@@ -10,10 +10,10 @@
 
 using namespace aff3ct::module;
 
-template <typename R>
-Synchronizer_timing_perfect<R>
+template <typename B, typename R>
+Synchronizer_timing_perfect<B,R>
 ::Synchronizer_timing_perfect(const int N, const int osf, const R channel_delay, const int n_frames)
-: Synchronizer_timing<R>(N, osf, n_frames),
+: Synchronizer_timing<B,R>(N, osf, n_frames),
 farrow_flt   (N, (R)0),
 NCO_counter_0((R)0),
 NCO_counter  ((R)0)
@@ -28,56 +28,31 @@ NCO_counter  ((R)0)
 	this->farrow_flt.set_mu(this->mu);
 }
 
-template <typename R>
-Synchronizer_timing_perfect<R>
+template <typename B, typename R>
+Synchronizer_timing_perfect<B,R>
 ::~Synchronizer_timing_perfect()
 {}
 
-template <typename R>
-void Synchronizer_timing_perfect<R>
-::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
+template <typename B, typename R>
+void Synchronizer_timing_perfect<B,R>
+::_synchronize(const R *X_N1, R *Y_N1, B *B_N1, const int frame_id)
 {
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
+	auto cY_N1 = reinterpret_cast<      std::complex<R>* >(Y_N1);
 
 	for (auto i = 0; i < this->N_in/2 ; i++)
-		this->step(&cX_N1[i]);
+		this->step(&cX_N1[i], &cY_N1[i], B_N1);
 
-	for (auto i = 0; i < this->N_out/2; i++)
-		this->pull(&cY_N2[i]);
 }
 
-template <typename R>
-void Synchronizer_timing_perfect<R>
-::_sync_push (const R *X_N1, const int frame_id)
-{
-	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-
-	for (auto i = 0; i < this->N_in/2 ; i++)
-		this->step(&cX_N1[i]);
-}
-template <typename R>
-void Synchronizer_timing_perfect<R>
-::_sync_pull (R *Y_N2, const int frame_id)
-{
-	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
-
-	for (auto i = 0; i < this->N_out/2; i++)
-		this->pull(&cY_N2[i]);
-}
-
-template <typename R>
-void Synchronizer_timing_perfect<R>
-::step(const std::complex<R> *X_N1)
+template <typename B, typename R>
+void Synchronizer_timing_perfect<B,R>
+::step(const std::complex<R> *X_N1, std::complex<R> *Y_N1, B *B_N1)
 {
 
-	std::complex<R> farrow_output(0,0);
-	farrow_flt.step( X_N1, &farrow_output);
-	if (this->is_strobe)
-	{
-		this->push(farrow_output);
-		this->last_symbol = farrow_output;
-	}
+	farrow_flt.step( X_N1, Y_N1);
+	*B_N1 = this->is_strobe;
+	this->last_symbol = (this->is_strobe == 1)?*Y_N1:this->last_symbol;
 
 	this->NCO_counter += 1.0f;
 	this->NCO_counter = (R)((int)this->NCO_counter % this->osf);
@@ -85,8 +60,8 @@ void Synchronizer_timing_perfect<R>
 	this->is_strobe = ((int)this->NCO_counter % this->osf == 0) ? 1:0; // Check if a strobe
 }
 
-template <typename R>
-void Synchronizer_timing_perfect<R>
+template <typename B, typename R>
+void Synchronizer_timing_perfect<B,R>
 ::_reset()
 {
 	this->farrow_flt.reset();
@@ -97,6 +72,6 @@ void Synchronizer_timing_perfect<R>
 }
 
 // ==================================================================================== explicit template instantiation
-template class aff3ct::module::Synchronizer_timing_perfect<float>;
-template class aff3ct::module::Synchronizer_timing_perfect<double>;
+template class aff3ct::module::Synchronizer_timing_perfect<int, float>;
+template class aff3ct::module::Synchronizer_timing_perfect<int, double>;
 // ==================================================================================== explicit template instantiation

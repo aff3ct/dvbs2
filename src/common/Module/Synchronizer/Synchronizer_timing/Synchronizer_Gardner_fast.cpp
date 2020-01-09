@@ -10,10 +10,10 @@
 
 using namespace aff3ct::module;
 
-template <typename R>
-Synchronizer_Gardner_fast<R>
+template <typename B, typename R>
+Synchronizer_Gardner_fast<B,R>
 ::Synchronizer_Gardner_fast(const int N, int osf, const R damping_factor, const R normalized_bandwidth, const R detector_gain, const int n_frames)
-: Synchronizer_timing<R>(N, osf, n_frames),
+: Synchronizer_timing<B,R>(N, osf, n_frames),
 farrow_flt(N,(R)0),
 strobe_history(0),
 TED_error((R)0),
@@ -32,44 +32,123 @@ NCO_counter((R)0)
 	// std::cerr << "# Gardner proportional_gain = " << this->lf_proportional_gain << std::endl;
 }
 
-template <typename R>
-Synchronizer_Gardner_fast<R>
+template <typename B, typename R>
+Synchronizer_Gardner_fast<B,R>
 ::~Synchronizer_Gardner_fast()
 {}
 
-template <typename R>
-void Synchronizer_Gardner_fast<R>
-::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
+template <typename B, typename R>
+void Synchronizer_Gardner_fast<B,R>
+::_synchronize(const R *X_N1, R *Y_N1, B *B_N1, const int frame_id)
 {
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
+	auto cY_N1 = reinterpret_cast<      std::complex<R>* >(Y_N1);
+
+	R* TED_buffer_iq    = reinterpret_cast<R* >(this->TED_buffer.data());
 
 	for (auto i = 0; i < this->N_in/2 ; i++)
-		this->step(&cX_N1[i]);
+	{
+		R W = this->lf_output + this->INV_osf;
+		this->is_strobe = (this->NCO_counter < W);
+		this->strobe_history = this->strobe_history << 1;
+		this->strobe_history = this->strobe_history % this->POW_osf;
+		this->strobe_history = this->strobe_history + this->is_strobe;
 
-	for (auto i = 0; i < this->N_out/2; i++)
-		this->pull(&cY_N2[i]);
+		if (this->is_strobe ==1 && this->set_bits_nbr[this->strobe_history] == 1)// Update mu if a strobe
+		{
+			B_N1[2*i]     = this->is_strobe;
+			B_N1[2*i + 1] = this->is_strobe;
+			this->mu = this->NCO_counter / W;
+			this->farrow_flt.set_mu(this->mu);
+			this->NCO_counter += 1.0f;
+			this->NCO_counter -= W; // Update counter*/
+			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
+
+			this->TED_error = TED_buffer_iq[2*this->TED_mid_pos    ] * (TED_buffer_iq[2*this->TED_head_pos    ] - Y_N1[2*i    ]) +
+			                  TED_buffer_iq[2*this->TED_mid_pos + 1] * (TED_buffer_iq[2*this->TED_head_pos + 1] - Y_N1[2*i + 1]);
+
+			this->TED_buffer[this->TED_head_pos] = cY_N1[i];
+			this->TED_head_pos = (this->TED_head_pos - 1 + this->osf) % this->osf;
+			this->TED_mid_pos  = (this->TED_mid_pos  - 1 + this->osf) % this->osf;
+			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
+			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+		}
+		else if (this->is_strobe ==1 && this->set_bits_nbr[this->strobe_history] > 1)// Update mu if a strobe
+		{
+			B_N1[2*i]     = this->is_strobe;
+			B_N1[2*i + 1] = this->is_strobe;
+			this->mu = this->NCO_counter / W;
+			this->farrow_flt.set_mu(this->mu);
+			this->NCO_counter += 1.0f;
+			this->NCO_counter -= W; // Update counter*/
+			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
+
+			this->TED_error = 0.0f;
+			this->TED_buffer[ this->TED_head_pos               ] = std::complex<R>(0.0f, 0.0f);
+			this->TED_buffer[(this->TED_head_pos - 1 + this->osf)%this->osf] = cY_N1[i];
+
+			this->TED_head_pos     = (this->TED_head_pos - 2 + this->osf) % this->osf;
+			this->TED_mid_pos      = (this->TED_mid_pos  - 2 + this->osf) % this->osf;
+			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
+			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+		}
+		else if (this->is_strobe == 0 && this->set_bits_nbr[this->strobe_history] == 1)// Update mu if a strobe
+		{
+			B_N1[2*i]     = this->is_strobe;
+			B_N1[2*i + 1] = this->is_strobe;
+			this->NCO_counter -= W; // Update counter*/
+			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
+			this->TED_error = 0.0f;
+			this->TED_buffer[this->TED_head_pos] = cY_N1[i];
+			this->TED_head_pos = (this->TED_head_pos - 1 + this->osf) % this->osf;
+			this->TED_mid_pos  = (this->TED_mid_pos  - 1 + this->osf) % this->osf;
+			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
+			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+		}
+		else if (this->is_strobe == 0 && this->set_bits_nbr[this->strobe_history] > 1)// Update mu if a strobe
+		{
+			B_N1[2*i]     = this->is_strobe;
+			B_N1[2*i + 1] = this->is_strobe;
+			this->NCO_counter -= W; // Update counter*/
+			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
+			this->TED_error = 0.0f;
+			this->TED_buffer[ this->TED_head_pos               ] = std::complex<R>(0.0f, 0.0f);
+			this->TED_buffer[(this->TED_head_pos - 1 + this->osf)%this->osf] = cY_N1[i];
+			this->TED_head_pos     = (this->TED_head_pos - 2 + this->osf) % this->osf;
+			this->TED_mid_pos      = (this->TED_mid_pos  - 2 + this->osf) % this->osf;
+			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
+			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+		}
+		else if (this->is_strobe == 0 && this->set_bits_nbr[this->strobe_history] == 0)// Update mu if a strobe
+		{
+			B_N1[2*i]     = this->is_strobe;
+			B_N1[2*i + 1] = this->is_strobe;
+			this->NCO_counter -= W; // Update counter*/
+			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
+			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
+			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+		}
+	}
+
 }
 
 
-template <typename R>
-void Synchronizer_Gardner_fast<R>
-::step(const std::complex<R> *X_N1)
+template <typename B, typename R>
+void Synchronizer_Gardner_fast<B,R>
+::step(const std::complex<R> *X_N1, std::complex<R> *Y_N1, B *B_N1)
 {
-	std::complex<R> farrow_output(0,0);
-	farrow_flt.step( X_N1, &farrow_output);
-	if (this->is_strobe)
-	{
-		this->push(farrow_output);
-		this->last_symbol = farrow_output;
-	}
-	this->TED_update(farrow_output);
+	farrow_flt.step( X_N1, Y_N1);
+	*B_N1 = this->is_strobe;
+
+	this->last_symbol = (this->is_strobe == 1)?*Y_N1:this->last_symbol;
+
+	this->TED_update(*Y_N1);
 	this->loop_filter();
 	this->interpolation_control();
 }
 
-template <typename R>
-void Synchronizer_Gardner_fast<R>
+template <typename B, typename R>
+void Synchronizer_Gardner_fast<B,R>
 ::_reset()
 {
 	this->mu = (R)0;
@@ -89,8 +168,8 @@ void Synchronizer_Gardner_fast<R>
 	this->NCO_counter      = (R)0;
 }
 
-template <typename R>
-void Synchronizer_Gardner_fast<R>
+template <typename B, typename R>
+void Synchronizer_Gardner_fast<B,R>
 ::loop_filter()
 {
 	//this->lf_filter_state += this->lf_prev_in;
@@ -103,8 +182,8 @@ void Synchronizer_Gardner_fast<R>
 	this->lf_output = vp + vi;
 }
 
-template <typename R>
-void Synchronizer_Gardner_fast<R>
+template <typename B, typename R>
+void Synchronizer_Gardner_fast<B,R>
 ::interpolation_control()
 {
 	// Interpolation Control
@@ -123,8 +202,8 @@ void Synchronizer_Gardner_fast<R>
 	//this->NCO_counter = (R)((int)this->NCO_counter % 4);
 }
 
-template <typename R>
-void Synchronizer_Gardner_fast<R>
+template <typename B, typename R>
+void Synchronizer_Gardner_fast<B,R>
 ::TED_update(std::complex<R> sample)
 {
 	this->strobe_history = (this->strobe_history << 1) % this->POW_osf + this->is_strobe;
@@ -159,8 +238,8 @@ void Synchronizer_Gardner_fast<R>
 	}
 }
 
-template <typename R>
-void Synchronizer_Gardner_fast<R>
+template <typename B, typename R>
+void Synchronizer_Gardner_fast<B,R>
 ::set_loop_filter_coeffs (const R damping_factor, const R normalized_bandwidth, const R detector_gain)
 {
 	R K0   = -1;
@@ -171,104 +250,7 @@ void Synchronizer_Gardner_fast<R>
 	this->lf_integrator_gain   = (4*theta*theta)/d;
 }
 
-template <typename R>
-void Synchronizer_Gardner_fast<R>
-::_sync_push (const R *X_N1, const int frame_id)
-{
-	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-	std::complex<R> farrow_output(0,0);
-	R* farrow_output_iq = reinterpret_cast<R* >(&farrow_output);
-	R* TED_buffer_iq    = reinterpret_cast<R* >(this->TED_buffer.data());
-
-	for (auto i = 0; i < this->N_in/2 ; i++)
-	{
-		R W = this->lf_output + this->INV_osf;
-		this->is_strobe = (this->NCO_counter < W);
-		this->strobe_history = this->strobe_history << 1;
-		this->strobe_history = this->strobe_history % this->POW_osf;
-		this->strobe_history = this->strobe_history + this->is_strobe;
-
-		if (this->is_strobe ==1 && this->set_bits_nbr[this->strobe_history] == 1)// Update mu if a strobe
-		{
-			this->mu = this->NCO_counter / W;
-			this->farrow_flt.set_mu(this->mu);
-			this->NCO_counter += 1.0f;
-			this->NCO_counter -= W; // Update counter*/
-			farrow_flt.step( &cX_N1[i], &farrow_output);
-			this->push(farrow_output);
-			this->TED_error = TED_buffer_iq[2*this->TED_mid_pos    ] * (TED_buffer_iq[2*this->TED_head_pos    ] - farrow_output_iq[0]) +
-			                  TED_buffer_iq[2*this->TED_mid_pos + 1] * (TED_buffer_iq[2*this->TED_head_pos + 1] - farrow_output_iq[1]);
-
-			this->TED_buffer[this->TED_head_pos]
-			= farrow_output;
-			this->TED_head_pos = (this->TED_head_pos - 1 + this->osf) % this->osf;
-			this->TED_mid_pos  = (this->TED_mid_pos  - 1 + this->osf) % this->osf;
-			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
-			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
-		}
-		else if (this->is_strobe ==1 && this->set_bits_nbr[this->strobe_history] > 1)// Update mu if a strobe
-		{
-			this->mu = this->NCO_counter / W;
-			this->farrow_flt.set_mu(this->mu);
-			this->NCO_counter += 1.0f;
-			this->NCO_counter -= W; // Update counter*/
-			farrow_flt.step( &cX_N1[i], &farrow_output);
-			this->push(farrow_output);
-
-			this->TED_error = 0.0f;
-			this->TED_buffer[ this->TED_head_pos               ] = std::complex<R>(0.0f, 0.0f);
-			this->TED_buffer[(this->TED_head_pos - 1 + this->osf)%this->osf] = farrow_output;
-
-			this->TED_head_pos     = (this->TED_head_pos - 2 + this->osf) % this->osf;
-			this->TED_mid_pos      = (this->TED_mid_pos  - 2 + this->osf) % this->osf;
-			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
-			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
-		}
-		else if (this->is_strobe == 0 && this->set_bits_nbr[this->strobe_history] == 1)// Update mu if a strobe
-		{
-			this->NCO_counter -= W; // Update counter*/
-			farrow_flt.step( &cX_N1[i], &farrow_output);
-			this->TED_error = 0.0f;
-			this->TED_buffer[this->TED_head_pos] = farrow_output;
-			this->TED_head_pos = (this->TED_head_pos - 1 + this->osf) % this->osf;
-			this->TED_mid_pos  = (this->TED_mid_pos  - 1 + this->osf) % this->osf;
-			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
-			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
-		}
-		else if (this->is_strobe == 0 && this->set_bits_nbr[this->strobe_history] > 1)// Update mu if a strobe
-		{
-			this->NCO_counter -= W; // Update counter*/
-			farrow_flt.step( &cX_N1[i], &farrow_output);
-			this->TED_error = 0.0f;
-			this->TED_buffer[ this->TED_head_pos               ] = std::complex<R>(0.0f, 0.0f);
-			this->TED_buffer[(this->TED_head_pos - 1 + this->osf)%this->osf] = farrow_output;
-
-			this->TED_head_pos     = (this->TED_head_pos - 2 + this->osf) % this->osf;
-			this->TED_mid_pos      = (this->TED_mid_pos  - 2 + this->osf) % this->osf;
-			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
-			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
-		}
-		else if (this->is_strobe == 0 && this->set_bits_nbr[this->strobe_history] == 0)// Update mu if a strobe
-		{
-			this->NCO_counter -= W; // Update counter*/
-			farrow_flt.step( &cX_N1[i], &farrow_output);
-			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
-			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
-		}
-	}
-}
-
-template <typename R>
-void Synchronizer_Gardner_fast<R>
-::_sync_pull (R *Y_N2, const int frame_id)
-{
-	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
-
-	for (auto i = 0; i < this->N_out/2; i++)
-		this->pull(&cY_N2[i]);
-}
-
 // ==================================================================================== explicit template instantiation
-template class aff3ct::module::Synchronizer_Gardner_fast<float>;
-template class aff3ct::module::Synchronizer_Gardner_fast<double>;
+template class aff3ct::module::Synchronizer_Gardner_fast<int, float>;
+template class aff3ct::module::Synchronizer_Gardner_fast<int, double>;
 // ==================================================================================== explicit template instantiation
