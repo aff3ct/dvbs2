@@ -64,33 +64,38 @@ void Synchronizer_Gardner_fast<B,R>
 			this->NCO_counter -= W; // Update counter*/
 			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
 
-			this->TED_error = TED_buffer_iq[2*this->TED_mid_pos    ] * (TED_buffer_iq[2*this->TED_head_pos    ] - Y_N1[2*i    ]) +
-			                  TED_buffer_iq[2*this->TED_mid_pos + 1] * (TED_buffer_iq[2*this->TED_head_pos + 1] - Y_N1[2*i + 1]);
+			auto idx_mid  = this->TED_mid_pos  + this->TED_mid_pos;
+			auto idx_head = this->TED_head_pos + this->TED_head_pos;
+			auto idx_curr = i + i;;
+			this->TED_error = TED_buffer_iq[idx_mid    ] * (TED_buffer_iq[idx_head    ] - Y_N1[2*i    ]) +
+			                  TED_buffer_iq[idx_mid + 1] * (TED_buffer_iq[idx_head + 1] - Y_N1[2*i + 1]);
 
 			this->TED_buffer[this->TED_head_pos] = cY_N1[i];
 			this->TED_head_pos = (this->TED_head_pos - 1 + this->osf) % this->osf;
 			this->TED_mid_pos  = (this->TED_mid_pos  - 1 + this->osf) % this->osf;
-			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
-			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+
+			this->lf_prev_in +=                    this->TED_error * this->lf_integrator_gain;
+			this->lf_output   = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
 		}
 		else if (this->is_strobe ==1 && this->set_bits_nbr[this->strobe_history] > 1)// Update mu if a strobe
 		{
-			B_N1[2*i]     = this->is_strobe;
+			B_N1[2*i    ] = this->is_strobe;
 			B_N1[2*i + 1] = this->is_strobe;
 			this->mu = this->NCO_counter / W;
 			this->farrow_flt.set_mu(this->mu);
 			this->NCO_counter += 1.0f;
 			this->NCO_counter -= W; // Update counter*/
+
 			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
 
-			this->TED_error = 0.0f;
 			this->TED_buffer[ this->TED_head_pos               ] = std::complex<R>(0.0f, 0.0f);
 			this->TED_buffer[(this->TED_head_pos - 1 + this->osf)%this->osf] = cY_N1[i];
 
 			this->TED_head_pos     = (this->TED_head_pos - 2 + this->osf) % this->osf;
 			this->TED_mid_pos      = (this->TED_mid_pos  - 2 + this->osf) % this->osf;
-			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
-			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+
+			this->TED_error = 0.0f;
+			this->lf_output = this->lf_prev_in;
 		}
 		else if (this->is_strobe == 0 && this->set_bits_nbr[this->strobe_history] == 1)// Update mu if a strobe
 		{
@@ -98,12 +103,13 @@ void Synchronizer_Gardner_fast<B,R>
 			B_N1[2*i + 1] = this->is_strobe;
 			this->NCO_counter -= W; // Update counter*/
 			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
-			this->TED_error = 0.0f;
+
 			this->TED_buffer[this->TED_head_pos] = cY_N1[i];
 			this->TED_head_pos = (this->TED_head_pos - 1 + this->osf) % this->osf;
 			this->TED_mid_pos  = (this->TED_mid_pos  - 1 + this->osf) % this->osf;
-			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
-			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+
+			this->TED_error = 0.0f;
+			this->lf_output = this->lf_prev_in;
 		}
 		else if (this->is_strobe == 0 && this->set_bits_nbr[this->strobe_history] > 1)// Update mu if a strobe
 		{
@@ -111,13 +117,14 @@ void Synchronizer_Gardner_fast<B,R>
 			B_N1[2*i + 1] = this->is_strobe;
 			this->NCO_counter -= W; // Update counter*/
 			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
-			this->TED_error = 0.0f;
+
 			this->TED_buffer[ this->TED_head_pos               ] = std::complex<R>(0.0f, 0.0f);
 			this->TED_buffer[(this->TED_head_pos - 1 + this->osf)%this->osf] = cY_N1[i];
 			this->TED_head_pos     = (this->TED_head_pos - 2 + this->osf) % this->osf;
 			this->TED_mid_pos      = (this->TED_mid_pos  - 2 + this->osf) % this->osf;
-			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
-			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+
+			this->TED_error = 0.0f;
+			this->lf_output = this->lf_prev_in;
 		}
 		else if (this->is_strobe == 0 && this->set_bits_nbr[this->strobe_history] == 0)// Update mu if a strobe
 		{
@@ -125,8 +132,8 @@ void Synchronizer_Gardner_fast<B,R>
 			B_N1[2*i + 1] = this->is_strobe;
 			this->NCO_counter -= W; // Update counter*/
 			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
-			this->lf_prev_in += this->TED_error * this->lf_integrator_gain;
-			this->lf_output = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+			this->TED_error = 0.0f;
+			this->lf_output = this->lf_prev_in;
 		}
 	}
 
