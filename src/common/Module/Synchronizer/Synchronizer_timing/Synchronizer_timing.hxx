@@ -150,7 +150,7 @@ template <typename B, typename R>
 int Synchronizer_timing<B,R>
 ::get_delay()
 {
-	return this->outbuf_cur_sz;
+	return this->outbuf_cur_sz/2;
 }
 
 template <typename B, typename R>

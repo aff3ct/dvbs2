@@ -143,7 +143,6 @@ void Synchronizer_step_mf_cc<B,R>
 		this->sync_coarse_f ->step (&sync_coarse_f_in,  &sync_coarse_f_out);
 		this->matched_filter->step (&sync_coarse_f_out, &matched_filter_out);
 		this->sync_timing  ->step (&matched_filter_out, &matched_filter_out, &B_N1[2*spl_idx]);
-		B_N1[2*spl_idx + 1] = B_N1[2*spl_idx];
 		Y_N1[2*spl_idx    ] = std::real(matched_filter_out);
 		Y_N1[2*spl_idx + 1] = std::imag(matched_filter_out);
 
