@@ -12,6 +12,7 @@
 
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_aib.hpp"
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_fast.hpp"
+#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_fast_osf2.hpp"
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing_perfect.hpp"
 
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_aib.hpp"
@@ -511,6 +512,7 @@ template <typename B, typename R>
 module::Synchronizer_timing<B,R>* DVBS2O
 ::build_synchronizer_timing(const DVBS2O& params)
 {
+	std::cout << params.pl_frame_size * params.osf << std::endl;
 	module::Synchronizer_timing<B,R>* sync_timing;
 	if (params.stm_type == "NORMAL")
 	{
@@ -522,7 +524,10 @@ module::Synchronizer_timing<B,R>* DVBS2O
 	}
 	else if(params.stm_type == "FAST")
 	{
-		sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast<B,R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+		if (params.osf == 2)
+			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast_osf2<B,R>(2 * params.pl_frame_size * params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+		else
+			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast<B,R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
 	}
 	else
 	{
