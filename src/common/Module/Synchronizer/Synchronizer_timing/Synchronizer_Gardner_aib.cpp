@@ -45,7 +45,8 @@ void Synchronizer_Gardner_aib<B, R>
 	auto cY_N1 = reinterpret_cast<      std::complex<R>* >(Y_N1);
 
 	for (auto i = 0; i < this->N_in/2 ; i++)
-		this->step(&cX_N1[i], &cY_N1[i], &B_N1[i]);
+		this->step(&cX_N1[i], &cY_N1[i], &B_N1[2*i]);
+
 }
 
 
@@ -54,7 +55,8 @@ void Synchronizer_Gardner_aib<B, R>
 ::step(const std::complex<R> *X_N1, std::complex<R>* Y_N1, B* B_N1)
 {
 	farrow_flt.step( X_N1, Y_N1);
-	*B_N1 = this->is_strobe;
+	B_N1[0] = this->is_strobe;
+	B_N1[1] = this->is_strobe;
 
 	this->last_symbol = (this->is_strobe == 1)?*Y_N1:this->last_symbol;
 

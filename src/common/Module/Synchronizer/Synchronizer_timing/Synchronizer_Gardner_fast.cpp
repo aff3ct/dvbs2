@@ -138,7 +138,8 @@ void Synchronizer_Gardner_fast<B,R>
 ::step(const std::complex<R> *X_N1, std::complex<R> *Y_N1, B *B_N1)
 {
 	farrow_flt.step( X_N1, Y_N1);
-	*B_N1 = this->is_strobe;
+	B_N1[0] = this->is_strobe;
+	B_N1[1] = this->is_strobe;
 
 	this->last_symbol = (this->is_strobe == 1)?*Y_N1:this->last_symbol;
 
