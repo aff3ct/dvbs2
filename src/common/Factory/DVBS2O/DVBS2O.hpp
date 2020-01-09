@@ -95,7 +95,9 @@ public:
 	std::string src_type;
 	std::string src_path;
 	std::string sink_path;
+	std::string channel_path;
 	std::string est_type;
+	std::string channel_type;
 	std::string dump_filename;
 
 	factory::Radio p_rad;
