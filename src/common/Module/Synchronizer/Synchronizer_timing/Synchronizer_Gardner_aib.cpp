@@ -25,7 +25,8 @@ lf_integrator_gain   ((R)0),
 lf_prev_in ((R)0),
 lf_filter_state ((R)0),
 lf_output((R)0),
-NCO_counter((R)0)
+NCO_counter((R)0),
+buffer_mtx()
 {
 	this->set_loop_filter_coeffs(damping_factor, normalized_bandwidth, detector_gain);
 	// std::cerr << "# Gardner integrator_gain   = " << this->lf_integrator_gain << std::endl;
@@ -177,8 +178,10 @@ void Synchronizer_Gardner_aib<R>
 {
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
 
+	buffer_mtx.lock();
 	for (auto i = 0; i < this->N_in/2 ; i++)
 		this->step(&cX_N1[i]);
+	buffer_mtx.unlock();
 }
 template <typename R>
 void Synchronizer_Gardner_aib<R>
@@ -186,8 +189,10 @@ void Synchronizer_Gardner_aib<R>
 {
 	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
 
+	buffer_mtx.lock();
 	for (auto i = 0; i < this->N_out/2; i++)
 		this->pull(&cY_N2[i]);
+	buffer_mtx.unlock();
 }
 
 // ==================================================================================== explicit template instantiation
