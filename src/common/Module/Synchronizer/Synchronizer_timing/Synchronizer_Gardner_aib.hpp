@@ -2,6 +2,7 @@
 #define SYNCHRONIZER_GARDNER_AIB_HPP
 
 #include <vector>
+#include <mutex>
 #include <complex>
 
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing.hpp"
@@ -36,6 +37,7 @@ private:
 
 	R NCO_counter;
 
+	std::mutex buffer_mtx;
 	void TED_update(std::complex<R> strobe);
 	void loop_filter();
 	void interpolation_control();
