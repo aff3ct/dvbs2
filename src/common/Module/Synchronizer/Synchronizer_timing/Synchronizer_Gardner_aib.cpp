@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 
+#include "aff3ct.hpp"
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_aib.hpp"
 
 // _USE_MATH_DEFINES does not seem to work on MSVC...
@@ -37,21 +38,6 @@ template <typename R>
 Synchronizer_Gardner_aib<R>
 ::~Synchronizer_Gardner_aib()
 {}
-
-template <typename R>
-void Synchronizer_Gardner_aib<R>
-::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
-{
-	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
-
-	for (auto i = 0; i < this->N_in/2 ; i++)
-		this->step(&cX_N1[i]);
-
-	for (auto i = 0; i < this->N_out/2; i++)
-		this->pull(&cY_N2[i]);
-}
-
 
 template <typename R>
 void Synchronizer_Gardner_aib<R>
@@ -193,6 +179,23 @@ void Synchronizer_Gardner_aib<R>
 	for (auto i = 0; i < this->N_out/2; i++)
 		this->pull(&cY_N2[i]);
 	buffer_mtx.unlock();
+}
+
+template <typename R>
+void Synchronizer_Gardner_aib<R>
+::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
+{
+	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
+	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
+
+	for (auto i = 0; i < this->N_in/2 ; i++)
+		this->step(&cX_N1[i]);
+
+	if (!this->can_pull())
+		throw tools::processing_aborted(__FILE__, __LINE__, __func__);
+
+	for (auto i = 0; i < this->N_out/2; i++)
+		this->pull(&cY_N2[i]);
 }
 
 // ==================================================================================== explicit template instantiation

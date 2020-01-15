@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 
 	tools::Chain chain_parallel((*adaptor_1_to_n)[module::adp::tsk::pull_n],
 	                            (*adaptor_n_to_1)[module::adp::tsk::put_n ],
-	                            16);
+	                            4);
 	// DEBUG
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
@@ -150,6 +150,8 @@ int main(int argc, char** argv)
 	sync_lr      ->reset();
 	sync_fine_pf ->reset();
 
+	std::cout << "# LEARNING PHASE" << std::endl;
+	std::cout << "# --------------" << std::endl;
 	char buf[256];
 	char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
 	char heads[]  =      "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
@@ -157,7 +159,7 @@ int main(int argc, char** argv)
 	std::cerr <<head_lines <<"\n" << heads <<"\n" <<head_lines <<"\n";
 	std::cerr.flush();
 
-	int n_phase   = 1;
+	int n_phase = 1;
 	for (int m = 0; m < 500; m += params.n_frames)
 	{
 		if (n_phase < 3)
@@ -171,17 +173,20 @@ int main(int argc, char** argv)
 		}
 		else // n_phase == 3
 		{
-			(*radio        )[rad::tsk::receive    ].exec();
-			(*front_agc    )[mlt::tsk::imultiply  ].exec();
-			(*sync_coarse_f)[sfc::tsk::synchronize].exec();
-			(*matched_flt  )[flt::tsk::filter     ].exec();
-			(*sync_timing  )[stm::tsk::sync_push  ].exec();
-			(*sync_timing  )[stm::tsk::sync_pull  ].exec();
-			(*mult_agc     )[mlt::tsk::imultiply  ].exec();
-			(*sync_frame   )[sfm::tsk::synchronize].exec();
-			(*pl_scrambler )[scr::tsk::descramble ].exec();
-			(*sync_lr      )[sff::tsk::synchronize].exec();
-			(*sync_fine_pf )[sff::tsk::synchronize].exec();
+			try
+			{
+				(*radio        )[rad::tsk::receive    ].exec();
+				(*front_agc    )[mlt::tsk::imultiply  ].exec();
+				(*sync_coarse_f)[sfc::tsk::synchronize].exec();
+				(*matched_flt  )[flt::tsk::filter     ].exec();
+				(*sync_timing  )[stm::tsk::synchronize].exec(); // can raise the 'tools::processing_aborted' exception
+				(*mult_agc     )[mlt::tsk::imultiply  ].exec();
+				(*sync_frame   )[sfm::tsk::synchronize].exec();
+				(*pl_scrambler )[scr::tsk::descramble ].exec();
+				(*sync_lr      )[sff::tsk::synchronize].exec();
+				(*sync_fine_pf )[sff::tsk::synchronize].exec();
+			}
+			catch (tools::processing_aborted const&) {}
 		}
 
 		sprintf(buf, pattern, n_phase, m+1,
@@ -208,8 +213,8 @@ int main(int argc, char** argv)
 			std::cerr << buf << std::endl;
 			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
 			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
-			(*sync_timing  )[stm::sck::sync_push  ::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
-			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::sync_pull  ::Y_N2]);
+			(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N2]);
 			(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 		}
 	}
@@ -235,23 +240,37 @@ int main(int argc, char** argv)
 	if (params.ter_freq != std::chrono::nanoseconds(0))
 		terminal->start_temp_report(params.ter_freq);
 
+	std::cout << "#"                    << std::endl;
+	std::cout << "# TRANSMISSION PHASE" << std::endl;
+	std::cout << "# ------------------" << std::endl;
+
 	// display the legend in the terminal
 	terminal->legend();
 
 	std::thread thread1([&]()
 	{
-		while (!terminal->is_interrupt())
+		try
 		{
-			while (!sync_timing->can_pull())
+			while (!terminal->is_interrupt())
 			{
-				(*source       )[src::tsk::generate   ].exec(); // sequential
-				(*radio        )[rad::tsk::receive    ].exec(); // sequential
-				(*front_agc    )[mlt::tsk::imultiply  ].exec(); // parallel
-				(*sync_coarse_f)[sfc::tsk::synchronize].exec(); // sequential
-				(*matched_flt  )[flt::tsk::filter     ].exec(); // sequential
-				(*sync_timing  )[stm::tsk::sync_push  ].exec(); // sequential
+				try
+				{
+					(*source        )[src::tsk::generate   ].exec(); // sequential
+					(*radio         )[rad::tsk::receive    ].exec(); // sequential
+					(*front_agc     )[mlt::tsk::imultiply  ].exec(); // parallel
+					(*sync_coarse_f )[sfc::tsk::synchronize].exec(); // sequential
+					(*matched_flt   )[flt::tsk::filter     ].exec(); // sequential
+					(*sync_timing   )[stm::tsk::synchronize].exec(); // sequential, can raise the 'tools::processing_aborted' exception
+					(*mult_agc      )[mlt::tsk::imultiply  ].exec(); // parallel
+					(*sync_frame    )[sfm::tsk::synchronize].exec(); // sequential
+					(*pl_scrambler  )[scr::tsk::descramble ].exec(); // parallel
+					(*sync_lr       )[sff::tsk::synchronize].exec(); // sequential
+					(*adaptor_1_to_n)[adp::tsk::put_1      ].exec(); // sequential
+				}
+				catch (tools::processing_aborted const&) {}
 			}
 		}
+		catch (tools::waiting_canceled const&) {}
 
 		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
 			m->cancel_waiting();
@@ -263,37 +282,14 @@ int main(int argc, char** argv)
 		{
 			while (!terminal->is_interrupt())
 			{
-				while (sync_timing->can_pull())
-				{
-					(*sync_timing   )[stm::tsk::sync_pull  ].exec(); // sequential
-					(*mult_agc      )[mlt::tsk::imultiply  ].exec(); // parallel
-					(*sync_frame    )[sfm::tsk::synchronize].exec(); // sequential
-					(*pl_scrambler  )[scr::tsk::descramble ].exec(); // parallel
-					(*sync_lr       )[sff::tsk::synchronize].exec(); // sequential
-					(*sync_fine_pf  )[sff::tsk::synchronize].exec(); // parallel
-					(*adaptor_1_to_n)[adp::tsk::put_1      ].exec(); // sequential
-				}
-			}
-		}
-		catch(tools::waiting_canceled const&) {}
-		catch(std::exception const& e) { throw e; }
-
-		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
-			m->cancel_waiting();
-	});
-
-	std::thread thread3([&]()
-	{
-		try
-		{
-			while (!terminal->is_interrupt())
-			{
 				(*adaptor_n_to_1)[adp::tsk::pull_1].exec(); // sequential
 				(*sink          )[snk::tsk::send  ].exec(); // sequential
 			}
 		}
-		catch(tools::waiting_canceled const&) {}
-		catch(std::exception const& e) { throw e; }
+		catch (tools::waiting_canceled const&) {}
+
+		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
+			m->cancel_waiting();
 	});
 
 	chain_parallel.exec([&monitor_red, &terminal]() // parallel
@@ -302,9 +298,11 @@ int main(int argc, char** argv)
 		return terminal->is_interrupt();
 	});
 
+	for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
+		m->cancel_waiting();
+
 	thread1.join();
 	thread2.join();
-	thread3.join();
 
 	// final reduction
 	monitor_red->reduce();

@@ -48,19 +48,13 @@ outbuf_cur_sz(0)
 		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	auto &p1 = this->create_task("sync_push");
+	auto &p1 = this->create_task("synchronize");
 	auto p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", this->N_in );
-	this->create_codelet(p1, [p1s_X_N1](Module &m, Task &t) -> int
+	auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N_out);
+	this->create_codelet(p1, [p1s_X_N1, p1s_Y_N2](Module &m, Task &t) -> int
 	{
-		static_cast<Synchronizer_timing<R>&>(m).sync_push(static_cast<R*>(t[p1s_X_N1].get_dataptr()));
-		return 0;
-	});
-
-	auto &p2 = this->create_task("sync_pull");
-	auto p2s_Y_N2 = this->template create_socket_out <R>(p2, "Y_N2", this->N_out );
-	this->create_codelet(p2, [p2s_Y_N2](Module &m, Task &t) -> int
-	{
-		static_cast<Synchronizer_timing<R>&>(m).sync_pull(static_cast<R*>(t[p2s_Y_N2].get_dataptr()));
+		static_cast<Synchronizer_timing<R>&>(m).synchronize(static_cast<R*>(t[p1s_X_N1].get_dataptr()),
+		                                                    static_cast<R*>(t[p1s_Y_N2].get_dataptr()));
 		return 0;
 	});
 }
@@ -184,7 +178,7 @@ bool Synchronizer_timing<R>
 template <typename R>
 template <class AR>
 void Synchronizer_timing<R>::
-sync_push(const std::vector<R,AR>& X_N1, const int frame_id)
+synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_id)
 {
 	if (this->N_in * this->n_frames != (int)X_N1.size())
 	{
@@ -194,32 +188,6 @@ sync_push(const std::vector<R,AR>& X_N1, const int frame_id)
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->sync_push(X_N1.data(), frame_id);
-}
-
-template <typename R>
-void Synchronizer_timing<R>::
-sync_push(const R *X_N1, const int frame_id)
-{
-	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
-	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
-
-	for (auto f = f_start; f < f_stop; f++)
-		this->_sync_push(X_N1 + f * this->N_in,f);
-}
-
-template <typename R>
-void Synchronizer_timing<R>::
-_sync_push(const R *X_N1, const int frame_id)
-{
-	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
-}
-
-template <typename R>
-template <class AR>
-void Synchronizer_timing<R>::
-sync_pull(std::vector<R,AR>& Y_N2, const int frame_id)
-{
 	if (this->N_out * this->n_frames != (int)Y_N2.size())
 	{
 		std::stringstream message;
@@ -228,23 +196,25 @@ sync_pull(std::vector<R,AR>& Y_N2, const int frame_id)
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->sync_pull(Y_N2.data(), frame_id);
+	this->synchronize(X_N1.data(), Y_N2.data(), frame_id);
 }
 
 template <typename R>
 void Synchronizer_timing<R>::
-sync_pull(R *Y_N2, const int frame_id)
+synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_sync_pull(Y_N2 + f * this->N_out,f);
+		this->_synchronize(X_N1 + f * this->N_in,
+		                   Y_N2 + f * this->N_out,
+		                   f);
 }
 
 template <typename R>
 void Synchronizer_timing<R>::
-_sync_pull(R *Y_N2, const int frame_id)
+_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }

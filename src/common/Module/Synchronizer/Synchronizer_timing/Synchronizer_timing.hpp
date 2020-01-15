@@ -11,12 +11,11 @@ namespace module
 {
 	namespace stm
 	{
-		enum class tsk : uint8_t {sync_push, sync_pull, SIZE };
+		enum class tsk : uint8_t {synchronize, SIZE };
 
 		namespace sck
 		{
-			enum class sync_push   : uint8_t { X_N1,       SIZE };
-			enum class sync_pull   : uint8_t { Y_N2,       SIZE };
+			enum class synchronize : uint8_t { X_N1, Y_N2, SIZE };
 		}
 	}
 
@@ -33,9 +32,8 @@ template <typename R = float>
 class Synchronizer_timing : public Module
 {
 public:
-	inline Task&   operator[](const stm::tsk            t) { return Module::operator[]((int)t);                           }
-	inline Socket& operator[](const stm::sck::sync_push s) { return Module::operator[]((int)stm::tsk::sync_push)[(int)s]; }
-	inline Socket& operator[](const stm::sck::sync_pull s) { return Module::operator[]((int)stm::tsk::sync_pull)[(int)s]; }
+	inline Task&   operator[](const stm::tsk              t) { return Module::operator[]((int)t);                             }
+	inline Socket& operator[](const stm::sck::synchronize s) { return Module::operator[]((int)stm::tsk::synchronize)[(int)s]; }
 
 	Synchronizer_timing (const int N, const int osf, const int n_frames = 1);
 	virtual ~Synchronizer_timing() = default;
@@ -56,20 +54,6 @@ public:
 
 	int get_N_out() const;
 
-	void pull(std::complex<R> *strobe);
-
-	/*!
-	 * \brief Synchronizes a vector of samples.
-	 *
-	 * By default this method does nothing.
-	 *
-	 * \param X_N1: a vector of samples.
-	 */
-	template <class AR = std::allocator<R>>
-	void sync_push(const std::vector<R,AR>& X_N1, const int frame_id = -1);
-
-	virtual void sync_push(const R *X_N1, const int frame_id = -1);
-
 	/*!
 	 * \brief Synchronizes a vector of samples.
 	 *
@@ -79,10 +63,11 @@ public:
 	 * \param Y_N2: a synchronized vector.
 	 */
 	template <class AR = std::allocator<R>>
-	void sync_pull(std::vector<R,AR>& Y_N2, const int frame_id = -1);
+	void synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_id = -1);
 
-	virtual void sync_pull(R *Y_N2, const int frame_id = -1);
+	virtual void synchronize(const R *X_N1, R *Y_N2, const int frame_id = -1);
 
+	void pull(std::complex<R> *strobe);
 
 protected:
 
@@ -106,12 +91,10 @@ protected:
 	int outbuf_max_sz;
 	int outbuf_cur_sz;
 
-	virtual void _sync_push  (const R *X_N1,           const int frame_id);
-	virtual void _sync_pull  (                R *Y_N2, const int frame_id);
-	virtual void _reset      (                                           ) = 0;
+	virtual void _synchronize(const R *X_N1, R *Y_N2, const int frame_id);
+	virtual void _reset      (                                          ) = 0;
 
 	void push(const std::complex<R> strobe);
-
 };
 
 }
