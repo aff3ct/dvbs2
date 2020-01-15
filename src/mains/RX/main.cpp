@@ -4,6 +4,10 @@
 
 using namespace aff3ct;
 
+namespace aff3ct { namespace tools {
+using Monitor_BFER_reduction = Monitor_reduction<module::Monitor_BFER<>>;
+} }
+
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
@@ -17,6 +21,7 @@ int main(int argc, char** argv)
 	std::vector<std::unique_ptr<tools::Reporter>> reporters;
 	std::unique_ptr<tools::Terminal> terminal;
 	tools::Sigma<> noise;
+	std::unique_ptr<tools::Monitor_BFER_reduction> monitor_red;
 
 	// the list of the allocated modules for the simulation
 	std::vector<const module::Module*> modules;
@@ -55,43 +60,42 @@ int main(int argc, char** argv)
 
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
+	std::unique_ptr<module::Adaptor_1_to_n> adaptor_1_to_n(new module::Adaptor_1_to_n(2 * params.pl_frame_size,
+	                                                                                  typeid(float),
+	                                                                                  16,
+	                                                                                  false,
+	                                                                                  params.n_frames));
+	std::unique_ptr<module::Adaptor_n_to_1> adaptor_n_to_1(new module::Adaptor_n_to_1(params.K_bch,
+	                                                                                  typeid(int),
+	                                                                                  16,
+	                                                                                  false,
+	                                                                                  params.n_frames));
+
 	// manage noise
-	LDPC_cdc ->set_noise(noise);
 	modem    ->set_noise(noise);
 	estimator->set_noise(noise);
-	auto cdc_ptr = LDPC_cdc.get();
-	auto mdm_ptr = modem   .get();
-	noise.record_callback_update([cdc_ptr](){ cdc_ptr->notify_noise_update(); });
+	auto mdm_ptr = modem.get();
 	noise.record_callback_update([mdm_ptr](){ mdm_ptr->notify_noise_update(); });
 
-	LDPC_decoder ->set_custom_name("LDPC Decoder");
-	BCH_decoder  ->set_custom_name("BCH Decoder" );
-	sync_lr      ->set_custom_name("L&R F Syn"   );
-	sync_fine_pf ->set_custom_name("Fine P/F Syn");
-	sync_timing  ->set_custom_name("Gardner Syn" );
-	sync_frame   ->set_custom_name("Frame Syn"   );
-	matched_flt  ->set_custom_name("Matched Flt" );
-	sync_coarse_f->set_custom_name("Coarse_Synch");
-	sync_step_mf ->set_custom_name("MF_Synch"    );
-
-	// allocate reporters to display results in the terminal
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>( noise  ))); // report the noise values (Es/N0 and Eb/N0)
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor))); // report the bit/frame error rates
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor))); // report the simulation throughputs
-
-	// allocate a terminal that will display the collected data from the reporters
-	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
-
-	// display the legend in the terminal
-	terminal->legend();
+	LDPC_decoder  ->set_custom_name("LDPC Decoder");
+	BCH_decoder   ->set_custom_name("BCH Decoder" );
+	sync_lr       ->set_custom_name("L&R F Syn"   );
+	sync_fine_pf  ->set_custom_name("Fine P/F Syn");
+	sync_timing   ->set_custom_name("Gardner Syn" );
+	sync_frame    ->set_custom_name("Frame Syn"   );
+	matched_flt   ->set_custom_name("Matched Flt" );
+	sync_coarse_f ->set_custom_name("Coarse_Synch");
+	sync_step_mf  ->set_custom_name("MF_Synch"    );
+	adaptor_1_to_n->set_custom_name("Adp_1_to_n"  );
+	adaptor_n_to_1->set_custom_name("Adp_n_to_1"  );
 
 	// fill the list of modules
-	modules = { bb_scrambler.get(), BCH_decoder .get(), source       .get(), LDPC_decoder       ,
-	            itl_rx      .get(), modem       .get(), framer       .get(), pl_scrambler .get(),
-	            monitor     .get(), freq_shift  .get(), sync_lr      .get(), sync_fine_pf .get(),
-	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt  .get(),
-	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink         .get(),
-	            estimator   .get()                                                                };
+	modules = { bb_scrambler.get(), BCH_decoder   .get(), source        .get(), LDPC_decoder       ,
+	            itl_rx      .get(), modem         .get(), framer        .get(), pl_scrambler .get(),
+	            monitor     .get(), freq_shift    .get(), sync_lr       .get(), sync_fine_pf .get(),
+	            radio       .get(), sync_frame    .get(), sync_coarse_f .get(), matched_flt  .get(),
+	            sync_timing .get(), sync_step_mf  .get(), mult_agc      .get(), sink         .get(),
+	            estimator   .get(), adaptor_1_to_n.get(), adaptor_n_to_1.get()                       };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -107,27 +111,47 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
-	(*sync_lr     )[sff::sck::synchronize  ::X_N1 ].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2 ]);
-	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1 ].bind((*sync_lr     )[sff::sck::synchronize  ::Y_N2 ]);
-	(*framer      )[frm::sck::remove_plh   ::Y_N1 ].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2 ]);
-	(*estimator   )[est::sck::estimate     ::X_N  ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2 ]);
-	(*modem       )[mdm::sck::demodulate_wg::H_N  ].bind((*estimator   )[est::sck::estimate     ::H_N  ]);
-	(*modem       )[mdm::sck::demodulate_wg::Y_N1 ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2 ]);
-	(*itl_rx      )[itl::sck::deinterleave ::itl  ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2 ]);
-	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N  ].bind((*itl_rx      )[itl::sck::deinterleave ::nat  ]);
-	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N  ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K  ]);
-	(*bb_scrambler)[scr::sck::descramble   ::Y_N1 ].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K  ]);
-	(*sync_step_mf)[smf::sck::synchronize  ::X_N1 ].bind((*radio       )[rad::sck::receive      ::Y_N1 ]);
-	(*sync_step_mf)[smf::sck::synchronize  ::delay].bind((*sync_frame  )[sfm::sck::synchronize  ::delay]);
-	(*mult_agc    )[mlt::sck::imultiply    ::X_N  ].bind((*sync_step_mf)[smf::sck::synchronize  ::Y_N2 ]);
-	(*sync_frame  )[sfm::sck::synchronize  ::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N  ]);
-	(*pl_scrambler)[scr::sck::descramble   ::Y_N1 ].bind((*sync_frame  )[sfm::sck::synchronize  ::Y_N2 ]);
-	(*monitor     )[mnt::sck::check_errors ::U    ].bind((*source      )[src::sck::generate     ::U_K  ]);
-	(*monitor     )[mnt::sck::check_errors ::V    ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2 ]);
-	(*sink        )[snk::sck::send         ::V    ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2 ]);
+	(*sync_lr       )[sff::sck::synchronize  ::X_N1 ].bind((*pl_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
+	(*adaptor_1_to_n)[adp::sck::put_1        ::in   ].bind((*sync_lr       )[sff::sck::synchronize  ::Y_N2 ]);
+	(*sync_fine_pf  )[sff::sck::synchronize  ::X_N1 ].bind((*adaptor_1_to_n)[adp::sck::pull_n       ::out  ]);
+	(*framer        )[frm::sck::remove_plh   ::Y_N1 ].bind((*sync_fine_pf  )[sff::sck::synchronize  ::Y_N2 ]);
+	(*estimator     )[est::sck::estimate     ::X_N  ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2 ]);
+	(*modem         )[mdm::sck::demodulate_wg::H_N  ].bind((*estimator     )[est::sck::estimate     ::H_N  ]);
+	(*modem         )[mdm::sck::demodulate_wg::Y_N1 ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2 ]);
+	(*itl_rx        )[itl::sck::deinterleave ::itl  ].bind((*modem         )[mdm::sck::demodulate_wg::Y_N2 ]);
+	(*LDPC_decoder  )[dec::sck::decode_siho  ::Y_N  ].bind((*itl_rx        )[itl::sck::deinterleave ::nat  ]);
+	(*BCH_decoder   )[dec::sck::decode_hiho  ::Y_N  ].bind((*LDPC_decoder  )[dec::sck::decode_siho  ::V_K  ]);
+	(*bb_scrambler  )[scr::sck::descramble   ::Y_N1 ].bind((*BCH_decoder   )[dec::sck::decode_hiho  ::V_K  ]);
+	(*sync_step_mf  )[smf::sck::synchronize  ::X_N1 ].bind((*radio         )[rad::sck::receive      ::Y_N1 ]);
+	(*sync_step_mf  )[smf::sck::synchronize  ::delay].bind((*sync_frame    )[sfm::sck::synchronize  ::delay]);
+	(*mult_agc      )[mlt::sck::imultiply    ::X_N  ].bind((*sync_step_mf  )[smf::sck::synchronize  ::Y_N2 ]);
+	(*sync_frame    )[sfm::sck::synchronize  ::X_N1 ].bind((*mult_agc      )[mlt::sck::imultiply    ::Z_N  ]);
+	(*pl_scrambler  )[scr::sck::descramble   ::Y_N1 ].bind((*sync_frame    )[sfm::sck::synchronize  ::Y_N2 ]);
+	(*monitor       )[mnt::sck::check_errors ::U    ].bind((*source        )[src::sck::generate     ::U_K  ]);
+	(*monitor       )[mnt::sck::check_errors ::V    ].bind((*bb_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
+	(*adaptor_n_to_1)[adp::sck::put_n        ::in   ].bind((*bb_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
+	(*sink          )[snk::sck::send         ::V    ].bind((*adaptor_n_to_1)[adp::sck::pull_1       ::out  ]);
 
-	// reset the memory of the decoder after the end of each communication
-	monitor->record_callback_check([LDPC_decoder]{LDPC_decoder->reset();});
+	tools::Chain chain_parallel((*adaptor_1_to_n)[module::adp::tsk::pull_n],
+	                            (*adaptor_n_to_1)[module::adp::tsk::put_n ],
+	                            16);
+
+	// allocate a common monitor module to reduce all the monitors
+	monitor_red = std::unique_ptr<tools::Monitor_BFER_reduction>(new tools::Monitor_BFER_reduction(
+		chain_parallel.get_modules<module::Monitor_BFER<>>()));
+	monitor_red->set_reduce_frequency(std::chrono::milliseconds(500));
+
+	// allocate reporters to display results in the terminal
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>( noise      ))); // report the noise values (Es/N0 and Eb/N0)
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor_red))); // report the bit/frame error rates
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor_red))); // report the simulation throughputs
+
+	// allocate a terminal that will display the collected data from the reporters
+	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
+
+	// DEBUG
+	std::ofstream f("chain_parallel.dot");
+	chain_parallel.export_dot(f);
 
 	freq_shift   ->reset();
 	sync_coarse_f->reset();
@@ -201,7 +225,7 @@ int main(int argc, char** argv)
 	}
 
 	std::cerr << buf << "\n" << head_lines << "\n";
-	monitor ->reset();
+	monitor_red->reset();
 	terminal->reset();
 	if (params.ter_freq != std::chrono::nanoseconds(0))
 		terminal->start_temp_report(params.ter_freq);
@@ -210,36 +234,81 @@ int main(int argc, char** argv)
 		for (auto& ta : m->tasks)
 			ta->reset();
 
-	// tasks execution
-	while (!terminal->is_interrupt())
+	// display the legend in the terminal
+	terminal->legend();
+
+	std::thread thread1([&]()
 	{
-		while (!sync_timing->can_pull())
+		while (!terminal->is_interrupt())
 		{
-			(*source       )[src::tsk::generate     ].exec();
-			(*radio        )[rad::tsk::receive      ].exec();
-			(*sync_coarse_f)[sfc::tsk::synchronize  ].exec();
-			(*matched_flt  )[flt::tsk::filter       ].exec();
-			(*sync_timing  )[stm::tsk::sync_push    ].exec();
+			while (!sync_timing->can_pull())
+			{
+				(*source       )[src::tsk::generate   ].exec(); // sequential
+				(*radio        )[rad::tsk::receive    ].exec(); // sequential
+				(*sync_coarse_f)[sfc::tsk::synchronize].exec(); // sequential
+				(*matched_flt  )[flt::tsk::filter     ].exec(); // sequential
+				(*sync_timing  )[stm::tsk::sync_push  ].exec(); // sequential
+			}
 		}
-		while (sync_timing->can_pull())
+
+		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
+			m->cancel_waiting();
+	});
+
+	std::thread thread2([&]()
+	{
+		try
 		{
-			(*sync_timing  )[stm::tsk::sync_pull    ].exec();
-			(*mult_agc     )[mlt::tsk::imultiply    ].exec();
-			(*sync_frame   )[sfm::tsk::synchronize  ].exec();
-			(*pl_scrambler )[scr::tsk::descramble   ].exec();
-			(*sync_lr      )[sff::tsk::synchronize  ].exec();
-			(*sync_fine_pf )[sff::tsk::synchronize  ].exec();
-			(*framer       )[frm::tsk::remove_plh   ].exec();
-			(*estimator    )[est::tsk::estimate     ].exec();
-			(*modem        )[mdm::tsk::demodulate_wg].exec();
-			(*itl_rx       )[itl::tsk::deinterleave ].exec();
-			(*LDPC_decoder )[dec::tsk::decode_siho  ].exec();
-			(*BCH_decoder  )[dec::tsk::decode_hiho  ].exec();
-			(*bb_scrambler )[scr::tsk::descramble   ].exec();
-			(*monitor      )[mnt::tsk::check_errors ].exec();
-			(*sink         )[snk::tsk::send         ].exec();
+			while (!terminal->is_interrupt())
+			{
+				while (sync_timing->can_pull())
+				{
+					(*sync_timing   )[stm::tsk::sync_pull  ].exec(); // sequential
+					(*mult_agc      )[mlt::tsk::imultiply  ].exec(); // parallel
+					(*sync_frame    )[sfm::tsk::synchronize].exec(); // sequential
+					(*pl_scrambler  )[scr::tsk::descramble ].exec(); // parallel
+					(*sync_lr       )[sff::tsk::synchronize].exec(); // sequential
+					(*sync_fine_pf  )[sff::tsk::synchronize].exec(); // parallel
+					(*adaptor_1_to_n)[adp::tsk::put_1      ].exec(); // sequential
+				}
+			}
 		}
-	}
+		catch(tools::waiting_canceled const&) {}
+		catch(std::exception const& e) { throw e; }
+
+		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
+			m->cancel_waiting();
+	});
+
+	std::thread thread3([&]()
+	{
+		try
+		{
+			while (!terminal->is_interrupt())
+			{
+				(*adaptor_n_to_1)[adp::tsk::pull_1].exec(); // sequential
+				(*sink          )[snk::tsk::send  ].exec(); // sequential
+			}
+		}
+		catch(tools::waiting_canceled const&) {}
+		catch(std::exception const& e) { throw e; }
+	});
+
+	chain_parallel.exec([&monitor_red, &terminal]() // parallel
+	{
+		monitor_red->is_done();
+		return terminal->is_interrupt();
+	});
+
+	thread1.join();
+	thread2.join();
+	thread3.join();
+
+	// final reduction
+	monitor_red->reduce();
+
+	// display the performance (BER and FER) in the terminal
+	terminal->final_report();
 
 	if (params.stats)
 	{
@@ -251,9 +320,6 @@ int main(int argc, char** argv)
 		const auto ordered = true;
 		tools::Stats::show(modules_stats, ordered);
 	}
-
-	// display the performance (BER and FER) in the terminal
-	terminal->final_report();
 
 	std::cout << "#" << std::endl;
 	std::cout << "# End of the simulation" << std::endl;
