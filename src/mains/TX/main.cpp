@@ -116,8 +116,7 @@ int main(int argc, char** argv)
 				(*adaptor_1_to_n)[adp::tsk::put_1   ].exec(); // sequential
 			}
 		}
-		catch(tools::waiting_canceled const&) {}
-		catch(std::exception const& e) { throw e; }
+		catch (tools::waiting_canceled const&) {}
 
 		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
 			m->cancel_waiting();
@@ -134,8 +133,7 @@ int main(int argc, char** argv)
 				(*radio         )[rad::tsk::send  ].exec(); // sequential
 			}
 		}
-		catch(tools::waiting_canceled const&) {}
-		catch(std::exception const& e) { throw e; }
+		catch (tools::waiting_canceled const&) {}
 
 		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
 			m->cancel_waiting();
@@ -145,6 +143,9 @@ int main(int argc, char** argv)
 	{
 		return terminal->is_interrupt();
 	});
+
+	for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
+		m->cancel_waiting();
 
 	thread1.join();
 	thread2.join();
