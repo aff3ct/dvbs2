@@ -49,12 +49,26 @@ int main(int argc, char** argv)
 
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 
+	std::unique_ptr<module::Adaptor_1_to_n> adaptor_1_to_n(new module::Adaptor_1_to_n(params.K_bch,
+	                                                                                  typeid(int),
+	                                                                                  16,
+	                                                                                  false,
+	                                                                                  params.n_frames));
+
+	std::unique_ptr<module::Adaptor_n_to_1> adaptor_n_to_1(new module::Adaptor_n_to_1(2 * params.pl_frame_size,
+	                                                                                  typeid(float),
+	                                                                                  16,
+	                                                                                  false,
+	                                                                                  params.n_frames));
+	adaptor_1_to_n->set_custom_name("Adp_1_to_n");
+	adaptor_n_to_1->set_custom_name("Adp_n_to_1");
+
 	// the list of the allocated modules for the simulation
 	std::vector<const module::Module*> modules;
 
-	modules = { radio       .get(), source        .get(), bb_scrambler.get(), BCH_encoder.get(),
-	            LDPC_encoder      , itl           .get(), modem       .get(), framer     .get(),
-	            pl_scrambler.get(), shaping_filter.get()                                         };
+	modules = { radio       .get(), source        .get(), bb_scrambler  .get(), BCH_encoder   .get(),
+	            LDPC_encoder      , itl           .get(), modem         .get(), framer        .get(),
+	            pl_scrambler.get(), shaping_filter.get(), adaptor_1_to_n.get(), adaptor_n_to_1.get() };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -70,37 +84,70 @@ int main(int argc, char** argv)
 			ta->set_fast(false);
 		}
 
-
 	using namespace module;
 
-	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*source      )[src::sck::generate  ::U_K ]);
-	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler)[scr::sck::scramble  ::X_N2]);
-	(*LDPC_encoder  )[enc::sck::encode    ::U_K ].bind((*BCH_encoder )[enc::sck::encode    ::X_N ]);
-	(*itl           )[itl::sck::interleave::nat ].bind((*LDPC_encoder)[enc::sck::encode    ::X_N ]);
-	(*modem         )[mdm::sck::modulate  ::X_N1].bind((*itl         )[itl::sck::interleave::itl ]);
-	(*framer        )[frm::sck::generate  ::Y_N1].bind((*modem       )[mdm::sck::modulate  ::X_N2]);
-	(*pl_scrambler  )[scr::sck::scramble  ::X_N1].bind((*framer      )[frm::sck::generate  ::Y_N2]);
-	(*shaping_filter)[flt::sck::filter    ::X_N1].bind(shaping_in                                 );
-	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter  ::Y_N2]);
+	(*adaptor_1_to_n)[adp::sck::put_1     ::in  ].bind((*source        )[src::sck::generate  ::U_K ]);
+	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*adaptor_1_to_n)[adp::sck::pull_n    ::out ]);
+	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble  ::X_N2]);
+	(*LDPC_encoder  )[enc::sck::encode    ::U_K ].bind((*BCH_encoder   )[enc::sck::encode    ::X_N ]);
+	(*itl           )[itl::sck::interleave::nat ].bind((*LDPC_encoder  )[enc::sck::encode    ::X_N ]);
+	(*modem         )[mdm::sck::modulate  ::X_N1].bind((*itl           )[itl::sck::interleave::itl ]);
+	(*framer        )[frm::sck::generate  ::Y_N1].bind((*modem         )[mdm::sck::modulate  ::X_N2]);
+	(*pl_scrambler  )[scr::sck::scramble  ::X_N1].bind((*framer        )[frm::sck::generate  ::Y_N2]);
+	(*adaptor_n_to_1)[adp::sck::put_n     ::in  ].bind((*pl_scrambler  )[scr::sck::scramble  ::X_N2]);
+	(*shaping_filter)[flt::sck::filter    ::X_N1].bind((*adaptor_n_to_1)[adp::sck::pull_1    ::out ]);
+	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
 
-	while (!terminal->is_interrupt())
+	tools::Chain chain_parallel((*adaptor_1_to_n)[module::adp::tsk::pull_n],
+	                            (*adaptor_n_to_1)[module::adp::tsk::put_n ],
+	                            8);
+
+	// DEBUG
+	std::ofstream f("chain_parallel.dot");
+	chain_parallel.export_dot(f);
+
+	std::thread thread1([&]()
 	{
-		(*source)      [src::tsk::generate  ].exec();
-		(*bb_scrambler)[scr::tsk::scramble  ].exec();
-		(*BCH_encoder )[enc::tsk::encode    ].exec();
-		(*LDPC_encoder)[enc::tsk::encode    ].exec();
-		(*itl         )[itl::tsk::interleave].exec();
-		(*modem       )[mdm::tsk::modulate  ].exec();
-		(*framer      )[frm::tsk::generate  ].exec();
-		(*pl_scrambler)[scr::tsk::scramble  ].exec();
+		try
+		{
+			while (!terminal->is_interrupt())
+			{
+				(*source        )[src::tsk::generate].exec(); // sequential
+				(*adaptor_1_to_n)[adp::tsk::put_1   ].exec(); // sequential
+			}
+		}
+		catch(tools::waiting_canceled const&) {}
+		catch(std::exception const& e) { throw e; }
 
-		std::copy((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr()),
-		          ((float*)((*pl_scrambler)[scr::sck::scramble::X_N2].get_dataptr())) + (2 * params.pl_frame_size),
-		          shaping_in.data());
+		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
+			m->cancel_waiting();
+	});
 
-		(*shaping_filter)[flt::tsk::filter  ].exec();
-		(*radio         )[rad::tsk::send    ].exec();
-	}
+	std::thread thread2([&]()
+	{
+		try
+		{
+			while (!terminal->is_interrupt())
+			{
+				(*adaptor_n_to_1)[adp::tsk::pull_1].exec(); // sequential
+				(*shaping_filter)[flt::tsk::filter].exec(); // sequential
+				(*radio         )[rad::tsk::send  ].exec(); // sequential
+			}
+		}
+		catch(tools::waiting_canceled const&) {}
+		catch(std::exception const& e) { throw e; }
+
+		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
+			m->cancel_waiting();
+	});
+
+	chain_parallel.exec([&terminal]() // parallel
+	{
+		return terminal->is_interrupt();
+	});
+
+	thread1.join();
+	thread2.join();
 
 	if (params.stats)
 	{
