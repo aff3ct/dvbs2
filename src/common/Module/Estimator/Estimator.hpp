@@ -61,6 +61,8 @@ public:
 	 */
 	virtual ~Estimator() = default;
 
+	virtual Estimator<R>* clone() const;
+
 	virtual int get_N() const;
 
 	tools::Noise<>& get_noise() const;
@@ -74,12 +76,12 @@ public:
 	 *
 	 */
 	template <class A = std::allocator<R>>
-	void estimate(std::vector<R,A>& X_N, std::vector<R,A>& H_N, const int frame_id = -1);
+	void estimate(const std::vector<R,A>& X_N, std::vector<R,A>& H_N, const int frame_id = -1);
 
-	virtual void estimate(R *X_N, R *H_N, const int frame_id = -1);
+	virtual void estimate(const R *X_N, R *H_N, const int frame_id = -1);
 
 protected:
-	virtual void _estimate(R *X_N, R *H_N, const int frame_id);
+	virtual void _estimate(const R *X_N, R *H_N, const int frame_id);
 };
 }
 }

@@ -70,6 +70,15 @@ Framer(const int xfec_frame_size, const int pl_frame_size, const std::string mod
 	});
 }
 
+template <typename B>
+Framer<B>* Framer<B>
+::clone() const
+{
+	auto m = new Framer(*this);
+	m->deep_copy(*this);
+	return m;
+}
+
 /*template <typename B>
 int Framer<B>::
 get_K() const

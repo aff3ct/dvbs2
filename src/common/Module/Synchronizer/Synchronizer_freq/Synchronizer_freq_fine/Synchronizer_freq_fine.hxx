@@ -42,6 +42,13 @@ namespace module
 	}
 
 	template <typename R>
+	Synchronizer_freq_fine<R>* Synchronizer_freq_fine<R>
+	::clone() const
+	{
+		throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+	}
+
+	template <typename R>
 	int Synchronizer_freq_fine<R>::
 	get_N() const
 	{

@@ -40,6 +40,8 @@ public:
 
 	Scrambler_BB();
 
+	virtual Scrambler_BB<D>* clone() const;
+
 protected:
 	virtual void _scramble  (D *X_N1, D *X_N2, const int frame_id);
 	virtual void _descramble(D *Y_N1, D *Y_N2, const int frame_id);

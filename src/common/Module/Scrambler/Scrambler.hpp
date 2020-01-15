@@ -61,6 +61,8 @@ public:
 	 */
 	virtual ~Scrambler() = default;
 
+	virtual Scrambler<D>* clone() const;
+
 	virtual int get_N() const;
 
 	/*!

@@ -60,6 +60,13 @@ Scrambler(const int N, const int n_frames)
 }
 
 template <typename D>
+Scrambler<D>* Scrambler<D>
+::clone() const
+{
+	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+}
+
+template <typename D>
 int Scrambler<D>::
 get_N() const
 {

@@ -27,6 +27,14 @@ Estimator_DVBS2O(const int N, const float code_rate, const int bps, const int n_
 {
 }
 
+template <typename R>
+Estimator_DVBS2O<R>* Estimator_DVBS2O<R>
+::clone() const
+{
+	auto m = new Estimator_DVBS2O(*this);
+	m->deep_copy(*this);
+	return m;
+}
 
 template<typename R>
 void Estimator_DVBS2O<R>
@@ -39,7 +47,7 @@ void Estimator_DVBS2O<R>
 
 template <typename R>
 void Estimator_DVBS2O<R>::
-_estimate(R *X_N, R *H_N, const int frame_id)
+_estimate(const R *X_N, R *H_N, const int frame_id)
 {
 	this->check_noise();
 

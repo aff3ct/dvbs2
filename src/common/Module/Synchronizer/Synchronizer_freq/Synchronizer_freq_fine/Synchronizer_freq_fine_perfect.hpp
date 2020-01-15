@@ -17,6 +17,7 @@ class Synchronizer_freq_fine_perfect : public Synchronizer_freq_fine<R>
 public:
 	Synchronizer_freq_fine_perfect(const int N, const R frequency_offset, const R phase_offset, const int n_frames = 1);
 	virtual ~Synchronizer_freq_fine_perfect();
+	virtual Synchronizer_freq_fine_perfect<R>* clone() const;
 
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);

@@ -17,6 +17,15 @@ Decoder_BCH_DVBS2O<B, R>
 }
 
 template <typename B, typename R>
+Decoder_BCH_DVBS2O<B,R>* Decoder_BCH_DVBS2O<B,R>
+::clone() const
+{
+	auto m = new Decoder_BCH_DVBS2O(*this);
+	m->deep_copy(*this);
+	return m;
+}
+
+template <typename B, typename R>
 void Decoder_BCH_DVBS2O<B, R>
 ::_decode_hiho(const B *Y_N, B *V_K, const int frame_id)
 {

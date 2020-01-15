@@ -34,7 +34,7 @@ Estimator(const int N, const int n_frames)
 	}
 
 	auto &p1 = this->create_task("estimate");
-	auto p1s_X_N = this->template create_socket_out<R>(p1, "X_N", this->N);
+	auto p1s_X_N = this->template create_socket_in <R>(p1, "X_N", this->N);
 	auto p1s_H_N = this->template create_socket_out<R>(p1, "H_N", this->N);
 	this->create_codelet(p1, [p1s_X_N, p1s_H_N](Module& m, Task& t) -> int
 	{
@@ -43,6 +43,13 @@ Estimator(const int N, const int n_frames)
 
 		return 0;
 	});
+}
+
+template <typename R>
+Estimator<R>* Estimator<R>
+::clone() const
+{
+	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename R>
@@ -55,7 +62,7 @@ get_N() const
 template <typename R>
 template <class A>
 void Estimator<R>::
-estimate(std::vector<R,A>& X_N, std::vector<R,A>& H_N, const int frame_id)
+estimate(const std::vector<R,A>& X_N, std::vector<R,A>& H_N, const int frame_id)
 {
 	if (this->N * this->n_frames != (int)X_N.size())
 	{
@@ -77,7 +84,7 @@ estimate(std::vector<R,A>& X_N, std::vector<R,A>& H_N, const int frame_id)
 
 template <typename R>
 void Estimator<R>::
-estimate(R *X_N, R *H_N, const int frame_id)
+estimate(const R *X_N, R *H_N, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
@@ -117,7 +124,7 @@ void Estimator<R>
 
 template <typename R>
 void Estimator<R>::
-_estimate(R *X_N, R *H_N, const int frame_id)
+_estimate(const R *X_N, R *H_N, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }

@@ -34,6 +34,8 @@ public:
 	Synchronizer_freq_fine(const int N, const int n_frames = 1);
 	virtual ~Synchronizer_freq_fine() = default;
 
+	virtual Synchronizer_freq_fine<R>* clone() const;
+
 	R get_estimated_freq () {return this->estimated_freq; };
 	R get_estimated_phase() {return this->estimated_phase;};
 
