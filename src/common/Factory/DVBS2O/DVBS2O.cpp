@@ -71,6 +71,8 @@ void DVBS2O
 	auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"                                ));
 	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                                                    ));
 	args.add({"mod-cod"},            modcod_format,                                     "Modulation and coding scheme."                                       );
+	args.add({"chn-type"},           cli::Text(cli::Including_set("AWGN", "USER_ADD")), "Type of noise in the channel."                                              );
+	args.add({"chn-path"},           cli::Text(),                                       "Path of the channel noise"                                           );
 	args.add({"chn-max-freq-shift"}, cli::Real(),                                       "Maximum Doppler shift."                                              );
 	args.add({"chn-max-delay"},      cli::Real(),                                       "Maximum Channel Delay."                                              );
 	args.add({"shp-grp-delay"},      cli::Real(),                                       "RRC Group delay."                                                    );
@@ -112,35 +114,36 @@ void DVBS2O
 
 	modcod_init(modcod); // initialize all the parameters that are dependant on modcod
 
-	ebn0_min                 = vals.exist({"sim-noise-min","m"}  ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
-	ebn0_max                 = vals.exist({"sim-noise-max","M"}  ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
-	ebn0_step                = vals.exist({"sim-noise-step","s"} ) ? vals.to_float({"sim-noise-step","s"}) : .1f         ;
-	max_freq_shift           = vals.exist({"chn-max-freq-shift"} ) ? vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
-	max_delay                = vals.exist({"chn-max-delay"}      ) ? vals.to_float({"chn-max-delay"}     ) : 0.f         ;
-	ldpc_nite                = vals.exist({"dec-ite"}            ) ? vals.to_int  ({"dec-ite"}           ) : 50          ;
-	max_fe                   = vals.exist({"max-fe","e"}         ) ? vals.to_int  ({"max-fe","e"}        ) : 100         ;
-	sink_path                = vals.exist({"snk-path"}           ) ? vals.at      ({"snk-path"}          ) : "sink.out"  ;
-	ldpc_implem              = vals.exist({"dec-implem"}         ) ? vals.at      ({"dec-implem"}        ) : "SPA"       ;
-	ldpc_simd                = vals.exist({"dec-simd"}           ) ? vals.at      ({"dec-simd"}          ) : ""          ;
-	est_type                 = vals.exist({"est-type"}           ) ? vals.at      ({"est-type"}          ) : "DVBS2O"    ;
-	section                  = vals.exist({"section"}            ) ? vals.at      ({"section"}           ) : ""          ;
-	src_type                 = vals.exist({"src-type"}           ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
-	src_path                 = vals.exist({"src-path"}           ) ? vals.at      ({"src-path"}          ) : src_path    ;
-	dump_filename            = vals.exist({"dump-filename"}      ) ? vals.at      ({"dump-filename"}     ) : "dump"      ;
-	debug                    = vals.exist({"sim-debug","d"}      ) ? true                                  : false       ;
-	debug_limit              = vals.exist({"sim-debug-limit"}    ) ? vals.to_int  ({"sim-debug-limit"})    : -1          ;
-	stats                    = vals.exist({"sim-stats"}          ) ? true                                  : false       ;
-	no_sync_info             = vals.exist({"no-sync-info"}       ) ? true                                  : false       ;
-	rolloff                  = vals.exist({"shp-rolloff"}        ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f        ;
-	osf                      = vals.exist({"shp-osf"}            ) ? vals.to_int  ({"shp-osf"}           ) : 4           ;
-	grp_delay                = vals.exist({"shp-grp-delay"}      ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15          ;
-	frame_sync_fast          = vals.exist({"frame-sync-fast"}    ) ? true                                  : false       ;
-	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
-	perfect_timing_sync      = vals.exist({"perfect-timing-sync"}) ? true                                  : false       ;
-	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false       ;
-	perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false       ;
-	perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false       ;
-	n_frames                 = vals.exist({"src-fra","f"}        ) ? vals.to_int  ({"src-fra","f"}       ) : 1           ;
+	ebn0_min                 = vals.exist({"sim-noise-min","m"}  ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f                 ;
+	ebn0_max                 = vals.exist({"sim-noise-max","M"}  ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f                  ;
+	ebn0_step                = vals.exist({"sim-noise-step","s"} ) ? vals.to_float({"sim-noise-step","s"}) : .1f                  ;
+	channel_type             = vals.exist({"chn-type"}           ) ? vals.at      ({"chn-type"}          ) : "AWGN"               ;
+	channel_path             = vals.exist({"chn-path"}           ) ? vals.at      ({"chn-path"}          ) : channel_path         ;
+	max_delay                = vals.exist({"chn-max-delay"}      ) ? vals.to_float({"chn-max-delay"}     ) : 0.f                  ;
+ 	ldpc_nite                = vals.exist({"dec-ite"}            ) ? vals.to_int  ({"dec-ite"}           ) : 50                   ;
+ 	max_fe                   = vals.exist({"max-fe","e"}         ) ? vals.to_int  ({"max-fe","e"}        ) : 100                  ;
+ 	sink_path                = vals.exist({"snk-path"}           ) ? vals.at      ({"snk-path"}          ) : "sink.out"           ;
+ 	ldpc_implem              = vals.exist({"dec-implem"}         ) ? vals.at      ({"dec-implem"}        ) : "SPA"                ;
+ 	ldpc_simd                = vals.exist({"dec-simd"}           ) ? vals.at      ({"dec-simd"}          ) : ""                   ;
+ 	est_type                 = vals.exist({"est-type"}           ) ? vals.at      ({"est-type"}          ) : "DVBS2O"             ;
+ 	section                  = vals.exist({"section"}            ) ? vals.at      ({"section"}           ) : ""                   ;
+ 	src_type                 = vals.exist({"src-type"}           ) ? vals.at      ({"src-type"}          ) : "RAND"               ;
+ 	src_path                 = vals.exist({"src-path"}           ) ? vals.at      ({"src-path"}          ) : src_path             ;
+ 	dump_filename            = vals.exist({"dump-filename"}      ) ? vals.at      ({"dump-filename"}     ) : "dump"               ;
+ 	debug                    = vals.exist({"sim-debug","d"}      ) ? true                                  : false                ;
+ 	debug_limit              = vals.exist({"sim-debug-limit"}    ) ? vals.to_int  ({"sim-debug-limit"})    : -1                   ;
+ 	stats                    = vals.exist({"sim-stats"}          ) ? true                                  : false                ;
+ 	no_sync_info             = vals.exist({"no-sync-info"}       ) ? true                                  : false                ;
+ 	rolloff                  = vals.exist({"shp-rolloff"}        ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f                 ;
+ 	osf                      = vals.exist({"shp-osf"}            ) ? vals.to_int  ({"shp-osf"}           ) : 4                    ;
+ 	grp_delay                = vals.exist({"shp-grp-delay"}      ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15                   ;
+ 	frame_sync_fast          = vals.exist({"frame-sync-fast"}    ) ? true                                  : false                ;
+ 	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false                ;
+ 	perfect_timing_sync      = vals.exist({"perfect-timing-sync"}) ? true                                  : false                ;
+ 	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false                ;
+ 	perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false                ;
+ 	perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false                ;
+ 	n_frames                 = vals.exist({"src-fra","f"}        ) ? vals.to_int  ({"src-fra","f"}       ) : 1                    ;
 
 	if (perfect_sync)
 	{
@@ -197,6 +200,7 @@ void DVBS2O
 	headers[p].push_back(std::make_pair("Max  Eb/N0"           , std::to_string(this->ebn0_max)          ));
 	headers[p].push_back(std::make_pair("Step Eb/N0"           , std::to_string(this->ebn0_step)         ));
 	headers[p].push_back(std::make_pair("Max frame errors"     , std::to_string(this->max_fe)            ));
+	headers[p].push_back(std::make_pair("Type of channel"       , this->channel_type                     ));
 	if (this->max_freq_shift != 0)
 		headers[p].push_back(std::make_pair("Maximum Doppler shift", std::to_string(this->max_freq_shift)));
 	if (this->max_delay != 0)
@@ -205,6 +209,8 @@ void DVBS2O
 	headers[p].push_back(std::make_pair("LDPC n iterations"    , std::to_string(this->ldpc_nite)     ));
 	if (this->src_path != "")
 		headers[p].push_back(std::make_pair("LDPC simd"            , this->ldpc_simd                     ));
+	if (this->channel_path != "")
+		headers[p].push_back(std::make_pair("Path to sink file"    , this->sink_path                     ));	
 	if (this->sink_path != "")
 		headers[p].push_back(std::make_pair("Path to sink file"    , this->sink_path                     ));
 	headers[p].push_back(std::make_pair("Type of source"       , this->src_type                          ));
@@ -472,10 +478,19 @@ template <typename R>
 module::Channel<R>* DVBS2O
 ::build_channel(const DVBS2O& params, tools::Gaussian_noise_generator<R>& gen, const bool filtered)
 {
-	if (filtered)
-		return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size * params.osf, gen, false, params.n_frames);
+	if (params.channel_type == "AWGN")
+		if (filtered)
+			return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size * params.osf, gen, false, params.n_frames);
+		else
+			return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size             , gen, false, params.n_frames);
+	else if(params.channel_type == "USER_ADD")
+		if (filtered)
+			return new module::Channel_user_add<R>(2 * params.pl_frame_size * params.osf, params.channel_path, true, params.n_frames);
+		else
+			return new module::Channel_user_add<R>(2 * params.pl_frame_size             , params.channel_path, true, params.n_frames);			
 	else
-		return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size             , gen, false, params.n_frames);
+
+	throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Channel type.");
 }
 
 template <typename R>
