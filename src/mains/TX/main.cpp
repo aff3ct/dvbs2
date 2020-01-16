@@ -49,17 +49,8 @@ int main(int argc, char** argv)
 
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 
-	std::unique_ptr<module::Adaptor_1_to_n> adaptor_1_to_n(new module::Adaptor_1_to_n(params.K_bch,
-	                                                                                  typeid(int),
-	                                                                                  16,
-	                                                                                  false,
-	                                                                                  params.n_frames));
-
-	std::unique_ptr<module::Adaptor_n_to_1> adaptor_n_to_1(new module::Adaptor_n_to_1(2 * params.pl_frame_size,
-	                                                                                  typeid(float),
-	                                                                                  16,
-	                                                                                  false,
-	                                                                                  params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adaptor_1_to_n(new module::Adaptor_1_to_n(params.K_bch,             typeid(int  ), 16, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_n_to_1> adaptor_n_to_1(new module::Adaptor_n_to_1(2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
 	adaptor_1_to_n->set_custom_name("Adp_1_to_n");
 	adaptor_n_to_1->set_custom_name("Adp_n_to_1");
 
@@ -98,57 +89,50 @@ int main(int argc, char** argv)
 	(*shaping_filter)[flt::sck::filter    ::X_N1].bind((*adaptor_n_to_1)[adp::sck::pull_1    ::out ]);
 	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
 
-	tools::Chain chain_parallel((*adaptor_1_to_n)[module::adp::tsk::pull_n],
-	                            (*adaptor_n_to_1)[module::adp::tsk::push_n],
-	                            8);
+	// create a chain per pipeline stage
+	tools::Chain chain_stage0  ((*source        )[src::tsk::generate], (*adaptor_1_to_n)[adp::tsk::push_1], 1);
+	tools::Chain chain_parallel((*adaptor_1_to_n)[adp::tsk::pull_n  ], (*adaptor_n_to_1)[adp::tsk::push_n], 3);
+	tools::Chain chain_stage1  ((*adaptor_n_to_1)[adp::tsk::pull_1  ], (*radio         )[rad::tsk::send  ], 1);
+
+	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1 };
 
 	// DEBUG
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
-
-	std::thread thread1([&]()
+	for (size_t cs = 0; cs < chain_stages.size(); cs++)
 	{
-		try
-		{
-			while (!terminal->is_interrupt())
-			{
-				(*source        )[src::tsk::generate].exec(); // sequential
-				(*adaptor_1_to_n)[adp::tsk::push_1  ].exec(); // sequential
-			}
-		}
-		catch (tools::waiting_canceled const&) {}
+		std::ofstream fs("chain_stage" + std::to_string(cs) + ".dot");
+		chain_stages[cs]->export_dot(fs);
+	}
 
+	// function to wake up and stop all the threads
+	auto stop_threads = [&chain_parallel, &chain_stages]()
+	{
 		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
 			m->cancel_waiting();
-	});
+		for (auto &cs : chain_stages)
+			for (auto &m : cs->get_modules<tools::Interface_waiting>())
+				m->cancel_waiting();
+	};
 
-	std::thread thread2([&]()
-	{
-		try
-		{
-			while (!terminal->is_interrupt())
-			{
-				(*adaptor_n_to_1)[adp::tsk::pull_1].exec(); // sequential
-				(*shaping_filter)[flt::tsk::filter].exec(); // sequential
-				(*radio         )[rad::tsk::send  ].exec(); // sequential
-			}
-		}
-		catch (tools::waiting_canceled const&) {}
+	// start the pipeline threads
+	std::vector<std::thread> threads;
+	for (auto &cs : chain_stages)
+		threads.push_back(std::thread([cs, &terminal, &stop_threads]() {
+			cs->exec([&terminal]() { return terminal->is_interrupt(); } );
+			stop_threads();
+		}));
 
-		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
-			m->cancel_waiting();
-	});
-
-	chain_parallel.exec([&terminal]() // parallel
+	// start the parallel chain
+	chain_parallel.exec([&terminal]()
 	{
 		return terminal->is_interrupt();
 	});
+	stop_threads();
 
-	for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
-		m->cancel_waiting();
-
-	thread1.join();
-	thread2.join();
+	// wait all the pipeline threads here
+	for (auto &t : threads)
+		t.join();
 
 	if (params.stats)
 	{
@@ -156,9 +140,19 @@ int main(int argc, char** argv)
 		for (size_t m = 0; m < modules.size(); m++)
 			modules_stats.push_back(modules[m]);
 
-		std::cout << "#" << std::endl;
+		// std::cout << "#" << std::endl;
+		// tools::Stats::show(modules_stats, ordered);
 		const auto ordered = true;
-		tools::Stats::show(modules_stats, ordered);
+
+		for (size_t cs = 0; cs < chain_stages.size(); cs++)
+		{
+			std::cout << "#" << std::endl << "# Chain stage " << cs << " (" << chain_stages[cs]->get_n_threads()
+			                 << " thread(s)): " << std::endl;
+			tools::Stats::show(chain_stages[cs]->get_tasks_per_types(), ordered);
+		}
+		std::cout << "#" << std::endl << "# Chain parallel (" << chain_parallel.get_n_threads() << " thread(s)): "
+		          << std::endl;
+		tools::Stats::show(chain_parallel.get_tasks_per_types(), ordered);
 	}
 
 	return EXIT_SUCCESS;
