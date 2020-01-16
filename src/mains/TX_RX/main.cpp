@@ -212,74 +212,78 @@ int main(int argc, char** argv)
 
 			for (int m = 0; m < 500; m += params.n_frames)
 			{
-				(*source        )[src::tsk::generate   ].exec();
-				(*delay         )[flt::tsk::filter     ].exec();
-				(*bb_scrambler  )[scr::tsk::scramble   ].exec();
-				(*BCH_encoder   )[enc::tsk::encode     ].exec();
-				(*LDPC_encoder  )[enc::tsk::encode     ].exec();
-				(*itl_tx        )[itl::tsk::interleave ].exec();
-				(*modem         )[mdm::tsk::modulate   ].exec();
-				(*framer        )[frm::tsk::generate   ].exec();
-				(*pl_scrambler  )[scr::tsk::scramble   ].exec();
-				(*shaping_flt   )[flt::tsk::filter     ].exec();
-				(*chn_int_del   )[flt::tsk::filter     ].exec();
-				(*chn_frac_del  )[flt::tsk::filter     ].exec();
-				(*chn_agc       )[mlt::tsk::imultiply  ].exec();
-				(*freq_shift    )[mlt::tsk::imultiply  ].exec();
-				(*channel       )[chn::tsk::add_noise  ].exec();
+				try
+				{
+					(*source        )[src::tsk::generate   ].exec();
+					(*delay         )[flt::tsk::filter     ].exec();
+					(*bb_scrambler  )[scr::tsk::scramble   ].exec();
+					(*BCH_encoder   )[enc::tsk::encode     ].exec();
+					(*LDPC_encoder  )[enc::tsk::encode     ].exec();
+					(*itl_tx        )[itl::tsk::interleave ].exec();
+					(*modem         )[mdm::tsk::modulate   ].exec();
+					(*framer        )[frm::tsk::generate   ].exec();
+					(*pl_scrambler  )[scr::tsk::scramble   ].exec();
+					(*shaping_flt   )[flt::tsk::filter     ].exec();
+					(*chn_int_del   )[flt::tsk::filter     ].exec();
+					(*chn_frac_del  )[flt::tsk::filter     ].exec();
+					(*chn_agc       )[mlt::tsk::imultiply  ].exec();
+					(*freq_shift    )[mlt::tsk::imultiply  ].exec();
+					(*channel       )[chn::tsk::add_noise  ].exec();
 
-				if (n_phase < 3)
-				{
-					(*sync_step_mf )[smf::tsk::synchronize].exec();
-					(*mult_agc     )[mlt::tsk::imultiply  ].exec();
-					(*sync_frame   )[sfm::tsk::synchronize].exec();
-					(*pl_scrambler )[scr::tsk::descramble].exec();
-				}
-				else // n_phase == 3
-				{
-					(*sync_coarse_f)[sfc::tsk::synchronize].exec();
-					(*matched_flt  )[flt::tsk::filter     ].exec();
-					(*sync_timing  )[stm::tsk::synchronize].exec();
-					(*mult_agc     )[mlt::tsk::imultiply  ].exec();
-					(*sync_frame   )[sfm::tsk::synchronize].exec();
-					(*pl_scrambler )[scr::tsk::descramble ].exec();
-					(*sync_fine_lr )[sff::tsk::synchronize].exec();
-					(*sync_fine_pf )[sff::tsk::synchronize].exec();
-				}
+					if (n_phase < 3)
+					{
+						(*sync_step_mf )[smf::tsk::synchronize].exec();
+						(*mult_agc     )[mlt::tsk::imultiply  ].exec();
+						(*sync_frame   )[sfm::tsk::synchronize].exec();
+						(*pl_scrambler )[scr::tsk::descramble].exec();
+					}
+					else // n_phase == 3
+					{
+						(*sync_coarse_f)[sfc::tsk::synchronize].exec();
+						(*matched_flt  )[flt::tsk::filter     ].exec();
+						(*sync_timing  )[stm::tsk::synchronize].exec(); // can raise the 'tools::processing_aborted' exception
+						(*mult_agc     )[mlt::tsk::imultiply  ].exec();
+						(*sync_frame   )[sfm::tsk::synchronize].exec();
+						(*pl_scrambler )[scr::tsk::descramble ].exec();
+						(*sync_fine_lr )[sff::tsk::synchronize].exec();
+						(*sync_fine_pf )[sff::tsk::synchronize].exec();
+					}
 
-				if (!params.no_sync_info)
-				{
-					sprintf(buf, pattern, n_phase, m+1,
-							sync_timing  ->get_mu(),
-							sync_coarse_f->get_estimated_freq(),
-							sync_coarse_f->get_curr_idx(),
-							sync_fine_lr ->get_estimated_freq() / (float)params.osf,
-							sync_fine_pf ->get_estimated_freq() / (float)params.osf);
-					std::cerr << buf << "\r";
-					std::cerr.flush();
-				}
-
-				if (m > 149 && n_phase == 1)
-				{
-					m = 150;
-					n_phase++;
-					sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 					if (!params.no_sync_info)
-						std::cerr << buf << std::endl;
-				}
+					{
+						sprintf(buf, pattern, n_phase, m+1,
+								sync_timing  ->get_mu(),
+								sync_coarse_f->get_estimated_freq(),
+								sync_coarse_f->get_curr_idx(),
+								sync_fine_lr ->get_estimated_freq() / (float)params.osf,
+								sync_fine_pf ->get_estimated_freq() / (float)params.osf);
+						std::cerr << buf << "\r";
+						std::cerr.flush();
+					}
 
-				if (m > 299 && n_phase == 2)
-				{
-					m = 300;
-					n_phase++;
-					(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N ]);
-					(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
-					(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
-					(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N2]);
-					(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
-					if (!params.no_sync_info)
-						std::cerr << buf << std::endl;
+					if (m > 149 && n_phase == 1)
+					{
+						m = 150;
+						n_phase++;
+						sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
+						if (!params.no_sync_info)
+							std::cerr << buf << std::endl;
+					}
+
+					if (m > 299 && n_phase == 2)
+					{
+						m = 300;
+						n_phase++;
+						(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N ]);
+						(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
+						(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+						(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N2]);
+						(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
+						if (!params.no_sync_info)
+							std::cerr << buf << std::endl;
+					}
 				}
+				catch (tools::processing_aborted const&) {}
 			}
 			if (!params.no_sync_info)
 				std::cerr << buf << "\n" << head_lines << "\n";
@@ -303,37 +307,41 @@ int main(int argc, char** argv)
 		int n_frames = 0;
 		while (!monitor->is_done() && !terminal->is_interrupt())
 		{
-			(*source       )[src::tsk::generate     ].exec();
-			(*delay        )[flt::tsk::filter       ].exec();
-			(*bb_scrambler )[scr::tsk::scramble     ].exec();
-			(*BCH_encoder  )[enc::tsk::encode       ].exec();
-			(*LDPC_encoder )[enc::tsk::encode       ].exec();
-			(*itl_tx       )[itl::tsk::interleave   ].exec();
-			(*modem        )[mdm::tsk::modulate     ].exec();
-			(*framer       )[frm::tsk::generate     ].exec();
-			(*pl_scrambler )[scr::tsk::scramble     ].exec();
-			(*shaping_flt  )[flt::tsk::filter       ].exec();
-			(*chn_int_del  )[flt::tsk::filter       ].exec();
-			(*chn_frac_del )[flt::tsk::filter       ].exec();
-			(*chn_agc      )[mlt::tsk::imultiply    ].exec();
-			(*freq_shift   )[mlt::tsk::imultiply    ].exec();
-			(*channel      )[chn::tsk::add_noise    ].exec();
-			(*sync_coarse_f)[sfc::tsk::synchronize  ].exec();
-			(*matched_flt  )[flt::tsk::filter       ].exec();
-			(*sync_timing  )[stm::tsk::synchronize  ].exec();
-			(*mult_agc     )[mlt::tsk::imultiply    ].exec();
-			(*sync_frame   )[sfm::tsk::synchronize  ].exec();
-			(*pl_scrambler )[scr::tsk::descramble   ].exec();
-			(*sync_fine_lr )[sff::tsk::synchronize  ].exec();
-			(*sync_fine_pf )[sff::tsk::synchronize  ].exec();
-			(*framer       )[frm::tsk::remove_plh   ].exec();
-			(*estimator    )[est::tsk::estimate     ].exec();
-			(*modem        )[mdm::tsk::demodulate_wg].exec();
-			(*itl_rx       )[itl::tsk::deinterleave ].exec();
-			(*LDPC_decoder )[dec::tsk::decode_siho  ].exec();
-			(*BCH_decoder  )[dec::tsk::decode_hiho  ].exec();
-			(*bb_scrambler )[scr::tsk::descramble   ].exec();
-			(*monitor      )[mnt::tsk::check_errors ].exec();
+			try
+			{
+				(*source       )[src::tsk::generate     ].exec();
+				(*delay        )[flt::tsk::filter       ].exec();
+				(*bb_scrambler )[scr::tsk::scramble     ].exec();
+				(*BCH_encoder  )[enc::tsk::encode       ].exec();
+				(*LDPC_encoder )[enc::tsk::encode       ].exec();
+				(*itl_tx       )[itl::tsk::interleave   ].exec();
+				(*modem        )[mdm::tsk::modulate     ].exec();
+				(*framer       )[frm::tsk::generate     ].exec();
+				(*pl_scrambler )[scr::tsk::scramble     ].exec();
+				(*shaping_flt  )[flt::tsk::filter       ].exec();
+				(*chn_int_del  )[flt::tsk::filter       ].exec();
+				(*chn_frac_del )[flt::tsk::filter       ].exec();
+				(*chn_agc      )[mlt::tsk::imultiply    ].exec();
+				(*freq_shift   )[mlt::tsk::imultiply    ].exec();
+				(*channel      )[chn::tsk::add_noise    ].exec();
+				(*sync_coarse_f)[sfc::tsk::synchronize  ].exec();
+				(*matched_flt  )[flt::tsk::filter       ].exec();
+				(*sync_timing  )[stm::tsk::synchronize  ].exec(); // can raise the 'tools::processing_aborted' exception
+				(*mult_agc     )[mlt::tsk::imultiply    ].exec();
+				(*sync_frame   )[sfm::tsk::synchronize  ].exec();
+				(*pl_scrambler )[scr::tsk::descramble   ].exec();
+				(*sync_fine_lr )[sff::tsk::synchronize  ].exec();
+				(*sync_fine_pf )[sff::tsk::synchronize  ].exec();
+				(*framer       )[frm::tsk::remove_plh   ].exec();
+				(*estimator    )[est::tsk::estimate     ].exec();
+				(*modem        )[mdm::tsk::demodulate_wg].exec();
+				(*itl_rx       )[itl::tsk::deinterleave ].exec();
+				(*LDPC_decoder )[dec::tsk::decode_siho  ].exec();
+				(*BCH_decoder  )[dec::tsk::decode_hiho  ].exec();
+				(*bb_scrambler )[scr::tsk::descramble   ].exec();
+				(*monitor      )[mnt::tsk::check_errors ].exec();
+			}
+			catch (tools::processing_aborted const&) {}
 
 			if (n_frames < 1) // first frame is delayed
 				monitor->reset();
