@@ -61,16 +61,13 @@ int main(int argc, char** argv)
 
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
-	std::unique_ptr<module::Adaptor_1_to_n> adaptor_1_to_n(new module::Adaptor_1_to_n(2 * params.pl_frame_size,
-	                                                                                  typeid(float),
-	                                                                                  16,
-	                                                                                  false,
-	                                                                                  params.n_frames));
-	std::unique_ptr<module::Adaptor_n_to_1> adaptor_n_to_1(new module::Adaptor_n_to_1(params.K_bch,
-	                                                                                  typeid(int),
-	                                                                                  16,
-	                                                                                  false,
-	                                                                                  params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_n  (new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_n_to_1> adp_n_to_1  (new module::Adaptor_n_to_1(params.K_bch,                          typeid(int  ), 16, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_1(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_2(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_3(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_4(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
+	std::vector<module::Adaptor*> adaptors_1_to_1 = { adp_1_to_1_1.get(), adp_1_to_1_2.get(), adp_1_to_1_3.get(), adp_1_to_1_4.get() };
 
 	// manage noise
 	modem    ->set_noise(noise);
@@ -78,25 +75,30 @@ int main(int argc, char** argv)
 	auto mdm_ptr = modem.get();
 	noise.record_callback_update([mdm_ptr](){ mdm_ptr->notify_noise_update(); });
 
-	LDPC_decoder  ->set_custom_name("LDPC Decoder");
-	BCH_decoder   ->set_custom_name("BCH Decoder" );
-	sync_lr       ->set_custom_name("L&R F Syn"   );
-	sync_fine_pf  ->set_custom_name("Fine P/F Syn");
-	sync_timing   ->set_custom_name("Gardner Syn" );
-	sync_frame    ->set_custom_name("Frame Syn"   );
-	matched_flt   ->set_custom_name("Matched Flt" );
-	sync_coarse_f ->set_custom_name("Coarse_Synch");
-	sync_step_mf  ->set_custom_name("MF_Synch"    );
-	adaptor_1_to_n->set_custom_name("Adp_1_to_n"  );
-	adaptor_n_to_1->set_custom_name("Adp_n_to_1"  );
+	LDPC_decoder ->set_custom_name("LDPC Decoder");
+	BCH_decoder  ->set_custom_name("BCH Decoder" );
+	sync_lr      ->set_custom_name("L&R F Syn"   );
+	sync_fine_pf ->set_custom_name("Fine P/F Syn");
+	sync_timing  ->set_custom_name("Gardner Syn" );
+	sync_frame   ->set_custom_name("Frame Syn"   );
+	matched_flt  ->set_custom_name("Matched Flt" );
+	sync_coarse_f->set_custom_name("Coarse_Synch");
+	sync_step_mf ->set_custom_name("MF_Synch"    );
+	adp_1_to_n   ->set_custom_name("Adp_1_to_n"  );
+	adp_n_to_1   ->set_custom_name("Adp_n_to_1"  );
+	adp_1_to_1_1 ->set_custom_name("Adp_1_to_1_1");
+	adp_1_to_1_2 ->set_custom_name("Adp_1_to_1_2");
+	adp_1_to_1_3 ->set_custom_name("Adp_1_to_1_3");
+	adp_1_to_1_4 ->set_custom_name("Adp_1_to_1_4");
 
 	// fill the list of modules
-	modules = { bb_scrambler.get(), BCH_decoder .get(), source        .get(), LDPC_decoder        ,
-	            itl_rx      .get(), modem       .get(), framer        .get(), pl_scrambler  .get(),
-	            monitor     .get(), freq_shift  .get(), sync_lr       .get(), sync_fine_pf  .get(),
-	            radio       .get(), sync_frame  .get(), sync_coarse_f .get(), matched_flt   .get(),
-	            sync_timing .get(), sync_step_mf.get(), mult_agc      .get(), sink          .get(),
-	            estimator   .get(), front_agc   .get(), adaptor_1_to_n.get(), adaptor_n_to_1.get()  };
+	modules = { bb_scrambler.get(), BCH_decoder .get(), source       .get(), LDPC_decoder      ,
+	            itl_rx      .get(), modem       .get(), framer       .get(), pl_scrambler.get(),
+	            monitor     .get(), freq_shift  .get(), sync_lr      .get(), sync_fine_pf.get(),
+	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt .get(),
+	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
+	            estimator   .get(), front_agc   .get(), adp_1_to_n   .get(), adp_n_to_1  .get(),
+	            adp_1_to_1_1.get(), adp_1_to_1_2.get(), adp_1_to_1_3 .get(), adp_1_to_1_4.get() };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -113,8 +115,8 @@ int main(int argc, char** argv)
 	using namespace module;
 
 	(*sync_lr       )[sff::sck::synchronize  ::X_N1 ].bind((*pl_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
-	(*adaptor_1_to_n)[adp::sck::put_1        ::in   ].bind((*sync_lr       )[sff::sck::synchronize  ::Y_N2 ]);
-	(*sync_fine_pf  )[sff::sck::synchronize  ::X_N1 ].bind((*adaptor_1_to_n)[adp::sck::pull_n       ::out  ]);
+	(*adp_1_to_n    )[adp::sck::put_1        ::in   ].bind((*sync_lr       )[sff::sck::synchronize  ::Y_N2 ]);
+	(*sync_fine_pf  )[sff::sck::synchronize  ::X_N1 ].bind((*adp_1_to_n    )[adp::sck::pull_n       ::out  ]);
 	(*framer        )[frm::sck::remove_plh   ::Y_N1 ].bind((*sync_fine_pf  )[sff::sck::synchronize  ::Y_N2 ]);
 	(*estimator     )[est::sck::estimate     ::X_N  ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2 ]);
 	(*modem         )[mdm::sck::demodulate_wg::H_N  ].bind((*estimator     )[est::sck::estimate     ::H_N  ]);
@@ -127,16 +129,18 @@ int main(int argc, char** argv)
 	(*sync_step_mf  )[smf::sck::synchronize  ::X_N1 ].bind((*front_agc     )[mlt::sck::imultiply    ::Z_N  ]);
 	(*sync_step_mf  )[smf::sck::synchronize  ::delay].bind((*sync_frame    )[sfm::sck::synchronize  ::delay]);
 	(*mult_agc      )[mlt::sck::imultiply    ::X_N  ].bind((*sync_step_mf  )[smf::sck::synchronize  ::Y_N2 ]);
-	(*sync_frame    )[sfm::sck::synchronize  ::X_N1 ].bind((*mult_agc      )[mlt::sck::imultiply    ::Z_N  ]);
-	(*pl_scrambler  )[scr::sck::descramble   ::Y_N1 ].bind((*sync_frame    )[sfm::sck::synchronize  ::Y_N2 ]);
+	(*adp_1_to_1_3  )[adp::sck::put_1        ::in   ].bind((*mult_agc      )[mlt::sck::imultiply    ::Z_N  ]);
+	(*sync_frame    )[sfm::sck::synchronize  ::X_N1 ].bind((*adp_1_to_1_3  )[adp::sck::pull_n       ::out  ]);
+	(*adp_1_to_1_4  )[adp::sck::put_1        ::in   ].bind((*sync_frame    )[sfm::sck::synchronize  ::Y_N2 ]);
+	(*pl_scrambler  )[scr::sck::descramble   ::Y_N1 ].bind((*adp_1_to_1_4  )[adp::sck::pull_n       ::out  ]);
 	(*monitor       )[mnt::sck::check_errors ::U    ].bind((*source        )[src::sck::generate     ::U_K  ]);
 	(*monitor       )[mnt::sck::check_errors ::V    ].bind((*bb_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
-	(*adaptor_n_to_1)[adp::sck::put_n        ::in   ].bind((*bb_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
-	(*sink          )[snk::sck::send         ::V    ].bind((*adaptor_n_to_1)[adp::sck::pull_1       ::out  ]);
+	(*adp_n_to_1    )[adp::sck::put_n        ::in   ].bind((*bb_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
+	(*sink          )[snk::sck::send         ::V    ].bind((*adp_n_to_1    )[adp::sck::pull_1       ::out  ]);
 
-	tools::Chain chain_parallel((*adaptor_1_to_n)[module::adp::tsk::pull_n],
-	                            (*adaptor_n_to_1)[module::adp::tsk::put_n ],
-	                            4);
+	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
+	                            (*adp_n_to_1)[module::adp::tsk::put_n ],
+	                            12);
 	// DEBUG
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
@@ -164,12 +168,16 @@ int main(int argc, char** argv)
 	{
 		if (n_phase < 3)
 		{
-			(*radio        )[rad::tsk::receive    ].exec();
-			(*front_agc    )[mlt::tsk::imultiply  ].exec();
-			(*sync_step_mf )[smf::tsk::synchronize].exec();
-			(*mult_agc     )[mlt::tsk::imultiply  ].exec();
-			(*sync_frame   )[sfm::tsk::synchronize].exec();
-			(*pl_scrambler )[scr::tsk::descramble ].exec();
+			(*radio       )[rad::tsk::receive    ].exec();
+			(*front_agc   )[mlt::tsk::imultiply  ].exec();
+			(*sync_step_mf)[smf::tsk::synchronize].exec();
+			(*mult_agc    )[mlt::tsk::imultiply  ].exec();
+			(*adp_1_to_1_3)[adp::tsk::put_1      ].exec();
+			(*adp_1_to_1_3)[adp::tsk::pull_n     ].exec();
+			(*sync_frame  )[sfm::tsk::synchronize].exec();
+			(*adp_1_to_1_4)[adp::tsk::put_1      ].exec();
+			(*adp_1_to_1_4)[adp::tsk::pull_n     ].exec();
+			(*pl_scrambler)[scr::tsk::descramble ].exec();
 		}
 		else // n_phase == 3
 		{
@@ -179,9 +187,17 @@ int main(int argc, char** argv)
 				(*front_agc    )[mlt::tsk::imultiply  ].exec();
 				(*sync_coarse_f)[sfc::tsk::synchronize].exec();
 				(*matched_flt  )[flt::tsk::filter     ].exec();
+				(*adp_1_to_1_1 )[adp::tsk::put_1      ].exec();
+				(*adp_1_to_1_1 )[adp::tsk::pull_n     ].exec();
 				(*sync_timing  )[stm::tsk::synchronize].exec(); // can raise the 'tools::processing_aborted' exception
+				(*adp_1_to_1_2 )[adp::tsk::put_1      ].exec();
+				(*adp_1_to_1_2 )[adp::tsk::pull_n     ].exec();
 				(*mult_agc     )[mlt::tsk::imultiply  ].exec();
+				(*adp_1_to_1_3 )[adp::tsk::put_1      ].exec();
+				(*adp_1_to_1_3 )[adp::tsk::pull_n     ].exec();
 				(*sync_frame   )[sfm::tsk::synchronize].exec();
+				(*adp_1_to_1_4 )[adp::tsk::put_1      ].exec();
+				(*adp_1_to_1_4 )[adp::tsk::pull_n     ].exec();
 				(*pl_scrambler )[scr::tsk::descramble ].exec();
 				(*sync_lr      )[sff::tsk::synchronize].exec();
 				(*sync_fine_pf )[sff::tsk::synchronize].exec();
@@ -211,11 +227,13 @@ int main(int argc, char** argv)
 			m = 300;
 			n_phase++;
 			std::cerr << buf << std::endl;
-			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
-			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
-			(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
-			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N2]);
-			(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
+			(*sync_coarse_f )[sfc::sck::synchronize::X_N1].bind((*front_agc     )[mlt::sck::imultiply  ::Z_N ]);
+			(*matched_flt   )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f )[sfc::sck::synchronize::Y_N2]);
+			(*adp_1_to_1_1  )[adp::sck::put_1      ::in  ].bind((*matched_flt   )[flt::sck::filter     ::Y_N2]);
+			(*sync_timing   )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1  )[adp::sck::pull_n     ::out ]);
+			(*adp_1_to_1_2  )[adp::sck::put_1      ::in  ].bind((*sync_timing   )[stm::sck::synchronize::Y_N2]);
+			(*mult_agc      )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_2  )[adp::sck::pull_n     ::out ]);
+			(*sync_frame    )[sfm::sck::synchronize::X_N1].bind((*mult_agc      )[mlt::sck::imultiply  ::Z_N ]);
 		}
 	}
 	std::cerr << buf << "\n" << head_lines << "\n";
@@ -247,7 +265,16 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
-	std::thread thread1([&]()
+	auto stop_threads = [&chain_parallel, &adaptors_1_to_1]()
+	{
+		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
+			m->cancel_waiting();
+		for (auto adp : adaptors_1_to_1)
+			adp->cancel_waiting();
+	};
+
+	std::vector<std::thread> threads;
+	auto exec_pipeline_thread = [&](std::function<void()> sequence)
 	{
 		try
 		{
@@ -255,54 +282,58 @@ int main(int argc, char** argv)
 			{
 				try
 				{
-					(*source        )[src::tsk::generate   ].exec(); // sequential
-					(*radio         )[rad::tsk::receive    ].exec(); // sequential
-					(*front_agc     )[mlt::tsk::imultiply  ].exec(); // parallel
-					(*sync_coarse_f )[sfc::tsk::synchronize].exec(); // sequential
-					(*matched_flt   )[flt::tsk::filter     ].exec(); // sequential
-					(*sync_timing   )[stm::tsk::synchronize].exec(); // sequential, can raise the 'tools::processing_aborted' exception
-					(*mult_agc      )[mlt::tsk::imultiply  ].exec(); // parallel
-					(*sync_frame    )[sfm::tsk::synchronize].exec(); // sequential
-					(*pl_scrambler  )[scr::tsk::descramble ].exec(); // parallel
-					(*sync_lr       )[sff::tsk::synchronize].exec(); // sequential
-					(*adaptor_1_to_n)[adp::tsk::put_1      ].exec(); // sequential
+					sequence();
 				}
 				catch (tools::processing_aborted const&) {}
 			}
 		}
 		catch (tools::waiting_canceled const&) {}
+		stop_threads();
+	};
 
-		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
-			m->cancel_waiting();
-	});
+	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
+		(*source       )[src::tsk::generate   ].exec(); // sequential |   7 us
+		(*radio        )[rad::tsk::receive    ].exec(); // sequential |   ? us
+		(*front_agc    )[mlt::tsk::imultiply  ].exec(); // parallel   |  27 us
+		(*sync_coarse_f)[sfc::tsk::synchronize].exec(); // sequential | 313 us
+		(*matched_flt  )[flt::tsk::filter     ].exec(); // sequential | 160 us
+		(*adp_1_to_1_1 )[adp::tsk::put_1      ].exec(); // sequential |  10 us
+	}); }));
+	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
+		(*adp_1_to_1_1 )[adp::tsk::pull_n     ].exec(); // sequential |  10 us |
+		(*sync_timing  )[stm::tsk::synchronize].exec(); // sequential | 548 us | can raise an exception
+		(*adp_1_to_1_2 )[adp::tsk::put_1      ].exec(); // sequential |  20 us |
+	}); }));
+	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
+		(*adp_1_to_1_2 )[adp::tsk::pull_n     ].exec(); // sequential |  20 us
+		(*mult_agc     )[mlt::tsk::imultiply  ].exec(); // parallel   |  27 us
+		(*adp_1_to_1_3 )[adp::tsk::put_1      ].exec(); // sequential |  10 us
+	}); }));
+	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
+		(*adp_1_to_1_3 )[adp::tsk::pull_n     ].exec(); // sequential |  10 us
+		(*sync_frame   )[sfm::tsk::synchronize].exec(); // sequential | 518 us
+		(*adp_1_to_1_4 )[adp::tsk::put_1      ].exec(); // sequential |  10 us
+	}); }));
+	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
+		(*adp_1_to_1_4 )[adp::tsk::pull_n     ].exec(); // sequential |  10 us
+		(*pl_scrambler )[scr::tsk::descramble ].exec(); // parallel   |   5 us
+		(*sync_lr      )[sff::tsk::synchronize].exec(); // sequential | 186 us
+		(*adp_1_to_n   )[adp::tsk::put_1      ].exec(); // sequential |  16 us
+	}); }));
+	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
+		(*adp_n_to_1   )[adp::tsk::pull_1     ].exec(); // sequential |   5 us
+		(*sink         )[snk::tsk::send       ].exec(); // sequential |  40 us
+	}); }));
 
-	std::thread thread2([&]()
-	{
-		try
-		{
-			while (!terminal->is_interrupt())
-			{
-				(*adaptor_n_to_1)[adp::tsk::pull_1].exec(); // sequential
-				(*sink          )[snk::tsk::send  ].exec(); // sequential
-			}
-		}
-		catch (tools::waiting_canceled const&) {}
-
-		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
-			m->cancel_waiting();
-	});
-
-	chain_parallel.exec([&monitor_red, &terminal]() // parallel
+	chain_parallel.exec([&monitor_red, &terminal]()
 	{
 		monitor_red->is_done();
 		return terminal->is_interrupt();
 	});
+	stop_threads();
 
-	for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
-		m->cancel_waiting();
-
-	thread1.join();
-	thread2.join();
+	for (auto &t : threads)
+		t.join();
 
 	// final reduction
 	monitor_red->reduce();
