@@ -61,12 +61,12 @@ int main(int argc, char** argv)
 
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_n  (new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_n_to_1> adp_n_to_1  (new module::Adaptor_n_to_1(params.K_bch,                          typeid(int  ), 16, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_1(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_2(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_3(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_4(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_n  (new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_n_to_1> adp_n_to_1  (new module::Adaptor_n_to_1(params.K_bch,                          typeid(int  ), 1, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_1(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_2(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_3(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_4(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 	std::vector<module::Adaptor*> adaptors_1_to_1 = { adp_1_to_1_1.get(), adp_1_to_1_2.get(), adp_1_to_1_3.get(), adp_1_to_1_4.get() };
 
 	// manage noise
@@ -115,7 +115,7 @@ int main(int argc, char** argv)
 	using namespace module;
 
 	(*sync_lr       )[sff::sck::synchronize  ::X_N1 ].bind((*pl_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
-	(*adp_1_to_n    )[adp::sck::put_1        ::in   ].bind((*sync_lr       )[sff::sck::synchronize  ::Y_N2 ]);
+	(*adp_1_to_n    )[adp::sck::push_1       ::in   ].bind((*sync_lr       )[sff::sck::synchronize  ::Y_N2 ]);
 	(*sync_fine_pf  )[sff::sck::synchronize  ::X_N1 ].bind((*adp_1_to_n    )[adp::sck::pull_n       ::out  ]);
 	(*framer        )[frm::sck::remove_plh   ::Y_N1 ].bind((*sync_fine_pf  )[sff::sck::synchronize  ::Y_N2 ]);
 	(*estimator     )[est::sck::estimate     ::X_N  ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2 ]);
@@ -129,17 +129,17 @@ int main(int argc, char** argv)
 	(*sync_step_mf  )[smf::sck::synchronize  ::X_N1 ].bind((*front_agc     )[mlt::sck::imultiply    ::Z_N  ]);
 	(*sync_step_mf  )[smf::sck::synchronize  ::delay].bind((*sync_frame    )[sfm::sck::synchronize  ::delay]);
 	(*mult_agc      )[mlt::sck::imultiply    ::X_N  ].bind((*sync_step_mf  )[smf::sck::synchronize  ::Y_N2 ]);
-	(*adp_1_to_1_3  )[adp::sck::put_1        ::in   ].bind((*mult_agc      )[mlt::sck::imultiply    ::Z_N  ]);
+	(*adp_1_to_1_3  )[adp::sck::push_1       ::in   ].bind((*mult_agc      )[mlt::sck::imultiply    ::Z_N  ]);
 	(*sync_frame    )[sfm::sck::synchronize  ::X_N1 ].bind((*adp_1_to_1_3  )[adp::sck::pull_n       ::out  ]);
-	(*adp_1_to_1_4  )[adp::sck::put_1        ::in   ].bind((*sync_frame    )[sfm::sck::synchronize  ::Y_N2 ]);
+	(*adp_1_to_1_4  )[adp::sck::push_1       ::in   ].bind((*sync_frame    )[sfm::sck::synchronize  ::Y_N2 ]);
 	(*pl_scrambler  )[scr::sck::descramble   ::Y_N1 ].bind((*adp_1_to_1_4  )[adp::sck::pull_n       ::out  ]);
 	(*monitor       )[mnt::sck::check_errors ::U    ].bind((*source        )[src::sck::generate     ::U_K  ]);
 	(*monitor       )[mnt::sck::check_errors ::V    ].bind((*bb_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
-	(*adp_n_to_1    )[adp::sck::put_n        ::in   ].bind((*bb_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
+	(*adp_n_to_1    )[adp::sck::push_n       ::in   ].bind((*bb_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
 	(*sink          )[snk::sck::send         ::V    ].bind((*adp_n_to_1    )[adp::sck::pull_1       ::out  ]);
 
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
-	                            (*adp_n_to_1)[module::adp::tsk::put_n ],
+	                            (*adp_n_to_1)[module::adp::tsk::push_n],
 	                            12);
 	// DEBUG
 	std::ofstream f("chain_parallel.dot");
@@ -172,10 +172,10 @@ int main(int argc, char** argv)
 			(*front_agc   )[mlt::tsk::imultiply  ].exec();
 			(*sync_step_mf)[smf::tsk::synchronize].exec();
 			(*mult_agc    )[mlt::tsk::imultiply  ].exec();
-			(*adp_1_to_1_3)[adp::tsk::put_1      ].exec();
+			(*adp_1_to_1_3)[adp::tsk::push_1     ].exec();
 			(*adp_1_to_1_3)[adp::tsk::pull_n     ].exec();
 			(*sync_frame  )[sfm::tsk::synchronize].exec();
-			(*adp_1_to_1_4)[adp::tsk::put_1      ].exec();
+			(*adp_1_to_1_4)[adp::tsk::push_1     ].exec();
 			(*adp_1_to_1_4)[adp::tsk::pull_n     ].exec();
 			(*pl_scrambler)[scr::tsk::descramble ].exec();
 		}
@@ -187,16 +187,16 @@ int main(int argc, char** argv)
 				(*front_agc    )[mlt::tsk::imultiply  ].exec();
 				(*sync_coarse_f)[sfc::tsk::synchronize].exec();
 				(*matched_flt  )[flt::tsk::filter     ].exec();
-				(*adp_1_to_1_1 )[adp::tsk::put_1      ].exec();
+				(*adp_1_to_1_1 )[adp::tsk::push_1     ].exec();
 				(*adp_1_to_1_1 )[adp::tsk::pull_n     ].exec();
 				(*sync_timing  )[stm::tsk::synchronize].exec(); // can raise the 'tools::processing_aborted' exception
-				(*adp_1_to_1_2 )[adp::tsk::put_1      ].exec();
+				(*adp_1_to_1_2 )[adp::tsk::push_1     ].exec();
 				(*adp_1_to_1_2 )[adp::tsk::pull_n     ].exec();
 				(*mult_agc     )[mlt::tsk::imultiply  ].exec();
-				(*adp_1_to_1_3 )[adp::tsk::put_1      ].exec();
+				(*adp_1_to_1_3 )[adp::tsk::push_1     ].exec();
 				(*adp_1_to_1_3 )[adp::tsk::pull_n     ].exec();
 				(*sync_frame   )[sfm::tsk::synchronize].exec();
-				(*adp_1_to_1_4 )[adp::tsk::put_1      ].exec();
+				(*adp_1_to_1_4 )[adp::tsk::push_1     ].exec();
 				(*adp_1_to_1_4 )[adp::tsk::pull_n     ].exec();
 				(*pl_scrambler )[scr::tsk::descramble ].exec();
 				(*sync_lr      )[sff::tsk::synchronize].exec();
@@ -229,9 +229,9 @@ int main(int argc, char** argv)
 			std::cerr << buf << std::endl;
 			(*sync_coarse_f )[sfc::sck::synchronize::X_N1].bind((*front_agc     )[mlt::sck::imultiply  ::Z_N ]);
 			(*matched_flt   )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f )[sfc::sck::synchronize::Y_N2]);
-			(*adp_1_to_1_1  )[adp::sck::put_1      ::in  ].bind((*matched_flt   )[flt::sck::filter     ::Y_N2]);
+			(*adp_1_to_1_1  )[adp::sck::push_1     ::in  ].bind((*matched_flt   )[flt::sck::filter     ::Y_N2]);
 			(*sync_timing   )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1  )[adp::sck::pull_n     ::out ]);
-			(*adp_1_to_1_2  )[adp::sck::put_1      ::in  ].bind((*sync_timing   )[stm::sck::synchronize::Y_N2]);
+			(*adp_1_to_1_2  )[adp::sck::push_1     ::in  ].bind((*sync_timing   )[stm::sck::synchronize::Y_N2]);
 			(*mult_agc      )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_2  )[adp::sck::pull_n     ::out ]);
 			(*sync_frame    )[sfm::sck::synchronize::X_N1].bind((*mult_agc      )[mlt::sck::imultiply  ::Z_N ]);
 		}
@@ -297,28 +297,28 @@ int main(int argc, char** argv)
 		(*front_agc    )[mlt::tsk::imultiply  ].exec(); // parallel   |  27 us
 		(*sync_coarse_f)[sfc::tsk::synchronize].exec(); // sequential | 313 us
 		(*matched_flt  )[flt::tsk::filter     ].exec(); // sequential | 160 us
-		(*adp_1_to_1_1 )[adp::tsk::put_1      ].exec(); // sequential |  10 us
+		(*adp_1_to_1_1 )[adp::tsk::push_1     ].exec(); // sequential |  10 us
 	}); }));
 	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
 		(*adp_1_to_1_1 )[adp::tsk::pull_n     ].exec(); // sequential |  10 us |
 		(*sync_timing  )[stm::tsk::synchronize].exec(); // sequential | 548 us | can raise an exception
-		(*adp_1_to_1_2 )[adp::tsk::put_1      ].exec(); // sequential |  20 us |
+		(*adp_1_to_1_2 )[adp::tsk::push_1     ].exec(); // sequential |  20 us |
 	}); }));
 	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
 		(*adp_1_to_1_2 )[adp::tsk::pull_n     ].exec(); // sequential |  20 us
 		(*mult_agc     )[mlt::tsk::imultiply  ].exec(); // parallel   |  27 us
-		(*adp_1_to_1_3 )[adp::tsk::put_1      ].exec(); // sequential |  10 us
+		(*adp_1_to_1_3 )[adp::tsk::push_1     ].exec(); // sequential |  10 us
 	}); }));
 	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
 		(*adp_1_to_1_3 )[adp::tsk::pull_n     ].exec(); // sequential |  10 us
 		(*sync_frame   )[sfm::tsk::synchronize].exec(); // sequential | 518 us
-		(*adp_1_to_1_4 )[adp::tsk::put_1      ].exec(); // sequential |  10 us
+		(*adp_1_to_1_4 )[adp::tsk::push_1     ].exec(); // sequential |  10 us
 	}); }));
 	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
 		(*adp_1_to_1_4 )[adp::tsk::pull_n     ].exec(); // sequential |  10 us
 		(*pl_scrambler )[scr::tsk::descramble ].exec(); // parallel   |   5 us
 		(*sync_lr      )[sff::tsk::synchronize].exec(); // sequential | 186 us
-		(*adp_1_to_n   )[adp::tsk::put_1      ].exec(); // sequential |  16 us
+		(*adp_1_to_n   )[adp::tsk::push_1     ].exec(); // sequential |  16 us
 	}); }));
 	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
 		(*adp_n_to_1   )[adp::tsk::pull_1     ].exec(); // sequential |   5 us

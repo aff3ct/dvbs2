@@ -86,7 +86,7 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
-	(*adaptor_1_to_n)[adp::sck::put_1     ::in  ].bind((*source        )[src::sck::generate  ::U_K ]);
+	(*adaptor_1_to_n)[adp::sck::push_1    ::in  ].bind((*source        )[src::sck::generate  ::U_K ]);
 	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*adaptor_1_to_n)[adp::sck::pull_n    ::out ]);
 	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble  ::X_N2]);
 	(*LDPC_encoder  )[enc::sck::encode    ::U_K ].bind((*BCH_encoder   )[enc::sck::encode    ::X_N ]);
@@ -94,12 +94,12 @@ int main(int argc, char** argv)
 	(*modem         )[mdm::sck::modulate  ::X_N1].bind((*itl           )[itl::sck::interleave::itl ]);
 	(*framer        )[frm::sck::generate  ::Y_N1].bind((*modem         )[mdm::sck::modulate  ::X_N2]);
 	(*pl_scrambler  )[scr::sck::scramble  ::X_N1].bind((*framer        )[frm::sck::generate  ::Y_N2]);
-	(*adaptor_n_to_1)[adp::sck::put_n     ::in  ].bind((*pl_scrambler  )[scr::sck::scramble  ::X_N2]);
+	(*adaptor_n_to_1)[adp::sck::push_n    ::in  ].bind((*pl_scrambler  )[scr::sck::scramble  ::X_N2]);
 	(*shaping_filter)[flt::sck::filter    ::X_N1].bind((*adaptor_n_to_1)[adp::sck::pull_1    ::out ]);
 	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
 
 	tools::Chain chain_parallel((*adaptor_1_to_n)[module::adp::tsk::pull_n],
-	                            (*adaptor_n_to_1)[module::adp::tsk::put_n ],
+	                            (*adaptor_n_to_1)[module::adp::tsk::push_n],
 	                            8);
 
 	// DEBUG
@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 			while (!terminal->is_interrupt())
 			{
 				(*source        )[src::tsk::generate].exec(); // sequential
-				(*adaptor_1_to_n)[adp::tsk::put_1   ].exec(); // sequential
+				(*adaptor_1_to_n)[adp::tsk::push_1  ].exec(); // sequential
 			}
 		}
 		catch (tools::waiting_canceled const&) {}
