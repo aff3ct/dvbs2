@@ -63,11 +63,11 @@ int main(int argc, char** argv)
 
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_n  (new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 	std::unique_ptr<module::Adaptor_n_to_1> adp_n_to_1  (new module::Adaptor_n_to_1(params.K_bch,                          typeid(int  ), 1, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_0(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_1(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_2(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_3(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_4(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
-	std::vector<module::Adaptor*> adaptors_1_to_1 = { adp_1_to_1_1.get(), adp_1_to_1_2.get(), adp_1_to_1_3.get(), adp_1_to_1_4.get() };
 
 	// manage noise
 	modem    ->set_noise(noise);
@@ -86,6 +86,7 @@ int main(int argc, char** argv)
 	sync_step_mf ->set_custom_name("MF_Synch"    );
 	adp_1_to_n   ->set_custom_name("Adp_1_to_n"  );
 	adp_n_to_1   ->set_custom_name("Adp_n_to_1"  );
+	adp_1_to_1_0 ->set_custom_name("Adp_1_to_1_0");
 	adp_1_to_1_1 ->set_custom_name("Adp_1_to_1_1");
 	adp_1_to_1_2 ->set_custom_name("Adp_1_to_1_2");
 	adp_1_to_1_3 ->set_custom_name("Adp_1_to_1_3");
@@ -98,7 +99,8 @@ int main(int argc, char** argv)
 	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt .get(),
 	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
 	            estimator   .get(), front_agc   .get(), adp_1_to_n   .get(), adp_n_to_1  .get(),
-	            adp_1_to_1_1.get(), adp_1_to_1_2.get(), adp_1_to_1_3 .get(), adp_1_to_1_4.get() };
+	            adp_1_to_1_0.get(), adp_1_to_1_1.get(), adp_1_to_1_2.get(), adp_1_to_1_3 .get(),
+	            adp_1_to_1_4.get()                                                               };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -140,7 +142,7 @@ int main(int argc, char** argv)
 
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
 	                            (*adp_n_to_1)[module::adp::tsk::push_n],
-	                            12);
+	                            24);
 	// DEBUG
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
@@ -186,6 +188,8 @@ int main(int argc, char** argv)
 				(*radio        )[rad::tsk::receive    ].exec();
 				(*front_agc    )[mlt::tsk::imultiply  ].exec();
 				(*sync_coarse_f)[sfc::tsk::synchronize].exec();
+				(*adp_1_to_1_0 )[adp::tsk::push_1     ].exec();
+				(*adp_1_to_1_0 )[adp::tsk::pull_n     ].exec();
 				(*matched_flt  )[flt::tsk::filter     ].exec();
 				(*adp_1_to_1_1 )[adp::tsk::push_1     ].exec();
 				(*adp_1_to_1_1 )[adp::tsk::pull_n     ].exec();
@@ -227,13 +231,14 @@ int main(int argc, char** argv)
 			m = 300;
 			n_phase++;
 			std::cerr << buf << std::endl;
-			(*sync_coarse_f )[sfc::sck::synchronize::X_N1].bind((*front_agc     )[mlt::sck::imultiply  ::Z_N ]);
-			(*matched_flt   )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f )[sfc::sck::synchronize::Y_N2]);
-			(*adp_1_to_1_1  )[adp::sck::push_1     ::in  ].bind((*matched_flt   )[flt::sck::filter     ::Y_N2]);
-			(*sync_timing   )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1  )[adp::sck::pull_n     ::out ]);
-			(*adp_1_to_1_2  )[adp::sck::push_1     ::in  ].bind((*sync_timing   )[stm::sck::synchronize::Y_N2]);
-			(*mult_agc      )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_2  )[adp::sck::pull_n     ::out ]);
-			(*sync_frame    )[sfm::sck::synchronize::X_N1].bind((*mult_agc      )[mlt::sck::imultiply  ::Z_N ]);
+
+			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
+			(*adp_1_to_1_0 )[adp::sck::push_1     ::in  ].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
+			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*adp_1_to_1_0 )[adp::sck::pull_n     ::out ]);
+			(*adp_1_to_1_1 )[adp::sck::push_1     ::in  ].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+			(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1 )[adp::sck::pull_n     ::out ]);
+			(*adp_1_to_1_2 )[adp::sck::push_1     ::in  ].bind((*sync_timing  )[stm::sck::synchronize::Y_N2]);
+			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out ]);
 		}
 	}
 	std::cerr << buf << "\n" << head_lines << "\n";
@@ -265,66 +270,51 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
-	auto stop_threads = [&chain_parallel, &adaptors_1_to_1]()
+	// create a chain per pipeline stage
+	tools::Chain chain_stage0((*radio       )[rad::tsk::receive], (*adp_1_to_1_0)[adp::tsk::push_1]);
+	tools::Chain chain_stage1((*adp_1_to_1_0)[adp::tsk::pull_n ], (*adp_1_to_1_1)[adp::tsk::push_1]);
+	tools::Chain chain_stage2((*adp_1_to_1_1)[adp::tsk::pull_n ], (*adp_1_to_1_2)[adp::tsk::push_1]);
+	tools::Chain chain_stage3((*adp_1_to_1_2)[adp::tsk::pull_n ], (*adp_1_to_1_3)[adp::tsk::push_1]);
+	tools::Chain chain_stage4((*adp_1_to_1_3)[adp::tsk::pull_n ], (*adp_1_to_1_4)[adp::tsk::push_1]);
+	tools::Chain chain_stage5((*adp_1_to_1_4)[adp::tsk::pull_n ], (*adp_1_to_n  )[adp::tsk::push_1]);
+	tools::Chain chain_stage6((*adp_n_to_1  )[adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ]);
+
+	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1,
+	                                            &chain_stage2, &chain_stage3,
+	                                            &chain_stage4, &chain_stage5,
+	                                            &chain_stage6                 };
+
+	// DEBUG
+	for (size_t cs = 0; cs < chain_stages.size(); cs++)
+	{
+		std::ofstream fs("chain_stage" + std::to_string(cs) + ".dot");
+		chain_stages[cs]->export_dot(fs);
+	}
+
+	// reset the stats of all the tasks
+	for (auto &cs : chain_stages)
+		for (auto &tt : cs->get_tasks_per_threads())
+			for (auto &t : tt) t->reset();
+
+	// function to wake up and stop all the threads
+	auto stop_threads = [&chain_parallel, &chain_stages]()
 	{
 		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
 			m->cancel_waiting();
-		for (auto adp : adaptors_1_to_1)
-			adp->cancel_waiting();
+		for (auto &cs : chain_stages)
+			for (auto &m : cs->get_modules<tools::Interface_waiting>())
+				m->cancel_waiting();
 	};
 
+	// start the pipeline threads
 	std::vector<std::thread> threads;
-	auto exec_pipeline_thread = [&](std::function<void()> sequence)
-	{
-		try
-		{
-			while (!terminal->is_interrupt())
-			{
-				try
-				{
-					sequence();
-				}
-				catch (tools::processing_aborted const&) {}
-			}
-		}
-		catch (tools::waiting_canceled const&) {}
-		stop_threads();
-	};
+	for (auto &cs : chain_stages)
+		threads.push_back(std::thread([cs, &terminal, &stop_threads]() {
+			cs->exec([&terminal]() { return terminal->is_interrupt(); } );
+			stop_threads();
+		}));
 
-	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
-		(*source       )[src::tsk::generate   ].exec(); // sequential |   7 us
-		(*radio        )[rad::tsk::receive    ].exec(); // sequential |   ? us
-		(*front_agc    )[mlt::tsk::imultiply  ].exec(); // parallel   |  27 us
-		(*sync_coarse_f)[sfc::tsk::synchronize].exec(); // sequential | 313 us
-		(*matched_flt  )[flt::tsk::filter     ].exec(); // sequential | 160 us
-		(*adp_1_to_1_1 )[adp::tsk::push_1     ].exec(); // sequential |  10 us
-	}); }));
-	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
-		(*adp_1_to_1_1 )[adp::tsk::pull_n     ].exec(); // sequential |  10 us |
-		(*sync_timing  )[stm::tsk::synchronize].exec(); // sequential | 548 us | can raise an exception
-		(*adp_1_to_1_2 )[adp::tsk::push_1     ].exec(); // sequential |  20 us |
-	}); }));
-	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
-		(*adp_1_to_1_2 )[adp::tsk::pull_n     ].exec(); // sequential |  20 us
-		(*mult_agc     )[mlt::tsk::imultiply  ].exec(); // parallel   |  27 us
-		(*adp_1_to_1_3 )[adp::tsk::push_1     ].exec(); // sequential |  10 us
-	}); }));
-	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
-		(*adp_1_to_1_3 )[adp::tsk::pull_n     ].exec(); // sequential |  10 us
-		(*sync_frame   )[sfm::tsk::synchronize].exec(); // sequential | 518 us
-		(*adp_1_to_1_4 )[adp::tsk::push_1     ].exec(); // sequential |  10 us
-	}); }));
-	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
-		(*adp_1_to_1_4 )[adp::tsk::pull_n     ].exec(); // sequential |  10 us
-		(*pl_scrambler )[scr::tsk::descramble ].exec(); // parallel   |   5 us
-		(*sync_lr      )[sff::tsk::synchronize].exec(); // sequential | 186 us
-		(*adp_1_to_n   )[adp::tsk::push_1     ].exec(); // sequential |  16 us
-	}); }));
-	threads.push_back(std::thread([&]() { exec_pipeline_thread([&]() {
-		(*adp_n_to_1   )[adp::tsk::pull_1     ].exec(); // sequential |   5 us
-		(*sink         )[snk::tsk::send       ].exec(); // sequential |  40 us
-	}); }));
-
+	// start the parallel chain
 	chain_parallel.exec([&monitor_red, &terminal]()
 	{
 		monitor_red->is_done();
@@ -332,6 +322,7 @@ int main(int argc, char** argv)
 	});
 	stop_threads();
 
+	// wait all the pipeline threads here
 	for (auto &t : threads)
 		t.join();
 
@@ -347,9 +338,18 @@ int main(int argc, char** argv)
 		for (size_t m = 0; m < modules.size(); m++)
 			modules_stats.push_back(modules[m]);
 
-		std::cout << "#" << std::endl;
 		const auto ordered = true;
-		tools::Stats::show(modules_stats, ordered);
+		// std::cout << "#" << std::endl;
+		// tools::Stats::show(modules_stats, ordered);
+		for (size_t cs = 0; cs < chain_stages.size(); cs++)
+		{
+			std::cout << "#" << std::endl << "# Chain stage " << cs << " (" << chain_stages[cs]->get_n_threads()
+			                 << " thread(s)): " << std::endl;
+			tools::Stats::show(chain_stages[cs]->get_tasks_per_types(), ordered);
+		}
+		std::cout << "#" << std::endl << "# Chain parallel (" << chain_parallel.get_n_threads() << " thread(s)): "
+		          << std::endl;
+		tools::Stats::show(chain_parallel.get_tasks_per_types(), ordered);
 	}
 
 	std::cout << "#" << std::endl;
