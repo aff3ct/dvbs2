@@ -142,7 +142,7 @@ int main(int argc, char** argv)
 
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
 	                            (*adp_n_to_1)[module::adp::tsk::push_n],
-	                            24);
+	                            40);
 	// DEBUG
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
@@ -168,22 +168,22 @@ int main(int argc, char** argv)
 	int n_phase = 1;
 	for (int m = 0; m < 500; m += params.n_frames)
 	{
-		if (n_phase < 3)
+		try
 		{
-			(*radio       )[rad::tsk::receive    ].exec();
-			(*front_agc   )[mlt::tsk::imultiply  ].exec();
-			(*sync_step_mf)[smf::tsk::synchronize].exec();
-			(*mult_agc    )[mlt::tsk::imultiply  ].exec();
-			(*adp_1_to_1_3)[adp::tsk::push_1     ].exec();
-			(*adp_1_to_1_3)[adp::tsk::pull_n     ].exec();
-			(*sync_frame  )[sfm::tsk::synchronize].exec();
-			(*adp_1_to_1_4)[adp::tsk::push_1     ].exec();
-			(*adp_1_to_1_4)[adp::tsk::pull_n     ].exec();
-			(*pl_scrambler)[scr::tsk::descramble ].exec();
-		}
-		else // n_phase == 3
-		{
-			try
+			if (n_phase < 3)
+			{
+				(*radio       )[rad::tsk::receive    ].exec();
+				(*front_agc   )[mlt::tsk::imultiply  ].exec();
+				(*sync_step_mf)[smf::tsk::synchronize].exec(); // can raise the 'tools::processing_aborted' exception
+				(*mult_agc    )[mlt::tsk::imultiply  ].exec();
+				(*adp_1_to_1_3)[adp::tsk::push_1     ].exec();
+				(*adp_1_to_1_3)[adp::tsk::pull_n     ].exec();
+				(*sync_frame  )[sfm::tsk::synchronize].exec();
+				(*adp_1_to_1_4)[adp::tsk::push_1     ].exec();
+				(*adp_1_to_1_4)[adp::tsk::pull_n     ].exec();
+				(*pl_scrambler)[scr::tsk::descramble ].exec();
+			}
+			else // n_phase == 3
 			{
 				(*radio        )[rad::tsk::receive    ].exec();
 				(*front_agc    )[mlt::tsk::imultiply  ].exec();
@@ -193,7 +193,8 @@ int main(int argc, char** argv)
 				(*matched_flt  )[flt::tsk::filter     ].exec();
 				(*adp_1_to_1_1 )[adp::tsk::push_1     ].exec();
 				(*adp_1_to_1_1 )[adp::tsk::pull_n     ].exec();
-				(*sync_timing  )[stm::tsk::synchronize].exec(); // can raise the 'tools::processing_aborted' exception
+				(*sync_timing  )[stm::tsk::synchronize].exec();
+				(*sync_timing  )[stm::tsk::extract    ].exec(); // can raise the 'tools::processing_aborted' exception
 				(*adp_1_to_1_2 )[adp::tsk::push_1     ].exec();
 				(*adp_1_to_1_2 )[adp::tsk::pull_n     ].exec();
 				(*mult_agc     )[mlt::tsk::imultiply  ].exec();
@@ -206,8 +207,8 @@ int main(int argc, char** argv)
 				(*sync_lr      )[sff::tsk::synchronize].exec();
 				(*sync_fine_pf )[sff::tsk::synchronize].exec();
 			}
-			catch (tools::processing_aborted const&) {}
 		}
+		catch (tools::processing_aborted const&) { }
 
 		sprintf(buf, pattern, n_phase, m+1,
 				sync_timing ->get_mu(),
@@ -237,7 +238,9 @@ int main(int argc, char** argv)
 			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*adp_1_to_1_0 )[adp::sck::pull_n     ::out ]);
 			(*adp_1_to_1_1 )[adp::sck::push_1     ::in  ].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
 			(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1 )[adp::sck::pull_n     ::out ]);
-			(*adp_1_to_1_2 )[adp::sck::push_1     ::in  ].bind((*sync_timing  )[stm::sck::synchronize::Y_N2]);
+			(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+			(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+			(*adp_1_to_1_2 )[adp::sck::push_1     ::in  ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
 			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out ]);
 		}
 	}

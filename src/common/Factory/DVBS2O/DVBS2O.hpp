@@ -60,7 +60,6 @@ public:
 	bool  no_sync_info;
 	bool  frame_sync_fast;
 	bool  perfect_sync;
-	bool  perfect_timing_sync;
 	bool  perfect_coarse_freq_sync;
 	bool  perfect_lr_freq_sync;
 	bool  perfect_pf_freq_sync;
@@ -93,6 +92,7 @@ public:
 	std::string constellation_file;
 	std::string section;
 	std::string src_type;
+	std::string stm_type;
 	std::string src_path;
 	std::string sink_path;
 	std::string channel_path;
@@ -200,8 +200,8 @@ public:
 	static module::Synchronizer_freq_fine<R>*
 	build_synchronizer_freq_phase(const DVBS2O& params);
 
-	template <typename R = float>
-	static module::Synchronizer_timing<R>*
+	template <typename B = int, typename R = float>
+	static module::Synchronizer_timing<B, R>*
 	build_synchronizer_timing (const DVBS2O& params);
 
 	template <typename R = float>
@@ -220,12 +220,12 @@ public:
 	static module::Synchronizer_freq_coarse<R>*
 	build_synchronizer_freq_coarse (const DVBS2O& params);
 
-	template <typename R = float>
-	static module::Synchronizer_step_mf_cc<R>*
+	template <typename B = int, typename R = float>
+	static module::Synchronizer_step_mf_cc<B,R>*
 	build_synchronizer_step_mf_cc(const DVBS2O& params,
 	                              aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                              aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
-	                              aff3ct::module::Synchronizer_timing<R>      *sync_timing  );
+	                              aff3ct::module::Synchronizer_timing<B,R>    *sync_timing  );
 
 
 	template <typename B = int>

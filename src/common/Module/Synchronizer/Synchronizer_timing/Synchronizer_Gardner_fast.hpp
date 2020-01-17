@@ -1,8 +1,7 @@
-#ifndef SYNCHRONIZER_GARDNER_AIB_HPP
-#define SYNCHRONIZER_GARDNER_AIB_HPP
+#ifndef SYNCHRONIZER_GARDNER_FAST_HPP
+#define SYNCHRONIZER_GARDNER_FAST_HPP
 
 #include <vector>
-#include <mutex>
 #include <complex>
 
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing.hpp"
@@ -12,8 +11,8 @@ namespace aff3ct
 {
 namespace module
 {
-template <typename B = int, typename R = float>
-class Synchronizer_Gardner_aib : public Synchronizer_timing<B,R>
+template <typename B=int, typename R = float>
+class Synchronizer_Gardner_fast : public Synchronizer_timing<B,R>
 {
 private:
 	const std::vector<int>  set_bits_nbr = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
@@ -37,11 +36,10 @@ private:
 
 	R NCO_counter;
 
-	std::mutex buffer_mtx;
-
 public:
-	Synchronizer_Gardner_aib (const int N, int osf, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2, const int n_frames = 1);
-	virtual ~Synchronizer_Gardner_aib();
+	Synchronizer_Gardner_fast (const int N, int osf, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2, const int n_frames = 1);
+	virtual ~Synchronizer_Gardner_fast();
+
 
 	inline void step(const std::complex<R> *X_N1, std::complex<R>* Y_N1, B* B_N1);
 
@@ -52,7 +50,6 @@ public:
 protected:
 	void _reset();
 	void _synchronize(const R *X_N1,  R *Y_N1, B *B_N1, const int frame_id);
-
 	inline void TED_update(std::complex<R> strobe);
 	inline void loop_filter();
 	inline void interpolation_control();
@@ -61,6 +58,6 @@ protected:
 }
 }
 
-#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_aib.hxx"
+#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_fast.hxx"
 
-#endif //SYNCHRONIZER_GARDNER_AIB_HPP
+#endif //SYNCHRONIZER_GARDNER_FAST_HPP

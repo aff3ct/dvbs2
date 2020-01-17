@@ -39,6 +39,15 @@ private:
 	Filter_FIR_ccr<R>    corr_PLSC;
 	Variable_delay_cc_naive<R> SOF_PLSC_delay;
 
+	std::vector<R> cor_SOF;
+	std::vector<R> cor_SOF_delayed;
+	std::vector<R> cor_PLSC;
+	std::vector<R> diff_signal;
+	// std::vector<R> cor_PLSC_re;
+	// std::vector<R> cor_PLSC_im;
+	// std::vector<R> cor_SOF_delayed_re;
+	// std::vector<R> cor_SOF_delayed_im;
+
 public:
 	Synchronizer_frame_DVBS2_fast (const int N, const int n_frames = 1);
 	virtual ~Synchronizer_frame_DVBS2_fast();

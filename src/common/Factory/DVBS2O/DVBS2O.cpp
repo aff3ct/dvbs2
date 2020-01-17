@@ -11,6 +11,8 @@
 #include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_freq_fine_perfect.hpp"
 
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_aib.hpp"
+#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_fast.hpp"
+#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_fast_osf2.hpp"
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing_perfect.hpp"
 
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_aib.hpp"
@@ -70,6 +72,7 @@ void DVBS2O
 
 	auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"                                ));
 	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                                                    ));
+	auto stm_type_format = cli::Text(cli::Including_set("NORMAL", "PERFECT", "FAST"                                                                           ));
 	args.add({"mod-cod"},            modcod_format,                                     "Modulation and coding scheme."                                       );
 	args.add({"chn-type"},           cli::Text(cli::Including_set("AWGN", "USER_ADD")), "Type of noise in the channel."                                              );
 	args.add({"chn-path"},           cli::Text(),                                       "Path of the channel noise"                                           );
@@ -101,7 +104,7 @@ void DVBS2O
 	args.add({"perfect-cf-sync"},    cli::None(),                                       "Enable genie aided coarse frequency synchronization."                );
 	args.add({"perfect-lr-sync"},    cli::None(),                                       "Enable genie aided Luise and Reggiannini frequency synchronization." );
 	args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
-	args.add({"perfect-timing-sync"},cli::None(),                                       "Enable genie aided timing synchronization."                          );
+	args.add({"stm-type"},           stm_type_format,                                   "Type of timing synchronization."                                     );
 	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),    "Inter frame level."                                                  );
 
 	p_rad.get_description(args);
@@ -114,41 +117,40 @@ void DVBS2O
 
 	modcod_init(modcod); // initialize all the parameters that are dependant on modcod
 
-	ebn0_min                 = vals.exist({"sim-noise-min","m"}  ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f                 ;
-	ebn0_max                 = vals.exist({"sim-noise-max","M"}  ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f                  ;
-	ebn0_step                = vals.exist({"sim-noise-step","s"} ) ? vals.to_float({"sim-noise-step","s"}) : .1f                  ;
-	channel_type             = vals.exist({"chn-type"}           ) ? vals.at      ({"chn-type"}          ) : "AWGN"               ;
-	channel_path             = vals.exist({"chn-path"}           ) ? vals.at      ({"chn-path"}          ) : channel_path         ;
-	max_delay                = vals.exist({"chn-max-delay"}      ) ? vals.to_float({"chn-max-delay"}     ) : 0.f                  ;
- 	ldpc_nite                = vals.exist({"dec-ite"}            ) ? vals.to_int  ({"dec-ite"}           ) : 50                   ;
- 	max_fe                   = vals.exist({"max-fe","e"}         ) ? vals.to_int  ({"max-fe","e"}        ) : 100                  ;
- 	sink_path                = vals.exist({"snk-path"}           ) ? vals.at      ({"snk-path"}          ) : "sink.out"           ;
- 	ldpc_implem              = vals.exist({"dec-implem"}         ) ? vals.at      ({"dec-implem"}        ) : "SPA"                ;
- 	ldpc_simd                = vals.exist({"dec-simd"}           ) ? vals.at      ({"dec-simd"}          ) : ""                   ;
- 	est_type                 = vals.exist({"est-type"}           ) ? vals.at      ({"est-type"}          ) : "DVBS2O"             ;
- 	section                  = vals.exist({"section"}            ) ? vals.at      ({"section"}           ) : ""                   ;
- 	src_type                 = vals.exist({"src-type"}           ) ? vals.at      ({"src-type"}          ) : "RAND"               ;
- 	src_path                 = vals.exist({"src-path"}           ) ? vals.at      ({"src-path"}          ) : src_path             ;
- 	dump_filename            = vals.exist({"dump-filename"}      ) ? vals.at      ({"dump-filename"}     ) : "dump"               ;
- 	debug                    = vals.exist({"sim-debug","d"}      ) ? true                                  : false                ;
- 	debug_limit              = vals.exist({"sim-debug-limit"}    ) ? vals.to_int  ({"sim-debug-limit"})    : -1                   ;
- 	stats                    = vals.exist({"sim-stats"}          ) ? true                                  : false                ;
- 	no_sync_info             = vals.exist({"no-sync-info"}       ) ? true                                  : false                ;
- 	rolloff                  = vals.exist({"shp-rolloff"}        ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f                 ;
- 	osf                      = vals.exist({"shp-osf"}            ) ? vals.to_int  ({"shp-osf"}           ) : 4                    ;
- 	grp_delay                = vals.exist({"shp-grp-delay"}      ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15                   ;
- 	frame_sync_fast          = vals.exist({"frame-sync-fast"}    ) ? true                                  : false                ;
- 	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false                ;
- 	perfect_timing_sync      = vals.exist({"perfect-timing-sync"}) ? true                                  : false                ;
- 	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false                ;
- 	perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false                ;
- 	perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false                ;
- 	n_frames                 = vals.exist({"src-fra","f"}        ) ? vals.to_int  ({"src-fra","f"}       ) : 1                    ;
+	ebn0_min                 = vals.exist({"sim-noise-min","m"}  ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
+	ebn0_max                 = vals.exist({"sim-noise-max","M"}  ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
+	ebn0_step                = vals.exist({"sim-noise-step","s"} ) ? vals.to_float({"sim-noise-step","s"}) : .1f         ;
+	max_freq_shift           = vals.exist({"chn-max-freq-shift"} ) ? vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
+	max_delay                = vals.exist({"chn-max-delay"}      ) ? vals.to_float({"chn-max-delay"}     ) : 0.f         ;
+	ldpc_nite                = vals.exist({"dec-ite"}            ) ? vals.to_int  ({"dec-ite"}           ) : 50          ;
+	max_fe                   = vals.exist({"max-fe","e"}         ) ? vals.to_int  ({"max-fe","e"}        ) : 100         ;
+	sink_path                = vals.exist({"snk-path"}           ) ? vals.at      ({"snk-path"}          ) : "sink.out"  ;
+	ldpc_implem              = vals.exist({"dec-implem"}         ) ? vals.at      ({"dec-implem"}        ) : "SPA"       ;
+	ldpc_simd                = vals.exist({"dec-simd"}           ) ? vals.at      ({"dec-simd"}          ) : ""          ;
+	est_type                 = vals.exist({"est-type"}           ) ? vals.at      ({"est-type"}          ) : "DVBS2O"    ;
+	section                  = vals.exist({"section"}            ) ? vals.at      ({"section"}           ) : ""          ;
+	src_type                 = vals.exist({"src-type"}           ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
+	src_path                 = vals.exist({"src-path"}           ) ? vals.at      ({"src-path"}          ) : src_path    ;
+	dump_filename            = vals.exist({"dump-filename"}      ) ? vals.at      ({"dump-filename"}     ) : "dump"      ;
+	debug                    = vals.exist({"sim-debug","d"}      ) ? true                                  : false       ;
+	debug_limit              = vals.exist({"sim-debug-limit"}    ) ? vals.to_int  ({"sim-debug-limit"})    : -1          ;
+	stats                    = vals.exist({"sim-stats"}          ) ? true                                  : false       ;
+	no_sync_info             = vals.exist({"no-sync-info"}       ) ? true                                  : false       ;
+	rolloff                  = vals.exist({"shp-rolloff"}        ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f        ;
+	osf                      = vals.exist({"shp-osf"}            ) ? vals.to_int  ({"shp-osf"}           ) : 4           ;
+	grp_delay                = vals.exist({"shp-grp-delay"}      ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15          ;
+	frame_sync_fast          = vals.exist({"frame-sync-fast"}    ) ? true                                  : false       ;
+	stm_type                 = vals.exist({"stm-type"}           ) ? vals.at      ({"stm-type"}          ) : "NORMAL"    ;
+	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
+	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false       ;
+	perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false       ;
+	perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false       ;
+	n_frames                 = vals.exist({"src-fra","f"}        ) ? vals.to_int  ({"src-fra","f"}       ) : 1           ;
 
 	if (perfect_sync)
 	{
-		perfect_timing_sync      = true;
 		perfect_coarse_freq_sync = true;
+		stm_type                 = "PERFECT";
 		perfect_pf_freq_sync     = true;
 		perfect_lr_freq_sync     = true;
 	}
@@ -210,7 +212,7 @@ void DVBS2O
 	if (this->src_path != "")
 		headers[p].push_back(std::make_pair("LDPC simd"            , this->ldpc_simd                     ));
 	if (this->channel_path != "")
-		headers[p].push_back(std::make_pair("Path to sink file"    , this->sink_path                     ));	
+		headers[p].push_back(std::make_pair("Path to sink file"    , this->sink_path                     ));
 	if (this->sink_path != "")
 		headers[p].push_back(std::make_pair("Path to sink file"    , this->sink_path                     ));
 	headers[p].push_back(std::make_pair("Type of source"       , this->src_type                          ));
@@ -487,7 +489,7 @@ module::Channel<R>* DVBS2O
 		if (filtered)
 			return new module::Channel_user_add<R>(2 * params.pl_frame_size * params.osf, params.channel_path, true, params.n_frames);
 		else
-			return new module::Channel_user_add<R>(2 * params.pl_frame_size             , params.channel_path, true, params.n_frames);			
+			return new module::Channel_user_add<R>(2 * params.pl_frame_size             , params.channel_path, true, params.n_frames);
 	else
 
 	throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Channel type.");
@@ -522,17 +524,30 @@ module::Synchronizer_freq_fine<R>* DVBS2O
 		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
 }
 
-template <typename R>
-module::Synchronizer_timing<R>* DVBS2O
+template <typename B, typename R>
+module::Synchronizer_timing<B,R>* DVBS2O
 ::build_synchronizer_timing(const DVBS2O& params)
 {
-	module::Synchronizer_timing<R>* sync_timing;
-	if (params.perfect_timing_sync)
+	module::Synchronizer_timing<B,R>* sync_timing;
+	if (params.stm_type == "NORMAL")
 	{
-		sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_timing_perfect<R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay, params.n_frames));
+		sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_aib<B,R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+	}
+	else if (params.stm_type == "PERFECT")
+	{
+		sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_timing_perfect<B,R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay, params.n_frames));
+	}
+	else if(params.stm_type == "FAST")
+	{
+		if (params.osf == 2)
+			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast_osf2<B,R>(2 * params.pl_frame_size * params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+		else
+			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast<B,R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
 	}
 	else
-	 	sync_timing = dynamic_cast<module::Synchronizer_timing<R>*>(new module::Synchronizer_Gardner_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+	{
+		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
+	}
 
 	return sync_timing;
 }
@@ -588,14 +603,14 @@ module::Filter_unit_delay<B>* DVBS2O
 	return new module::Filter_unit_delay<B>(params.K_bch, params.n_frames);
 }
 
-template <typename R>
-module::Synchronizer_step_mf_cc<R>* DVBS2O
+template <typename B, typename R>
+module::Synchronizer_step_mf_cc<B, R>* DVBS2O
 ::build_synchronizer_step_mf_cc(const DVBS2O& params,
 	                            aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                            aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
-	                            aff3ct::module::Synchronizer_timing<R>      *sync_timing)
+	                            aff3ct::module::Synchronizer_timing<B,R>    *sync_timing)
 {
-	return new module::Synchronizer_step_mf_cc<R>(sync_coarse_f, matched_filter, sync_timing, params.n_frames);
+	return new module::Synchronizer_step_mf_cc<B,R>(sync_coarse_f, matched_filter, sync_timing, params.n_frames);
 }
 
 template <typename R>
@@ -626,15 +641,15 @@ template aff3ct::module::Channel<R>*                   DVBS2O::build_channel<R> 
 template aff3ct::module::Multiplier_sine_ccc_naive<R>* DVBS2O::build_freq_shift<R>              (const DVBS2O& params);
 template aff3ct::module::Synchronizer_freq_fine<R>*    DVBS2O::build_synchronizer_lr<R>         (const DVBS2O& params);
 template aff3ct::module::Synchronizer_freq_fine<R>*    DVBS2O::build_synchronizer_freq_phase<R> (const DVBS2O& params);
-template aff3ct::module::Synchronizer_timing<R>*       DVBS2O::build_synchronizer_timing<R>     (const DVBS2O& params);
+template aff3ct::module::Synchronizer_timing<B,R>*     DVBS2O::build_synchronizer_timing<B,R>   (const DVBS2O& params);
 template aff3ct::module::Multiplier_AGC_cc_naive<R>*   DVBS2O::build_agc_shift<R>               (const DVBS2O& params);
 template aff3ct::module::Multiplier_AGC_cc_naive<R>*   DVBS2O::build_channel_agc<R>             (const DVBS2O& params);
 template aff3ct::module::Synchronizer_frame<R>*        DVBS2O::build_synchronizer_frame<R>      (const DVBS2O& params);
 template aff3ct::module::Synchronizer_freq_coarse<R>*  DVBS2O::build_synchronizer_freq_coarse<R>(const DVBS2O& params);
 template aff3ct::module::Filter_unit_delay<B>*         DVBS2O::build_unit_delay<B>              (const DVBS2O& params);
 template aff3ct::tools ::Interleaver_core<uint32_t>*   DVBS2O::build_itl_core<uint32_t>         (const DVBS2O& params);
-template aff3ct::module::Synchronizer_step_mf_cc<R>*   DVBS2O::build_synchronizer_step_mf_cc<R> (const DVBS2O& params,
+template aff3ct::module::Synchronizer_step_mf_cc<B,R>* DVBS2O::build_synchronizer_step_mf_cc<B,R>(const DVBS2O& params,
                                                                                                  aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
                                                                                                  aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
-                                                                                                 aff3ct::module::Synchronizer_timing<R>      *sync_timing   );
+                                                                                                 aff3ct::module::Synchronizer_timing<B,R>    *sync_timing   );
 template aff3ct::module::Radio<R>*                             DVBS2O::build_radio<R>           (const DVBS2O& params);

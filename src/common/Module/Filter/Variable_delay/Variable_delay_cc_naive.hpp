@@ -16,6 +16,7 @@ class Variable_delay_cc_naive : public Filter<R>
 private:
 	int delay;
 	std::vector<std::complex<R> > buff;
+	std::vector<R> buff2;
 	int head;
 	int size;
 

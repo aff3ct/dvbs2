@@ -1,5 +1,7 @@
 #include <cassert>
 #include <iostream>
+#include <iterator>
+#include <algorithm>
 
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_fast.hpp"
 
@@ -19,7 +21,15 @@ Synchronizer_frame_DVBS2_fast<R>
   output_delay(N, N / 2, N / 2),
   corr_SOF(N, conj_SOF),
   corr_PLSC(N, conj_PLSC),
-  SOF_PLSC_delay(N, 64, 64)
+  SOF_PLSC_delay(N, 64, 64),
+  cor_SOF        (N, (R)0),
+  cor_SOF_delayed(N, (R)0),
+  cor_PLSC       (N, (R)0),
+  diff_signal    (N, (R)0)
+  // cor_PLSC_re       (N/2, (R)0),
+  // cor_PLSC_im       (N/2, (R)0),
+  // cor_SOF_delayed_re(N/2, (R)0),
+  // cor_SOF_delayed_im(N/2, (R)0)
 {
 }
 
@@ -33,11 +43,6 @@ void Synchronizer_frame_DVBS2_fast<R>
 ::_synchronize(const R *X_N1, R *Y_N2, int* delay, const int frame_id)
 {
 	int cplx_in_sz = this->N_in/2;
-
-	std::vector<R> cor_SOF         (this->N_in, (R)0);
-	std::vector<R> cor_SOF_delayed (this->N_in, (R)0);
-	std::vector<R> cor_PLSC        (this->N_in, (R)0);
-	std::vector<R> diff_signal     (this->N_in, (R)0);
 
 	diff_signal[0] = this->reg_channel.real() * X_N1[0] + this->reg_channel.imag() * X_N1[1];
 	diff_signal[1] = this->reg_channel.imag() * X_N1[0] - this->reg_channel.real() * X_N1[1];
@@ -79,6 +84,67 @@ void Synchronizer_frame_DVBS2_fast<R>
 	this->output_delay.set_delay((cplx_in_sz - *delay)%cplx_in_sz);
 	this->output_delay.filter(X_N1,Y_N2);
 }
+
+// template <typename R>
+// void Synchronizer_frame_DVBS2_fast<R>
+// ::_synchronize(const R *X_N1, R *Y_N2, int* delay, const int frame_id)
+// {
+// 	int cplx_in_sz = this->N_in/2;
+
+// 	diff_signal[0] = this->reg_channel.real() * X_N1[0] + this->reg_channel.imag() * X_N1[1];
+// 	diff_signal[1] = this->reg_channel.imag() * X_N1[0] - this->reg_channel.real() * X_N1[1];
+// 	for (int i = 1 ; i < cplx_in_sz ; i++)
+// 	{
+// 		diff_signal[2*i    ] = X_N1[2*i-2] * X_N1[2*i] + X_N1[2*i-1] * X_N1[2*i+1];
+// 		diff_signal[2*i + 1] = X_N1[2*i-1] * X_N1[2*i] - X_N1[2*i-2] * X_N1[2*i+1];
+// 	}
+
+// 	corr_SOF      .filter(&diff_signal[0], &cor_SOF [0]       );
+// 	corr_PLSC     .filter(&diff_signal[0], &cor_PLSC[0]       );
+// 	SOF_PLSC_delay.filter(&cor_SOF[0]    , &cor_SOF_delayed[0]);
+
+// 	R max_corr   = 0;
+// 	int max_idx  = 0;
+
+// 	for (int i = 0 ; i < cplx_in_sz ; i++)
+// 		cor_PLSC_re[i] = cor_PLSC[2*i   ];
+// 	for (int i = 0 ; i < cplx_in_sz ; i++)
+// 		cor_PLSC_im[i] = cor_PLSC[2*i +1];
+
+// 	for (int i = 0 ; i < cplx_in_sz ; i++)
+// 		cor_SOF_delayed_re[i] = cor_SOF_delayed[2*i   ];
+// 	for (int i = 0 ; i < cplx_in_sz ; i++)
+// 		cor_SOF_delayed_im[i] = cor_SOF_delayed[2*i +1];
+
+// 	for (int i = 0 ; i < cplx_in_sz ; i += mipp::N<R>())
+// 	{
+// 		auto rcor_PLSC_re        = mipp::Reg<R>(&cor_PLSC_re       [i]);
+// 		auto rcor_PLSC_im        = mipp::Reg<R>(&cor_PLSC_im       [i]);
+// 		auto rcor_SOF_delayed_re = mipp::Reg<R>(&cor_SOF_delayed_re[i]);
+// 		auto rcor_SOF_delayed_im = mipp::Reg<R>(&cor_SOF_delayed_im[i]);
+
+// 		auto sum_sof_plsc_re = rcor_PLSC_re + rcor_SOF_delayed_re;
+// 		auto sum_sof_plsc_im = rcor_PLSC_im + rcor_SOF_delayed_im;
+// 		auto abs2_sum_corr = sum_sof_plsc_re * sum_sof_plsc_re + sum_sof_plsc_im * sum_sof_plsc_im;
+
+// 		auto dif_sof_plsc_re = rcor_SOF_delayed_re - rcor_PLSC_re;
+// 		auto dif_sof_plsc_im = rcor_SOF_delayed_im - rcor_PLSC_im;
+// 		auto abs2_dif_corr   = dif_sof_plsc_re * dif_sof_plsc_re + dif_sof_plsc_im * dif_sof_plsc_im;
+
+// 		auto res = mipp::sqrt(mipp::max(abs2_sum_corr, abs2_dif_corr));
+
+// 		res.store(&this->corr_vec[i]);
+// 	}
+
+// 	max_idx = (int)std::distance(this->corr_vec.begin(),
+// 	                             std::max_element(this->corr_vec.begin(), this->corr_vec.end()));
+
+// 	this->reg_channel = std::complex<R> (X_N1[2*cplx_in_sz - 2], X_N1[2*cplx_in_sz - 1]);
+
+// 	*delay = (cplx_in_sz + max_idx - conj_SOF.size() - conj_PLSC.size())%cplx_in_sz;
+// 	this->output_delay.set_delay((cplx_in_sz - *delay)%cplx_in_sz);
+// 	this->output_delay.filter(X_N1,Y_N2);
+// }
 
 template <typename R>
 void Synchronizer_frame_DVBS2_fast<R>
