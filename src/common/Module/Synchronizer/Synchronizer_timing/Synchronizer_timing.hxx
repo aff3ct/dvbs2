@@ -261,7 +261,7 @@ void Synchronizer_timing<B,R>
 	this->outbuf_head -= outbuf_head_tmp;
 
 	// we do that in case of the 'output_buffer' is not big enough
-	if ((this->output_buffer.size() - (size_t)this->outbuf_head) < this->N_in)
+	if ((this->output_buffer.size() - (size_t)this->outbuf_head) < (size_t)this->N_in)
 		this->output_buffer.resize(this->output_buffer.size() * 2);
 
 	size_t n = outbuf_head_tmp;
@@ -269,14 +269,14 @@ void Synchronizer_timing<B,R>
 	{
 		if (B_N1[i])
 		{
-			if (n < this->N_out)
+			if (n < (size_t)this->N_out)
 				Y_N2[n++] = Y_N1[i];
 			else
 				this->output_buffer[this->outbuf_head++] = Y_N1[i];
 		}
 	}
 
-	if (n < this->N_out)
+	if (n < (size_t)this->N_out)
 	{
 		std::copy(Y_N2,
 		          Y_N2 + n,

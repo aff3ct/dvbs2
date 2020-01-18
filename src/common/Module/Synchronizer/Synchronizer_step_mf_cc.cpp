@@ -128,7 +128,7 @@ void Synchronizer_step_mf_cc<B,R>
 	sync_coarse_f->set_curr_idx(coarse_delay);
 	this->last_delay = this->sync_timing->get_delay();
 
-	int frame_sym_sz = this->N_out;
+	// int frame_sym_sz = this->N_out;
 	int frame_sps_sz = this->N_in;
 
 	std::vector<R> Y_N1 (frame_sps_sz,(R)0);

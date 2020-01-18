@@ -60,7 +60,6 @@ void Synchronizer_Gardner_fast<B,R>
 
 			auto idx_mid  = this->TED_mid_pos  + this->TED_mid_pos;
 			auto idx_head = this->TED_head_pos + this->TED_head_pos;
-			auto idx_curr = i + i;;
 			this->TED_error = TED_buffer_iq[idx_mid    ] * (TED_buffer_iq[idx_head    ] - Y_N1[2*i    ]) +
 			                  TED_buffer_iq[idx_mid + 1] * (TED_buffer_iq[idx_head + 1] - Y_N1[2*i + 1]);
 
