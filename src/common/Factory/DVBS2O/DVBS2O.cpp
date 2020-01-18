@@ -74,8 +74,8 @@ void DVBS2O
 	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                                                    ));
 	auto stm_type_format = cli::Text(cli::Including_set("NORMAL", "PERFECT", "FAST"                                                                           ));
 	args.add({"mod-cod"},            modcod_format,                                     "Modulation and coding scheme."                                       );
-	args.add({"chn-type"},           cli::Text(cli::Including_set("AWGN", "USER_ADD")), "Type of noise in the channel."                                              );
-	args.add({"chn-path"},           cli::Text(),                                       "Path of the channel noise"                                           );
+	args.add({"chn-type"},           cli::Text(cli::Including_set("AWGN", "USER_ADD")), "Type of noise in the channel."                                       );
+	args.add({"chn-path"},           cli::Text(),                                       "Path of the channel noise."                                          );
 	args.add({"chn-max-freq-shift"}, cli::Real(),                                       "Maximum Doppler shift."                                              );
 	args.add({"chn-max-delay"},      cli::Real(),                                       "Maximum Channel Delay."                                              );
 	args.add({"shp-grp-delay"},      cli::Real(),                                       "RRC Group delay."                                                    );
@@ -120,6 +120,8 @@ void DVBS2O
 	ebn0_min                 = vals.exist({"sim-noise-min","m"}  ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
 	ebn0_max                 = vals.exist({"sim-noise-max","M"}  ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
 	ebn0_step                = vals.exist({"sim-noise-step","s"} ) ? vals.to_float({"sim-noise-step","s"}) : .1f         ;
+	channel_type             = vals.exist({"chn-type"}           ) ? vals.at      ({"chn-type"}          ) : "AWGN"      ;
+	channel_path             = vals.exist({"chn-path"}           ) ? vals.at      ({"chn-path"}          ) : channel_path;
 	max_freq_shift           = vals.exist({"chn-max-freq-shift"} ) ? vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
 	max_delay                = vals.exist({"chn-max-delay"}      ) ? vals.to_float({"chn-max-delay"}     ) : 0.f         ;
 	ldpc_nite                = vals.exist({"dec-ite"}            ) ? vals.to_int  ({"dec-ite"}           ) : 50          ;
@@ -202,7 +204,7 @@ void DVBS2O
 	headers[p].push_back(std::make_pair("Max  Eb/N0"           , std::to_string(this->ebn0_max)          ));
 	headers[p].push_back(std::make_pair("Step Eb/N0"           , std::to_string(this->ebn0_step)         ));
 	headers[p].push_back(std::make_pair("Max frame errors"     , std::to_string(this->max_fe)            ));
-	headers[p].push_back(std::make_pair("Type of channel"       , this->channel_type                     ));
+	headers[p].push_back(std::make_pair("Type of channel"      , this->channel_type                      ));
 	if (this->max_freq_shift != 0)
 		headers[p].push_back(std::make_pair("Maximum Doppler shift", std::to_string(this->max_freq_shift)));
 	if (this->max_delay != 0)
