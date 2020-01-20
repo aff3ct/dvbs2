@@ -32,10 +32,46 @@ Filter_FIR_ccr<R>
 ::~Filter_FIR_ccr()
 {}
 
+// template <typename R>
+// void Filter_FIR_ccr<R>
+// ::_filter(const R *X_N1, R *Y_N2, const int frame_id)
+// {
+// 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
+// 	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
+
+// 	int rest = this->N - this->P * this->M;
+
+// 	for(auto i = 0; i < rest/2; i++)
+// 		step(&cX_N1[i], &cY_N2[i]);
+
+// 	mipp::Reg<R> ps;
+// 	mipp::Reg<R> reg_x;
+// 	mipp::Reg<R> reg_b;
+// 	size_t b_size = b.size();
+// 	for(auto i = rest ; i < this->N ; i += this->M)
+// 	{
+// 		ps = (R)0;
+// 		for(size_t k = 0; k < b_size ; k++)
+// 		{
+// 			reg_b = b[k];
+// 			reg_x.load(X_N1 + i - 2*(b_size - 1 - k));
+// 			ps = mipp::fmadd(reg_b, reg_x, ps); // same as 'ps += reg_b * reg_x'
+// 		}
+// 		ps.store(Y_N2 + i);
+// 	}
+// 	int sz = this->N/2;
+// 	std::copy(&cX_N1[sz - this->size], &cX_N1[sz], &this->buff[0]);
+// 	std::copy(&cX_N1[sz - this->size], &cX_N1[sz], &this->buff[this->size]);
+// 	this->head = 0;
+// }
+
 template <typename R>
 void Filter_FIR_ccr<R>
 ::_filter(const R *X_N1, R *Y_N2, const int frame_id)
 {
+	size_t b_size = b.size();
+	assert(b_size % 4 == 0);
+
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
 	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
 
@@ -44,26 +80,54 @@ void Filter_FIR_ccr<R>
 	for(auto i = 0; i < rest/2; i++)
 		step(&cX_N1[i], &cY_N2[i]);
 
-	mipp::Reg<R> ps;
-	mipp::Reg<R> reg_x;
-	mipp::Reg<R> reg_b;
-	for(auto i = rest ; i < this->N ; i += this->M)
+	mipp::Reg<R> ps = (R)0;
+	mipp::Reg<R> ps0;
+	mipp::Reg<R> ps1;
+	mipp::Reg<R> ps2;
+	mipp::Reg<R> ps3;
+
+	mipp::Reg<R> reg_x0;
+	mipp::Reg<R> reg_x1;
+	mipp::Reg<R> reg_x2;
+	mipp::Reg<R> reg_x3;
+
+	mipp::Reg<R> reg_b0;
+	mipp::Reg<R> reg_b1;
+	mipp::Reg<R> reg_b2;
+	mipp::Reg<R> reg_b3;
+
+	for (auto i = rest; i < this->N ; i += this->M)
 	{
-		ps = (R)0;
-		for(size_t k = 0; k < b.size() ; k++)
+		for (size_t k = 0; k < b_size ; k += 4)
 		{
-			reg_b = b[k];
-			reg_x.load(X_N1 + i - 2*(b.size() - 1 - k));
-			ps += reg_b * reg_x;
+			reg_b0 = b[k +0];
+			reg_b1 = b[k +1];
+			reg_b2 = b[k +2];
+			reg_b3 = b[k +3];
+
+			reg_x0 = &X_N1[i - 2*(b_size - 1 - k +0)];
+			reg_x1 = &X_N1[i - 2*(b_size - 1 - k +1)];
+			reg_x2 = &X_N1[i - 2*(b_size - 1 - k +2)];
+			reg_x3 = &X_N1[i - 2*(b_size - 1 - k +3)];
+
+			ps0 = reg_b0 * reg_x0;
+			ps1 = reg_b1 * reg_x1;
+			ps2 = reg_b2 * reg_x2;
+			ps3 = reg_b3 * reg_x3;
+
+			ps0 += ps1;
+			ps2 += ps3;
+			ps = ps0 + ps2;
 		}
+
 		ps.store(Y_N2 + i);
 	}
+
 	int sz = this->N/2;
 	std::copy(&cX_N1[sz - this->size], &cX_N1[sz], &this->buff[0]);
 	std::copy(&cX_N1[sz - this->size], &cX_N1[sz], &this->buff[this->size]);
 	this->head = 0;
 }
-
 
 template <typename R>
 void Filter_FIR_ccr<R>
