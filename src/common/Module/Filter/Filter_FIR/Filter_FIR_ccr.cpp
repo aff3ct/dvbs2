@@ -69,9 +69,6 @@ template <typename R>
 void Filter_FIR_ccr<R>
 ::_filter(const R *X_N1, R *Y_N2, const int frame_id)
 {
-	size_t b_size = b.size();
-	assert(b_size % 4 == 0);
-
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
 	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
 
@@ -96,9 +93,12 @@ void Filter_FIR_ccr<R>
 	mipp::Reg<R> reg_b2;
 	mipp::Reg<R> reg_b3;
 
+	size_t b_size = b.size();
+	size_t b_size_unrolled4 = (b_size / 4) * 4;
+
 	for (auto i = rest; i < this->N ; i += this->M)
 	{
-		for (size_t k = 0; k < b_size ; k += 4)
+		for (size_t k = 0; k < b_size_unrolled4; k += 4)
 		{
 			reg_b0 = b[k +0];
 			reg_b1 = b[k +1];
@@ -118,6 +118,13 @@ void Filter_FIR_ccr<R>
 			ps0 += ps1;
 			ps2 += ps3;
 			ps = ps0 + ps2;
+		}
+
+		for (size_t k = b_size_unrolled4; k < b_size ; k++)
+		{
+			reg_b0 = b[k];
+			reg_x0.load(X_N1 + i - 2*(b_size - 1 - k));
+			ps = mipp::fmadd(reg_b0, reg_x0, ps); // same as 'ps += reg_b0 * reg_x0'
 		}
 
 		ps.store(Y_N2 + i);
