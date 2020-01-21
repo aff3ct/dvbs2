@@ -13,7 +13,7 @@ namespace module
 template <typename R = float>
 class Filter_FIR_ccr : public Filter<R>
 {
-private:
+protected:
 	std::vector<std::complex<R> > buff;
 	int head;
 	int size;
@@ -42,11 +42,9 @@ void Filter_FIR_ccr<R>
 	this->buff[this->head] = *x_elt;
 	this->buff[this->head + this->size] = *x_elt;
 
-	std::complex<R> ps = this->buff[this->head+1] * this->b[0];
+	*y_elt = this->buff[this->head+1] * this->b[0];
 	for (auto i = 1; i < this->size ; i++)
-		ps += this->buff[this->head + 1 + i] * this->b[i];
-
-	*y_elt = ps;
+		*y_elt += this->buff[this->head + 1 + i] * this->b[i];
 
 	this->head++;
 	this->head %= this->size;

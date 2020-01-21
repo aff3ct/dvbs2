@@ -21,8 +21,12 @@ public:
 
 	Filter_Farrow_ccr_naive (const int N, const R mu, const int n_frames = 1);
 	virtual ~Filter_Farrow_ccr_naive();
-	void set_mu(R mu);
+	inline void set_mu(R mu);
+	inline void step(const std::complex<R>* x_elt, std::complex<R>* y_elt);
 };
 }
 }
+
+#include "Module/Filter/Filter_FIR/Farrow/Filter_Farrow_ccr_naive.hxx"
+
 #endif //FILTER_FARROW_CCR_NAIVE_HPP

@@ -18,17 +18,7 @@ Filter_Farrow_ccr_naive<R>
 template <typename R>
 Filter_Farrow_ccr_naive<R>
 ::~Filter_Farrow_ccr_naive()
-{}
-
-template <typename R>
-void Filter_Farrow_ccr_naive<R>
-::set_mu(const R mu)
 {
-	this->mu = mu;
-	this->b[3] = (R)0.5 * mu * mu - (R)0.5 * mu;
-	this->b[2] = (R)1.5 * mu - (R)0.5 * mu * mu;
-	this->b[1] = (R)1.0 - (R)0.5*mu - (R)0.5 * mu * mu;
-	this->b[0] = (R)0.5 * mu * mu - (R)0.5 * mu;
 }
 
 // ==================================================================================== explicit template instantiation

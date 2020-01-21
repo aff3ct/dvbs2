@@ -83,7 +83,8 @@ void Synchronizer_Gardner_fast_osf2<B,R>
 
 			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
 
-			this->TED_buffer[this->TED_head_pos] = std::complex<R>(0.0f, 0.0f);
+			this->TED_buffer[this->TED_head_pos].real(0.);
+			this->TED_buffer[this->TED_head_pos].imag(0.);
 			this->TED_buffer[this->TED_mid_pos ] = cY_N1[i];
 
 			this->TED_error = 0.0f;
