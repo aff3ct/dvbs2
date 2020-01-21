@@ -54,7 +54,7 @@ template <typename R>
 void Variable_delay_cc_naive<R>
 ::_filter(const R *X_N1, R *Y_N2, const int frame_id)
 {
-	assert(N <= max_delay);
+	assert(this->N >= 2*(this->size -1));
 
 	auto start_Y_N2 = (2*this->delay > this->head2) ? 2*this->delay - this->head2 : 0;
 	auto start_buff = (2*this->delay < this->head2) ? this->head2 - 2*this->delay : 0;
