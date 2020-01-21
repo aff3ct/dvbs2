@@ -30,6 +30,7 @@ public:
 protected:
 	std::vector<R> b;
 	void _filter(const R *X_N1,  R *Y_N2, const int frame_id);
+	void _filter_old(const R *X_N1,  R *Y_N2, const int frame_id);
 
 };
 
