@@ -110,24 +110,31 @@ template <typename R>
 void Multiplier_sine_ccc_naive<R>
 ::_imultiply(const R *X_N,  R *Z_N, const int frame_id)
 {
-	for (auto i = 0; i < mipp::N<R>()/2; i++)
-		this->n_vals[i*2] = (this->n +(R)i >= 999999.) ? 0. +(R)i : this->n +(R)i;
-	for (auto i = 0; i < mipp::N<R>()/2; i++)
-		this->n_vals[i*2 +1] = (this->n +(R)i + (R)(mipp::N<R>()/2) >= 999999.) ?
-		                       0. +(R)i + (R)(mipp::N<R>()/2) : this->n +(R)i + (R)(mipp::N<R>()/2);
+	if (mipp::N<R>() > 1)
+	{
+		for (auto i = 0; i < mipp::N<R>()/2; i++)
+			this->n_vals[i*2] = (this->n +(R)i >= 999999.) ? 0. +(R)i : this->n +(R)i;
+		for (auto i = 0; i < mipp::N<R>()/2; i++)
+			this->n_vals[i*2 +1] = (this->n +(R)i + (R)(mipp::N<R>()/2) >= 999999.) ?
+			                       0. +(R)i + (R)(mipp::N<R>()/2) : this->n +(R)i + (R)(mipp::N<R>()/2);
+	}
+	else
+		this->n_vals[0] = this->n;
 
 	mipp::Msk<mipp::N<R>()> reg_msk = this->mask;
 	mipp::Reg<R> reg_n = this->n_vals;
 	mipp::Reg<R> reg_omega = this->omega;
 	mipp::Reg<R> reg_limit = 999999.;
+	mipp::Reg<R> reg_cos;
+	mipp::Reg<R> reg_sin;
 
 	auto end_vec_loop = (this->N / (2 * mipp::N<R>())) * (2 * mipp::N<R>());
 
 	for (auto i = 0 ; i < end_vec_loop; i += 2 * mipp::N<R>())
 	{
 		auto reg_phase = reg_omega * reg_n;
-		auto reg_cos = mipp::cos(reg_phase);
-		auto reg_sin = mipp::sin(reg_phase);
+
+		mipp::sincos(reg_phase, reg_sin, reg_cos);
 
 		mipp::Reg<R> reg_X_N1 = &X_N[i + 0 * mipp::N<R>()];
 		mipp::Reg<R> reg_X_N2 = &X_N[i + 1 * mipp::N<R>()];
@@ -135,8 +142,8 @@ void Multiplier_sine_ccc_naive<R>
 		auto reg_X_N2r = mipp::rrot(reg_X_N2);
 		auto reg_X_N1r = mipp::lrot(reg_X_N1);
 
-		auto reg_X_N_re = mipp::blend(reg_X_N1, reg_X_N2r, mask);
-		auto reg_X_N_im = mipp::blend(reg_X_N1r, reg_X_N2, mask);
+		auto reg_X_N_re = mipp::blend(reg_X_N1 , reg_X_N2r, reg_msk);
+		auto reg_X_N_im = mipp::blend(reg_X_N1r, reg_X_N2 , reg_msk);
 
 		auto reg_re = (reg_X_N_re * reg_cos) - (reg_X_N_im * reg_sin);
 		auto reg_im = (reg_X_N_re * reg_sin) + (reg_X_N_im * reg_cos);
@@ -144,8 +151,8 @@ void Multiplier_sine_ccc_naive<R>
 		auto reg_imr = mipp::rrot(reg_im);
 		auto reg_rer = mipp::lrot(reg_re);
 
-		auto reg_Z_N1 = mipp::blend(reg_re, reg_imr, mask);
-		auto reg_Z_N2 = mipp::blend(reg_rer, reg_im, mask);
+		auto reg_Z_N1 = mipp::blend(reg_re , reg_imr, reg_msk);
+		auto reg_Z_N2 = mipp::blend(reg_rer, reg_im , reg_msk);
 
 		reg_Z_N1.store(&Z_N[i + 0 * mipp::N<R>()]);
 		reg_Z_N2.store(&Z_N[i + 1 * mipp::N<R>()]);

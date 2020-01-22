@@ -18,6 +18,8 @@ private:
 	std::vector<int>   pilot_start;
 
 	std::vector<R> R_l;
+	R n_vals[mipp::N<R>()];
+	bool mask[mipp::N<R>()];
 
 public:
 	Synchronizer_Luise_Reggiannini_DVBS2_aib (const int N, const int n_frames = 1);
@@ -25,6 +27,7 @@ public:
 
 protected:
 	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
+	void _synchronize_old(const R *X_N1,  R *Y_N2, const int frame_id);
 	void _reset();
 
 };
