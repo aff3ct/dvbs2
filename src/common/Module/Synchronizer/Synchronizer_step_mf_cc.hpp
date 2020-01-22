@@ -47,6 +47,9 @@ protected:
 	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */
 	const int N_out; /*!< Number of samples after the synchronization process */
 
+	std::vector<R> Y_N1_tmp;
+	std::vector<B> B_N1_tmp;
+
 public:
 	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                         aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,

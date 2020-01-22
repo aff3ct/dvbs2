@@ -12,14 +12,16 @@ using namespace aff3ct::module;
 
 template <typename B, typename R>
 Synchronizer_step_mf_cc<B,R>
-::	Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
-	                         aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
-	                         aff3ct::module::Synchronizer_timing<B,R>    *sync_timing,
-	                         const int n_frames)
+::Synchronizer_step_mf_cc (aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
+                           aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
+                           aff3ct::module::Synchronizer_timing<B,R>    *sync_timing,
+                           const int n_frames)
 : Module(n_frames),
   last_delay(0),
   N_in(sync_coarse_f->get_N()),
   N_out(sync_timing->get_N_out()),
+  Y_N1_tmp(this->N_in, (R)0),
+  B_N1_tmp(this->N_in, (R)0),
   sync_coarse_f(sync_coarse_f),
   matched_filter(matched_filter),
   sync_timing(sync_timing)
@@ -62,15 +64,15 @@ Synchronizer_step_mf_cc<B,R>
 {}
 
 template <typename B, typename R>
-int Synchronizer_step_mf_cc<B,R>::
-get_N_in() const
+int Synchronizer_step_mf_cc<B,R>
+::get_N_in() const
 {
 	return this->N_in;
 }
 
 template <typename B, typename R>
-int Synchronizer_step_mf_cc<B,R>::
-get_N_out() const
+int Synchronizer_step_mf_cc<B,R>
+::get_N_out() const
 {
 	return this->N_out;
 }
@@ -84,8 +86,8 @@ int Synchronizer_step_mf_cc<B,R>
 
 template <typename B, typename R>
 template <class AB, class AR>
-void Synchronizer_step_mf_cc<B,R>::
-synchronize(const std::vector<R,AR>& X_N1, const std::vector<int>& delay, std::vector<R,AR>& Y_N2, const int frame_id)
+void Synchronizer_step_mf_cc<B,R>
+::synchronize(const std::vector<R,AR>& X_N1, const std::vector<int>& delay, std::vector<R,AR>& Y_N2, const int frame_id)
 {
 	if (this->N_in * this->n_frames != (int)X_N1.size())
 	{
@@ -107,8 +109,8 @@ synchronize(const std::vector<R,AR>& X_N1, const std::vector<int>& delay, std::v
 }
 
 template <typename B, typename R>
-void Synchronizer_step_mf_cc<B,R>::
-synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id)
+void Synchronizer_step_mf_cc<B,R>
+::synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
@@ -124,15 +126,11 @@ template <typename B, typename R>
 void Synchronizer_step_mf_cc<B,R>
 ::_synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id)
 {
-	int coarse_delay = (this->N_out - delay[frame_id] + this->last_delay) % (this->N_out / 2);
+	int coarse_delay = (this->N_out - *delay + this->last_delay) % (this->N_out / 2);
 	sync_coarse_f->set_curr_idx(coarse_delay);
 	this->last_delay = this->sync_timing->get_delay();
 
-	// int frame_sym_sz = this->N_out;
 	int frame_sps_sz = this->N_in;
-
-	std::vector<R> Y_N1 (frame_sps_sz,(R)0);
-	std::vector<B> B_N1 (frame_sps_sz,(B)0);
 
 	for (int spl_idx = 0; spl_idx < frame_sps_sz/2; spl_idx++)
 	{
@@ -142,14 +140,14 @@ void Synchronizer_step_mf_cc<B,R>
 
 		this->sync_coarse_f ->step (&sync_coarse_f_in,  &sync_coarse_f_out);
 		this->matched_filter->step (&sync_coarse_f_out, &matched_filter_out);
-		this->sync_timing  ->step (&matched_filter_out, &matched_filter_out, &B_N1[2*spl_idx]);
-		Y_N1[2*spl_idx    ] = std::real(matched_filter_out);
-		Y_N1[2*spl_idx + 1] = std::imag(matched_filter_out);
+		this->sync_timing   ->step (&matched_filter_out, &matched_filter_out, &this->B_N1_tmp[2*spl_idx]);
+		this->Y_N1_tmp[2*spl_idx    ] = std::real(matched_filter_out);
+		this->Y_N1_tmp[2*spl_idx + 1] = std::imag(matched_filter_out);
 
-		if (B_N1[2*spl_idx] == 1)
+		if (this->B_N1_tmp[2*spl_idx] == 1)
 			this->sync_coarse_f->update_phase(this->sync_timing->get_last_symbol());
 	}
-	this->sync_timing->extract(Y_N1.data(), B_N1.data(), Y_N2);
+	this->sync_timing->extract(this->Y_N1_tmp.data(), this->B_N1_tmp.data(), Y_N2, 0);
 }
 
 template <typename B, typename R>
