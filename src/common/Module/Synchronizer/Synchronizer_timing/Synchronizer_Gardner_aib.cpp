@@ -57,7 +57,7 @@ void Synchronizer_Gardner_aib<B, R>
 
 	this->strobe_history  = 0;
 	this->TED_error       = (R)0;
-	this->TED_head_pos    = 0;
+	this->TED_head_pos    = this->osf -1;
 	this->TED_mid_pos     = (this->osf - 1 - this->osf / 2) % this->osf;
 	this->lf_prev_in      = (R)0;
 	this->lf_filter_state = (R)0;
