@@ -66,8 +66,6 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_0(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_1(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_2(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_3(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_4(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 
 	// manage noise
 	modem    ->set_noise(noise);
@@ -89,8 +87,6 @@ int main(int argc, char** argv)
 	adp_1_to_1_0 ->set_custom_name("Adp_1_to_1_0");
 	adp_1_to_1_1 ->set_custom_name("Adp_1_to_1_1");
 	adp_1_to_1_2 ->set_custom_name("Adp_1_to_1_2");
-	adp_1_to_1_3 ->set_custom_name("Adp_1_to_1_3");
-	adp_1_to_1_4 ->set_custom_name("Adp_1_to_1_4");
 
 	// fill the list of modules
 	modules = { bb_scrambler.get(), BCH_decoder .get(), source       .get(), LDPC_decoder      ,
@@ -99,8 +95,7 @@ int main(int argc, char** argv)
 	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt .get(),
 	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
 	            estimator   .get(), front_agc   .get(), adp_1_to_n   .get(), adp_n_to_1  .get(),
-	            adp_1_to_1_0.get(), adp_1_to_1_1.get(), adp_1_to_1_2.get(), adp_1_to_1_3 .get(),
-	            adp_1_to_1_4.get()                                                               };
+	            adp_1_to_1_0.get(), adp_1_to_1_1.get(), adp_1_to_1_2 .get(),                     };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -114,137 +109,124 @@ int main(int argc, char** argv)
 			ta->set_fast           (false             ); // disable the fast mode
 		}
 
-	using namespace module;
-
-	(*sync_lr       )[sff::sck::synchronize  ::X_N1 ].bind((*pl_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
-	(*adp_1_to_n    )[adp::sck::push_1       ::in   ].bind((*sync_lr       )[sff::sck::synchronize  ::Y_N2 ]);
-	(*sync_fine_pf  )[sff::sck::synchronize  ::X_N1 ].bind((*adp_1_to_n    )[adp::sck::pull_n       ::out  ]);
-	(*framer        )[frm::sck::remove_plh   ::Y_N1 ].bind((*sync_fine_pf  )[sff::sck::synchronize  ::Y_N2 ]);
-	(*estimator     )[est::sck::estimate     ::X_N  ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2 ]);
-	(*modem         )[mdm::sck::demodulate_wg::H_N  ].bind((*estimator     )[est::sck::estimate     ::H_N  ]);
-	(*modem         )[mdm::sck::demodulate_wg::Y_N1 ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2 ]);
-	(*itl_rx        )[itl::sck::deinterleave ::itl  ].bind((*modem         )[mdm::sck::demodulate_wg::Y_N2 ]);
-	(*LDPC_decoder  )[dec::sck::decode_siho  ::Y_N  ].bind((*itl_rx        )[itl::sck::deinterleave ::nat  ]);
-	(*BCH_decoder   )[dec::sck::decode_hiho  ::Y_N  ].bind((*LDPC_decoder  )[dec::sck::decode_siho  ::V_K  ]);
-	(*bb_scrambler  )[scr::sck::descramble   ::Y_N1 ].bind((*BCH_decoder   )[dec::sck::decode_hiho  ::V_K  ]);
-	(*front_agc     )[mlt::sck::imultiply    ::X_N  ].bind((*radio         )[rad::sck::receive      ::Y_N1 ]);
-	(*sync_step_mf  )[smf::sck::synchronize  ::X_N1 ].bind((*front_agc     )[mlt::sck::imultiply    ::Z_N  ]);
-	(*sync_step_mf  )[smf::sck::synchronize  ::delay].bind((*sync_frame    )[sfm::sck::synchronize  ::delay]);
-	(*mult_agc      )[mlt::sck::imultiply    ::X_N  ].bind((*sync_step_mf  )[smf::sck::synchronize  ::Y_N2 ]);
-	(*adp_1_to_1_3  )[adp::sck::push_1       ::in   ].bind((*mult_agc      )[mlt::sck::imultiply    ::Z_N  ]);
-	(*sync_frame    )[sfm::sck::synchronize  ::X_N1 ].bind((*adp_1_to_1_3  )[adp::sck::pull_n       ::out  ]);
-	(*adp_1_to_1_4  )[adp::sck::push_1       ::in   ].bind((*sync_frame    )[sfm::sck::synchronize  ::Y_N2 ]);
-	(*pl_scrambler  )[scr::sck::descramble   ::Y_N1 ].bind((*adp_1_to_1_4  )[adp::sck::pull_n       ::out  ]);
-	(*monitor       )[mnt::sck::check_errors ::U    ].bind((*source        )[src::sck::generate     ::U_K  ]);
-	(*monitor       )[mnt::sck::check_errors ::V    ].bind((*bb_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
-	(*adp_n_to_1    )[adp::sck::push_n       ::in   ].bind((*bb_scrambler  )[scr::sck::descramble   ::Y_N2 ]);
-	(*sink          )[snk::sck::send         ::V    ].bind((*adp_n_to_1    )[adp::sck::pull_1       ::out  ]);
-
-	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
-	                            (*adp_n_to_1)[module::adp::tsk::push_n],
-	                            40);
-	// DEBUG
-	std::ofstream f("chain_parallel.dot");
-	chain_parallel.export_dot(f);
-
-	freq_shift   ->reset();
-	sync_coarse_f->reset();
-	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
-	matched_flt  ->reset();
-	sync_timing  ->reset();
-	sync_frame   ->reset();
-	sync_lr      ->reset();
-	sync_fine_pf ->reset();
-
-	std::cout << "# LEARNING PHASE" << std::endl;
-	std::cout << "# --------------" << std::endl;
-	char buf[256];
-	char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
-	char heads[]  =      "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
-	char pattern[]  =    "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
-	std::cerr <<head_lines <<"\n" << heads <<"\n" <<head_lines <<"\n";
-	std::cerr.flush();
-
 	int n_phase = 1;
-	for (int m = 0; m < 500; m += params.n_frames)
+	int m = 0;
+	auto print_metrics = [&](bool last = false)
 	{
-		try
+		if (m == 0)
 		{
-			if (n_phase < 3)
-			{
-				(*radio       )[rad::tsk::receive    ].exec();
-				(*front_agc   )[mlt::tsk::imultiply  ].exec();
-				(*sync_step_mf)[smf::tsk::synchronize].exec(); // can raise the 'tools::processing_aborted' exception
-				(*mult_agc    )[mlt::tsk::imultiply  ].exec();
-				(*adp_1_to_1_3)[adp::tsk::push_1     ].exec();
-				(*adp_1_to_1_3)[adp::tsk::pull_n     ].exec();
-				(*sync_frame  )[sfm::tsk::synchronize].exec();
-				(*adp_1_to_1_4)[adp::tsk::push_1     ].exec();
-				(*adp_1_to_1_4)[adp::tsk::pull_n     ].exec();
-				(*pl_scrambler)[scr::tsk::descramble ].exec();
-			}
-			else // n_phase == 3
-			{
-				(*radio        )[rad::tsk::receive    ].exec();
-				(*front_agc    )[mlt::tsk::imultiply  ].exec();
-				(*sync_coarse_f)[sfc::tsk::synchronize].exec();
-				(*adp_1_to_1_0 )[adp::tsk::push_1     ].exec();
-				(*adp_1_to_1_0 )[adp::tsk::pull_n     ].exec();
-				(*matched_flt  )[flt::tsk::filter     ].exec();
-				(*adp_1_to_1_1 )[adp::tsk::push_1     ].exec();
-				(*adp_1_to_1_1 )[adp::tsk::pull_n     ].exec();
-				(*sync_timing  )[stm::tsk::synchronize].exec();
-				(*sync_timing  )[stm::tsk::extract    ].exec(); // can raise the 'tools::processing_aborted' exception
-				(*adp_1_to_1_2 )[adp::tsk::push_1     ].exec();
-				(*adp_1_to_1_2 )[adp::tsk::pull_n     ].exec();
-				(*mult_agc     )[mlt::tsk::imultiply  ].exec();
-				(*adp_1_to_1_3 )[adp::tsk::push_1     ].exec();
-				(*adp_1_to_1_3 )[adp::tsk::pull_n     ].exec();
-				(*sync_frame   )[sfm::tsk::synchronize].exec();
-				(*adp_1_to_1_4 )[adp::tsk::push_1     ].exec();
-				(*adp_1_to_1_4 )[adp::tsk::pull_n     ].exec();
-				(*pl_scrambler )[scr::tsk::descramble ].exec();
-				(*sync_lr      )[sff::tsk::synchronize].exec();
-				(*sync_fine_pf )[sff::tsk::synchronize].exec();
-			}
+			std::cout << "# LEARNING PHASE" << std::endl;
+			std::cout << "# --------------" << std::endl;
+			std::cout << "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------" << std::endl;
+			std::cout << "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       " << std::endl;
+			std::cout << "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------" << std::endl;
 		}
-		catch (tools::processing_aborted const&) { }
-
-		sprintf(buf, pattern, n_phase, m+1,
+		char buf[256];
+		char pattern[] = "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
+		sprintf(buf, pattern, n_phase, m,
 				sync_timing ->get_mu(),
 				sync_coarse_f->get_estimated_freq(),
 				sync_coarse_f->get_curr_idx(),
 				sync_lr      ->get_estimated_freq() / (float)params.osf,
 				sync_fine_pf ->get_estimated_freq() / (float)params.osf);
-		std::cerr << buf << "\r";
-		std::cerr.flush();
-
-		if (m > 149 && n_phase == 1)
+		if (last)
+			std::cout << buf << std::endl;
+		else
 		{
-			m = 150;
-			n_phase++;
-			std::cerr << buf << std::endl;
+			std::cerr << buf << "\r";
+			std::cerr.flush();
+		}
+	};
+
+	using namespace module;
+
+	// parallel chain
+	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*adp_1_to_n  )[adp::sck::pull_n       ::out ]);
+	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
+	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
+	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
+	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
+	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
+	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
+	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*adp_n_to_1  )[adp::sck::push_n       ::in  ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+
+	std::cout << "Cloning the modules of the parallel chain..." << std::endl;
+	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
+	                            (*adp_n_to_1)[module::adp::tsk::push_n],
+	                            12);
+	std::ofstream f("chain_parallel.dot");
+	chain_parallel.export_dot(f);
+
+	// ================================================================================================================
+	// LEARNING PHASE 1 & 2 ===========================================================================================
+
+	(*front_agc   )[mlt::sck::imultiply  ::X_N  ].bind((*radio       )[rad::sck::receive    ::Y_N1 ]);
+	(*sync_step_mf)[smf::sck::synchronize::X_N1 ].bind((*front_agc   )[mlt::sck::imultiply  ::Z_N  ]);
+	(*sync_step_mf)[smf::sck::synchronize::delay].bind((*sync_frame  )[sfm::sck::synchronize::delay]);
+	(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N2 ]);
+	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N  ]);
+	(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2 ]);
+
+	tools::Chain chain_sequential1((*radio)[rad::tsk::receive], (*pl_scrambler)[scr::tsk::descramble]);
+	std::ofstream fs1("chain_sequential1.dot");
+	chain_sequential1.export_dot(fs1);
+
+	int limit = 150;
+	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
+	chain_sequential1.exec([&]()
+	{
+		print_metrics((limit == 150 && m >= 150) || m >= 300);
+		if (limit == 150 && m >= 150)
+		{
+			n_phase = 2;
+			limit = 300;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 		}
+		const auto stop = m >= limit;
+		m += params.n_frames;
+		return stop;
+	});
 
-		if (m > 299 && n_phase == 2)
-		{
-			m = 300;
-			n_phase++;
-			std::cerr << buf << std::endl;
+	// ================================================================================================================
+	// LEARNING PHASE 3 ===============================================================================================
 
-			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
-			(*adp_1_to_1_0 )[adp::sck::push_1     ::in  ].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
-			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*adp_1_to_1_0 )[adp::sck::pull_n     ::out ]);
-			(*adp_1_to_1_1 )[adp::sck::push_1     ::in  ].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
-			(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1 )[adp::sck::pull_n     ::out ]);
-			(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
-			(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
-			(*adp_1_to_1_2 )[adp::sck::push_1     ::in  ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
-			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out ]);
-		}
-	}
-	std::cerr << buf << "\n" << head_lines << "\n";
+	(*radio       )[rad::sck::receive    ::Y_N1 ].reset();
+	(*front_agc   )[mlt::sck::imultiply  ::X_N  ].reset();
+	(*front_agc   )[mlt::sck::imultiply  ::Z_N  ].reset();
+	(*sync_frame  )[sfm::sck::synchronize::delay].reset();
+	(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].reset();
+	(*mult_agc    )[mlt::sck::imultiply  ::Z_N  ].reset();
+	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].reset();
+	(*sync_frame  )[sfm::sck::synchronize::Y_N2 ].reset();
+	(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].reset();
+
+	(*front_agc    )[mlt::sck::imultiply  ::X_N ].bind((*radio        )[rad::sck::receive    ::Y_N1]);
+	(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
+	(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
+	(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+	(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+	(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+	(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
+	(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
+	(*pl_scrambler )[scr::sck::descramble ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
+	(*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
+
+	tools::Chain chain_sequential2((*radio)[rad::tsk::receive], (*sync_lr)[sff::tsk::synchronize]);
+	std::ofstream fs2("chain_sequential2.dot");
+	chain_sequential2.export_dot(fs2);
+
+	n_phase = 3;
+	chain_sequential2.exec([&]()
+	{
+		const auto stop = m >= 500;
+		print_metrics(stop);
+		m += params.n_frames;
+		return stop;
+	});
 
 	for (auto& m : modules)
 		for (auto& ta : m->tasks)
@@ -273,21 +255,55 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
+	(*radio        )[rad::sck::receive    ::Y_N1].reset();
+	(*front_agc    )[mlt::sck::imultiply  ::X_N ].reset();
+	(*front_agc    )[mlt::sck::imultiply  ::Z_N ].reset();
+	(*sync_coarse_f)[sfc::sck::synchronize::X_N1].reset();
+	(*sync_coarse_f)[sfc::sck::synchronize::Y_N2].reset();
+	(*matched_flt  )[flt::sck::filter     ::X_N1].reset();
+	(*matched_flt  )[flt::sck::filter     ::Y_N2].reset();
+	(*sync_timing  )[stm::sck::synchronize::X_N1].reset();
+	(*sync_timing  )[stm::sck::synchronize::B_N1].reset();
+	(*sync_timing  )[stm::sck::synchronize::Y_N1].reset();
+	(*sync_timing  )[stm::sck::extract    ::B_N1].reset();
+	(*sync_timing  )[stm::sck::extract    ::Y_N1].reset();
+	(*sync_timing  )[stm::sck::extract    ::Y_N2].reset();
+	(*mult_agc     )[mlt::sck::imultiply  ::X_N ].reset();
+	(*mult_agc     )[mlt::sck::imultiply  ::Z_N ].reset();
+	(*sync_frame   )[sfm::sck::synchronize::X_N1].reset();
+	(*sync_frame   )[sfm::sck::synchronize::Y_N2].reset();
+	(*pl_scrambler )[scr::sck::descramble ::Y_N1].reset();
+	(*pl_scrambler )[scr::sck::descramble ::Y_N2].reset();
+	(*sync_lr      )[sff::sck::synchronize::X_N1].reset();
+	(*sync_lr      )[sff::sck::synchronize::Y_N2].reset();
+
+	(*adp_1_to_1_0 )[adp::sck::push_1     ::in  ].bind((*radio        )[rad::sck::receive    ::Y_N1]);
+	(*front_agc    )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_0 )[adp::sck::pull_n     ::out ]);
+	(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
+	(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
+	(*adp_1_to_1_1 )[adp::sck::push_1     ::in  ].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+	(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1 )[adp::sck::pull_n     ::out ]);
+	(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+	(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+	(*adp_1_to_1_2 )[adp::sck::push_1     ::in  ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
+	(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out ]);
+	(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
+	(*pl_scrambler )[scr::sck::descramble ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
+	(*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
+	(*adp_1_to_n   )[adp::sck::push_1     ::in  ].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
+	// parallel chain
+	(*sink         )[snk::sck::send       ::V   ].bind((*adp_n_to_1   )[adp::sck::pull_1     ::out ]);
+
 	// create a chain per pipeline stage
 	tools::Chain chain_stage0((*radio       )[rad::tsk::receive], (*adp_1_to_1_0)[adp::tsk::push_1]);
 	tools::Chain chain_stage1((*adp_1_to_1_0)[adp::tsk::pull_n ], (*adp_1_to_1_1)[adp::tsk::push_1]);
 	tools::Chain chain_stage2((*adp_1_to_1_1)[adp::tsk::pull_n ], (*adp_1_to_1_2)[adp::tsk::push_1]);
-	tools::Chain chain_stage3((*adp_1_to_1_2)[adp::tsk::pull_n ], (*adp_1_to_1_3)[adp::tsk::push_1]);
-	tools::Chain chain_stage4((*adp_1_to_1_3)[adp::tsk::pull_n ], (*adp_1_to_1_4)[adp::tsk::push_1]);
-	tools::Chain chain_stage5((*adp_1_to_1_4)[adp::tsk::pull_n ], (*adp_1_to_n  )[adp::tsk::push_1]);
-	tools::Chain chain_stage6((*adp_n_to_1  )[adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ]);
+	tools::Chain chain_stage3((*adp_1_to_1_2)[adp::tsk::pull_n ], (*adp_1_to_n  )[adp::tsk::push_1]);
+	tools::Chain chain_stage4((*adp_n_to_1  )[adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ]);
 
-	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1,
-	                                            &chain_stage2, &chain_stage3,
-	                                            &chain_stage4, &chain_stage5,
-	                                            &chain_stage6                 };
+	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1, &chain_stage2,
+	                                            &chain_stage3, &chain_stage4                 };
 
-	// DEBUG
 	for (size_t cs = 0; cs < chain_stages.size(); cs++)
 	{
 		std::ofstream fs("chain_stage" + std::to_string(cs) + ".dot");
