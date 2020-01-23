@@ -19,7 +19,6 @@ private:
 
 	std::vector<R> R_l;
 	R n_vals[mipp::N<R>()];
-	bool mask[mipp::N<R>()];
 
 public:
 	Synchronizer_Luise_Reggiannini_DVBS2_aib (const int N, const int n_frames = 1);

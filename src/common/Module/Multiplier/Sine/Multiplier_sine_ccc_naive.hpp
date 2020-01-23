@@ -23,7 +23,6 @@ private:
 	const R Fs; // Sampling frequency
 
 	R n_vals[mipp::N<R>()];
-	bool mask[mipp::N<R>()];
 
 	void _imultiply(const R *X_N,  R *Z_N, const int frame_id);
 	void _imultiply_old(const R *X_N,  R *Z_N, const int frame_id);

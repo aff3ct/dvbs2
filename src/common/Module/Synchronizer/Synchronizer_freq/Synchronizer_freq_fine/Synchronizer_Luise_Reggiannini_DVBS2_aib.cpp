@@ -23,18 +23,8 @@ Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 		idx += 1476;
 	}
 
-	if (mipp::N<R>() > 1)
-	{
-		for (auto i = 0; i < mipp::N<R>()/2; i++)
-			n_vals[2*i +0] = (R)(2. * i);
-		for (auto i = 0; i < mipp::N<R>()/2; i++)
-			n_vals[2*i +1] = (R)mipp::N<R>() + (R)(2. * i);
-	}
-	else
-		n_vals[0] = 0;
-
 	for (auto i = 0; i < mipp::N<R>(); i++)
-		mask[i] = !(i % 2);
+		n_vals[i] = (R)(2. * i);
 }
 
 template <typename R>
@@ -137,39 +127,24 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 	this->estimated_freq /= (Lp_2 + 1) * M_PI;
 	this->estimated_freq *= M_PI;
 
-	mipp::Msk<mipp::N<R>()> reg_msk = this->mask;
 	mipp::Reg<R> reg_n = this->n_vals;
 	mipp::Reg<R> reg_estimated_freq = this->estimated_freq;
-	mipp::Reg<R> reg_cos_theta;
-	mipp::Reg<R> reg_sin_theta;
+	mipp::Regx2<R> reg_cos_sin_theta;
 
 	auto end_vec_loop = (this->N / (2 * mipp::N<R>())) * (2 * mipp::N<R>());
 	for (int n = 0; n < end_vec_loop; n += 2 * mipp::N<R>())
 	{
 		auto reg_theta = reg_estimated_freq * reg_n;
 
-		mipp::sincos(reg_theta, reg_sin_theta, reg_cos_theta);
+		mipp::sincos(reg_theta, reg_cos_sin_theta[1], reg_cos_sin_theta[0]);
 
-		mipp::Reg<R> reg_X_N1_1 = &X_N1[n + 0 * mipp::N<R>()];
-		mipp::Reg<R> reg_X_N1_2 = &X_N1[n + 1 * mipp::N<R>()];
+		mipp::Regx2<R> reg_X_N1 = &X_N1[n];
+		reg_X_N1 = mipp::cunmix(reg_X_N1);
 
-		auto reg_X_N1_2r = mipp::rrot(reg_X_N1_2);
-		auto reg_X_N1_1r = mipp::lrot(reg_X_N1_1);
+		auto reg_Y_N2 = mipp::cmulconj(reg_X_N1, reg_cos_sin_theta);
 
-		auto reg_X_N1_re = mipp::blend(reg_X_N1_1 , reg_X_N1_2r, reg_msk);
-		auto reg_X_N1_im = mipp::blend(reg_X_N1_1r, reg_X_N1_2 , reg_msk);
-
-		auto reg_re = (reg_X_N1_re * reg_cos_theta) + (reg_X_N1_im * reg_sin_theta);
-		auto reg_im = (reg_X_N1_im * reg_cos_theta) - (reg_X_N1_re * reg_sin_theta);
-
-		auto reg_imr = mipp::rrot(reg_im);
-		auto reg_rer = mipp::lrot(reg_re);
-
-		auto reg_Y_N2_1 = mipp::blend(reg_re , reg_imr, reg_msk);
-		auto reg_Y_N2_2 = mipp::blend(reg_rer, reg_im , reg_msk);
-
-		reg_Y_N2_1.store(&Y_N2[n + 0 * mipp::N<R>()]);
-		reg_Y_N2_2.store(&Y_N2[n + 1 * mipp::N<R>()]);
+		reg_Y_N2 = mipp::cmix(reg_Y_N2);
+		reg_Y_N2.store(&Y_N2[n]);
 
 		reg_n += (R)(2 * mipp::N<R>());
 	}
