@@ -31,7 +31,7 @@ Synchronizer_frame_DVBS2_aib<R>
 
 template <typename R>
 void Synchronizer_frame_DVBS2_aib<R>
-::_synchronize(const R *X_N1, R *Y_N2, int* delay, const int frame_id)
+::_synchronize(const R *X_N1, int* delay, R *Y_N2, const int frame_id)
 {
 	int cplx_in_sz = this->N_in/2;
 	R y_corr = 0;

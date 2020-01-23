@@ -26,7 +26,7 @@ public:
 	void reset();
 
 protected:
-	void _synchronize(const R *X_N1,  R *Y_N2, int* delay, const int frame_id);
+	void _synchronize(const R *X_N1, int* delay, R *Y_N2, const int frame_id);
 };
 
 }

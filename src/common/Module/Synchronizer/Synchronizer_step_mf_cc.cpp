@@ -45,14 +45,14 @@ Synchronizer_step_mf_cc<B,R>
 	}
 
 	auto &p1 = this->create_task("synchronize");
-	auto p1s_X_N1  = this->template create_socket_in <R  >(p1, "X_N1" , this->N_in );
 	auto p1s_delay = this->template create_socket_in <int>(p1, "delay", 1          );
+	auto p1s_X_N1  = this->template create_socket_in <R  >(p1, "X_N1" , this->N_in );
 	auto p1s_Y_N2  = this->template create_socket_out<R  >(p1, "Y_N2" , this->N_out);
-	this->create_codelet(p1, [p1s_X_N1, p1s_delay, p1s_Y_N2](Module &m, Task &t) -> int
+	this->create_codelet(p1, [p1s_delay, p1s_X_N1, p1s_Y_N2](Module &m, Task &t) -> int
 	{
-		static_cast<Synchronizer_step_mf_cc<B,R>&>(m).synchronize(static_cast<R*  >(t[p1s_X_N1 ].get_dataptr()),
-		                                                        static_cast<int*>(t[p1s_delay].get_dataptr()),
-		                                                        static_cast<R*  >(t[p1s_Y_N2 ].get_dataptr()));
+		static_cast<Synchronizer_step_mf_cc<B,R>&>(m).synchronize(static_cast<int*>(t[p1s_delay].get_dataptr()),
+		                                                          static_cast<R*  >(t[p1s_X_N1 ].get_dataptr()),
+		                                                          static_cast<R*  >(t[p1s_Y_N2 ].get_dataptr()));
 
 		return 0;
 	});
@@ -87,8 +87,16 @@ int Synchronizer_step_mf_cc<B,R>
 template <typename B, typename R>
 template <class AB, class AR>
 void Synchronizer_step_mf_cc<B,R>
-::synchronize(const std::vector<R,AR>& X_N1, const std::vector<int>& delay, std::vector<R,AR>& Y_N2, const int frame_id)
+::synchronize(const std::vector<int>& delay, const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_id)
 {
+	if (this->n_frames != (int)delay.size())
+	{
+		std::stringstream message;
+		message << "'delay.size()' has to be equal to 'n_frames' ('delay.size()' = " << delay.size()
+		        << ", 'n_frames' = " << this->n_frames << ").";
+		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+	}
+
 	if (this->N_in * this->n_frames != (int)X_N1.size())
 	{
 		std::stringstream message;
@@ -105,26 +113,26 @@ void Synchronizer_step_mf_cc<B,R>
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->synchronize(X_N1.data(), Y_N2.data(), frame_id);
+	this->synchronize(delay.data(), X_N1.data(), Y_N2.data(), frame_id);
 }
 
 template <typename B, typename R>
 void Synchronizer_step_mf_cc<B,R>
-::synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id)
+::synchronize(const int* delay, const R *X_N1, R *Y_N2, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_synchronize(X_N1 + f * this->N_in,
-		                   delay + f,
+		this->_synchronize(delay + f,
+		                   X_N1 + f * this->N_in,
 		                   Y_N2 + f * this->N_out,
 		                   f);
 }
 
 template <typename B, typename R>
 void Synchronizer_step_mf_cc<B,R>
-::_synchronize(const R *X_N1, const int* delay, R *Y_N2, const int frame_id)
+::_synchronize(const int* delay, const R *X_N1, R *Y_N2, const int frame_id)
 {
 	int coarse_delay = (this->N_out - *delay + this->last_delay) % (this->N_out / 2);
 	sync_coarse_f->set_curr_idx(coarse_delay);
