@@ -16,7 +16,8 @@ Radio_USRP(const factory::Radio& params, const int n_frames)
   fifo(uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R)))),
   end(false),
   idx_w(0),
-  idx_r(0)
+  idx_r(0),
+  first_time(true)
 {
 	for (size_t i = 0; i < fifo.size(); i++)
 		fifo[i] = new R[2 * params.N];
@@ -73,12 +74,7 @@ Radio_USRP(const factory::Radio& params, const int n_frames)
 		usrp->set_tx_rate(params.tx_rate);
 	}
 
-	if (threaded)
-	{
-		if (params.rx_enabled)
-			receive_thread = boost::thread(&Radio_USRP::thread_function, this);
-	}
-	else
+	if (!threaded)
 	{
 		usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 	}
@@ -122,6 +118,13 @@ _receive(R *Y_N1, const int frame_id)
 		std::stringstream message;
 		message << "receive has been called while rx_rate has not been set.";
 		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+	}
+
+	if (this->threaded && this->first_time)
+	{
+		this->first_time = false;
+		if (this->rx_enabled)
+			this->receive_thread = boost::thread(&Radio_USRP::thread_function, this);
 	}
 
 	if (threaded)

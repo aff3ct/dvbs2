@@ -48,6 +48,8 @@ private:
 	std::atomic<std::uint64_t> idx_w;
 	std::atomic<std::uint64_t> idx_r;
 
+	bool first_time;
+
 public:
 	/*!
 	 * \brief Constructor.
