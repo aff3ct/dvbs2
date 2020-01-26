@@ -286,7 +286,7 @@ int main(int argc, char** argv)
 							std::cerr << buf << std::endl;
 					}
 				}
-				catch (tools::processing_aborted const&) {}
+				catch (tools::processing_aborted const& e){std::cout << "Exception thrown during sync phase." << std::endl;}
 			}
 			if (!params.no_sync_info)
 				std::cerr << buf << "\n" << head_lines << "\n";
@@ -347,7 +347,7 @@ int main(int argc, char** argv)
 				(*bb_scrambler )[scr::tsk::descramble   ].exec();
 				(*monitor      )[mnt::tsk::check_errors ].exec();
 			}
-			catch (tools::processing_aborted const&) {}
+			catch (tools::processing_aborted const&) {std::cout << "Exception thrown during continuous phase." << std::endl;}
 
 			if (n_frames < 1) // first frame is delayed
 				monitor->reset();
