@@ -95,6 +95,9 @@ int main(int argc, char** argv)
 	shaping_flt  ->set_custom_name("Shaping Flt" );
 	sync_coarse_f->set_custom_name("Coarse_Synch");
 	sync_step_mf ->set_custom_name("MF_Synch"    );
+	chn_agc      ->set_custom_name("Mult Ch. AGC");
+	freq_shift   ->set_custom_name("Mult Freq."  );
+	mult_agc     ->set_custom_name("Mult AGC"    );
 
 	// allocate reporters to display results in the terminal
 	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>(noise   ))); // report the noise values (Es/N0 and Eb/N0)

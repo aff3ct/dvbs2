@@ -77,16 +77,16 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
-	(*adaptor_1_to_n)[adp::sck::push_1    ::in  ].bind((*source        )[src::sck::generate  ::U_K ]);
-	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*adaptor_1_to_n)[adp::sck::pull_n    ::out ]);
+	(*adaptor_1_to_n)[adp::sck::push_1    ::in1 ].bind((*source        )[src::sck::generate  ::U_K ]);
+	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*adaptor_1_to_n)[adp::sck::pull_n    ::out1]);
 	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble  ::X_N2]);
 	(*LDPC_encoder  )[enc::sck::encode    ::U_K ].bind((*BCH_encoder   )[enc::sck::encode    ::X_N ]);
 	(*itl           )[itl::sck::interleave::nat ].bind((*LDPC_encoder  )[enc::sck::encode    ::X_N ]);
 	(*modem         )[mdm::sck::modulate  ::X_N1].bind((*itl           )[itl::sck::interleave::itl ]);
 	(*framer        )[frm::sck::generate  ::Y_N1].bind((*modem         )[mdm::sck::modulate  ::X_N2]);
 	(*pl_scrambler  )[scr::sck::scramble  ::X_N1].bind((*framer        )[frm::sck::generate  ::Y_N2]);
-	(*adaptor_n_to_1)[adp::sck::push_n    ::in  ].bind((*pl_scrambler  )[scr::sck::scramble  ::X_N2]);
-	(*shaping_filter)[flt::sck::filter    ::X_N1].bind((*adaptor_n_to_1)[adp::sck::pull_1    ::out ]);
+	(*adaptor_n_to_1)[adp::sck::push_n    ::in1 ].bind((*pl_scrambler  )[scr::sck::scramble  ::X_N2]);
+	(*shaping_filter)[flt::sck::filter    ::X_N1].bind((*adaptor_n_to_1)[adp::sck::pull_1    ::out1]);
 	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
 
 	// create a chain per pipeline stage

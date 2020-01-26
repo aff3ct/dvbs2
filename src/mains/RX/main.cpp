@@ -141,7 +141,7 @@ int main(int argc, char** argv)
 	using namespace module;
 
 	// parallel chain
-	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*adp_1_to_n  )[adp::sck::pull_n       ::out ]);
+	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*adp_1_to_n  )[adp::sck::pull_n       ::out1]);
 	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
 	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
 	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
@@ -152,7 +152,7 @@ int main(int argc, char** argv)
 	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
 	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
-	(*adp_n_to_1  )[adp::sck::push_n       ::in  ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*adp_n_to_1  )[adp::sck::push_n       ::in1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
 	std::cout << "Cloning the modules of the parallel chain..." << std::endl;
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
@@ -277,22 +277,22 @@ int main(int argc, char** argv)
 	(*sync_lr      )[sff::sck::synchronize::X_N1].reset();
 	(*sync_lr      )[sff::sck::synchronize::Y_N2].reset();
 
-	(*adp_1_to_1_0 )[adp::sck::push_1     ::in  ].bind((*radio        )[rad::sck::receive    ::Y_N1]);
-	(*front_agc    )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_0 )[adp::sck::pull_n     ::out ]);
+	(*adp_1_to_1_0 )[adp::sck::push_1     ::in1 ].bind((*radio        )[rad::sck::receive    ::Y_N1]);
+	(*front_agc    )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_0 )[adp::sck::pull_n     ::out1]);
 	(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
 	(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
-	(*adp_1_to_1_1 )[adp::sck::push_1     ::in  ].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
-	(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1 )[adp::sck::pull_n     ::out ]);
+	(*adp_1_to_1_1 )[adp::sck::push_1     ::in1 ].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+	(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1 )[adp::sck::pull_n     ::out1]);
 	(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
 	(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
-	(*adp_1_to_1_2 )[adp::sck::push_1     ::in  ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
-	(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out ]);
+	(*adp_1_to_1_2 )[adp::sck::push_1     ::in1 ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
+	(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out1]);
 	(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 	(*pl_scrambler )[scr::sck::descramble ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
 	(*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
-	(*adp_1_to_n   )[adp::sck::push_1     ::in  ].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
+	(*adp_1_to_n   )[adp::sck::push_1     ::in1 ].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
 	// parallel chain
-	(*sink         )[snk::sck::send       ::V   ].bind((*adp_n_to_1   )[adp::sck::pull_1     ::out ]);
+	(*sink         )[snk::sck::send       ::V   ].bind((*adp_n_to_1   )[adp::sck::pull_1     ::out1]);
 
 	// create a chain per pipeline stage
 	tools::Chain chain_stage0((*radio       )[rad::tsk::receive], (*adp_1_to_1_0)[adp::tsk::push_1]);

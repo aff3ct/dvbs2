@@ -113,21 +113,20 @@ void Multiplier_sine_ccc_naive<R>
 	mipp::Reg<R> reg_n = this->n_vals;
 	mipp::Reg<R> reg_omega = this->omega;
 	mipp::Reg<R> reg_limit = 999999.;
-	mipp::Regx2<R> reg_cos_sin;
 
 	auto end_vec_loop = (this->N / (2 * mipp::N<R>())) * (2 * mipp::N<R>());
 
 	for (auto i = 0 ; i < end_vec_loop; i += 2 * mipp::N<R>())
 	{
 		auto reg_phase = reg_omega * reg_n;
-		mipp::sincos(reg_phase, reg_cos_sin[1], reg_cos_sin[0]);
+		auto reg_cos_sin = mipp::cossin(reg_phase);
 
 		mipp::Regx2<R> reg_X_N = &X_N[i];
-		reg_X_N = mipp::cunmix(reg_X_N);
+		reg_X_N = mipp::deinterleave(reg_X_N);
 
-		auto reg_Z_N = mipp::cmul(reg_X_N, reg_cos_sin);
+		auto reg_Z_N = reg_X_N * reg_cos_sin;
 
-		reg_Z_N = mipp::cmix(reg_Z_N);
+		reg_Z_N = mipp::interleave(reg_Z_N);
 		reg_Z_N.store(&Z_N[i]);
 
 		reg_n += (R)mipp::N<R>();
