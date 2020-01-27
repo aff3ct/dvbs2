@@ -148,7 +148,8 @@ public:
 	static module::Interleaver<D,T>*
 	build_itl(const DVBS2O& params, tools::Interleaver_core<T>& itl_core);
 
-	template <typename B = int, typename R = float, typename Q = R, tools::proto_max<Q> MAX = tools::max_star>
+	template <typename B = int, typename R = float, typename Q = R, tools::proto_max  <Q> MAX  = tools::max_star,
+	                                                                tools::proto_max_i<Q> MAXI = tools::max_star_i>
 	static module::Modem_generic<B,R,Q,MAX>*
 	build_modem(const DVBS2O& params, tools::Constellation<R>* cstl);
 
