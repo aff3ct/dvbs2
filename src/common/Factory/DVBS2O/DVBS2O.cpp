@@ -599,10 +599,10 @@ module::Synchronizer_freq_coarse<R>* DVBS2O
 }
 
 template <typename B>
-module::Filter_unit_delay<B>* DVBS2O
-::build_unit_delay(const DVBS2O& params)
+module::Filter_buffered_delay<B>* DVBS2O
+::build_txrx_delay(const DVBS2O& params)
 {
-	return new module::Filter_unit_delay<B>(params.K_bch, params.n_frames);
+	return new module::Filter_buffered_delay<B>(params.K_bch, 100, params.n_frames);
 }
 
 template <typename B, typename R>
@@ -648,7 +648,7 @@ template aff3ct::module::Multiplier_AGC_cc_naive<R>*   DVBS2O::build_agc_shift<R
 template aff3ct::module::Multiplier_AGC_cc_naive<R>*   DVBS2O::build_channel_agc<R>             (const DVBS2O& params);
 template aff3ct::module::Synchronizer_frame<R>*        DVBS2O::build_synchronizer_frame<R>      (const DVBS2O& params);
 template aff3ct::module::Synchronizer_freq_coarse<R>*  DVBS2O::build_synchronizer_freq_coarse<R>(const DVBS2O& params);
-template aff3ct::module::Filter_unit_delay<B>*         DVBS2O::build_unit_delay<B>              (const DVBS2O& params);
+template aff3ct::module::Filter_buffered_delay<B>*     DVBS2O::build_txrx_delay<B>              (const DVBS2O& params);
 template aff3ct::tools ::Interleaver_core<uint32_t>*   DVBS2O::build_itl_core<uint32_t>         (const DVBS2O& params);
 template aff3ct::module::Synchronizer_step_mf_cc<B,R>* DVBS2O::build_synchronizer_step_mf_cc<B,R>(const DVBS2O& params,
                                                                                                  aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,

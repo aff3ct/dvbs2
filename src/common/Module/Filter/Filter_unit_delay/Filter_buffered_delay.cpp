@@ -8,8 +8,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Filter_buffered_delay<R>
-::Filter_buffered_delay(const int N, const int n_frames)
-: Filter<R>(N, N, n_frames), mem(100, std::vector<R>(N, R(0))), mem_heads(100), delay(0)
+::Filter_buffered_delay(const int N, const int max_delay, const int n_frames)
+: Filter<R>(N, N, n_frames), mem(max_delay, std::vector<R>(N, R(0))), mem_heads(max_delay), delay(0)
 {
 	for (size_t i = 0; i<this->mem.size(); i++)
 		this->mem_heads[i] = this->mem[i].data();
@@ -30,7 +30,6 @@ void Filter_buffered_delay<R>
 	std::copy(this->mem_heads.begin()+1, this->mem_heads.end(), this->mem_heads.begin());
 	this->mem_heads[this->mem_heads.size() - 1] = head;
 }
-
 
 template <typename R>
 void Filter_buffered_delay<R>

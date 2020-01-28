@@ -18,9 +18,10 @@ private:
 	std::vector<R*> mem_heads;
 
 public:
-	Filter_buffered_delay (const int N, const int n_frames = 1);
+	Filter_buffered_delay (const int N, const int max_delay, const int n_frames = 1);
 	virtual ~Filter_buffered_delay();
-
+	void set_delay(int delay) {this->delay = delay;};
+	int  get_delay(         ) {return this->delay; };
 	void reset();
 
 protected:
