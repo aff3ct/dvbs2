@@ -1,5 +1,6 @@
 #include "DVBS2O.hpp"
 
+#include "Module/Encoder_BCH_DVBS2O/Encoder_BCH_inter_DVBS2O.hpp"
 #include "Module/Encoder_BCH_DVBS2O/Encoder_BCH_DVBS2O.hpp"
 #include "Module/Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
 
@@ -307,7 +308,7 @@ module::Source<B>* DVBS2O
 	else if (params.src_type == "USER")
 		return new module::Source_user<B>(params.K_bch, params.src_path, params.n_frames);
 	else if (params.src_type == "USER_BIN")
-		return new module::Source_user_binary<B>(params.K_bch, params.src_path, params.n_frames);
+		return new module::Source_user_binary<B>(params.K_bch, params.src_path, true, params.n_frames);
 	else if (params.src_type == "AZCW")
 		return new module::Source_AZCW<B>(params.K_bch, params.n_frames);
 	else
@@ -326,7 +327,10 @@ template <typename B>
 module::Encoder_BCH<B>* DVBS2O
 ::build_bch_encoder(const DVBS2O& params, tools::BCH_polynomial_generator<B>& poly_gen)
 {
-	return new module::Encoder_BCH_DVBS2O<B>(params.K_bch, params.N_bch, poly_gen, params.n_frames);
+	if (params.n_frames == 1)
+		return new module::Encoder_BCH_DVBS2O      <B>(params.K_bch, params.N_bch, poly_gen, params.n_frames);
+	else
+		return new module::Encoder_BCH_inter_DVBS2O<B>(params.K_bch, params.N_bch, poly_gen, params.n_frames);
 }
 
 template <typename B,typename Q>

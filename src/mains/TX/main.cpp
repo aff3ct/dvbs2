@@ -5,6 +5,8 @@
 
 using namespace aff3ct;
 
+// #define MULTI_THREADED
+
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
@@ -49,17 +51,29 @@ int main(int argc, char** argv)
 
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 
-	std::unique_ptr<module::Adaptor_1_to_n> adaptor_1_to_n(new module::Adaptor_1_to_n(params.K_bch,             typeid(int  ), 16, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_n_to_1> adaptor_n_to_1(new module::Adaptor_n_to_1(2 * params.pl_frame_size, typeid(float), 16, false, params.n_frames));
-	adaptor_1_to_n->set_custom_name("Adp_1_to_n");
-	adaptor_n_to_1->set_custom_name("Adp_n_to_1");
+#ifdef MULTI_THREADED
+	const bool active_waiting = false;
+	std::unique_ptr<module::Adaptor_1_to_n> adaptor_1_to_n(new module::Adaptor_1_to_n(params.K_bch,             typeid(int  ), 1, active_waiting, params.n_frames));
+	std::unique_ptr<module::Adaptor_n_to_1> adaptor_n_to_1(new module::Adaptor_n_to_1(2 * params.pl_frame_size, typeid(float), 1, active_waiting, params.n_frames));
+#endif
+
+	BCH_encoder   ->set_custom_name("Encoder BCH" );
+	LDPC_encoder  ->set_custom_name("Encoder LDPC");
+#ifdef MULTI_THREADED
+	adaptor_1_to_n->set_custom_name("Adp_1_to_n"  );
+	adaptor_n_to_1->set_custom_name("Adp_n_to_1"  );
+#endif
 
 	// the list of the allocated modules for the simulation
 	std::vector<const module::Module*> modules;
 
-	modules = { radio       .get(), source        .get(), bb_scrambler  .get(), BCH_encoder   .get(),
-	            LDPC_encoder      , itl           .get(), modem         .get(), framer        .get(),
-	            pl_scrambler.get(), shaping_filter.get(), adaptor_1_to_n.get(), adaptor_n_to_1.get() };
+	modules = { radio         .get(), source        .get(), bb_scrambler  .get(), BCH_encoder   .get(),
+	            LDPC_encoder        , itl           .get(), modem         .get(), framer        .get(),
+	            pl_scrambler  .get(), shaping_filter.get(),
+#ifdef MULTI_THREADED
+	            adaptor_1_to_n.get(), adaptor_n_to_1.get()
+#endif
+	          };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -77,6 +91,7 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
+#ifdef MULTI_THREADED
 	(*adaptor_1_to_n)[adp::sck::push_1    ::in1 ].bind((*source        )[src::sck::generate  ::U_K ]);
 	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*adaptor_1_to_n)[adp::sck::pull_n    ::out1]);
 	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble  ::X_N2]);
@@ -91,7 +106,7 @@ int main(int argc, char** argv)
 
 	// create a chain per pipeline stage
 	tools::Chain chain_stage0  ((*source        )[src::tsk::generate], (*adaptor_1_to_n)[adp::tsk::push_1], 1);
-	tools::Chain chain_parallel((*adaptor_1_to_n)[adp::tsk::pull_n  ], (*adaptor_n_to_1)[adp::tsk::push_n], 3);
+	tools::Chain chain_parallel((*adaptor_1_to_n)[adp::tsk::pull_n  ], (*adaptor_n_to_1)[adp::tsk::push_n], 6);
 	tools::Chain chain_stage1  ((*adaptor_n_to_1)[adp::tsk::pull_1  ], (*radio         )[rad::tsk::send  ], 1);
 
 	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1 };
@@ -133,6 +148,31 @@ int main(int argc, char** argv)
 	// wait all the pipeline threads here
 	for (auto &t : threads)
 		t.join();
+#else
+	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*source        )[src::sck::generate  ::U_K ]);
+	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble  ::X_N2]);
+	(*LDPC_encoder  )[enc::sck::encode    ::U_K ].bind((*BCH_encoder   )[enc::sck::encode    ::X_N ]);
+	(*itl           )[itl::sck::interleave::nat ].bind((*LDPC_encoder  )[enc::sck::encode    ::X_N ]);
+	(*modem         )[mdm::sck::modulate  ::X_N1].bind((*itl           )[itl::sck::interleave::itl ]);
+	(*framer        )[frm::sck::generate  ::Y_N1].bind((*modem         )[mdm::sck::modulate  ::X_N2]);
+	(*pl_scrambler  )[scr::sck::scramble  ::X_N1].bind((*framer        )[frm::sck::generate  ::Y_N2]);
+	(*shaping_filter)[flt::sck::filter    ::X_N1].bind((*pl_scrambler  )[scr::sck::scramble  ::X_N2]);
+	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
+
+	tools::Chain chain_sequential((*source)[src::tsk::generate], (*radio)[rad::tsk::send]);
+	std::ofstream f("chain_sequential.dot");
+	chain_sequential.export_dot(f);
+
+	// start the sequentiel chain
+	chain_sequential.exec([&terminal]()
+	{
+		return terminal->is_interrupt();
+	});
+
+	// stop the radio thread
+	for (auto &m : chain_sequential.get_modules<tools::Interface_waiting>())
+		m->cancel_waiting();
+#endif
 
 	if (params.stats)
 	{
@@ -143,7 +183,7 @@ int main(int argc, char** argv)
 		// std::cout << "#" << std::endl;
 		// tools::Stats::show(modules_stats, ordered);
 		const auto ordered = true;
-
+#ifdef MULTI_THREADED
 		for (size_t cs = 0; cs < chain_stages.size(); cs++)
 		{
 			std::cout << "#" << std::endl << "# Chain stage " << cs << " (" << chain_stages[cs]->get_n_threads()
@@ -153,6 +193,11 @@ int main(int argc, char** argv)
 		std::cout << "#" << std::endl << "# Chain parallel (" << chain_parallel.get_n_threads() << " thread(s)): "
 		          << std::endl;
 		tools::Stats::show(chain_parallel.get_tasks_per_types(), ordered);
+#else
+		std::cout << "#" << std::endl << "# Chain sequential (" << chain_sequential.get_n_threads() << " thread(s)): "
+		          << std::endl;
+		tools::Stats::show(chain_sequential.get_tasks_per_types(), ordered);
+#endif
 	}
 
 	return EXIT_SUCCESS;
