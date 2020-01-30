@@ -30,9 +30,6 @@ template <typename B>
 void Encoder_BCH_inter_DVBS2O<B>
 ::_encode(const B *U_K, B *X_N, const int frame_id)
 {
-	// // reverse bits for DVBS2 standard to aff3ct compliance
-	// std::reverse_copy(U_K, U_K + this->K, U_K_rev.begin());
-
 	// reverse bits for DVBS2 standard to aff3ct compliance
 	for (auto f = 0; f < this->simd_inter_frame_level; f++)
 		std::reverse_copy(U_K             + (f +0) * this->K,
@@ -42,17 +39,11 @@ void Encoder_BCH_inter_DVBS2O<B>
 	// generate the parity bits
 	this->__encode(U_K_rev.data(), X_N);
 
-	// // copy sys bits
-	// std::copy(U_K_rev.data(), U_K_rev.data() + this->K, X_N + this->n_rdncy);
-
 	// copy sys bits
 	for (auto f = 0; f < this->simd_inter_frame_level; f++)
 		std::copy(U_K_rev.data() + (f +0) * this->K,
 		          U_K_rev.data() + (f +1) * this->K,
 		          X_N            + (f +0) * this->N + this->n_rdncy);
-
-	// // reverse bits for DVBS2 standard to aff3ct compliance
-	// std::reverse(X_N, X_N + this->K + this->n_rdncy );
 
 	// reverse bits for DVBS2 standard to aff3ct compliance
 	for (auto f = 0; f < this->simd_inter_frame_level; f++)

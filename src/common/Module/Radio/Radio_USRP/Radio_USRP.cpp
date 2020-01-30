@@ -158,7 +158,7 @@ void Radio_USRP<R>
 ::fifo_send_read()
 {
 	bool has_read = false;
-	while (!has_read)
+	while (!has_read && !stop_threads)
 	{
 		if (this->idx_w_send != this->idx_r_send)
 		{
@@ -174,7 +174,7 @@ void Radio_USRP<R>
 ::fifo_send_write(const R *X_N1)
 {
 	bool has_written = false;
-	while (!has_written)
+	while (!has_written && !stop_threads)
 	{
 		if (((this->idx_w_send +1) % fifo_send.size()) != this->idx_r_send)
 		{
@@ -190,7 +190,7 @@ void Radio_USRP<R>
 ::fifo_receive_read(R * Y_N1)
 {
 	bool has_read = false;
-	while (!has_read)
+	while (!has_read && !stop_threads)
 	{
 		if (this->idx_w_receive != this->idx_r_receive)
 		{
@@ -206,7 +206,7 @@ void Radio_USRP<R>
 ::fifo_receive_write()
 {
 	bool has_written = false;
-	while (!has_written)
+	while (!has_written && !stop_threads)
 	{
 		if (((this->idx_w_receive +1) % fifo_receive.size()) != this->idx_r_receive)
 		{
