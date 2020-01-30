@@ -84,25 +84,25 @@ build-linux-gcc-4.8:
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
 
-build-linux-icpc:
-  stage: build
-  tags:
-    - linux
-    - icpc
-    - cmake
-    - x86
-    - uhd
-  artifacts:
-    name: build-linux-icpc
-    when: always
-    paths:
-      - ./build_linux_icpc/
-  script:
-    - export CXX="icpc"
-    - export CFLAGS="-Wall -funroll-loops -msse4.2 -std=c++11"
-    - export BUILD="build_linux_icpc"
-    - source ./ci/tools/threads.sh
-    - ./ci/build-linux-macos.sh
+# build-linux-icpc:
+#   stage: build
+#   tags:
+#     - linux
+#     - icpc
+#     - cmake
+#     - x86
+#     - uhd
+#   artifacts:
+#     name: build-linux-icpc
+#     when: always
+#     paths:
+#       - ./build_linux_icpc/
+#   script:
+#     - export CXX="icpc"
+#     - export CFLAGS="-Wall -funroll-loops -msse4.2 -std=c++11"
+#     - export BUILD="build_linux_icpc"
+#     - source ./ci/tools/threads.sh
+#     - ./ci/build-linux-macos.sh
 
 build-windows-gcc:
   stage: build
