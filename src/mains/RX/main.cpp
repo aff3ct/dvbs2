@@ -8,6 +8,8 @@ namespace aff3ct { namespace tools {
 using Monitor_BFER_reduction = Monitor_reduction<module::Monitor_BFER<>>;
 } }
 
+#define MULTI_THREADED
+
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
@@ -61,11 +63,13 @@ int main(int argc, char** argv)
 
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
+#ifdef MULTI_THREADED
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_n  (new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 	std::unique_ptr<module::Adaptor_n_to_1> adp_n_to_1  (new module::Adaptor_n_to_1(params.K_bch,                          typeid(int  ), 1, false, params.n_frames));
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_0(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_1(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_2(new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_2(new module::Adaptor_1_to_n({(size_t)params.osf * 2 * params.pl_frame_size, (size_t)params.osf * 2 * params.pl_frame_size}, {typeid(float), typeid(int32_t)}, 1, false, params.n_frames));
+#endif
 
 	// manage noise
 	modem    ->set_noise(noise);
@@ -82,11 +86,13 @@ int main(int argc, char** argv)
 	matched_flt  ->set_custom_name("Matched Flt" );
 	sync_coarse_f->set_custom_name("Coarse_Synch");
 	sync_step_mf ->set_custom_name("MF_Synch"    );
+#ifdef MULTI_THREADED
 	adp_1_to_n   ->set_custom_name("Adp_1_to_n"  );
 	adp_n_to_1   ->set_custom_name("Adp_n_to_1"  );
 	adp_1_to_1_0 ->set_custom_name("Adp_1_to_1_0");
 	adp_1_to_1_1 ->set_custom_name("Adp_1_to_1_1");
 	adp_1_to_1_2 ->set_custom_name("Adp_1_to_1_2");
+#endif
 
 	// fill the list of modules
 	modules = { bb_scrambler.get(), BCH_decoder .get(), source       .get(), LDPC_decoder      ,
@@ -94,8 +100,12 @@ int main(int argc, char** argv)
 	            monitor     .get(), freq_shift  .get(), sync_lr      .get(), sync_fine_pf.get(),
 	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt .get(),
 	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
-	            estimator   .get(), front_agc   .get(), adp_1_to_n   .get(), adp_n_to_1  .get(),
-	            adp_1_to_1_0.get(), adp_1_to_1_1.get(), adp_1_to_1_2 .get(),                     };
+	            estimator   .get(), front_agc   .get(),
+#ifdef MULTI_THREADED
+	            adp_1_to_n  .get(), adp_n_to_1  .get(), adp_1_to_1_0 .get(), adp_1_to_1_1.get(),
+	            adp_1_to_1_2.get(),
+#endif
+	          };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -140,6 +150,7 @@ int main(int argc, char** argv)
 
 	using namespace module;
 
+#ifdef MULTI_THREADED
 	// parallel chain
 	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*adp_1_to_n  )[adp::sck::pull_n       ::out1]);
 	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
@@ -157,9 +168,10 @@ int main(int argc, char** argv)
 	std::cout << "Cloning the modules of the parallel chain..." << std::endl;
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
 	                            (*adp_n_to_1)[module::adp::tsk::push_n],
-	                            12);
+	                            20);
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
+#endif
 
 	// ================================================================================================================
 	// LEARNING PHASE 1 & 2 ===========================================================================================
@@ -232,9 +244,32 @@ int main(int argc, char** argv)
 		for (auto& ta : m->tasks)
 			ta->reset();
 
+#ifdef MULTI_THREADED
 	// allocate a common monitor module to reduce all the monitors
 	monitor_red = std::unique_ptr<tools::Monitor_BFER_reduction>(new tools::Monitor_BFER_reduction(
 		chain_parallel.get_modules<module::Monitor_BFER<>>()));
+#else
+	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*sync_lr     )[sff::sck::synchronize  ::Y_N2]);
+	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
+	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
+	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
+	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
+	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
+	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
+	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*sink        )[snk::sck::send         ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+
+	tools::Chain chain_sequential3((*radio)[rad::tsk::receive], (*sink)[snk::tsk::send]);
+	std::ofstream fs3("chain_sequential3.dot");
+	chain_sequential2.export_dot(fs3);
+
+	monitor_red = std::unique_ptr<tools::Monitor_BFER_reduction>(new tools::Monitor_BFER_reduction(
+		chain_sequential3.get_modules<module::Monitor_BFER<>>()));
+#endif
+
 	monitor_red->set_reduce_frequency(std::chrono::milliseconds(500));
 
 	// allocate reporters to display results in the terminal
@@ -255,6 +290,7 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
+#ifdef MULTI_THREADED
 	(*radio        )[rad::sck::receive    ::Y_N1].reset();
 	(*front_agc    )[mlt::sck::imultiply  ::X_N ].reset();
 	(*front_agc    )[mlt::sck::imultiply  ::Z_N ].reset();
@@ -283,10 +319,11 @@ int main(int argc, char** argv)
 	(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
 	(*adp_1_to_1_1 )[adp::sck::push_1     ::in1 ].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
 	(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1 )[adp::sck::pull_n     ::out1]);
-	(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
-	(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
-	(*adp_1_to_1_2 )[adp::sck::push_1     ::in1 ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
-	(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out1]);
+	(*adp_1_to_1_2 )[adp::sck::push_1     ::in1 ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+	(*adp_1_to_1_2 )[adp::sck::push_1     ::in2 ].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+	(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out2]);
+	(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out1]);
+	(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
 	(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 	(*pl_scrambler )[scr::sck::descramble ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
 	(*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
@@ -344,6 +381,14 @@ int main(int argc, char** argv)
 	// wait all the pipeline threads here
 	for (auto &t : threads)
 		t.join();
+#else
+	// start the transmission chain
+	chain_sequential3.exec([&monitor_red, &terminal]()
+	{
+		monitor_red->is_done();
+		return terminal->is_interrupt();
+	});
+#endif
 
 	// final reduction
 	monitor_red->reduce();
@@ -360,6 +405,7 @@ int main(int argc, char** argv)
 		const auto ordered = true;
 		// std::cout << "#" << std::endl;
 		// tools::Stats::show(modules_stats, ordered);
+#ifdef MULTI_THREADED
 		for (size_t cs = 0; cs < chain_stages.size(); cs++)
 		{
 			std::cout << "#" << std::endl << "# Chain stage " << cs << " (" << chain_stages[cs]->get_n_threads()
@@ -369,6 +415,11 @@ int main(int argc, char** argv)
 		std::cout << "#" << std::endl << "# Chain parallel (" << chain_parallel.get_n_threads() << " thread(s)): "
 		          << std::endl;
 		tools::Stats::show(chain_parallel.get_tasks_per_types(), ordered);
+#else
+		std::cout << "#" << std::endl << "# Chain sequential (" << chain_sequential3.get_n_threads() << " thread(s)): "
+		          << std::endl;
+		tools::Stats::show(chain_sequential3.get_tasks_per_types(), ordered);
+#endif
 	}
 
 	std::cout << "#" << std::endl;

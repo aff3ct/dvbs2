@@ -1,3 +1,5 @@
+#include <type_traits>
+
 #include "DVBS2O.hpp"
 
 #include "Module/Encoder_BCH_DVBS2O/Encoder_BCH_inter_DVBS2O.hpp"
@@ -386,11 +388,12 @@ module::Interleaver<D,T>* DVBS2O
 	 return new module::Interleaver<D,T>(itl_core);
 }
 
-template <typename B, typename R, typename Q, tools::proto_max<Q> MAX>
+template <typename B, typename R, typename Q, tools::proto_max<Q> MAX, tools::proto_max_i<Q> MAXI>
 module::Modem_generic<B,R,Q,MAX>* DVBS2O
 ::build_modem(const DVBS2O& params, tools::Constellation<R>* cstl)
 {
-	 return new module::Modem_generic<B,R,Q,MAX>(params.N_ldpc, *cstl, false, params.n_frames);
+	// return new module::Modem_generic<B,R,Q,MAX>(params.N_ldpc, *cstl, false, params.n_frames);
+	return new module::Modem_generic_fast<B,R,Q,MAX,MAXI>(params.N_ldpc, *cstl, false, params.n_frames);
 }
 
 template <typename R>
@@ -634,6 +637,7 @@ template aff3ct::tools ::Codec_LDPC<B,Q>*              DVBS2O::build_ldpc_cdc<B,
 template aff3ct::module::Interleaver<int32_t,uint32_t>*DVBS2O::build_itl<int32_t,uint32_t>      (const DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
 template aff3ct::module::Interleaver<float,uint32_t>*  DVBS2O::build_itl<float,uint32_t>        (const DVBS2O& params, tools::Interleaver_core<uint32_t>& itl_core);
 template aff3ct::module::Modem_generic<B,R,Q,tools::max_star>* DVBS2O::build_modem              (const DVBS2O& params, tools::Constellation<R>* cstl);
+template aff3ct::module::Modem_generic<B,R,Q,tools::max     >* DVBS2O::build_modem              (const DVBS2O& params, tools::Constellation<R>* cstl);
 template aff3ct::module::Framer<R>*                    DVBS2O::build_framer                     (const DVBS2O& params);
 template aff3ct::module::Scrambler_BB<B>*              DVBS2O::build_bb_scrambler<B>            (const DVBS2O& params);
 template aff3ct::module::Scrambler_PL<R>*              DVBS2O::build_pl_scrambler<R>            (const DVBS2O& params);
