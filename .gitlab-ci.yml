@@ -40,7 +40,7 @@ build-linux-gcc:
       - ./build_linux_gcc/
   script:
     - export CXX="g++"
-    - export CFLAGS="-Wall -funroll-loops -msse4.2"
+    - export CFLAGS="-Wall -funroll-loops -mavx2"
     - export BUILD="build_linux_gcc"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
@@ -160,7 +160,6 @@ build-macos-clang:
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
 
-
 test-regression-tx-rx-bb:
   stage: test
   variables:
@@ -172,7 +171,7 @@ test-regression-tx-rx-bb:
     - linux
     - x86
     - 64-bit
-    - sse4.2
+    - avx2
     - python3.4
     - powerful
   artifacts:
