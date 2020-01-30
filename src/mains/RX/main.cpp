@@ -265,7 +265,7 @@ int main(int argc, char** argv)
 
 	tools::Chain chain_sequential3((*radio)[rad::tsk::receive], (*sink)[snk::tsk::send]);
 	std::ofstream fs3("chain_sequential3.dot");
-	chain_sequential2.export_dot(fs3);
+	chain_sequential3.export_dot(fs3);
 
 	monitor_red = std::unique_ptr<tools::Monitor_BFER_reduction>(new tools::Monitor_BFER_reduction(
 		chain_sequential3.get_modules<module::Monitor_BFER<>>()));
