@@ -11,7 +11,7 @@
 #include "Module/Scrambler/Scrambler_BB/Scrambler_BB.hpp"
 #include "Module/Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "Module/Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
-#include "Module/Filter/Filter_unit_delay/Filter_unit_delay.hpp"
+#include "Module/Filter/Filter_unit_delay/Filter_buffered_delay.hpp"
 #include "Module/Filter/Filter_FIR/Filter_RRC/Filter_RRC_ccr_naive.hpp"
 #include "Module/Filter/Filter_FIR/Farrow/Filter_Farrow_ccr_naive.hpp"
 #include "Module/Filter/Variable_delay/Variable_delay_cc_naive.hpp"
@@ -230,8 +230,8 @@ public:
 
 
 	template <typename B = int>
-	static module::Filter_unit_delay<B>*
-	build_unit_delay(const DVBS2O& params);
+	static module::Filter_buffered_delay<B>*
+	build_txrx_delay(const DVBS2O& params);
 
 	template <typename B = int>
 	static module::Monitor_BFER<B>*

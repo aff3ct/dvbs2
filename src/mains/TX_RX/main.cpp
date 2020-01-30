@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Synchronizer_frame<>        > sync_frame  (factory::DVBS2O::build_synchronizer_frame  <>(params                   ));
 	std::unique_ptr<module::Framer<>                    > framer      (factory::DVBS2O::build_framer              <>(params                   ));
 	std::unique_ptr<module::Scrambler<float>            > pl_scrambler(factory::DVBS2O::build_pl_scrambler        <>(params                   ));
-	std::unique_ptr<module::Filter_unit_delay<>         > delay       (factory::DVBS2O::build_unit_delay          <>(params                   ));
+	std::unique_ptr<module::Filter_buffered_delay<>     > delay       (factory::DVBS2O::build_txrx_delay          <>(params                   ));
 	std::unique_ptr<module::Monitor_BFER<>              > monitor     (factory::DVBS2O::build_monitor             <>(params                   ));
 	std::unique_ptr<module::Filter_RRC_ccr_naive<>      > matched_flt (factory::DVBS2O::build_matched_filter      <>(params                   ));
 	std::unique_ptr<module::Synchronizer_timing<>       > sync_timing (factory::DVBS2O::build_synchronizer_timing <>(params                   ));
@@ -83,6 +83,7 @@ int main(int argc, char** argv)
 	noise_estimated.record_callback_update([mdm_ptr](){ mdm_ptr->notify_noise_update(); });
 	noise          .record_callback_update([chn_ptr](){ chn_ptr->notify_noise_update(); });
 
+	delay        ->set_custom_name("TX/RX Delay");
 	LDPC_encoder ->set_custom_name("LDPC Encoder");
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
 	BCH_encoder  ->set_custom_name("BCH Encoder" );
@@ -203,6 +204,7 @@ int main(int argc, char** argv)
 		char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
 		char heads[]       = "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
 		char pattern[]     = "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
+		int  delay_tx_rx = 1;
 		if (!params.perfect_sync)
 		{
 			if (!params.no_sync_info)
@@ -212,7 +214,6 @@ int main(int argc, char** argv)
 			}
 			// tasks execution
 			auto n_phase = 1;
-
 			for (int m = 0; m < 500; m += params.n_frames)
 			{
 				try
@@ -289,7 +290,7 @@ int main(int argc, char** argv)
 							std::cerr << buf << std::endl;
 					}
 				}
-				catch (tools::processing_aborted const&) {}
+				catch (tools::processing_aborted const& e){delay_tx_rx++;}
 			}
 			if (!params.no_sync_info)
 				std::cerr << buf << "\n" << head_lines << "\n";
@@ -313,6 +314,7 @@ int main(int argc, char** argv)
 				ta->reset();
 
 		int n_frames = 0;
+		delay->set_delay(delay_tx_rx);
 		while (!monitor->is_done() && !terminal->is_interrupt())
 		{
 			try
@@ -352,7 +354,7 @@ int main(int argc, char** argv)
 			}
 			catch (tools::processing_aborted const&) {}
 
-			if (n_frames < 1) // first frame is delayed
+			if (n_frames < delay_tx_rx) // first frame is delayed
 				monitor->reset();
 
 			n_frames++;
