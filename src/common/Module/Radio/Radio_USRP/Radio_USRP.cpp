@@ -1,3 +1,5 @@
+#ifdef DVBS2O_LINK_UHD
+
 #include <typeinfo>
 #include <uhd/utils/thread.hpp>
 
@@ -23,6 +25,9 @@ Radio_USRP<R>
   first_time_send(true),
   first_time_receive(true)
 {
+	const std::string name = "Radio_USRP";
+	this->set_name(name);
+
 	for (size_t i = 0; i < fifo_send.size(); i++)
 		fifo_send[i] = new R[2 * params.N];
 	for (size_t i = 0; i < fifo_receive.size(); i++)
@@ -339,3 +344,5 @@ template class aff3ct::module::Radio_USRP<float>;
 template class aff3ct::module::Radio_USRP<int16_t>;
 template class aff3ct::module::Radio_USRP<int8_t>;
 // ==================================================================================== explicit template instantiation
+
+#endif

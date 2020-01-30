@@ -64,11 +64,12 @@ int main(int argc, char** argv)
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 #ifdef MULTI_THREADED
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_n  (new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_n_to_1> adp_n_to_1  (new module::Adaptor_n_to_1(params.K_bch,                          typeid(int  ), 1, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_0(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_1(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, false, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_2(new module::Adaptor_1_to_n({(size_t)params.osf * 2 * params.pl_frame_size, (size_t)params.osf * 2 * params.pl_frame_size}, {typeid(float), typeid(int32_t)}, 1, false, params.n_frames));
+	const bool active_waiting = false;
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_n  (new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, active_waiting, params.n_frames));
+	std::unique_ptr<module::Adaptor_n_to_1> adp_n_to_1  (new module::Adaptor_n_to_1(params.K_bch,                          typeid(int  ), 1, active_waiting, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_0(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, active_waiting, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_1(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, active_waiting, params.n_frames));
+	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_2(new module::Adaptor_1_to_n({(size_t)params.osf * 2 * params.pl_frame_size, (size_t)params.osf * 2 * params.pl_frame_size}, {typeid(float), typeid(int32_t)}, 1, active_waiting, params.n_frames));
 #endif
 
 	// manage noise
@@ -168,7 +169,7 @@ int main(int argc, char** argv)
 	std::cout << "Cloning the modules of the parallel chain..." << std::endl;
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
 	                            (*adp_n_to_1)[module::adp::tsk::push_n],
-	                            20);
+	                            19);
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
 #endif
@@ -388,6 +389,10 @@ int main(int argc, char** argv)
 		monitor_red->is_done();
 		return terminal->is_interrupt();
 	});
+
+	// stop the radio thread
+	for (auto &m : chain_sequential3.get_modules<tools::Interface_waiting>())
+		m->cancel_waiting();
 #endif
 
 	// final reduction

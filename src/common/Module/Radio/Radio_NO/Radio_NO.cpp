@@ -10,6 +10,8 @@ Radio_NO<R>
 ::Radio_NO(const int N, const int n_frames)
 : Radio<R>(N, n_frames)
 {
+	const std::string name = "Radio_NO";
+	this->set_name(name);
 }
 
 template <typename R>

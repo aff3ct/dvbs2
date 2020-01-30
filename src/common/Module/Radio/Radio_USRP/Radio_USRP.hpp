@@ -1,3 +1,5 @@
+#ifdef DVBS2O_LINK_UHD
+
 /*!
  * \file
  * \brief Pushes data to a file.
@@ -84,3 +86,5 @@ private:
 }
 
 #endif /* RADIO_USRP_HPP */
+
+#endif

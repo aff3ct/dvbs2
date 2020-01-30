@@ -5,7 +5,7 @@
 
 using namespace aff3ct;
 
-// #define MULTI_THREADED
+#define MULTI_THREADED
 
 int main(int argc, char** argv)
 {
