@@ -61,7 +61,9 @@ void Radio_user_binary<R>
 	{
 		if (source_file.eof())
 		{
-			throw tools::runtime_error(__FILE__, __LINE__, __func__, "Radio USER_BIN reached EOF.");
+			// throw tools::runtime_error(__FILE__, __LINE__, __func__, "Radio USER_BIN reached EOF.");
+			source_file.clear();
+			source_file.seekg(0, std::ios::beg);
 		}
 
 		if (source_file.fail())
