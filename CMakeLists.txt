@@ -21,6 +21,7 @@ message(STATUS "DVBS2O - Hash: ${GIT_SHA1}")
 # CMake options
 option(DVBS2O_LINK_UHD    "Link with the UHD library (used in the radio usrp)" ON)
 option(DVBS2O_LINK_OPENMP "Link with the OPENMP library"                       ON)
+option(DVBS2O_LINK_HWLOC  "Link with the hwloc library"                        OFF)
 
 # Generate the source files lists
 file(GLOB_RECURSE SRC_FILES_CO ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*)
@@ -136,6 +137,22 @@ if(DVBS2O_LINK_UHD)
 else()
     message(STATUS "DVBS2O - UHD: off")
 endif(DVBS2O_LINK_UHD)
+
+# Link with HwLoc
+if(DVBS2O_LINK_HWLOC)
+    message(STATUS "DVBS2O - hwloc: on")
+    target_compile_definitions(dvbs2_optique_common PUBLIC
+                               $<BUILD_INTERFACE:DVBS2O_LINK_HWLOC>
+                               $<INSTALL_INTERFACE:DVBS2O_LINK_HWLOC>)
+
+    find_package (Hwloc REQUIRED)
+    if(Hwloc_FOUND)
+        include_directories(${Hwloc_INCLUDE_DIRS})
+        target_link_libraries(dvbs2_optique_common PRIVATE ${Hwloc_LIBRARIES})
+    endif (Hwloc_FOUND)
+else()
+    message(STATUS "DVBS2O - hwloc: off")
+endif(DVBS2O_LINK_HWLOC)
 
 # set(SRC_FILES_TEST          ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/test.cpp)
 # add_executable(dvbs2_optique_test      ${SRC_FILES_TEST})
