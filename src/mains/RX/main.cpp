@@ -120,6 +120,9 @@ int main(int argc, char** argv)
 			ta->set_fast           (false             ); // disable the fast mode
 		}
 
+	// exec the source once
+	(*source)[module::src::tsk::generate].exec();
+
 	int n_phase = 1;
 	int m = 0;
 	auto print_metrics = [&](bool last = false)
