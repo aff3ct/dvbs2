@@ -48,8 +48,10 @@ void Thread_pinning
 			Thread_pinning::topodepth = hwloc_topology_get_depth(Thread_pinning::topology);
 
 			int core_depth = hwloc_get_type_or_below_depth(Thread_pinning::get_topology(), HWLOC_OBJ_CORE);
-			/* Get first core. */
-			Thread_pinning::cur_core_obj = hwloc_get_obj_by_depth(Thread_pinning::get_topology(), core_depth, 0);
+			/* Get last core. */
+			int depth_core = hwloc_get_type_or_below_depth(Thread_pinning::get_topology(), HWLOC_OBJ_CORE);
+			int core_id = hwloc_get_nbobjs_by_depth(Thread_pinning::get_topology(), depth_core) -1;
+			Thread_pinning::cur_core_obj = hwloc_get_obj_by_depth(Thread_pinning::get_topology(), core_depth, core_id);
 		}
 		Thread_pinning::mtx.unlock();
 	}
@@ -124,7 +126,7 @@ void Thread_pinning
 	}
 
 	/* Get next core. */
-	Thread_pinning::cur_core_obj = Thread_pinning::cur_core_obj->next_cousin;
+	Thread_pinning::cur_core_obj = Thread_pinning::cur_core_obj->prev_cousin;
 
 	if (Thread_pinning::cur_core_obj == nullptr)
 	{
@@ -236,17 +238,17 @@ void Thread_pinning
 	 * has above it.
 	 *****************************************************************/
 
-	int levels = 0;
-	unsigned long size = 0;
-	for (hwloc_obj_t obj = hwloc_get_obj_by_type(Thread_pinning::get_topology(), HWLOC_OBJ_PU, 0); obj; obj = obj->parent)
-	{
-		if (obj->type == HWLOC_OBJ_CACHE)
-		{
-			levels++;
-			size += obj->attr->cache.size;
-		}
-	}
-	printf("*** Logical processor 0 has %d caches totaling %luKB\n", levels, size / 1024);
+	// int levels = 0;
+	// unsigned long size = 0;
+	// for (hwloc_obj_t obj = hwloc_get_obj_by_type(Thread_pinning::get_topology(), HWLOC_OBJ_PU, 0); obj; obj = obj->parent)
+	// {
+	// 	if (obj->type == HWLOC_OBJ_CACHE)
+	// 	{
+	// 		levels++;
+	// 		size += obj->attr->cache.size;
+	// 	}
+	// }
+	// printf("*** Logical processor 0 has %d caches totaling %luKB\n", levels, size / 1024);
 }
 
 void Thread_pinning
