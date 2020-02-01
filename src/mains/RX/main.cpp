@@ -1,9 +1,8 @@
-#ifdef DVBS2O_LINK_HWLOC
-#include <hwloc.h>
-#include <hwloc/helper.h>
-#endif /* DVBS2O_LINK_HWLOC */
-
 #include <aff3ct.hpp>
+
+#ifdef DVBS2O_LINK_HWLOC
+#include "Tools/Thread_pinning/Thread_pinning.hpp"
+#endif
 
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
@@ -15,114 +14,17 @@ using Monitor_BFER_reduction = Monitor_reduction<module::Monitor_BFER<>>;
 
 #define MULTI_THREADED
 
-#ifdef DVBS2O_LINK_HWLOC
-/* main hwloc topology object */
-static hwloc_topology_t topology;
-
-/* sorted processing units */
-static std::vector<hwloc_obj_t> topo_sorted_pu;
-
-/* lexicographic comparison function to sort the processing units */
-bool pu_comp(const std::vector<unsigned>& va, const std::vector<unsigned>& vb)
-{
-	size_t i = 0;
-	while (i < va.size() && i < vb.size())
-	{
-		if (va[i] < vb[i])
-			return true;
-		if (va[i] > vb[i])
-			return false;
-		++i;
-	}
-
-	if (va.size() < vb.size())
-		return true;
-	return false;
-}
-#endif /* DVBS2O_LINK_HWLOC */
-
 int main(int argc, char** argv)
 {
 #ifdef DVBS2O_LINK_HWLOC
-	hwloc_topology_init(&topology);
-	hwloc_topology_load(topology);
+	aff3ct::tools::Thread_pinning::init();
 
-	const int topo_pu_depth = hwloc_get_type_depth(topology, HWLOC_OBJ_PU);
-	assert(topo_pu_depth != HWLOC_TYPE_DEPTH_UNKNOWN);
-
-	std::cout << "topo_pu_depth = " << topo_pu_depth << std::endl;
-
-	// const int topo_numa_depth = hwloc_get_type_depth(topology, HWLOC_OBJ_NUMANODE);
-	// assert(topo_numa_depth != HWLOC_TYPE_DEPTH_UNKNOWN);
-
-	int topo_numa_depth = hwloc_get_type_depth(topology, HWLOC_OBJ_NUMANODE);
-	if (topo_numa_depth == HWLOC_TYPE_DEPTH_UNKNOWN)
-	{
-		topo_numa_depth = 0;
-	}
-
-	std::cout << "topo_numa_depth = " << topo_numa_depth << std::endl;
-
-	const int topo_package_depth = hwloc_get_type_depth(topology, HWLOC_OBJ_PACKAGE);
-	assert(topo_package_depth != HWLOC_TYPE_DEPTH_UNKNOWN);
-
-	std::cout << "topo_package_depth = " << topo_package_depth << std::endl;
-
-	const int topo_l2_depth = hwloc_get_cache_type_depth(topology, 2, HWLOC_OBJ_CACHE_UNIFIED);
-	assert(topo_l2_depth != HWLOC_TYPE_DEPTH_UNKNOWN);
-
-	std::cout << "topo_l2_depth = " << topo_l2_depth << std::endl;
-
-	/* ====================================================================== */
-
-	/* Define thread affinity policy here: less affinity on the left more affinity on the right,
-	* here, we spread threads as much as possible to maximize mem bandwidth:
-	* - package ~= 'processor socket'
-	* - numa    ~= 'numa memory bank'
-	* - L2      ~= 'L2 cache level'
-	* - PU      ~= 'Processing Units' ~= Hyperthreads
-	*
-	* Threads are bound to the sorted units in round robin order.
-	*/
-	std::vector<int> sort_levels = {topo_pu_depth, topo_l2_depth, topo_numa_depth, topo_package_depth};
-
-	/* ====================================================================== */
-
-	int topo_nb_pus;
-	topo_nb_pus = hwloc_get_nbobjs_by_depth(topology, topo_pu_depth);
-	std::cerr << "topo nb_pus: " << topo_nb_pus << std::endl;
-
-	/* mapping table, keys are vectors of integers, values are hwloc objects */
-	std::map <std::vector<unsigned> , hwloc_obj_t, bool(*)(const std::vector<unsigned>&, const std::vector<unsigned>&) > topo_pu_map (pu_comp);
-
-	/* scan every Processing Unit to discover their ancestry */
-	for (int i = 0; i < topo_nb_pus; ++i)
-	{
-		hwloc_obj_t pu_obj = hwloc_get_obj_by_depth(topology, topo_pu_depth, i);
-		std::vector<unsigned> ranks(sort_levels.size());
-		for (size_t j = 0; j < sort_levels.size(); ++j)
-		{
-			hwloc_obj_t obj = hwloc_get_ancestor_obj_by_depth(topology, sort_levels[j], pu_obj);
-			ranks[j] = obj->sibling_rank;
-		}
-
-		topo_pu_map[ranks] = pu_obj;
-
-		/* debug output */
-		std::stringstream ranks_ss;
-		for(size_t k = 0; k < ranks.size(); ++k)
-			ranks_ss << ((k != 0) ? "," : "" ) << ranks[k];
-
-		std::string ranks_str = ranks_ss.str();
-		std::cerr << "topo pu idx: " << pu_obj->logical_index << ", ranks: " << ranks_str << std::endl;
-	}
-
-	/* build the sorted list as a vector of hwloc objects, topo_pu_map can be discarded after this loop */
-	for (auto& elt : topo_pu_map)
-	{
-		std::cerr << "topo map: " << elt.second->logical_index << std::endl;
-		topo_sorted_pu.push_back(elt.second);
-	}
+	// aff3ct::tools::Thread_pinning::example1();
+	// aff3ct::tools::Thread_pinning::example2();
+	// aff3ct::tools::Thread_pinning::example3();
+	// aff3ct::tools::Thread_pinning::example4();
+	// aff3ct::tools::Thread_pinning::example5();
+	// aff3ct::tools::Thread_pinning::example6();
 #endif /* DVBS2O_LINK_HWLOC */
 
 	// get the parameter to configure the tools and modules
@@ -486,17 +388,14 @@ int main(int argc, char** argv)
 	{
 		threads.push_back(std::thread([cs, tid, &terminal, &stop_threads]() {
 #ifdef DVBS2O_LINK_HWLOC
-			/* Here we bind each thread according to the sorted
-			 * vector of processing units, we could also bind
-			 * memory allocations as well here */
-			hwloc_obj_t pu = topo_sorted_pu[tid%topo_sorted_pu.size()];
-			hwloc_cpuset_t cpuset = hwloc_bitmap_dup(pu->cpuset);
-			hwloc_bitmap_singlify(cpuset);
-			hwloc_set_cpubind(topology, cpuset, HWLOC_CPUBIND_THREAD);
-			hwloc_bitmap_free(cpuset);
+			aff3ct::tools::Thread_pinning::pin();
 #endif /* DVBS2O_LINK_HWLOC */
 			cs->exec([&terminal]() { return terminal->is_interrupt(); } );
 			stop_threads();
+
+#ifdef DVBS2O_LINK_HWLOC
+			aff3ct::tools::Thread_pinning::unpin();
+#endif /* DVBS2O_LINK_HWLOC */
 		}));
 		tid++;
 	}
@@ -559,6 +458,10 @@ int main(int argc, char** argv)
 
 	std::cout << "#" << std::endl;
 	std::cout << "# End of the simulation" << std::endl;
+
+#ifdef DVBS2O_LINK_HWLOC
+	aff3ct::tools::Thread_pinning::destroy();
+#endif /* DVBS2O_LINK_HWLOC */
 
 	return EXIT_SUCCESS;
 }

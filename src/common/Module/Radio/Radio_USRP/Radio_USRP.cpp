@@ -3,6 +3,9 @@
 #include <typeinfo>
 #include <uhd/utils/thread.hpp>
 
+#ifdef DVBS2O_LINK_HWLOC
+#include "Tools/Thread_pinning/Thread_pinning.hpp"
+#endif
 #include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
 
 using namespace aff3ct;
@@ -224,8 +227,16 @@ void Radio_USRP<R>
 	uhd::set_thread_priority_safe();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 
+#ifdef DVBS2O_LINK_HWLOC
+	aff3ct::tools::Thread_pinning::pin();
+#endif
+
 	while (!stop_threads)
 		this->fifo_send_read();
+
+#ifdef DVBS2O_LINK_HWLOC
+	aff3ct::tools::Thread_pinning::unpin();
+#endif
 }
 
 template <typename R>
@@ -235,8 +246,16 @@ void Radio_USRP<R>
 	uhd::set_thread_priority_safe();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 
+#ifdef DVBS2O_LINK_HWLOC
+	aff3ct::tools::Thread_pinning::pin();
+#endif
+
 	while (!stop_threads)
 		this->fifo_receive_write();
+
+#ifdef DVBS2O_LINK_HWLOC
+	aff3ct::tools::Thread_pinning::unpin();
+#endif
 }
 
 template <typename R>
