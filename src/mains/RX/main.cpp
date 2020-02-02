@@ -1,9 +1,6 @@
 #include <aff3ct.hpp>
 
-#ifdef DVBS2O_LINK_HWLOC
 #include "Tools/Thread_pinning/Thread_pinning.hpp"
-#endif
-
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
 using namespace aff3ct;
@@ -16,17 +13,6 @@ using Monitor_BFER_reduction = Monitor_reduction<module::Monitor_BFER<>>;
 
 int main(int argc, char** argv)
 {
-#ifdef DVBS2O_LINK_HWLOC
-	aff3ct::tools::Thread_pinning::init();
-
-	// aff3ct::tools::Thread_pinning::example1();
-	// aff3ct::tools::Thread_pinning::example2();
-	// aff3ct::tools::Thread_pinning::example3();
-	// aff3ct::tools::Thread_pinning::example4();
-	// aff3ct::tools::Thread_pinning::example5();
-	// aff3ct::tools::Thread_pinning::example6();
-#endif /* DVBS2O_LINK_HWLOC */
-
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2O(argc, argv);
 
@@ -310,6 +296,15 @@ int main(int argc, char** argv)
 	terminal->legend();
 
 #ifdef MULTI_THREADED
+	const bool enable_warnings = true;
+	aff3ct::tools::Thread_pinning::init(enable_warnings);
+	// aff3ct::tools::Thread_pinning::example1();
+	// aff3ct::tools::Thread_pinning::example2();
+	// aff3ct::tools::Thread_pinning::example3();
+	// aff3ct::tools::Thread_pinning::example4();
+	// aff3ct::tools::Thread_pinning::example5();
+	// aff3ct::tools::Thread_pinning::example6();
+
 	(*radio        )[rad::sck::receive    ::Y_N1].reset();
 	(*front_agc    )[mlt::sck::imultiply  ::X_N ].reset();
 	(*front_agc    )[mlt::sck::imultiply  ::Z_N ].reset();
@@ -387,15 +382,12 @@ int main(int argc, char** argv)
 	for (auto &cs : chain_stages)
 	{
 		threads.push_back(std::thread([cs, tid, &terminal, &stop_threads]() {
-#ifdef DVBS2O_LINK_HWLOC
 			aff3ct::tools::Thread_pinning::pin();
-#endif /* DVBS2O_LINK_HWLOC */
+
 			cs->exec([&terminal]() { return terminal->is_interrupt(); } );
 			stop_threads();
 
-#ifdef DVBS2O_LINK_HWLOC
 			aff3ct::tools::Thread_pinning::unpin();
-#endif /* DVBS2O_LINK_HWLOC */
 		}));
 		tid++;
 	}
@@ -411,6 +403,8 @@ int main(int argc, char** argv)
 	// wait all the pipeline threads here
 	for (auto &t : threads)
 		t.join();
+
+	aff3ct::tools::Thread_pinning::destroy();
 #else
 	// start the transmission chain
 	chain_sequential3.exec([&monitor_red, &terminal]()
@@ -458,10 +452,6 @@ int main(int argc, char** argv)
 
 	std::cout << "#" << std::endl;
 	std::cout << "# End of the simulation" << std::endl;
-
-#ifdef DVBS2O_LINK_HWLOC
-	aff3ct::tools::Thread_pinning::destroy();
-#endif /* DVBS2O_LINK_HWLOC */
 
 	return EXIT_SUCCESS;
 }
