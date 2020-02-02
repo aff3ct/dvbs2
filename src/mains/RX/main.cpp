@@ -1,6 +1,5 @@
 #include <aff3ct.hpp>
 
-#include "Tools/Thread_pinning/Thread_pinning.hpp"
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
 using namespace aff3ct;
@@ -13,6 +12,18 @@ using Monitor_BFER_reduction = Monitor_reduction<module::Monitor_BFER<>>;
 
 int main(int argc, char** argv)
 {
+#ifdef MULTI_THREADED
+	aff3ct::tools::Thread_pinning::init();
+	aff3ct::tools::Thread_pinning::set_logs(true);
+
+	// aff3ct::tools::Thread_pinning::example1();
+	// aff3ct::tools::Thread_pinning::example2();
+	// aff3ct::tools::Thread_pinning::example3();
+	// aff3ct::tools::Thread_pinning::example4();
+	// aff3ct::tools::Thread_pinning::example5();
+	// aff3ct::tools::Thread_pinning::example6();
+#endif
+
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2O(argc, argv);
 
@@ -296,15 +307,6 @@ int main(int argc, char** argv)
 	terminal->legend();
 
 #ifdef MULTI_THREADED
-	const bool enable_warnings = true;
-	aff3ct::tools::Thread_pinning::init(enable_warnings);
-	// aff3ct::tools::Thread_pinning::example1();
-	// aff3ct::tools::Thread_pinning::example2();
-	// aff3ct::tools::Thread_pinning::example3();
-	// aff3ct::tools::Thread_pinning::example4();
-	// aff3ct::tools::Thread_pinning::example5();
-	// aff3ct::tools::Thread_pinning::example6();
-
 	(*radio        )[rad::sck::receive    ::Y_N1].reset();
 	(*front_agc    )[mlt::sck::imultiply  ::X_N ].reset();
 	(*front_agc    )[mlt::sck::imultiply  ::Z_N ].reset();
@@ -366,6 +368,11 @@ int main(int argc, char** argv)
 		for (auto &tt : cs->get_tasks_per_threads())
 			for (auto &t : tt) t->reset();
 
+	// enable thread pinning
+	chain_parallel.set_thread_pinning(true);
+	for (auto &cs : chain_stages)
+		cs->set_thread_pinning(true);
+
 	// function to wake up and stop all the threads
 	auto stop_threads = [&chain_parallel, &chain_stages]()
 	{
@@ -382,12 +389,8 @@ int main(int argc, char** argv)
 	for (auto &cs : chain_stages)
 	{
 		threads.push_back(std::thread([cs, tid, &terminal, &stop_threads]() {
-			aff3ct::tools::Thread_pinning::pin();
-
 			cs->exec([&terminal]() { return terminal->is_interrupt(); } );
 			stop_threads();
-
-			aff3ct::tools::Thread_pinning::unpin();
 		}));
 		tid++;
 	}
@@ -403,8 +406,6 @@ int main(int argc, char** argv)
 	// wait all the pipeline threads here
 	for (auto &t : threads)
 		t.join();
-
-	aff3ct::tools::Thread_pinning::destroy();
 #else
 	// start the transmission chain
 	chain_sequential3.exec([&monitor_red, &terminal]()
@@ -452,6 +453,10 @@ int main(int argc, char** argv)
 
 	std::cout << "#" << std::endl;
 	std::cout << "# End of the simulation" << std::endl;
+
+#ifdef MULTI_THREADED
+	aff3ct::tools::Thread_pinning::destroy();
+#endif
 
 	return EXIT_SUCCESS;
 }
