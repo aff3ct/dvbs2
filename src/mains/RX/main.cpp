@@ -184,7 +184,7 @@ int main(int argc, char** argv)
 	std::cout << "Cloning the modules of the parallel chain..." << std::endl;
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
 	                            (*adp_n_to_1)[module::adp::tsk::push_n],
-	                            1);
+	                            15);
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
 #endif /* MULTI_THREADED */
