@@ -55,8 +55,8 @@ private:
 	std::atomic<std::uint64_t> idx_w_receive;
 	std::atomic<std::uint64_t> idx_r_receive;
 
-	bool first_time_send;
-	bool first_time_receive;
+	bool start_thread_send;
+	bool start_thread_receive;
 
 public:
 	Radio_USRP(const factory::Radio& params, const int n_frames = 1);
@@ -73,14 +73,14 @@ protected:
 
 private:
 	void thread_function_receive();
-	void receive_usrp(R *Y_N1);
-	void fifo_receive_read(R* Y_N1);
-	void fifo_receive_write();
+	inline void receive_usrp(R *Y_N1);
+	inline void fifo_receive_read(R* Y_N1);
+	inline void fifo_receive_write();
 
 	void thread_function_send();
-	void send_usrp(const R *X_N1);
-	void fifo_send_read();
-	void fifo_send_write(const R* X_N1);
+	inline void send_usrp(const R *X_N1);
+	inline void fifo_send_read();
+	inline void fifo_send_write(const R* X_N1);
 };
 }
 }

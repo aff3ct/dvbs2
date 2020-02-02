@@ -3,9 +3,7 @@
 #include <typeinfo>
 #include <uhd/utils/thread.hpp>
 
-#ifdef DVBS2O_LINK_HWLOC
 #include "Tools/Thread_pinning/Thread_pinning.hpp"
-#endif
 #include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
 
 using namespace aff3ct;
@@ -25,8 +23,8 @@ Radio_USRP<R>
   idx_r_send(0),
   idx_w_receive(0),
   idx_r_receive(0),
-  first_time_send(true),
-  first_time_receive(true)
+  start_thread_send(false),
+  start_thread_receive(false)
 {
 	const std::string name = "Radio_USRP";
 	this->set_name(name);
@@ -76,6 +74,9 @@ Radio_USRP<R>
 		usrp->set_rx_gain(params.rx_gain);
 		rx_stream = usrp->get_rx_stream(stream_args);
 		usrp->set_rx_rate(params.rx_rate);
+
+		if (this->threaded)
+			this->receive_thread = boost::thread(&Radio_USRP::thread_function_receive, this);
 	}
 
 	if (params.tx_enabled)
@@ -86,6 +87,9 @@ Radio_USRP<R>
 		usrp->set_tx_antenna(params.tx_antenna);
 		tx_stream = usrp->get_tx_stream(stream_args);
 		usrp->set_tx_rate(params.tx_rate);
+
+		if (this->threaded)
+			this->send_thread = boost::thread(&Radio_USRP::thread_function_send, this);
 	}
 
 	if (!threaded)
@@ -119,15 +123,12 @@ void Radio_USRP<R>
 		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	if (this->threaded && this->first_time_send)
-	{
-		this->first_time_send = false;
-		if (this->tx_enabled)
-			this->send_thread = boost::thread(&Radio_USRP::thread_function_send, this);
-	}
-
 	if (threaded)
+	{
 		fifo_send_write(X_N1);
+		if (!this->start_thread_send)
+			this->start_thread_send = true;
+	}
 	else
 		send_usrp(X_N1);
 }
@@ -143,15 +144,12 @@ void Radio_USRP<R>
 		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	if (this->threaded && this->first_time_receive)
-	{
-		this->first_time_receive = false;
-		if (this->rx_enabled)
-			this->receive_thread = boost::thread(&Radio_USRP::thread_function_receive, this);
-	}
-
 	if (threaded)
+	{
 		fifo_receive_read(Y_N1);
+		if (!this->start_thread_receive)
+			this->start_thread_receive = true;
+	}
 	else
 		receive_usrp(Y_N1);
 }
@@ -224,38 +222,32 @@ template <typename R>
 void Radio_USRP<R>
 ::thread_function_send()
 {
+	aff3ct::tools::Thread_pinning::pin();
+
 	uhd::set_thread_priority_safe();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 
-#ifdef DVBS2O_LINK_HWLOC
-	aff3ct::tools::Thread_pinning::pin();
-#endif
-
 	while (!stop_threads)
-		this->fifo_send_read();
+		if (this->start_thread_send)
+			this->fifo_send_read();
 
-#ifdef DVBS2O_LINK_HWLOC
 	aff3ct::tools::Thread_pinning::unpin();
-#endif
 }
 
 template <typename R>
 void Radio_USRP<R>
 ::thread_function_receive()
 {
+	aff3ct::tools::Thread_pinning::pin();
+
 	uhd::set_thread_priority_safe();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 
-#ifdef DVBS2O_LINK_HWLOC
-	aff3ct::tools::Thread_pinning::pin();
-#endif
-
 	while (!stop_threads)
-		this->fifo_receive_write();
+		if (this->start_thread_receive)
+			this->fifo_receive_write();
 
-#ifdef DVBS2O_LINK_HWLOC
 	aff3ct::tools::Thread_pinning::unpin();
-#endif
 }
 
 template <typename R>
@@ -332,8 +324,8 @@ void Radio_USRP<R>
 	this->send_thread.join();
 	this->receive_thread.join();
 	this->stop_threads = false;
-	this->first_time_send = true;
-	this->first_time_receive = true;
+	this->start_thread_send = false;
+	this->start_thread_receive = false;
 }
 
 template <typename R>
