@@ -146,9 +146,9 @@ void Radio_USRP<R>
 
 	if (threaded)
 	{
-		fifo_receive_read(Y_N1);
 		if (!this->start_thread_receive)
 			this->start_thread_receive = true;
+		fifo_receive_read(Y_N1);
 	}
 	else
 		receive_usrp(Y_N1);
