@@ -9,6 +9,18 @@ using namespace aff3ct;
 
 int main(int argc, char** argv)
 {
+#ifdef MULTI_THREADED
+	aff3ct::tools::Thread_pinning::init();
+	aff3ct::tools::Thread_pinning::set_logs(true);
+
+	// aff3ct::tools::Thread_pinning::example1();
+	// aff3ct::tools::Thread_pinning::example2();
+	// aff3ct::tools::Thread_pinning::example3();
+	// aff3ct::tools::Thread_pinning::example4();
+	// aff3ct::tools::Thread_pinning::example5();
+	// aff3ct::tools::Thread_pinning::example6();
+#endif
+
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2O(argc, argv);
 
@@ -106,7 +118,7 @@ int main(int argc, char** argv)
 
 	// create a chain per pipeline stage
 	tools::Chain chain_stage0  ((*source        )[src::tsk::generate], (*adaptor_1_to_n)[adp::tsk::push_1], 1);
-	tools::Chain chain_parallel((*adaptor_1_to_n)[adp::tsk::pull_n  ], (*adaptor_n_to_1)[adp::tsk::push_n], 6);
+	tools::Chain chain_parallel((*adaptor_1_to_n)[adp::tsk::pull_n  ], (*adaptor_n_to_1)[adp::tsk::push_n], 4);
 	tools::Chain chain_stage1  ((*adaptor_n_to_1)[adp::tsk::pull_1  ], (*radio         )[rad::tsk::send  ], 1);
 
 	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1 };
@@ -119,6 +131,11 @@ int main(int argc, char** argv)
 		std::ofstream fs("chain_stage" + std::to_string(cs) + ".dot");
 		chain_stages[cs]->export_dot(fs);
 	}
+
+	// enable thread pinning
+	chain_parallel.set_thread_pinning(true, { 1, 2, 5, 6 });
+	chain_stage0  .set_thread_pinning(true, { 0          });
+	chain_stage1  .set_thread_pinning(true, { 4          });
 
 	// function to wake up and stop all the threads
 	auto stop_threads = [&chain_parallel, &chain_stages]()
@@ -199,6 +216,10 @@ int main(int argc, char** argv)
 		tools::Stats::show(chain_sequential.get_tasks_per_types(), ordered);
 #endif
 	}
+
+#ifdef MULTI_THREADED
+	aff3ct::tools::Thread_pinning::destroy();
+#endif
 
 	return EXIT_SUCCESS;
 }

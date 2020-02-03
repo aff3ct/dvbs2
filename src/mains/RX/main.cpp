@@ -379,7 +379,7 @@ int main(int argc, char** argv)
 	                                          22, 39, 23, 39, 40,
 	                                          41, 42, 43, 44, 45,
 	                                          46, 47              });
-	size_t puid = 1;
+	size_t puid = 2;
 	for (auto &cs : chain_stages)
 		cs->set_thread_pinning(true, { puid++ });
 

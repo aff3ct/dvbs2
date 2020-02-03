@@ -222,7 +222,7 @@ template <typename R>
 void Radio_USRP<R>
 ::thread_function_send()
 {
-	aff3ct::tools::Thread_pinning::pin();
+	aff3ct::tools::Thread_pinning::pin(3);
 
 	uhd::set_thread_priority_safe();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
@@ -238,7 +238,7 @@ template <typename R>
 void Radio_USRP<R>
 ::thread_function_receive()
 {
-	aff3ct::tools::Thread_pinning::pin();
+	aff3ct::tools::Thread_pinning::pin(1);
 
 	uhd::set_thread_priority_safe();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
