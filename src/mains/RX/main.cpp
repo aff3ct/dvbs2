@@ -181,12 +181,14 @@ int main(int argc, char** argv)
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 	(*adp_n_to_1  )[adp::sck::push_n       ::in1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
-	std::cout << "Cloning the modules of the parallel chain..." << std::endl;
+	std::cout << "Cloning the modules of the parallel chain... ";
+	std::cout.flush();
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
 	                            (*adp_n_to_1)[module::adp::tsk::push_n],
 	                            15);
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
+	std::cout << "Done." << std::endl;
 #endif /* MULTI_THREADED */
 
 	// ================================================================================================================
@@ -369,9 +371,17 @@ int main(int argc, char** argv)
 			for (auto &t : tt) t->reset();
 
 	// enable thread pinning
-	chain_parallel.set_thread_pinning(true);
+	chain_parallel.set_thread_pinning(true, { 24, 25, 26, 27, 28,
+	                                          12, 29, 13, 30, 14,
+	                                          31, 15, 32, 16, 33,
+	                                          17, 34, 18, 35, 19,
+	                                          36, 20, 37, 21, 38,
+	                                          22, 39, 23, 39, 40,
+	                                          41, 42, 43, 44, 45,
+	                                          46, 47              });
+	size_t puid = 1;
 	for (auto &cs : chain_stages)
-		cs->set_thread_pinning(true);
+		cs->set_thread_pinning(true, { puid++ });
 
 	// function to wake up and stop all the threads
 	auto stop_threads = [&chain_parallel, &chain_stages]()
