@@ -12,6 +12,7 @@
 
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_aib.hpp"
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_fast.hpp"
+#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_ultra_osf2.hpp"
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_fast_osf2.hpp"
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing_perfect.hpp"
 
@@ -72,7 +73,7 @@ void DVBS2O
 
 	auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"                                ));
 	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                                                    ));
-	auto stm_type_format = cli::Text(cli::Including_set("NORMAL", "PERFECT", "FAST"                                                                           ));
+	auto stm_type_format = cli::Text(cli::Including_set("NORMAL", "PERFECT", "FAST", "ULTRA"                                                                           ));
 	args.add({"mod-cod"},            modcod_format,                                     "Modulation and coding scheme."                                       );
 	args.add({"chn-type"},           cli::Text(cli::Including_set("AWGN", "USER_ADD")), "Type of noise in the channel."                                       );
 	args.add({"chn-path"},           cli::Text(),                                       "Path of the channel noise."                                          );
@@ -545,6 +546,13 @@ module::Synchronizer_timing<B,R>* DVBS2O
 			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast_osf2<B,R>(2 * params.pl_frame_size * params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
 		else
 			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast<B,R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+	}
+	else if(params.stm_type == "ULTRA")
+	{
+		if (params.osf == 2)
+			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_ultra_osf2<B,R>(2 * params.pl_frame_size * 2, 2, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+		else
+			throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
 	}
 	else
 	{

@@ -28,7 +28,8 @@ Synchronizer_timing<B, R>
   output_buffer(N/osf*3,  (R)0),
   outbuf_head  (0),
   outbuf_max_sz(N/osf*3),
-  outbuf_cur_sz(0)
+  outbuf_cur_sz(0),
+  act(false)
 {
 	const std::string name = "Synchronizer_timing";
 	this->set_name(name);
@@ -102,7 +103,7 @@ void Synchronizer_timing<B,R>
 
 	for (auto i = 0; i<this->outbuf_max_sz ; i++)
 		this->output_buffer[i] = (R)0;
-
+	this->act = false;
 	this->_reset();
 };
 

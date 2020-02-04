@@ -195,7 +195,7 @@ int main(int argc, char** argv)
 
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 
-		//(*sync_fine_pf )[syn::tsk::synchronize].set_debug(true);
+		//(*sync_fine_pf )[sff::tsk::synchronize].set_debug(true);
 
 		char buf[256];
 		char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
@@ -312,6 +312,8 @@ int main(int argc, char** argv)
 
 		int n_frames = 0;
 		delay->set_delay(delay_tx_rx);
+		sync_timing->set_act(true);
+		//(*sync_timing  )[stm::tsk::synchronize  ].set_debug(true);
 		while (!monitor->is_done() && !terminal->is_interrupt())
 		{
 			try

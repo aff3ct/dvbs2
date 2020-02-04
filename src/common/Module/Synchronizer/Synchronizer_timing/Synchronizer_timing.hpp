@@ -58,6 +58,8 @@ protected:
 	int outbuf_max_sz;
 	int outbuf_cur_sz;
 
+	bool act;
+
 public:
 	Synchronizer_timing (const int N, const int osf, const int n_frames = 1);
 	virtual ~Synchronizer_timing() = default;
@@ -75,7 +77,7 @@ public:
 	int             get_N_in         () const;
 	int             get_N_out        () const;
 	bool            can_pull         ();
-
+	void            set_act          (bool act) {this->act = act;};
 	/*!
 	 * \brief Pushes a vector of samples in the inner buffer
 	 *
