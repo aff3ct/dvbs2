@@ -10,18 +10,26 @@ using Monitor_BFER_reduction = Monitor_reduction<module::Monitor_BFER<>>;
 
 #define MULTI_THREADED
 
+#ifdef MULTI_THREADED
+const bool thread_pinnig = true;
+const bool active_waiting = false;
+#endif
+
 int main(int argc, char** argv)
 {
 #ifdef MULTI_THREADED
-	aff3ct::tools::Thread_pinning::init();
-	aff3ct::tools::Thread_pinning::set_logs(true);
-
-	// aff3ct::tools::Thread_pinning::example1();
-	// aff3ct::tools::Thread_pinning::example2();
-	// aff3ct::tools::Thread_pinning::example3();
-	// aff3ct::tools::Thread_pinning::example4();
-	// aff3ct::tools::Thread_pinning::example5();
-	// aff3ct::tools::Thread_pinning::example6();
+	if (thread_pinnig)
+	{
+		aff3ct::tools::Thread_pinning::init();
+		aff3ct::tools::Thread_pinning::set_logs(true);
+		aff3ct::tools::Thread_pinning::pin(0);
+		// aff3ct::tools::Thread_pinning::example1();
+		// aff3ct::tools::Thread_pinning::example2();
+		// aff3ct::tools::Thread_pinning::example3();
+		// aff3ct::tools::Thread_pinning::example4();
+		// aff3ct::tools::Thread_pinning::example5();
+		// aff3ct::tools::Thread_pinning::example6();
+	}
 #endif
 
 	// get the parameter to configure the tools and modules
@@ -76,7 +84,6 @@ int main(int argc, char** argv)
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 #ifdef MULTI_THREADED
-	const bool active_waiting = false;
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_n  (new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, active_waiting, params.n_frames));
 	std::unique_ptr<module::Adaptor_n_to_1> adp_n_to_1  (new module::Adaptor_n_to_1(params.K_bch,                          typeid(int  ), 1, active_waiting, params.n_frames));
 	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_0(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, active_waiting, params.n_frames));
@@ -181,14 +188,25 @@ int main(int argc, char** argv)
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 	(*adp_n_to_1  )[adp::sck::push_n       ::in1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
-	std::cout << "Cloning the modules of the parallel chain... ";
-	std::cout.flush();
+	std::cout << "Cloning the modules of the parallel chain... " << std::endl;
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
 	                            (*adp_n_to_1)[module::adp::tsk::push_n],
-	                            15);
+	                            15,
+	                            thread_pinnig,
+	                            { 24, 25, 26, 27, 28,
+	                              12, 29, 13, 30, 14,
+	                              31, 15, 32, 16, 33,
+	                              17, 34, 18, 35, 19,
+	                              36, 20, 37, 21, 38,
+	                              22, 39, 23, 39, 40,
+	                              41, 42, 43, 44, 45,
+	                              46, 47              });
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
 	std::cout << "Done." << std::endl;
+
+	if (thread_pinnig)
+		aff3ct::tools::Thread_pinning::pin(0);
 #endif /* MULTI_THREADED */
 
 	// ================================================================================================================
@@ -350,11 +368,11 @@ int main(int argc, char** argv)
 	(*sink         )[snk::sck::send       ::V   ].bind((*adp_n_to_1   )[adp::sck::pull_1     ::out1]);
 
 	// create a chain per pipeline stage
-	tools::Chain chain_stage0((*radio       )[rad::tsk::receive], (*adp_1_to_1_0)[adp::tsk::push_1]);
-	tools::Chain chain_stage1((*adp_1_to_1_0)[adp::tsk::pull_n ], (*adp_1_to_1_1)[adp::tsk::push_1]);
-	tools::Chain chain_stage2((*adp_1_to_1_1)[adp::tsk::pull_n ], (*adp_1_to_1_2)[adp::tsk::push_1]);
-	tools::Chain chain_stage3((*adp_1_to_1_2)[adp::tsk::pull_n ], (*adp_1_to_n  )[adp::tsk::push_1]);
-	tools::Chain chain_stage4((*adp_n_to_1  )[adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ]);
+	tools::Chain chain_stage0((*radio       )[rad::tsk::receive], (*adp_1_to_1_0)[adp::tsk::push_1], 1, thread_pinnig, { 2 });
+	tools::Chain chain_stage1((*adp_1_to_1_0)[adp::tsk::pull_n ], (*adp_1_to_1_1)[adp::tsk::push_1], 1, thread_pinnig, { 3 });
+	tools::Chain chain_stage2((*adp_1_to_1_1)[adp::tsk::pull_n ], (*adp_1_to_1_2)[adp::tsk::push_1], 1, thread_pinnig, { 4 });
+	tools::Chain chain_stage3((*adp_1_to_1_2)[adp::tsk::pull_n ], (*adp_1_to_n  )[adp::tsk::push_1], 1, thread_pinnig, { 5 });
+	tools::Chain chain_stage4((*adp_n_to_1  )[adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ], 1, thread_pinnig, { 6 });
 
 	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1, &chain_stage2,
 	                                            &chain_stage3, &chain_stage4                 };
@@ -369,19 +387,6 @@ int main(int argc, char** argv)
 	for (auto &cs : chain_stages)
 		for (auto &tt : cs->get_tasks_per_threads())
 			for (auto &t : tt) t->reset();
-
-	// enable thread pinning
-	chain_parallel.set_thread_pinning(true, { 24, 25, 26, 27, 28,
-	                                          12, 29, 13, 30, 14,
-	                                          31, 15, 32, 16, 33,
-	                                          17, 34, 18, 35, 19,
-	                                          36, 20, 37, 21, 38,
-	                                          22, 39, 23, 39, 40,
-	                                          41, 42, 43, 44, 45,
-	                                          46, 47              });
-	size_t puid = 2;
-	for (auto &cs : chain_stages)
-		cs->set_thread_pinning(true, { puid++ });
 
 	// function to wake up and stop all the threads
 	auto stop_threads = [&chain_parallel, &chain_stages]()
@@ -465,7 +470,8 @@ int main(int argc, char** argv)
 	std::cout << "# End of the simulation" << std::endl;
 
 #ifdef MULTI_THREADED
-	aff3ct::tools::Thread_pinning::destroy();
+	if (thread_pinnig)
+		aff3ct::tools::Thread_pinning::destroy();
 #endif
 
 	return EXIT_SUCCESS;
