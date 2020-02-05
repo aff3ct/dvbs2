@@ -8,15 +8,14 @@ using namespace aff3ct::module;
 
 template <typename B, typename R>
 Synchronizer_Gardner_ultra_osf2<B, R>
-::Synchronizer_Gardner_ultra_osf2(const int N, int osf, const R damping_factor, const R normalized_bandwidth, const R detector_gain, const int n_frames)
-: Synchronizer_timing<B,R>(N, osf, n_frames),
-farrow_flt(2*1116,(R)0),
+::Synchronizer_Gardner_ultra_osf2(const int N, int hold_size, const R damping_factor, const R normalized_bandwidth, const R detector_gain, const int n_frames)
+: Synchronizer_timing<B,R>(N, 2, n_frames),
+farrow_flt(2*hold_size,(R)0),
 //farrow_flt(N,(R)0),
 strobe_history(0),
 TED_error((R)0),
-TED_buffer(osf, std::complex<R>((R)0,(R)0)),
-TED_head_pos(osf - 1),
-TED_mid_pos((osf - 1 - osf / 2) % osf),
+TED_buffer(2, std::complex<R>((R)0,(R)0)),
+hold_size(hold_size),
 lf_proportional_gain((R)0),
 lf_integrator_gain   ((R)0),
 lf_prev_in ((R)0),
@@ -25,6 +24,7 @@ lf_output((R)0),
 NCO_counter((R)0),
 buffer_mtx()
 {
+	assert(hold_size > 0);
 	this->set_loop_filter_coeffs(damping_factor, normalized_bandwidth, detector_gain);
 }
 
@@ -68,14 +68,22 @@ void Synchronizer_Gardner_ultra_osf2<B, R>
 	//std::vector<R> v_NCO_counter (this->N_in/2, 0);
 	//std::vector<R> v_TED_error (this->N_in/2, 0);
 	//std::vector<R> v_lf_output (this->N_in/2, 0);
-
 	if (this->act)
 	{
-		for(int i = 0; i < this->N_in/2; i+=1116)
+		int hold_nbr = (this->N_in/2) / this->hold_size;
+		int tail_nbr = this->N_in/2 - hold_nbr * this->hold_size;
+		for(int i = 0; i < this->N_in/2; i+=this->hold_size)
 		{
 			farrow_flt.filter( X_N1 + 2*i, Y_N1 + 2*i);
+			int temp_is_strobe = this->is_strobe;
+			for (int j = 0; j<this->hold_size ; j++)
+			{
+				B_N1[2*(i + j) + 0] = temp_is_strobe;
+				B_N1[2*(i + j) + 1] = temp_is_strobe;
+				temp_is_strobe = 1-temp_is_strobe;
+			}
 
-			for (int j = 0; j<1116 ; j++)
+			for (int j = 0; j<this->hold_size ; j++)
 			{
 				//v_mu            [i+j] = this->mu;
 				//v_strobe_history[i+j] = this->strobe_history;
@@ -83,19 +91,39 @@ void Synchronizer_Gardner_ultra_osf2<B, R>
 				//v_NCO_counter   [i+j] = this->NCO_counter;
 				//v_TED_error     [i+j] = this->TED_error;
 				//v_lf_output     [i+j] = this->lf_output;
-
-				//farrow_flt.step( &cX_N1[i+j], &cY_N1[i+j]);
-				B_N1[2*(i+j) + 0] = this->is_strobe;
-				B_N1[2*(i+j) + 1] = this->is_strobe;
-
 				this->TED_update(cY_N1[i+j]);
 				this->loop_filter();
-				this->is_strobe   = (this->NCO_counter < 0.5) ? 1:0; // Check if a strobe
-				this->NCO_counter = (this->NCO_counter - 0.5) - std::floor(this->NCO_counter - 0.5);
+				this->is_strobe   = 1-this->is_strobe; // Check if a strobe
+				this->NCO_counter += (R)this->is_strobe - 0.5;
 			}
 			this->mu = compute_mu(this->NCO_counter, (R)0.5 + this->lf_output);
 			this->farrow_flt.set_mu(this->mu);
 		}
+
+		int i = hold_nbr * this->hold_size;
+		int temp_is_strobe = this->is_strobe;
+		for (auto j = 0; j < tail_nbr ; j++)
+		{
+			B_N1[2*(i + j) + 0] = temp_is_strobe;
+			B_N1[2*(i + j) + 1] = temp_is_strobe;
+			temp_is_strobe = 1 - temp_is_strobe;
+		}
+		for (auto j = 0; j < tail_nbr ; j++)
+		{
+			//v_mu            [i] = this->mu;
+			//v_strobe_history[i] = this->strobe_history;
+			//v_is_strobe     [i] = this->is_strobe;
+			//v_NCO_counter   [i] = this->NCO_counter;
+			//v_TED_error     [i] = this->TED_error;
+			//v_lf_output     [i] = this->lf_output;
+			farrow_flt.step( cX_N1 + i + j, cY_N1 + i + j);
+			this->TED_update(cY_N1[i + j]);
+			this->loop_filter();
+			this->is_strobe   = 1-this->is_strobe; // Check if a strobe
+			this->NCO_counter += (R)this->is_strobe - 0.5;
+		}
+		this->mu = compute_mu(this->NCO_counter, (R)0.5 + this->lf_output);
+		this->farrow_flt.set_mu(this->mu);
 	}
 	else
 	{
@@ -298,8 +326,6 @@ void Synchronizer_Gardner_ultra_osf2<B, R>
 
 	this->strobe_history  = 0;
 	this->TED_error       = (R)0;
-	this->TED_head_pos    = this->osf -1;
-	this->TED_mid_pos     = (this->osf - 1 - this->osf / 2) % this->osf;
 	this->lf_prev_in      = (R)0;
 	this->lf_filter_state = (R)0;
 	this->lf_output       = (R)0;

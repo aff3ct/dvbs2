@@ -59,10 +59,15 @@ void Synchronizer_Gardner_ultra_osf2<B,R>
 {
 	auto old_is_strobe   = this->strobe_history % 2;
 	this->strobe_history = old_is_strobe * 2 + this->is_strobe;
+	R* TED_buffer_iq    = reinterpret_cast<R* >(this->TED_buffer.data());
+	R* sample_iq        = reinterpret_cast<R* >(&sample);
 	if (this->strobe_history == 1)
 	{
-		this->TED_error = std::real(this->TED_buffer[1]) * (std::real(this->TED_buffer[0]) - std::real(sample)) +
-		                  std::imag(this->TED_buffer[1]) * (std::imag(this->TED_buffer[0]) - std::imag(sample));
+		this->TED_error = TED_buffer_iq[2] * (TED_buffer_iq[0] - sample_iq[0]) +
+			              TED_buffer_iq[3] * (TED_buffer_iq[1] - sample_iq[1]);
+
+//		this->TED_error = std::real(this->TED_buffer[1]) * (std::real(this->TED_buffer[0]) - std::real(sample)) +
+//		                  std::imag(this->TED_buffer[1]) * (std::imag(this->TED_buffer[0]) - std::imag(sample));
 	}
 	else
 		this->TED_error = 0.0f;
@@ -75,7 +80,9 @@ void Synchronizer_Gardner_ultra_osf2<B,R>
 	}
 	else if((old_is_strobe & this->is_strobe) ==1)
 	{
-			this->TED_buffer[0] = 0;
+			TED_buffer_iq[0] = 0;
+			TED_buffer_iq[1] = 0;
+
 			this->TED_buffer[1] = sample;
 	}
 }
@@ -98,7 +105,7 @@ void Synchronizer_Gardner_ultra_osf2<B, R>
 ::interpolation_control()
 {
 	// Interpolation Control
-	R W = this->lf_output + (R)0.5;
+	R W = this->lf_output + 0.5f;
 	this->is_strobe = (this->NCO_counter < W) ? 1:0; // Check if a strobe
 	//if (this->is_strobe == 1) // Update mu if a strobe
 	//{

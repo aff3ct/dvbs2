@@ -25,9 +25,7 @@ private:
 	int strobe_history;
 	R TED_error;
 	std::vector<std::complex<R> > TED_buffer;
-	int TED_head_pos;
-	int TED_mid_pos;
-
+	int hold_size;
 	// Loop filter parameters
 	R lf_proportional_gain; // AIB -1.6666e-05; //  | -0.002951146572088;    // Matlab default
 	R lf_integrator_gain; // AIB-2.7777e-10; // | -5.902293144176643e-06;// Matlab default
@@ -40,7 +38,7 @@ private:
 	std::mutex buffer_mtx;
 
 public:
-	Synchronizer_Gardner_ultra_osf2 (const int N, int osf, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2, const int n_frames = 1);
+	Synchronizer_Gardner_ultra_osf2 (const int N, int hold_size = 1, const R damping_factor = std::sqrt(0.5), const R normalized_bandwidth = (R)5e-5, const R detector_gain = (R)2, const int n_frames = 1);
 	virtual ~Synchronizer_Gardner_ultra_osf2();
 
 	inline void step(const std::complex<R> *X_N1, std::complex<R>* Y_N1, B* B_N1);
