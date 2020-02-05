@@ -72,7 +72,8 @@ void Synchronizer_Gardner_ultra_osf2<B, R>
 	{
 		int hold_nbr = (this->N_in/2) / this->hold_size;
 		int tail_nbr = this->N_in/2 - hold_nbr * this->hold_size;
-		for(int i = 0; i < this->N_in/2; i+=this->hold_size)
+
+		for(int i = 0; i < hold_nbr * this->hold_size; i+=this->hold_size)
 		{
 			farrow_flt.filter( X_N1 + 2*i, Y_N1 + 2*i);
 			int temp_is_strobe = this->is_strobe;
