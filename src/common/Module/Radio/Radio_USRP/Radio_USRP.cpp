@@ -74,9 +74,6 @@ Radio_USRP<R>
 		usrp->set_rx_gain(params.rx_gain);
 		rx_stream = usrp->get_rx_stream(stream_args);
 		usrp->set_rx_rate(params.rx_rate);
-
-		if (this->threaded)
-			this->receive_thread = boost::thread(&Radio_USRP::thread_function_receive, this);
 	}
 
 	if (params.tx_enabled)
@@ -87,9 +84,6 @@ Radio_USRP<R>
 		usrp->set_tx_antenna(params.tx_antenna);
 		tx_stream = usrp->get_tx_stream(stream_args);
 		usrp->set_tx_rate(params.tx_rate);
-
-		if (this->threaded)
-			this->send_thread = boost::thread(&Radio_USRP::thread_function_send, this);
 	}
 
 	if (!threaded)
@@ -123,12 +117,14 @@ void Radio_USRP<R>
 		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	if (threaded)
+	if (this->threaded && !this->start_thread_send)
 	{
-		fifo_send_write(X_N1);
-		if (!this->start_thread_send)
-			this->start_thread_send = true;
+		this->start_thread_send = true;
+		this->send_thread = boost::thread(&Radio_USRP::thread_function_send, this);
 	}
+
+	if (threaded)
+		fifo_send_write(X_N1);
 	else
 		send_usrp(X_N1);
 }
@@ -144,12 +140,14 @@ void Radio_USRP<R>
 		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	if (threaded)
+	if (this->threaded && !this->start_thread_receive)
 	{
-		if (!this->start_thread_receive)
-			this->start_thread_receive = true;
-		fifo_receive_read(Y_N1);
+		this->start_thread_receive = true;
+		this->receive_thread = boost::thread(&Radio_USRP::thread_function_receive, this);
 	}
+
+	if (threaded)
+		fifo_receive_read(Y_N1);
 	else
 		receive_usrp(Y_N1);
 }
@@ -228,8 +226,7 @@ void Radio_USRP<R>
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 
 	while (!stop_threads)
-		if (this->start_thread_send)
-			this->fifo_send_read();
+		this->fifo_send_read();
 
 	aff3ct::tools::Thread_pinning::unpin();
 }
@@ -244,8 +241,7 @@ void Radio_USRP<R>
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 
 	while (!stop_threads)
-		if (this->start_thread_receive)
-			this->fifo_receive_write();
+		this->fifo_receive_write();
 
 	aff3ct::tools::Thread_pinning::unpin();
 }
