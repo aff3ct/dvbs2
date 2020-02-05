@@ -133,9 +133,9 @@ int main(int argc, char** argv)
 	}
 
 	// enable thread pinning
-	chain_parallel.set_thread_pinning(true, { 1, 2, 5, 6 });
-	chain_stage0  .set_thread_pinning(true, { 0          });
-	chain_stage1  .set_thread_pinning(true, { 4          });
+	chain_parallel.set_thread_pinning(true, { 0, 1, 2, 5 });
+	chain_stage0  .set_thread_pinning(true, { 4          });
+	chain_stage1  .set_thread_pinning(true, { 6          });
 
 	// function to wake up and stop all the threads
 	auto stop_threads = [&chain_parallel, &chain_stages]()
