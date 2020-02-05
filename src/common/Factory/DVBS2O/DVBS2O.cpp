@@ -107,7 +107,7 @@ void DVBS2O
 	args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
 	args.add({"stm-type"},           stm_type_format,                                   "Type of timing synchronization."                                     );
 	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),    "Inter frame level."                                                  );
-
+	args.add({"stm-hold-size"},      cli::Integer(cli::Positive(), cli::Non_zero()),    "Gardner holding size."                                         );
 	p_rad.get_description(args);
 }
 
@@ -149,6 +149,7 @@ void DVBS2O
 	perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false       ;
 	perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false       ;
 	n_frames                 = vals.exist({"src-fra","f"}        ) ? vals.to_int  ({"src-fra","f"}       ) : 1           ;
+	stm_hold_size            = vals.exist({"stm-hold-size"}      ) ? vals.to_int  ({"stm-hold-size"}     ) : 1           ;
 
 	if (perfect_sync)
 	{
@@ -550,7 +551,7 @@ module::Synchronizer_timing<B,R>* DVBS2O
 	else if(params.stm_type == "ULTRA")
 	{
 		if (params.osf == 2)
-			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_ultra_osf2<B,R>(2 * params.pl_frame_size * 2, 2, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
+			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_ultra_osf2<B,R>(2 * params.pl_frame_size * 2, params.stm_hold_size, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
 		else
 			throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
 	}
