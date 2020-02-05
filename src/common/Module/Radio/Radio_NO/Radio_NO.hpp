@@ -1,6 +1,6 @@
 /*!
  * \file
- * \brief 
+ * \brief
  *
  * \section LICENSE
  * This file is under MIT license (https://opensource.org/licenses/MIT).
@@ -45,7 +45,5 @@ protected:
 };
 }
 }
-
-#include "Radio_NO.hxx"
 
 #endif /* RADIO_NO_HPP */

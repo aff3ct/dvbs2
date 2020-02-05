@@ -102,11 +102,11 @@ template <typename R>
 module::Radio<R>* Radio
 ::build() const
 {
-	if      (this->type == "NO"      ) return new module::Radio_NO<R>         (this->N, this->n_frames);
+	if      (this->type == "NO"      ) return new module::Radio_NO         <R>(this->N,                    this->n_frames);
 	else if (this->type == "USER_BIN") return new module::Radio_user_binary<R>(this->N, this->rx_filepath, this->n_frames);
 	#ifdef DVBS2O_LINK_UHD
 	else if (this->type == "USRP")
-		return new module::Radio_USRP<R> (*this);
+		return new module::Radio_USRP<R>(*this);
 	#endif
 
 	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);

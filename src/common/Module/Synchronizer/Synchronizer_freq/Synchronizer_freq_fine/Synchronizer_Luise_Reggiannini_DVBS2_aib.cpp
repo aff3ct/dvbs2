@@ -136,14 +136,14 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 	{
 		auto reg_theta = reg_estimated_freq * reg_n;
 
-		mipp::sincos(reg_theta, reg_cos_sin_theta[1], reg_cos_sin_theta[0]);
+		auto reg_cos_sin_theta = mipp::cossin(reg_theta);
 
 		mipp::Regx2<R> reg_X_N1 = &X_N1[n];
-		reg_X_N1 = mipp::cunmix(reg_X_N1);
+		reg_X_N1 = mipp::deinterleave(reg_X_N1);
 
 		auto reg_Y_N2 = mipp::cmulconj(reg_X_N1, reg_cos_sin_theta);
 
-		reg_Y_N2 = mipp::cmix(reg_Y_N2);
+		reg_Y_N2 = mipp::interleave(reg_Y_N2);
 		reg_Y_N2.store(&Y_N2[n]);
 
 		reg_n += (R)(2 * mipp::N<R>());
