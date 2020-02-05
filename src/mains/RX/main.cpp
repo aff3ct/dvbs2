@@ -191,7 +191,7 @@ int main(int argc, char** argv)
 	std::cout << "Cloning the modules of the parallel chain... " << std::endl;
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
 	                            (*adp_n_to_1)[module::adp::tsk::push_n],
-	                            15,
+	                            20,
 	                            thread_pinnig,
 	                            { 24, 25, 26, 27, 28,
 	                              12, 29, 13, 30, 14,
@@ -382,7 +382,7 @@ int main(int argc, char** argv)
 		std::ofstream fs("chain_stage" + std::to_string(cs) + ".dot");
 		chain_stages[cs]->export_dot(fs);
 	}
-
+	sync_timing->set_act(true);
 	// reset the stats of all the tasks
 	for (auto &cs : chain_stages)
 		for (auto &tt : cs->get_tasks_per_threads())
