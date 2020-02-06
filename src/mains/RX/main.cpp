@@ -20,15 +20,9 @@ int main(int argc, char** argv)
 #ifdef MULTI_THREADED
 	if (thread_pinnig)
 	{
-		aff3ct::tools::Thread_pinning::init();
-		// aff3ct::tools::Thread_pinning::set_logs(true);
-		aff3ct::tools::Thread_pinning::pin(0);
-		// aff3ct::tools::Thread_pinning::example1();
-		// aff3ct::tools::Thread_pinning::example2();
-		// aff3ct::tools::Thread_pinning::example3();
-		// aff3ct::tools::Thread_pinning::example4();
-		// aff3ct::tools::Thread_pinning::example5();
-		// aff3ct::tools::Thread_pinning::example6();
+		tools::Thread_pinning::init();
+		// tools::Thread_pinning::set_logs(true);
+		tools::Thread_pinning::pin(0);
 	}
 #endif
 
@@ -205,7 +199,7 @@ int main(int argc, char** argv)
 	std::cout << "Done." << std::endl;
 
 	if (thread_pinnig)
-		aff3ct::tools::Thread_pinning::pin(0);
+		tools::Thread_pinning::pin(0);
 #endif /* MULTI_THREADED */
 
 	// ================================================================================================================
@@ -526,7 +520,7 @@ int main(int argc, char** argv)
 
 #ifdef MULTI_THREADED
 	if (thread_pinnig)
-		aff3ct::tools::Thread_pinning::destroy();
+		tools::Thread_pinning::destroy();
 #endif
 
 	return EXIT_SUCCESS;
