@@ -185,10 +185,11 @@ int main(int argc, char** argv)
 	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
 	(*adp_n_to_1  )[adp::sck::push_n       ::in1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
-	std::cout << "Cloning the modules of the parallel chain... " << std::endl;
+	std::cout << "Cloning the modules of the parallel chain... ";
+	std::cout.flush();
 	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
 	                            (*adp_n_to_1)[module::adp::tsk::push_n],
-	                            15,
+	                            24,
 	                            thread_pinnig,
 	                            { 12, 24, 25, 26, 27,
 	                              28, 29, 13, 30, 14,
@@ -346,12 +347,12 @@ int main(int argc, char** argv)
 	tools::Chain chain_stage3((*adp_1_to_1_2)[adp::tsk::pull_n ], (*adp_1_to_n  )[adp::tsk::push_1], 1, thread_pinnig, { 5 });
 	tools::Chain chain_stage4((*adp_n_to_1  )[adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ], 1, thread_pinnig, { 6 });
 
-	chain_stage0  .set_no_copy_mode_adaptors(true );
-	chain_stage1  .set_no_copy_mode_adaptors(true );
-	chain_stage2  .set_no_copy_mode_adaptors(true );
-	chain_stage3  .set_no_copy_mode_adaptors(true );
-	chain_parallel.set_no_copy_mode_adaptors(true );
-	chain_stage4  .set_no_copy_mode_adaptors(false);
+	// chain_stage0  .set_no_copy_mode_adaptors(false);
+	// chain_stage1  .set_no_copy_mode_adaptors(false);
+	// chain_stage2  .set_no_copy_mode_adaptors(false);
+	// chain_stage3  .set_no_copy_mode_adaptors(false);
+	// chain_parallel.set_no_copy_mode_adaptors(false);
+	// chain_stage4  .set_no_copy_mode_adaptors(false);
 
 	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1, &chain_stage2,
 	                                            &chain_stage3, &chain_stage4                 };
@@ -379,14 +380,12 @@ int main(int argc, char** argv)
 
 	// start the pipeline threads
 	std::vector<std::thread> threads;
-	size_t tid = 0;
 	for (auto &cs : chain_stages)
 	{
-		threads.push_back(std::thread([cs, tid, &terminal, &stop_threads]() {
+		threads.push_back(std::thread([cs, &terminal, &stop_threads]() {
 			cs->exec([&terminal]() { return terminal->is_interrupt(); } );
 			stop_threads();
 		}));
-		tid++;
 	}
 
 	// start the parallel chain
@@ -400,6 +399,69 @@ int main(int argc, char** argv)
 	// wait all the pipeline threads here
 	for (auto &t : threads)
 		t.join();
+
+	///////////////////////////////////////////////////////////////////////////
+	// DEBUG //////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	// terminal->final_report();
+	// terminal->reset();
+	// monitor->reset();
+	// sink->reset();
+
+	// // reset the adaptors
+	// for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
+	// 	m->reset();
+	// for (auto &cs : chain_stages)
+	// 	for (auto &m : cs->get_modules<tools::Interface_waiting>())
+	// 		m->reset();
+
+	// // reset the stats of all the tasks
+	// for (auto &cs : chain_stages)
+	// 	for (auto &tt : cs->get_tasks_per_threads())
+	// 		for (auto &t : tt) t->reset();
+
+	// chain_stage0  .set_no_copy_mode_adaptors(false);
+	// chain_stage1  .set_no_copy_mode_adaptors(false);
+	// chain_stage2  .set_no_copy_mode_adaptors(false);
+	// chain_stage3  .set_no_copy_mode_adaptors(false);
+	// chain_parallel.set_no_copy_mode_adaptors(false);
+	// chain_stage4  .set_no_copy_mode_adaptors(false);
+
+	// if (params.ter_freq != std::chrono::nanoseconds(0))
+	// 	terminal->start_temp_report(params.ter_freq);
+
+	// std::cout << "#"                      << std::endl;
+	// std::cout << "# TRANSMISSION PHASE 2" << std::endl;
+	// std::cout << "# --------------------" << std::endl;
+
+	// // display the legend in the terminal
+	// terminal->legend();
+
+	// // start the pipeline threads
+	// threads.clear();
+	// for (auto &cs : chain_stages)
+	// {
+	// 	threads.push_back(std::thread([cs, &terminal, &stop_threads]() {
+	// 		cs->exec([&terminal]() { return terminal->is_interrupt(); } );
+	// 		stop_threads();
+	// 	}));
+	// }
+
+	// // start the parallel chain
+	// chain_parallel.exec([&monitor, &terminal]()
+	// {
+	// 	monitor->is_done();
+	// 	return terminal->is_interrupt();
+	// });
+	// stop_threads();
+
+	// // wait all the pipeline threads here
+	// for (auto &t : threads)
+	// 	t.join();
+	///////////////////////////////////////////////////////////////////////////
+	// DEBUG //////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
 #else
 	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*sync_lr     )[sff::sck::synchronize  ::Y_N2]);
 	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
