@@ -346,12 +346,12 @@ int main(int argc, char** argv)
 	tools::Chain chain_stage3((*adp_1_to_1_2)[adp::tsk::pull_n ], (*adp_1_to_n  )[adp::tsk::push_1], 1, thread_pinnig, { 5 });
 	tools::Chain chain_stage4((*adp_n_to_1  )[adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ], 1, thread_pinnig, { 6 });
 
-	// chain_stage0  .set_no_copy_mode_adaptors(true );
-	// chain_stage1  .set_no_copy_mode_adaptors(true );
-	// chain_stage2  .set_no_copy_mode_adaptors(true );
-	// chain_stage3  .set_no_copy_mode_adaptors(true );
-	// chain_parallel.set_no_copy_mode_adaptors(true );
-	// chain_stage4  .set_no_copy_mode_adaptors(false);
+	chain_stage0  .set_no_copy_mode_adaptors(true );
+	chain_stage1  .set_no_copy_mode_adaptors(true );
+	chain_stage2  .set_no_copy_mode_adaptors(true );
+	chain_stage3  .set_no_copy_mode_adaptors(true );
+	chain_parallel.set_no_copy_mode_adaptors(true );
+	chain_stage4  .set_no_copy_mode_adaptors(false);
 
 	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1, &chain_stage2,
 	                                            &chain_stage3, &chain_stage4                 };
