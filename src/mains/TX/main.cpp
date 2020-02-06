@@ -5,7 +5,7 @@
 
 using namespace aff3ct;
 
-#define MULTI_THREADED
+#define MULTI_THREADED // comment this line to disable multi-threaded TX
 
 int main(int argc, char** argv)
 {

@@ -8,7 +8,7 @@ namespace aff3ct { namespace tools {
 using Monitor_BFER_reduction = Monitor_reduction<module::Monitor_BFER<>>;
 } }
 
-#define MULTI_THREADED
+#define MULTI_THREADED // comment this line to disable multi-threaded RX
 
 #ifdef MULTI_THREADED
 const bool thread_pinnig = true;
@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 	if (thread_pinnig)
 	{
 		aff3ct::tools::Thread_pinning::init();
-		aff3ct::tools::Thread_pinning::set_logs(true);
+		// aff3ct::tools::Thread_pinning::set_logs(true);
 		aff3ct::tools::Thread_pinning::pin(0);
 		// aff3ct::tools::Thread_pinning::example1();
 		// aff3ct::tools::Thread_pinning::example2();
@@ -43,7 +43,6 @@ int main(int argc, char** argv)
 	std::vector<std::unique_ptr<tools::Reporter>> reporters;
 	std::unique_ptr<tools::Terminal> terminal;
 	tools::Sigma<> noise;
-	std::unique_ptr<tools::Monitor_BFER_reduction> monitor_red;
 
 	// the list of the allocated modules for the simulation
 	std::vector<const module::Module*> modules;
@@ -184,8 +183,6 @@ int main(int argc, char** argv)
 	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
 	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
 	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
-	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
-	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 	(*adp_n_to_1  )[adp::sck::push_n       ::in1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
 	std::cout << "Cloning the modules of the parallel chain... " << std::endl;
@@ -193,14 +190,15 @@ int main(int argc, char** argv)
 	                            (*adp_n_to_1)[module::adp::tsk::push_n],
 	                            15,
 	                            thread_pinnig,
-	                            { 24, 25, 26, 27, 28,
-	                              12, 29, 13, 30, 14,
+	                            { 12, 24, 25, 26, 27,
+	                              28, 29, 13, 30, 14,
 	                              31, 15, 32, 16, 33,
 	                              17, 34, 18, 35, 19,
 	                              36, 20, 37, 21, 38,
 	                              22, 39, 23, 39, 40,
 	                              41, 42, 43, 44, 45,
-	                              46, 47              });
+	                              46, 47 },
+	                            true); // 'false' results in an error because of the clones of the adaptors...
 	std::ofstream f("chain_parallel.dot");
 	chain_parallel.export_dot(f);
 	std::cout << "Done." << std::endl;
@@ -280,38 +278,10 @@ int main(int argc, char** argv)
 		for (auto& ta : m->tasks)
 			ta->reset();
 
-#ifdef MULTI_THREADED
-	// allocate a common monitor module to reduce all the monitors
-	monitor_red = std::unique_ptr<tools::Monitor_BFER_reduction>(new tools::Monitor_BFER_reduction(
-		chain_parallel.get_modules<module::Monitor_BFER<>>()));
-#else
-	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*sync_lr     )[sff::sck::synchronize  ::Y_N2]);
-	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
-	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
-	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
-	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
-	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
-	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
-	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
-	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
-	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
-	(*sink        )[snk::sck::send         ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
-
-	tools::Chain chain_sequential3((*radio)[rad::tsk::receive], (*sink)[snk::tsk::send]);
-	std::ofstream fs3("chain_sequential3.dot");
-	chain_sequential3.export_dot(fs3);
-
-	monitor_red = std::unique_ptr<tools::Monitor_BFER_reduction>(new tools::Monitor_BFER_reduction(
-		chain_sequential3.get_modules<module::Monitor_BFER<>>()));
-#endif /* MULTI_THREADED */
-
-	monitor_red->set_reduce_frequency(std::chrono::milliseconds(500));
-
 	// allocate reporters to display results in the terminal
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>( noise      ))); // report the noise values (Es/N0 and Eb/N0)
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor_red))); // report the bit/frame error rates
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor_red))); // report the simulation throughputs
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>( noise  ))); // report the noise values (Es/N0 and Eb/N0)
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor))); // report the bit/frame error rates
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor))); // report the simulation throughputs
 
 	// allocate a terminal that will display the collected data from the reporters
 	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
@@ -365,7 +335,9 @@ int main(int argc, char** argv)
 	(*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
 	(*adp_1_to_n   )[adp::sck::push_1     ::in1 ].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
 	// parallel chain
-	(*sink         )[snk::sck::send       ::V   ].bind((*adp_n_to_1   )[adp::sck::pull_1     ::out1]);
+	(*monitor      )[mnt::sck::check_errors::U  ].bind((*source       )[src::sck::generate   ::U_K ]);
+	(*monitor      )[mnt::sck::check_errors::V  ].bind((*adp_n_to_1   )[adp::sck::pull_1     ::out1]);
+	(*sink         )[snk::sck::send        ::V  ].bind((*adp_n_to_1   )[adp::sck::pull_1     ::out1]);
 
 	// create a chain per pipeline stage
 	tools::Chain chain_stage0((*radio       )[rad::tsk::receive], (*adp_1_to_1_0)[adp::tsk::push_1], 1, thread_pinnig, { 2 });
@@ -373,6 +345,13 @@ int main(int argc, char** argv)
 	tools::Chain chain_stage2((*adp_1_to_1_1)[adp::tsk::pull_n ], (*adp_1_to_1_2)[adp::tsk::push_1], 1, thread_pinnig, { 4 });
 	tools::Chain chain_stage3((*adp_1_to_1_2)[adp::tsk::pull_n ], (*adp_1_to_n  )[adp::tsk::push_1], 1, thread_pinnig, { 5 });
 	tools::Chain chain_stage4((*adp_n_to_1  )[adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ], 1, thread_pinnig, { 6 });
+
+	// chain_stage0  .set_no_copy_mode_adaptors(true );
+	// chain_stage1  .set_no_copy_mode_adaptors(true );
+	// chain_stage2  .set_no_copy_mode_adaptors(true );
+	// chain_stage3  .set_no_copy_mode_adaptors(true );
+	// chain_parallel.set_no_copy_mode_adaptors(true );
+	// chain_stage4  .set_no_copy_mode_adaptors(false);
 
 	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1, &chain_stage2,
 	                                            &chain_stage3, &chain_stage4                 };
@@ -411,9 +390,9 @@ int main(int argc, char** argv)
 	}
 
 	// start the parallel chain
-	chain_parallel.exec([&monitor_red, &terminal]()
+	chain_parallel.exec([&monitor, &terminal]()
 	{
-		monitor_red->is_done();
+		monitor->is_done();
 		return terminal->is_interrupt();
 	});
 	stop_threads();
@@ -422,10 +401,27 @@ int main(int argc, char** argv)
 	for (auto &t : threads)
 		t.join();
 #else
+	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*sync_lr     )[sff::sck::synchronize  ::Y_N2]);
+	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
+	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
+	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
+	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
+	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
+	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
+	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*sink        )[snk::sck::send         ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+
+	tools::Chain chain_sequential3((*radio)[rad::tsk::receive], (*sink)[snk::tsk::send]);
+	std::ofstream fs3("chain_sequential3.dot");
+	chain_sequential3.export_dot(fs3);
+
 	// start the transmission chain
-	chain_sequential3.exec([&monitor_red, &terminal]()
+	chain_sequential3.exec([&monitor, &terminal]()
 	{
-		monitor_red->is_done();
+		monitor->is_done();
 		return terminal->is_interrupt();
 	});
 
@@ -433,9 +429,6 @@ int main(int argc, char** argv)
 	for (auto &m : chain_sequential3.get_modules<tools::Interface_waiting>())
 		m->cancel_waiting();
 #endif /* MULTI_THREADED */
-
-	// final reduction
-	monitor_red->reduce();
 
 	// display the performance (BER and FER) in the terminal
 	terminal->final_report();
