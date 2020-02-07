@@ -10,7 +10,7 @@ template <typename B, typename R>
 Synchronizer_Gardner_ultra_osf2<B, R>
 ::Synchronizer_Gardner_ultra_osf2(const int N, int hold_size, const R damping_factor, const R normalized_bandwidth, const R detector_gain, const int n_frames)
 : Synchronizer_timing<B,R>(N, 2, n_frames),
-farrow_flt(2*hold_size,(R)0),
+farrow_flt(2*hold_size-8,(R)0),
 //farrow_flt(N,(R)0),
 strobe_history(0),
 TED_error((R)0),
@@ -24,7 +24,7 @@ lf_output((R)0),
 NCO_counter((R)0),
 buffer_mtx()
 {
-	assert(hold_size > 0);
+	assert(hold_size > 4);
 	this->set_loop_filter_coeffs(damping_factor, normalized_bandwidth, detector_gain);
 }
 
@@ -68,6 +68,7 @@ void Synchronizer_Gardner_ultra_osf2<B, R>
 	//std::vector<R> v_NCO_counter (this->N_in/2, 0);
 	//std::vector<R> v_TED_error (this->N_in/2, 0);
 	//std::vector<R> v_lf_output (this->N_in/2, 0);
+
 	if (this->act)
 	{
 		int hold_nbr = (this->N_in/2) / this->hold_size;
@@ -76,55 +77,59 @@ void Synchronizer_Gardner_ultra_osf2<B, R>
 		for(int i = 0; i < hold_nbr * this->hold_size; i+=this->hold_size)
 		{
 			farrow_flt.filter( X_N1 + 2*i, Y_N1 + 2*i);
-			int temp_is_strobe = this->is_strobe;
-			for (int j = 0; j<this->hold_size ; j++)
+			int p = this->is_strobe;
+			for (int j = 0; j<this->hold_size-4; j++)
 			{
-				B_N1[2*(i + j) + 0] = temp_is_strobe;
-				B_N1[2*(i + j) + 1] = temp_is_strobe;
-				temp_is_strobe = 1-temp_is_strobe;
+				B_N1[2*(i + j) + 0] = p;
+				B_N1[2*(i + j) + 1] = p;
+				p = 1-p;
 			}
-
-			for (int j = 0; j<this->hold_size ; j++)
+			for (int j = 0; j<this->hold_size-4; j++)
 			{
-				//v_mu            [i+j] = this->mu;
-				//v_strobe_history[i+j] = this->strobe_history;
-				//v_is_strobe     [i+j] = this->is_strobe;
-				//v_NCO_counter   [i+j] = this->NCO_counter;
-				//v_TED_error     [i+j] = this->TED_error;
-				//v_lf_output     [i+j] = this->lf_output;
 				this->TED_update(cY_N1[i+j]);
 				this->loop_filter();
 				this->is_strobe   = 1-this->is_strobe; // Check if a strobe
 				this->NCO_counter += (R)this->is_strobe - 0.5;
 			}
-			this->mu = compute_mu(this->NCO_counter, (R)0.5 + this->lf_output);
-			this->farrow_flt.set_mu(this->mu);
+
+			for(int j = this->hold_size-4; j<this->hold_size; j++)
+			{
+				farrow_flt.step( cX_N1 + i + j, cY_N1 + i + j);
+				B_N1[2*(i+j) + 0] = this->is_strobe;
+				B_N1[2*(i+j) + 1] = this->is_strobe;
+
+				this->TED_update(cY_N1[i+j]);
+				this->loop_filter();
+				this->interpolation_control(this->lf_output, this->NCO_counter, this->mu, this->is_strobe);this->farrow_flt.set_mu(this->mu);
+			}
+
+			//v_mu            [i+this->hold_size-1] = this->mu;
+			//v_strobe_history[i+this->hold_size-1] = this->strobe_history;
+			//v_is_strobe     [i+this->hold_size-1] = this->is_strobe;
+			//v_NCO_counter   [i+this->hold_size-1] = this->NCO_counter;
+			//v_TED_error     [i+this->hold_size-1] = this->TED_error;
+			//v_lf_output     [i+this->hold_size-1] = this->lf_output;
+
+			//v_mu            [i+this->hold_size-1] = this->mu;
+			//v_strobe_history[i+this->hold_size-1] = this->strobe_history;
+			//v_is_strobe     [i+this->hold_size-1] = this->is_strobe;
+			//v_NCO_counter   [i+this->hold_size-1] = this->NCO_counter;
+			//v_TED_error     [i+this->hold_size-1] = this->TED_error;
+			//v_lf_output     [i+this->hold_size-1] = this->lf_output;
 		}
 
 		int i = hold_nbr * this->hold_size;
-		int temp_is_strobe = this->is_strobe;
 		for (auto j = 0; j < tail_nbr ; j++)
 		{
-			B_N1[2*(i + j) + 0] = temp_is_strobe;
-			B_N1[2*(i + j) + 1] = temp_is_strobe;
-			temp_is_strobe = 1 - temp_is_strobe;
-		}
-		for (auto j = 0; j < tail_nbr ; j++)
-		{
-			//v_mu            [i] = this->mu;
-			//v_strobe_history[i] = this->strobe_history;
-			//v_is_strobe     [i] = this->is_strobe;
-			//v_NCO_counter   [i] = this->NCO_counter;
-			//v_TED_error     [i] = this->TED_error;
-			//v_lf_output     [i] = this->lf_output;
 			farrow_flt.step( cX_N1 + i + j, cY_N1 + i + j);
-			this->TED_update(cY_N1[i + j]);
+			this->TED_update(cY_N1[i+j]);
+
+			B_N1[2*(i+j) + 0] = this->is_strobe;
+			B_N1[2*(i+j) + 1] = this->is_strobe;
+
 			this->loop_filter();
-			this->is_strobe   = 1-this->is_strobe; // Check if a strobe
-			this->NCO_counter += (R)this->is_strobe - 0.5;
+			this->interpolation_control(this->lf_output, this->NCO_counter, this->mu, this->is_strobe);this->farrow_flt.set_mu(this->mu);
 		}
-		this->mu = compute_mu(this->NCO_counter, (R)0.5 + this->lf_output);
-		this->farrow_flt.set_mu(this->mu);
 	}
 	else
 	{
@@ -144,41 +149,41 @@ void Synchronizer_Gardner_ultra_osf2<B, R>
 			B_N1[2*i + 1] = this->is_strobe;
 
 			this->loop_filter();
-			this->interpolation_control();
+			this->interpolation_control(this->lf_output, this->NCO_counter, this->mu, this->is_strobe);this->farrow_flt.set_mu(this->mu);
 		}
 	}
-	//if((*this)[stm::tsk::synchronize].is_debug())
-	//{
-	//	std::cout << "# {INTERNAL} mu = [";
-	//	for (auto i = 0; i < this->N_in/2 ; i++)
-	//		std::cout << v_mu[i] << " ";
-	//	std::cout << " ]" << std::endl;
-	//
-	//	std::cout << "# {INTERNAL} is_strobe = [";
-	//	for (auto i = 0; i < this->N_in/2 ; i++)
-	//		std::cout << v_is_strobe[i] << " ";
-	//	std::cout << " ]" << std::endl;
-	//
-	//	std::cout << "# {INTERNAL} strobe_history = [";
-	//	for (auto i = 0; i < this->N_in/2 ; i++)
-	//		std::cout << v_strobe_history[i] << " ";
-	//	std::cout << " ]" << std::endl;
-	//
-	//	std::cout << "# {INTERNAL} NCO_counter = [";
-	//	for (auto i = 0; i < this->N_in/2 ; i++)
-	//		std::cout << v_NCO_counter[i] << " ";
-	//	std::cout << " ]" << std::endl;
-	//
-	//	std::cout << "# {INTERNAL} TED_error = [";
-	//	for (auto i = 0; i < this->N_in/2 ; i++)
-	//		std::cout << v_TED_error[i] << " ";
-	//	std::cout << " ]" << std::endl;
-	//
-	//	std::cout << "# {INTERNAL} lf_output = [";
-	//	for (auto i = 0; i < this->N_in/2 ; i++)
-	//		std::cout << v_lf_output[i] << " ";
-	//	std::cout << " ]" << std::endl;
-	//}
+	/*if((*this)[stm::tsk::synchronize].is_debug())
+	{
+		std::cout << "# {INTERNAL} mu = [";
+		for (auto i = 0; i < this->N_in/2 ; i++)
+			std::cout << v_mu[i] << " ";
+		std::cout << " ]" << std::endl;
+
+		std::cout << "# {INTERNAL} is_strobe = [";
+		for (auto i = 0; i < this->N_in/2 ; i++)
+			std::cout << v_is_strobe[i] << " ";
+		std::cout << " ]" << std::endl;
+
+		std::cout << "# {INTERNAL} strobe_history = [";
+		for (auto i = 0; i < this->N_in/2 ; i++)
+			std::cout << v_strobe_history[i] << " ";
+		std::cout << " ]" << std::endl;
+
+		std::cout << "# {INTERNAL} NCO_counter = [";
+		for (auto i = 0; i < this->N_in/2 ; i++)
+			std::cout << v_NCO_counter[i] << " ";
+		std::cout << " ]" << std::endl;
+
+		std::cout << "# {INTERNAL} TED_error = [";
+		for (auto i = 0; i < this->N_in/2 ; i++)
+			std::cout << v_TED_error[i] << " ";
+		std::cout << " ]" << std::endl;
+
+		std::cout << "# {INTERNAL} lf_output = [";
+		for (auto i = 0; i < this->N_in/2 ; i++)
+			std::cout << v_lf_output[i] << " ";
+		std::cout << " ]" << std::endl;
+	}*/
 }
 
 

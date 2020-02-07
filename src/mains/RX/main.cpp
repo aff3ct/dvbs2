@@ -326,6 +326,8 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
+	sync_timing->set_act(true);
+
 #ifdef MULTI_THREADED
 	(*radio        )[rad::sck::receive    ::Y_N1].reset();
 	(*front_agc    )[mlt::sck::imultiply  ::X_N ].reset();

@@ -18,7 +18,9 @@ void Synchronizer_Gardner_ultra_osf2<B,R>
 
 	this->TED_update(*Y_N1);
 	this->loop_filter();
-	this->interpolation_control();
+	this->interpolation_control(this->lf_output, this->NCO_counter, this->mu, this->is_strobe);
+	if (this->is_strobe)
+		this->farrow_flt.set_mu(this->mu);
 }
 
 /*template <typename B, typename R>
@@ -65,9 +67,6 @@ void Synchronizer_Gardner_ultra_osf2<B,R>
 	{
 		this->TED_error = TED_buffer_iq[2] * (TED_buffer_iq[0] - sample_iq[0]) +
 			              TED_buffer_iq[3] * (TED_buffer_iq[1] - sample_iq[1]);
-
-//		this->TED_error = std::real(this->TED_buffer[1]) * (std::real(this->TED_buffer[0]) - std::real(sample)) +
-//		                  std::imag(this->TED_buffer[1]) * (std::imag(this->TED_buffer[0]) - std::imag(sample));
 	}
 	else
 		this->TED_error = 0.0f;
@@ -102,20 +101,18 @@ void Synchronizer_Gardner_ultra_osf2<B,R>
 
 template <typename B, typename R>
 void Synchronizer_Gardner_ultra_osf2<B, R>
-::interpolation_control()
+::interpolation_control(R lf_output, R &NCO_counter, R& mu, int &is_strobe)
 {
 	// Interpolation Control
-	R W = this->lf_output + 0.5f;
-	this->is_strobe = (this->NCO_counter < W) ? 1:0; // Check if a strobe
-	//if (this->is_strobe == 1) // Update mu if a strobe
-	//{
-	//	this->mu = this->NCO_counter / W;
+	R W = lf_output + 0.5f;
+	is_strobe = (NCO_counter < W) ? 1:0; // Check if a strobe
+	if (is_strobe == 1) // Update mu if a strobe
+	{
+		mu = NCO_counter / W;
+		NCO_counter += 1.0f;
 	//	this->farrow_flt.set_mu(this->mu);
-	//}
-	this->mu = compute_mu(this->NCO_counter, W);
-	this->farrow_flt.set_mu(this->mu);
-
-	this->NCO_counter = (this->NCO_counter - W) - std::floor(this->NCO_counter - W); // Update counter
+	}
+	NCO_counter = (NCO_counter - W) ; // Update counter
 
 	//this->is_strobe = ((int)this->NCO_counter % 4 == 0) ? 1:0; // Check if a strobe
 	//this->NCO_counter += 1.0f;

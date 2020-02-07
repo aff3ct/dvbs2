@@ -53,7 +53,7 @@ protected:
 
 	inline void TED_update(std::complex<R> strobe);
 	inline void loop_filter();
-	inline void interpolation_control();
+	inline void interpolation_control(R lf_output, R &NCO_counter, R& mu, int &is_strobe);
 	inline R    compute_mu(R NCO_counter, R W);
 };
 
