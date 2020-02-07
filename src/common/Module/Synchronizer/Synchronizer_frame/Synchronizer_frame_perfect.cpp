@@ -27,6 +27,7 @@ void Synchronizer_frame_perfect<R>
 ::_synchronize(const R *X_N1, int* delay, R *Y_N2, const int frame_id)
 {
 	*delay = this->frame_delay;
+	this->delay = *delay;
 	this->output_delay.filter(X_N1,Y_N2);
 }
 

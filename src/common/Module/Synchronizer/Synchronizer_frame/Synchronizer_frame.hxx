@@ -17,7 +17,7 @@ namespace module
 template <typename R>
 Synchronizer_frame<R>::
 Synchronizer_frame(const int N, const int n_frames)
-: Module(n_frames), N_in(N), N_out(N)
+: Module(n_frames), N_in(N), N_out(N), delay(0)
 {
 	const std::string name = "Synchronizer_frame";
 	this->set_name(name);
@@ -63,6 +63,13 @@ int Synchronizer_frame<R>::
 get_N_out() const
 {
 	return this->N_out;
+}
+
+template <typename R>
+int Synchronizer_frame<R>::
+get_delay() const
+{
+	return this->delay;
 }
 
 template <typename R>

@@ -26,6 +26,7 @@ class Synchronizer_frame : public Module
 protected:
 	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */
 	const int N_out; /*!< Number of samples after the synchronization process */
+	int delay;
 
 public:
 	inline Task&   operator[](const sfm::tsk              t) { return Module::operator[]((int)t);                             }
@@ -38,7 +39,7 @@ public:
 	int get_N_in() const;
 
 	int get_N_out() const;
-
+	int get_delay() const;
 	virtual void reset() = 0;
 
 	/*!

@@ -71,6 +71,7 @@ void Synchronizer_frame_DVBS2_aib<R>
 	this->reg_channel = cX_N1[cplx_in_sz - 1];
 		//std::cout << "Hi befor delay" << std::endl;
 	*delay = (cplx_in_sz + max_idx - this->SOF_PLSC_sz)%cplx_in_sz;
+	this->delay = *delay;
 	//std::cout << "delay : " << delay<< std::endl;
 	this->output_delay.set_delay((cplx_in_sz - *delay)%cplx_in_sz);
 	//std::cout << "Delay set" <<std::endl;
