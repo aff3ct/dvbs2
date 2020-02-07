@@ -23,6 +23,7 @@ public:
 	virtual ~Filter_Farrow_ccr_naive();
 	inline void set_mu(R mu);
 	inline void step(const std::complex<R>* x_elt, std::complex<R>* y_elt);
+	inline void redo_step(R new_mu, std::complex<R>* y_elt);
 };
 }
 }
