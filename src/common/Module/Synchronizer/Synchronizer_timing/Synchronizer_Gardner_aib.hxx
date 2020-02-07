@@ -81,9 +81,10 @@ void Synchronizer_Gardner_aib<B, R>
 	{
 		this->mu = this->NCO_counter / W;
 		this->farrow_flt.set_mu(this->mu);
+		this->NCO_counter += (R)1.0f;
 	}
 
-	this->NCO_counter = (this->NCO_counter - W) - std::floor(this->NCO_counter - W); // Update counter*/
+	this->NCO_counter = (this->NCO_counter - W); // Update counter*/
 
 	//this->is_strobe = ((int)this->NCO_counter % 4 == 0) ? 1:0; // Check if a strobe
 	//this->NCO_counter += 1.0f;
