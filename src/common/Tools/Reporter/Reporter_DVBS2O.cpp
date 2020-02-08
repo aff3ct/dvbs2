@@ -72,7 +72,7 @@ Reporter::report_t Reporter_DVBS2O<B,R>
 	Reporter::report_t the_report(this->cols_groups.size());
 	auto& sync_report = the_report[0];
 
-	for (int c = 0 ; c < this->buffer.size(); c++)
+	for (size_t c = 0 ; c < this->buffer.size(); c++)
 	{
 		std::stringstream stream;
 		R buffer_content = 0.0f;
