@@ -68,7 +68,7 @@ public:
 
 	virtual void step(const std::complex<R> *X_N1, std::complex<R>* Y_N1, B* B_N1) = 0;
 
-	R               get_mu           ();
+	R               get_mu           () const;
 	std::complex<R> get_last_symbol  ();
 	int             get_is_strobe    ();
 	int             get_overflow_cnt ();

@@ -6,6 +6,8 @@
 #include <aff3ct.hpp>
 
 #include "Factory/DVBS2O/DVBS2O.hpp"
+#include "Tools/Reporter/Reporter_DVBS2O.hpp"
+#include "Tools/Reporter/Reporter_throughput_dvbs2o.hpp"
 
 using namespace aff3ct;
 
@@ -101,9 +103,23 @@ int main(int argc, char** argv)
 	mult_agc     ->set_custom_name("Mult AGC"    );
 
 	// allocate reporters to display results in the terminal
+	tools::Reporter_DVBS2O<> syncro_reporter(*sync_coarse_f.get(),
+	                                         *sync_timing  .get(),
+	                                         *sync_frame   .get(),
+	                                         *sync_fine_lr .get());
+
+	reporters.push_back(std::unique_ptr<tools::Reporter>(&syncro_reporter)); //
+	std::unique_ptr<module::Probe<> > stm_probe(syncro_reporter.build_stm_probe());
+	std::unique_ptr<module::Probe<> > sfm_probe(syncro_reporter.build_sfm_probe());
+	std::unique_ptr<module::Probe<> > sff_probe(syncro_reporter.build_sff_probe());
+	std::unique_ptr<module::Probe<> > sfc_probe(syncro_reporter.build_sfc_probe());
+
+	// allocate reporters to display results in the terminal
 	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>(noise   ))); // report the noise values (Es/N0 and Eb/N0)
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor))); // report the bit/frame error rates
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor))); // report the simulation throughputs
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor))); //report the bit/frame error rates
+
+	tools::Reporter_throughput_dvbs2o<> tpt_monitor(*monitor);
+	reporters.push_back(std::unique_ptr<tools::Reporter>(&tpt_monitor)); // report the simulation throughputs
 
 	// allocate a terminal that will display the collected data from the reporters
 	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
@@ -118,7 +134,8 @@ int main(int argc, char** argv)
 	            sync_fine_lr.get(), sync_fine_pf.get(), shaping_flt  .get(), chn_frac_del  .get(),
 	            mult_agc    .get(), sync_frame  .get(), delay        .get(), sync_coarse_f .get(),
 	            matched_flt .get(), sync_timing .get(), sync_step_mf .get(), source        .get(),
-	            channel     .get(), chn_agc     .get(), chn_int_del  .get(), estimator     .get() };
+	            channel     .get(), chn_agc     .get(), chn_int_del  .get(), estimator     .get(),
+				stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe     .get() };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -148,6 +165,7 @@ int main(int argc, char** argv)
 	(*chn_agc     )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del)[flt::sck::filter       ::Y_N2]);
 	(*freq_shift  )[mlt::sck::imultiply    ::X_N ].bind((*chn_agc     )[mlt::sck::imultiply    ::Z_N ]);
 	(*sync_fine_lr)[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*sff_probe   )[prb::sck::probe        ::X_N ].bind((*sync_fine_lr)[sff::sck::synchronize  ::Y_N2]);
 	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr)[sff::sck::synchronize  ::Y_N2]);
 	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
 	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
@@ -166,14 +184,17 @@ int main(int argc, char** argv)
 	// a loop over the various SNRs
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
 	{
-		(*bb_scrambler)[scr::sck::scramble   ::X_N1 ].bind((*source      )[src::sck::generate   ::U_K  ]);
-		(*channel     )[chn::sck::add_noise  ::X_N  ].bind((*freq_shift  )[mlt::sck::imultiply  ::Z_N  ]);
-		(*sync_step_mf)[smf::sck::synchronize::X_N1 ].bind((*channel     )[chn::sck::add_noise  ::Y_N  ]);
-		(*sync_step_mf)[smf::sck::synchronize::delay].bind((*sync_frame  )[sfm::sck::synchronize::delay]);
-		(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N2 ]);
-		(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N  ]);
-		(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2 ]);
-		(*delay       )[flt::sck::filter     ::X_N1 ].bind((*source      )[src::sck::generate   ::U_K  ]);
+		(*bb_scrambler)[scr::sck::scramble   ::X_N1 ].bind((*source       )[src::sck::generate   ::U_K  ]);
+		(*channel     )[chn::sck::add_noise  ::X_N  ].bind((*freq_shift   )[mlt::sck::imultiply  ::Z_N  ]);
+		(*sync_step_mf)[smf::sck::synchronize::X_N1 ].bind((*channel      )[chn::sck::add_noise  ::Y_N  ]);
+		(*sync_step_mf)[smf::sck::synchronize::delay].bind((*sync_frame   )[sfm::sck::synchronize::delay]);
+		(*sfc_probe   )[prb::sck::probe      ::X_N  ].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2 ]);
+		(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_step_mf )[smf::sck::synchronize::Y_N2 ]);
+		(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N  ]);
+		(*sfm_probe   )[prb::sck::probe      ::X_N  ].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2 ]);
+		(*stm_probe   )[prb::sck::probe      ::X_N  ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1 ]);
+		(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2 ]);
+		(*delay       )[flt::sck::filter     ::X_N1 ].bind((*source       )[src::sck::generate   ::U_K  ]);
 
 		// compute the code rate
 		const float R = (float)params.K_bch / (float)params.N_ldpc;
@@ -205,13 +226,14 @@ int main(int argc, char** argv)
 		char heads[]       = "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
 		char pattern[]     = "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
 		int  delay_tx_rx = 1;
+		tpt_monitor.init();
 		if (!params.perfect_sync)
 		{
-			if (!params.no_sync_info)
-			{
-				std::cerr << head_lines << "\n" << heads << "\n" <<head_lines << "\n";
-				std::cerr.flush();
-			}
+			//if (!params.no_sync_info)
+			//{
+			//	std::cerr << head_lines << "\n" << heads << "\n" <<head_lines << "\n";
+			//	std::cerr.flush();
+			//}
 			// tasks execution
 			auto n_phase = 1;
 			for (int m = 0; m < 500; m += params.n_frames)
@@ -236,43 +258,55 @@ int main(int argc, char** argv)
 
 					if (n_phase < 3)
 					{
+						(*stm_probe    )[prb::tsk::probe      ].exec();
+						(*sfc_probe    )[prb::tsk::probe      ].exec();
 						(*sync_step_mf )[smf::tsk::synchronize].exec(); // can raise the 'tools::processing_aborted' exception
 						(*mult_agc     )[mlt::tsk::imultiply  ].exec();
+						(*sfm_probe    )[prb::tsk::probe      ].exec();
 						(*sync_frame   )[sfm::tsk::synchronize].exec();
 						(*pl_scrambler )[scr::tsk::descramble ].exec();
+						//(*sff_probe    )[prb::tsk::probe      ].exec();
+						//(*sync_fine_lr )[sff::tsk::synchronize].exec();
+						//(*sync_fine_pf )[sff::tsk::synchronize].exec();
+						terminal->temp_report(std::cerr);
 					}
 					else // n_phase == 3
 					{
+						(*sfc_probe    )[prb::tsk::probe      ].exec();
 						(*sync_coarse_f)[sfc::tsk::synchronize].exec();
 						(*matched_flt  )[flt::tsk::filter     ].exec();
+						(*stm_probe    )[prb::tsk::probe      ].exec();
 						(*sync_timing  )[stm::tsk::synchronize].exec();
 						(*sync_timing  )[stm::tsk::extract    ].exec(); // can raise the 'tools::processing_aborted' exception
 						(*mult_agc     )[mlt::tsk::imultiply  ].exec();
+						(*sfm_probe    )[prb::tsk::probe      ].exec();
 						(*sync_frame   )[sfm::tsk::synchronize].exec();
 						(*pl_scrambler )[scr::tsk::descramble ].exec();
+						(*sff_probe    )[prb::tsk::probe      ].exec();
 						(*sync_fine_lr )[sff::tsk::synchronize].exec();
 						(*sync_fine_pf )[sff::tsk::synchronize].exec();
+						terminal->temp_report(std::cerr);
 					}
 
-					if (!params.no_sync_info)
-					{
-						sprintf(buf, pattern, n_phase, m+1,
-								sync_timing  ->get_mu(),
-								sync_coarse_f->get_estimated_freq(),
-								sync_coarse_f->get_curr_idx(),
-								sync_fine_lr ->get_estimated_freq() / (float)params.osf,
-								sync_fine_pf ->get_estimated_freq() / (float)params.osf);
-						std::cerr << buf << "\r";
-						std::cerr.flush();
-					}
+					//if (!params.no_sync_info)
+					//{
+					//	sprintf(buf, pattern, n_phase, m+1,
+					//			sync_timing  ->get_mu(),
+					//			sync_coarse_f->get_estimated_freq(),
+					//			sync_coarse_f->get_curr_idx(),
+					//			sync_fine_lr ->get_estimated_freq() / (float)params.osf,
+					//			sync_fine_pf ->get_estimated_freq() / (float)params.osf);
+					//	std::cerr << buf << "\r";
+					//	std::cerr.flush();
+					//}
 
 					if (m > 149 && n_phase == 1)
 					{
 						m = 150;
 						n_phase++;
 						sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
-						if (!params.no_sync_info)
-							std::cerr << buf << std::endl;
+						//if (!params.no_sync_info)
+						//	std::cerr << buf << std::endl;
 					}
 
 					if (m > 299 && n_phase == 2)
@@ -280,20 +314,23 @@ int main(int argc, char** argv)
 						m = 300;
 						n_phase++;
 						(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N ]);
+						(*sfc_probe    )[prb::sck::probe      ::X_N ].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
 						(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
 						(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
 						(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+						(*stm_probe    )[prb::sck::probe      ::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
 						(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
 						(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
 						(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
-						if (!params.no_sync_info)
-							std::cerr << buf << std::endl;
+						(*sfm_probe    )[prb::sck::probe      ::X_N ].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
+						//if (!params.no_sync_info)
+						//	std::cerr << buf << std::endl;
 					}
 				}
 				catch (tools::processing_aborted const& e){delay_tx_rx++;}
 			}
-			if (!params.no_sync_info)
-				std::cerr << buf << "\n" << head_lines << "\n";
+			//if (!params.no_sync_info)
+			//	std::cerr << buf << "\n" << head_lines << "\n";
 		}
 		else
 		{
@@ -301,13 +338,15 @@ int main(int argc, char** argv)
 			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
 			(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
 			(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+			(*stm_probe    )[prb::sck::probe      ::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
 			(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
 			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
 			(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
+			(*sfm_probe    )[prb::sck::probe      ::X_N ].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
 		}
 		monitor->reset();
-		if (params.ter_freq != std::chrono::nanoseconds(0))
-			terminal->start_temp_report(params.ter_freq);
+		//if (params.ter_freq != std::chrono::nanoseconds(0))
+		//	terminal->start_temp_report(params.ter_freq);
 
 		for (auto& m : modules)
 			for (auto& ta : m->tasks)
@@ -317,6 +356,7 @@ int main(int argc, char** argv)
 		delay->set_delay(delay_tx_rx);
 		sync_timing->set_act(true);
 		//(*sync_timing  )[stm::tsk::synchronize  ].set_debug(true);
+		unsigned long long old_n_fe = 0;
 		while (!monitor->is_done() && !terminal->is_interrupt())
 		{
 			try
@@ -336,13 +376,17 @@ int main(int argc, char** argv)
 				(*chn_agc      )[mlt::tsk::imultiply    ].exec();
 				(*freq_shift   )[mlt::tsk::imultiply    ].exec();
 				(*channel      )[chn::tsk::add_noise    ].exec();
+				(*sfc_probe    )[prb::tsk::probe        ].exec();
 				(*sync_coarse_f)[sfc::tsk::synchronize  ].exec();
 				(*matched_flt  )[flt::tsk::filter       ].exec();
+				(*stm_probe    )[prb::tsk::probe        ].exec();
 				(*sync_timing  )[stm::tsk::synchronize  ].exec();
 				(*sync_timing  )[stm::tsk::extract      ].exec(); // can raise the 'tools::processing_aborted' exception
 				(*mult_agc     )[mlt::tsk::imultiply    ].exec();
+				(*sfm_probe    )[prb::tsk::probe        ].exec();
 				(*sync_frame   )[sfm::tsk::synchronize  ].exec();
 				(*pl_scrambler )[scr::tsk::descramble   ].exec();
+				(*sff_probe    )[prb::tsk::probe        ].exec();
 				(*sync_fine_lr )[sff::tsk::synchronize  ].exec();
 				(*sync_fine_pf )[sff::tsk::synchronize  ].exec();
 				(*framer       )[frm::tsk::remove_plh   ].exec();
@@ -357,8 +401,17 @@ int main(int argc, char** argv)
 			catch (tools::processing_aborted const&) {}
 
 			if (n_frames < delay_tx_rx) // first frame is delayed
+			{
 				monitor->reset();
+				old_n_fe = 0;
+			}
 
+
+			terminal->temp_report(std::cerr);
+			if (monitor->get_n_fe()	 > old_n_fe)
+				std::cout << "Error ! " << std::endl;
+
+			old_n_fe = monitor->get_n_fe();
 			n_frames++;
 		}
 

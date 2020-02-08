@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "Module/Module.hpp"
+#include "Tools/Reporter/Reporter_buffered.hpp"
 #include "Tools/Noise/noise_utils.h"
 
 namespace aff3ct
@@ -46,7 +47,8 @@ public:
 
 protected:
 	const int N;  /*!< Size of one frame (= number of samples in one frame) */
-
+	std::string col_id;
+	Reporter_buffered<R>& reporter;
 public:
 	/*!
 	 * \brief Constructor.
@@ -54,7 +56,7 @@ public:
 	 * \param N:        size of one frame (= number of samples in one frame).
 	 * \param n_frames: number of frames to process in the Probe.
 	 */
-	Probe(const int N, const int n_frames = 1);
+	Probe(const int N, std::string col_id, Reporter_buffered<R>& reporter, const int n_frames = 1);
 
 	void init_processes();
 
@@ -63,7 +65,6 @@ public:
 	 */
 	virtual ~Probe() = default;
 
-	virtual void reset() = 0;
 	/*!
 	 * \brief Probes a of Module.
 	 *
@@ -74,10 +75,7 @@ public:
 	template <class AR = std::allocator<R>>
 	void probe(std::vector<R,AR>& X_N, const int frame_id = -1);
 
-	virtual void probe(R *X_N, const int frame_id = -1);
-
-protected:
-	virtual void _probe(R *X_N, const int frame_id);
+	void probe(R *X_N, const int frame_id = -1);
 };
 }
 }

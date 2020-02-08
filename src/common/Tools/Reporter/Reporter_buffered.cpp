@@ -87,6 +87,20 @@ int Reporter_buffered<R>
 	return min_size;
 }
 
+template <typename R>
+void Reporter_buffered<R>
+::probe(std::string id)
+{
+	this->_probe(id);
+}
+
+template <typename R>
+void Reporter_buffered<R>::
+_probe(std::string id)
+{
+	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+}
+
 // ==================================================================================== explicit template instantiation
 #include "Tools/types.h"
 #ifdef AFF3CT_MULTI_PREC

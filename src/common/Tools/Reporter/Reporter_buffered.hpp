@@ -16,15 +16,13 @@ template <typename R = float>
 class Reporter_buffered : public Reporter
 {
 protected:
-std::vector<int> head;
-std::vector<int> tail;
-
-std::vector<std::vector<R> >buffer;
-
-std::map<std::string, int> column_keys;
+	std::vector<int> head;
+	std::vector<int> tail;
+	std::vector<std::vector<R> >buffer;
+	std::map<std::string, int> column_keys;
 
 public:
-	explicit Reporter_buffered(const int nb_cols=1, const int max_size = 100);
+	explicit Reporter_buffered(const int nb_cols=1, const int max_size = 10000);
 	virtual ~Reporter_buffered() = default;
 
 	void push(const R *elt ,        int col);
@@ -38,7 +36,10 @@ public:
 	void print_buffer();
 
 	virtual report_t report(bool final = false) = 0;
+	void probe(std::string col_name);
 
+protected:
+	virtual void _probe(std::string col_name);
 };
 }
 }

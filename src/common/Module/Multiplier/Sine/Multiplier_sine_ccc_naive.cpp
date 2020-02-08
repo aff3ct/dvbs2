@@ -82,7 +82,7 @@ inline void Multiplier_sine_ccc_naive<R>
 
 template <typename R>
 void Multiplier_sine_ccc_naive<R>
-::_imultiply_old(const R *X_N,  R *Z_N, const int frame_id)
+::_imultiply(const R *X_N,  R *Z_N, const int frame_id)
 {
 	// const std::complex<R>* cX_N = reinterpret_cast<const std::complex<R>* >(X_N);
 	// std::complex<R>*       cZ_N = reinterpret_cast<      std::complex<R>* >(Z_N);
@@ -103,7 +103,7 @@ void Multiplier_sine_ccc_naive<R>
 	}
 }
 
-template <typename R>
+/*template <typename R>
 void Multiplier_sine_ccc_naive<R>
 ::_imultiply(const R *X_N,  R *Z_N, const int frame_id)
 {
@@ -148,7 +148,7 @@ void Multiplier_sine_ccc_naive<R>
 
 		this->n = (this->n >= 999999.) ? 0. : this->n + (R)1.;
 	}
-}
+}*/
 
 // ==================================================================================== explicit template instantiation
 template class aff3ct::module::Multiplier_sine_ccc_naive<float>;

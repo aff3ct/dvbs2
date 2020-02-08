@@ -23,8 +23,8 @@ namespace module
 
 template <typename R>
 Probe<R>::
-Probe(const int N, const int n_frames)
-: Module(n_frames), N(N)
+Probe(const int N, std::string col_id, Reporter_buffered<R>& reporter, const int n_frames)
+: Module(n_frames), N(N), col_id(col_id), reporter(reporter)
 {
 	const std::string name = "Probe";
 	this->set_name(name);
@@ -45,10 +45,10 @@ void Probe<R>::
 init_processes()
 {
 	auto &p1 = this->create_task("probe");
-	auto p1s_X_N = this->template create_socket_in_out <R>(p1, "X_N", this->N );
+	auto p1s_X_N = this->template create_socket_in <R>(p1, "X_N", this->N );
 	this->create_codelet(p1, [p1s_X_N](Module &m, Task &t) -> int
 	{
-		static_cast<Probe<R>&>(m).probe(static_cast<R*>(t[p1s_X_N1].get_dataptr()));
+		static_cast<Probe<R>&>(m).probe(static_cast<R*>(t[p1s_X_N].get_dataptr()));
 
 		return 0;
 	});
@@ -74,19 +74,10 @@ template <typename R>
 void Probe<R>::
 probe(R *X_N, const int frame_id)
 {
-	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
-	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
-
-	for (auto f = f_start; f < f_stop; f++)
-		this->_probe(X_N + f * this->N, f);
+	this->reporter.probe(this->col_id);
 }
 
-template <typename R>
-void Probe<R>::
-_probe(const R *X_N, const int frame_id)
-{
-	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
-}
+
 }
 }
 

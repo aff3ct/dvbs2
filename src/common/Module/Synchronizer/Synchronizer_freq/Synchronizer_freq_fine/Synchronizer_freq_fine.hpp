@@ -36,8 +36,8 @@ public:
 
 	virtual Synchronizer_freq_fine<R>* clone() const;
 
-	R get_estimated_freq () {return this->estimated_freq; };
-	R get_estimated_phase() {return this->estimated_phase;};
+	R get_estimated_freq () const {return this->estimated_freq; };
+	R get_estimated_phase() const {return this->estimated_phase;};
 
 	int get_N() const;
 

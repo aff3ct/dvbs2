@@ -109,7 +109,7 @@ void Synchronizer_timing<B,R>
 
 template <typename B, typename R>
 R Synchronizer_timing<B,R>
-::get_mu()
+::get_mu() const
 {
 	return this->mu;
 }
