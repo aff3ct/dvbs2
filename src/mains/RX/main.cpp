@@ -4,10 +4,6 @@
 
 using namespace aff3ct;
 
-namespace aff3ct { namespace tools {
-using Monitor_BFER_reduction = Monitor_reduction<module::Monitor_BFER<>>;
-} }
-
 #define MULTI_THREADED // comment this line to disable multi-threaded RX
 
 #ifdef MULTI_THREADED
