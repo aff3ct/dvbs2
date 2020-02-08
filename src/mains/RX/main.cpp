@@ -287,6 +287,8 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal->legend();
 
+	sync_timing->set_act(true);
+
 #ifdef MULTI_THREADED
 	(*radio        )[rad::sck::receive    ::Y_N1].reset();
 	(*front_agc    )[mlt::sck::imultiply  ::X_N ].reset();
@@ -352,7 +354,7 @@ int main(int argc, char** argv)
 		std::ofstream fs("chain_stage" + std::to_string(cs) + ".dot");
 		chain_stages[cs]->export_dot(fs);
 	}
-
+	sync_timing->set_act(true);
 	// reset the stats of all the tasks
 	for (auto &cs : chain_stages)
 		for (auto &tt : cs->get_tasks_per_threads())

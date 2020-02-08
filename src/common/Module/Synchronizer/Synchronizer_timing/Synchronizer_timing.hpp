@@ -58,6 +58,8 @@ protected:
 	int outbuf_max_sz;
 	int outbuf_cur_sz;
 
+	bool act;
+
 public:
 	Synchronizer_timing (const int N, const int osf, const int n_frames = 1);
 	virtual ~Synchronizer_timing() = default;
@@ -66,7 +68,7 @@ public:
 
 	virtual void step(const std::complex<R> *X_N1, std::complex<R>* Y_N1, B* B_N1) = 0;
 
-	R               get_mu           ();
+	R               get_mu           () const;
 	std::complex<R> get_last_symbol  ();
 	int             get_is_strobe    ();
 	int             get_overflow_cnt ();
@@ -75,7 +77,7 @@ public:
 	int             get_N_in         () const;
 	int             get_N_out        () const;
 	bool            can_pull         ();
-
+	void            set_act          (bool act) {this->act = act;};
 	/*!
 	 * \brief Pushes a vector of samples in the inner buffer
 	 *

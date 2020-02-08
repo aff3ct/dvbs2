@@ -81,6 +81,7 @@ void Synchronizer_frame_DVBS2_fast<R>
 	this->reg_channel = std::complex<R> (X_N1[2*cplx_in_sz - 2], X_N1[2*cplx_in_sz - 1]);
 
 	*delay = (cplx_in_sz + max_idx - conj_SOF.size() - conj_PLSC.size())%cplx_in_sz;
+	this->delay = *delay;
 	this->output_delay.set_delay((cplx_in_sz - *delay)%cplx_in_sz);
 	this->output_delay.filter(X_N1,Y_N2);
 }

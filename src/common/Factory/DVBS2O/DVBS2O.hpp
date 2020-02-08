@@ -80,6 +80,7 @@ public:
 	int   grp_delay;
 	int   n_frames;
 	int   debug_limit;
+	int   stm_hold_size;
 
 	std::chrono::milliseconds ter_freq;
 

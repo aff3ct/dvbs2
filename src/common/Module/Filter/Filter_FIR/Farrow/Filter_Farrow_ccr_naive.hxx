@@ -63,5 +63,36 @@ void Filter_Farrow_ccr_naive<R>
 	this->head %= 4;
 }
 
+
+template <typename R>
+void Filter_Farrow_ccr_naive<R>
+::redo_step(R mu, std::complex<R>* y_elt)
+{
+	this->set_mu(mu);
+
+	auto Y     = reinterpret_cast<      R*>(y_elt            );
+	auto buff2 = reinterpret_cast<      R*>(this->buff.data());
+
+	auto hx2 = ((this->head+3)%4)*2;
+
+	auto r0 = buff2[hx2 +2] * this->b[0];
+	auto i0 = buff2[hx2 +3] * this->b[0];
+	auto r1 = buff2[hx2 +4] * this->b[1];
+	auto i1 = buff2[hx2 +5] * this->b[1];
+	auto r2 = buff2[hx2 +6] * this->b[2];
+	auto i2 = buff2[hx2 +7] * this->b[2];
+	auto r3 = buff2[hx2 +8] * this->b[3];
+	auto i3 = buff2[hx2 +9] * this->b[3];
+
+	r0 += r1;
+	r2 += r3;
+	i0 += i1;
+	i2 += i3;
+
+	Y[0] = r0 + r2;
+	Y[1] = i0 + i2;
+}
+
+
 }
 }
