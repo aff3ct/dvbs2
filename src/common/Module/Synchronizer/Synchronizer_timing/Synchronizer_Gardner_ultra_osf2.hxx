@@ -72,7 +72,7 @@ void Synchronizer_Gardner_ultra_osf2<B,R>
 		this->TED_error = 0.0f;
 
 	// Stuffing / skipping
-	if (old_is_strobe ^ this->is_strobe == 1)
+	if ((old_is_strobe ^ this->is_strobe) == 1)
 	{
 			this->TED_buffer[0] = this->TED_buffer[1];
 			this->TED_buffer[1] = sample;

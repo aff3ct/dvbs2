@@ -24,7 +24,7 @@ template <typename R>
 void Reporter_buffered<R>
 ::push(const R *elt, int col)
 {
-	if (this->col_size(col) >= this->buffer[col].size())
+	if ((size_t)this->col_size(col) >= this->buffer[col].size())
 		return;
 
 	buffer[col][this->head[col]++] = *elt;
@@ -43,7 +43,7 @@ void Reporter_buffered<R>
 ::pull(R *elt, int N, int col)
 {
 	int s  = N < this->col_size(col) ? N : this->col_size(col);
-	int s1 = s < this->buffer[col].size() - this->tail[col] ? s : this->buffer[col].size() - this->tail[col];
+	int s1 = s < (int)this->buffer[col].size() - this->tail[col] ? s : (int)this->buffer[col].size() - this->tail[col];
 	int s2 = s - s1;
 
 	std::copy(&this->buffer[col][this->tail[col]], &this->buffer[col][this->tail[col]+s1], &elt[0 ]);
@@ -62,10 +62,10 @@ template <typename R>
 void Reporter_buffered<R>
 ::print_buffer()
 {
-	for(int c=0; c<this->buffer.size(); c++)
+	for(size_t c=0; c<this->buffer.size(); c++)
 	{
 		std::cout << "[";
-		for (int i = 0; i<this->buffer[c].size()-1; i++)
+		for (size_t i = 0; i<this->buffer[c].size()-1; i++)
 			std::cout << std::setprecision(4) << std::fixed << this->buffer[c][i] << ", ";
 		std::cout << std::setprecision(4) << std::fixed << this->buffer[c][this->buffer[c].size()-1] << "]";
 
@@ -81,7 +81,7 @@ int Reporter_buffered<R>
 {
 	int min_size = this->col_size(0);
 
-	for(int c=1; c<this->buffer.size(); c++)
+	for(size_t c=1; c<this->buffer.size(); c++)
 		min_size = min_size > this->col_size(c) ? this->col_size(c) : min_size;
 
 	return min_size;

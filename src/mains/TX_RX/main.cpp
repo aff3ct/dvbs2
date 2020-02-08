@@ -221,10 +221,10 @@ int main(int argc, char** argv)
 
 		//(*sync_fine_pf )[sff::tsk::synchronize].set_debug(true);
 
-		char buf[256];
-		char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
-		char heads[]       = "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
-		char pattern[]     = "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
+		// char buf[256];
+		// char head_lines[]  = "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------";
+		// char heads[]       = "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       ";
+		// char pattern[]     = "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
 		int  delay_tx_rx = 1;
 		tpt_monitor.init();
 		if (!params.perfect_sync)
