@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 	module::Adaptor_1_to_n adp_1_to_1_3(2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
 	module::Adaptor_1_to_n adp_1_to_1_4(2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
 	module::Adaptor_1_to_n adp_1_to_n  ({(size_t)2 * params.N_xfec_frame, (size_t)params.N_ldpc}, {typeid(float), typeid(float)}, buffer_size, active_waiting, params.n_frames);
-	module::Adaptor_n_to_1 adp_n_to_1  (params.K_bch, typeid(int), buffer_size, active_waiting, params.n_frames);
+	module::Adaptor_n_to_1 adp_n_to_1  ({(size_t)params.K_bch, (size_t)1, (size_t)1}, {typeid(int), typeid(int), typeid(int)}, buffer_size, active_waiting, params.n_frames);
 #endif /* MULTI_THREADED */
 
 	// manage noise
@@ -167,13 +167,15 @@ int main(int argc, char** argv)
 
 #ifdef MULTI_THREADED
 	// parallel chain
-	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind(  adp_1_to_n   [adp::sck::pull_n       ::out1]);
-	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind(  adp_1_to_n   [adp::sck::pull_n       ::out2]);
-	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
-	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
-	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
-	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
-	  adp_n_to_1   [adp::sck::push_n       ::in1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind(  adp_1_to_n   [adp::sck::pull_n       ::out1  ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind(  adp_1_to_n   [adp::sck::pull_n       ::out2  ]);
+	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2  ]);
+	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat   ]);
+	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K   ]);
+	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K   ]);
+	  adp_n_to_1   [adp::sck::push_n       ::in1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2  ]);
+	  adp_n_to_1   [adp::sck::push_n       ::in2 ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::status]);
+	  adp_n_to_1   [adp::sck::push_n       ::in3 ].bind((*BCH_decoder )[dec::sck::decode_hiho  ::status]);
 
 	std::cout << "Cloning the modules of the parallel chain... ";
 	std::cout.flush();
