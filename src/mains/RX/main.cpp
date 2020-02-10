@@ -73,18 +73,20 @@ int main(int argc, char** argv)
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 #ifdef MULTI_THREADED
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_n  (new module::Adaptor_1_to_n(             2 * params.pl_frame_size, typeid(float), 1, active_waiting, params.n_frames));
-	std::unique_ptr<module::Adaptor_n_to_1> adp_n_to_1  (new module::Adaptor_n_to_1(params.K_bch,                          typeid(int  ), 1, active_waiting, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_0(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, active_waiting, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_1(new module::Adaptor_1_to_n(params.osf * 2 * params.pl_frame_size, typeid(float), 1, active_waiting, params.n_frames));
-	std::unique_ptr<module::Adaptor_1_to_n> adp_1_to_1_2(new module::Adaptor_1_to_n({(size_t)params.osf * 2 * params.pl_frame_size, (size_t)params.osf * 2 * params.pl_frame_size}, {typeid(float), typeid(int32_t)}, 1, active_waiting, params.n_frames));
+	const size_t buffer_size = 1;
+	module::Adaptor_1_to_n adp_1_to_1_0(params.osf * 2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
+	module::Adaptor_1_to_n adp_1_to_1_1(params.osf * 2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
+	module::Adaptor_1_to_n adp_1_to_1_2({(size_t)params.osf * 2 * params.pl_frame_size, (size_t)params.osf * 2 * params.pl_frame_size}, {typeid(float), typeid(int32_t)}, buffer_size, active_waiting, params.n_frames);
+	module::Adaptor_1_to_n adp_1_to_1_3(2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
+	module::Adaptor_1_to_n adp_1_to_1_4(2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
+	module::Adaptor_1_to_n adp_1_to_n  ({(size_t)2 * params.N_xfec_frame, (size_t)params.N_ldpc}, {typeid(float), typeid(float)}, buffer_size, active_waiting, params.n_frames);
+	module::Adaptor_n_to_1 adp_n_to_1  (params.K_bch, typeid(int), buffer_size, active_waiting, params.n_frames);
 #endif /* MULTI_THREADED */
 
 	// manage noise
-	modem    ->set_noise(noise);
+	tools::Sigma<> fake_noise(1.f);
+	modem    ->set_noise(fake_noise);
 	estimator->set_noise(noise);
-	auto mdm_ptr = modem.get();
-	noise.record_callback_update([mdm_ptr](){ mdm_ptr->notify_noise_update(); });
 
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
 	BCH_decoder  ->set_custom_name("BCH Decoder" );
@@ -94,13 +96,15 @@ int main(int argc, char** argv)
 	sync_frame   ->set_custom_name("Frame Syn"   );
 	matched_flt  ->set_custom_name("Matched Flt" );
 	sync_coarse_f->set_custom_name("Coarse_Synch");
-	sync_step_mf ->set_custom_name("MF_Synch"    );
+	sync_step_mf ->set_custom_name("MF Synch"    );
 #ifdef MULTI_THREADED
-	adp_1_to_n   ->set_custom_name("Adp_1_to_n"  );
-	adp_n_to_1   ->set_custom_name("Adp_n_to_1"  );
-	adp_1_to_1_0 ->set_custom_name("Adp_1_to_1_0");
-	adp_1_to_1_1 ->set_custom_name("Adp_1_to_1_1");
-	adp_1_to_1_2 ->set_custom_name("Adp_1_to_1_2");
+	adp_1_to_1_0.set_custom_name("Adp_1_to_1_0");
+	adp_1_to_1_1.set_custom_name("Adp_1_to_1_1");
+	adp_1_to_1_2.set_custom_name("Adp_1_to_1_2");
+	adp_1_to_1_3.set_custom_name("Adp_1_to_1_3");
+	adp_1_to_1_4.set_custom_name("Adp_1_to_1_4");
+	adp_1_to_n  .set_custom_name("Adp_1_to_n"  );
+	adp_n_to_1  .set_custom_name("Adp_n_to_1"  );
 #endif /* MULTI_THREADED */
 
 	// fill the list of modules
@@ -111,22 +115,21 @@ int main(int argc, char** argv)
 	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
 	            estimator   .get(), front_agc   .get(),
 #ifdef MULTI_THREADED
-	            adp_1_to_n  .get(), adp_n_to_1  .get(), adp_1_to_1_0 .get(), adp_1_to_1_1.get(),
-	            adp_1_to_1_2.get(),
+	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
+	            &adp_1_to_1_4, &adp_1_to_n  , &adp_n_to_1
 #endif /* MULTI_THREADED */
 	          };
 
 	// configuration of the module tasks
-	for (auto& m : modules)
-		for (auto& ta : m->tasks)
-		{
-			ta->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
-			ta->set_debug          (params.debug      ); // disable the debug mode
-			ta->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
-			ta->set_debug_precision(8                 );
-			ta->set_stats          (params.stats      ); // enable the statistics
-			ta->set_fast           (false             ); // disable the fast mode
-		}
+	for (auto& m : modules) for (auto& ta : m->tasks)
+	{
+		ta->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
+		ta->set_debug          (params.debug      ); // disable the debug mode
+		ta->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
+		ta->set_debug_precision(8                 );
+		ta->set_stats          (params.stats      ); // enable the statistics
+		ta->set_fast           (false             ); // disable the fast mode
+	}
 
 	// exec the source once
 	(*source)[module::src::tsk::generate].exec();
@@ -164,34 +167,31 @@ int main(int argc, char** argv)
 
 #ifdef MULTI_THREADED
 	// parallel chain
-	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*adp_1_to_n  )[adp::sck::pull_n       ::out1]);
-	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
-	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
-	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind(  adp_1_to_n   [adp::sck::pull_n       ::out1]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind(  adp_1_to_n   [adp::sck::pull_n       ::out2]);
 	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
 	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
 	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
 	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
-	(*adp_n_to_1  )[adp::sck::push_n       ::in1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+	  adp_n_to_1   [adp::sck::push_n       ::in1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
 	std::cout << "Cloning the modules of the parallel chain... ";
 	std::cout.flush();
-	tools::Chain chain_parallel((*adp_1_to_n)[module::adp::tsk::pull_n],
-	                            (*adp_n_to_1)[module::adp::tsk::push_n],
-	                            24,
-	                            thread_pinnig,
-	                            { 12, 24, 25, 26, 27,
-	                              28, 29, 13, 30, 14,
-	                              31, 15, 32, 16, 33,
-	                              17, 34, 18, 35, 19,
-	                              36, 20, 37, 21, 38,
-	                              22, 39, 23, 39, 40,
-	                              41, 42, 43, 44, 45,
-	                              46, 47 },
-	                            true); // 'false' results in an error because of the clones of the adaptors...
-	std::ofstream f("chain_parallel.dot");
-	chain_parallel.export_dot(f);
+	tools::Chain chain_stage6_parallel(adp_1_to_n[module::adp::tsk::pull_n],
+	                                   adp_n_to_1[module::adp::tsk::push_n],
+	                                   24,
+	                                   thread_pinnig,
+	                                   { 12, 24, 25, 26, 27,
+	                                     28, 29, 13, 30, 14,
+	                                     31, 15, 32/*44*/, 16, 33,
+	                                     17, 34, 18, 35, 19,
+	                                     36, 20, 37, 21, 38,
+	                                     22, 39, 23, 39, 40,
+	                                     41, 42, 43, 44, 45,
+	                                     46, 47 },
+	                                   true); // 'false' results in an error because of the clones of the adaptors...
+	std::ofstream f("chain_stage6_parallel.dot");
+	chain_stage6_parallel.export_dot(f);
 	std::cout << "Done." << std::endl;
 
 	if (thread_pinnig)
@@ -251,8 +251,9 @@ int main(int argc, char** argv)
 	(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 	(*pl_scrambler )[scr::sck::descramble ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
 	(*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
+	(*sync_fine_pf )[sff::sck::synchronize::X_N1].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
 
-	tools::Chain chain_sequential2((*radio)[rad::tsk::receive], (*sync_lr)[sff::tsk::synchronize]);
+	tools::Chain chain_sequential2((*radio)[rad::tsk::receive], (*sync_fine_pf)[sff::tsk::synchronize]);
 	std::ofstream fs2("chain_sequential2.dot");
 	chain_sequential2.export_dot(fs2);
 
@@ -265,6 +266,7 @@ int main(int argc, char** argv)
 		return stop;
 	});
 
+	// reset the stats of the tasks
 	for (auto& m : modules)
 		for (auto& ta : m->tasks)
 			ta->reset();
@@ -311,66 +313,63 @@ int main(int argc, char** argv)
 	(*pl_scrambler )[scr::sck::descramble ::Y_N2].reset();
 	(*sync_lr      )[sff::sck::synchronize::X_N1].reset();
 	(*sync_lr      )[sff::sck::synchronize::Y_N2].reset();
+	(*sync_fine_pf )[sff::sck::synchronize::X_N1].reset();
+	(*sync_fine_pf )[sff::sck::synchronize::Y_N2].reset();
 
-	(*adp_1_to_1_0 )[adp::sck::push_1     ::in1 ].bind((*radio        )[rad::sck::receive    ::Y_N1]);
-	(*front_agc    )[mlt::sck::imultiply  ::X_N ].bind((*adp_1_to_1_0 )[adp::sck::pull_n     ::out1]);
+	  adp_1_to_1_0  [adp::sck::push_1     ::in1 ].bind((*radio        )[rad::sck::receive    ::Y_N1]);
+	(*front_agc    )[mlt::sck::imultiply  ::X_N ].bind(  adp_1_to_1_0  [adp::sck::pull_n     ::out1]);
 	(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
 	(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
-	(*adp_1_to_1_1 )[adp::sck::push_1     ::in1 ].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
-	(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*adp_1_to_1_1 )[adp::sck::pull_n     ::out1]);
-	(*adp_1_to_1_2 )[adp::sck::push_1     ::in1 ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
-	(*adp_1_to_1_2 )[adp::sck::push_1     ::in2 ].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
-	(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out2]);
-	(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*adp_1_to_1_2 )[adp::sck::pull_n     ::out1]);
+	  adp_1_to_1_1  [adp::sck::push_1     ::in1 ].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+	(*sync_timing  )[stm::sck::synchronize::X_N1].bind(  adp_1_to_1_1  [adp::sck::pull_n     ::out1]);
+	  adp_1_to_1_2  [adp::sck::push_1     ::in1 ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+	  adp_1_to_1_2  [adp::sck::push_1     ::in2 ].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+	(*sync_timing  )[stm::sck::extract    ::B_N1].bind(  adp_1_to_1_2  [adp::sck::pull_n     ::out2]);
+	(*sync_timing  )[stm::sck::extract    ::Y_N1].bind(  adp_1_to_1_2  [adp::sck::pull_n     ::out1]);
 	(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
 	(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
-	(*pl_scrambler )[scr::sck::descramble ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
+	  adp_1_to_1_3  [adp::sck::push_1     ::in1 ].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
+	(*pl_scrambler )[scr::sck::descramble ::Y_N1].bind(  adp_1_to_1_3  [adp::sck::pull_n     ::out1]);
 	(*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
-	(*adp_1_to_n   )[adp::sck::push_1     ::in1 ].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
-	// parallel chain
+	(*sync_fine_pf )[sff::sck::synchronize::X_N1].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
+	  adp_1_to_1_4  [adp::sck::push_1     ::in1 ].bind((*sync_fine_pf )[sff::sck::synchronize::Y_N2]);
+	(*framer       )[frm::sck::remove_plh ::Y_N1].bind(  adp_1_to_1_4  [adp::sck::pull_n     ::out1]);
+	  adp_1_to_n    [adp::sck::push_1     ::in1 ].bind((*estimator    )[est::sck::estimate   ::H_N ]);
+	(*estimator    )[est::sck::estimate   ::X_N ].bind((*framer       )[frm::sck::remove_plh ::Y_N2]);
+	  adp_1_to_n    [adp::sck::push_1     ::in2 ].bind((*framer       )[frm::sck::remove_plh ::Y_N2]);
+	// parallel chain (modem / decoder LDPC / decoder BCH)
 	(*monitor      )[mnt::sck::check_errors::U  ].bind((*source       )[src::sck::generate   ::U_K ]);
-	(*monitor      )[mnt::sck::check_errors::V  ].bind((*adp_n_to_1   )[adp::sck::pull_1     ::out1]);
-	(*sink         )[snk::sck::send        ::V  ].bind((*adp_n_to_1   )[adp::sck::pull_1     ::out1]);
+	(*monitor      )[mnt::sck::check_errors::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out1]);
+	(*sink         )[snk::sck::send        ::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out1]);
 
 	// create a chain per pipeline stage
-	tools::Chain chain_stage0((*radio       )[rad::tsk::receive], (*adp_1_to_1_0)[adp::tsk::push_1], 1, thread_pinnig, { 2 });
-	tools::Chain chain_stage1((*adp_1_to_1_0)[adp::tsk::pull_n ], (*adp_1_to_1_1)[adp::tsk::push_1], 1, thread_pinnig, { 3 });
-	tools::Chain chain_stage2((*adp_1_to_1_1)[adp::tsk::pull_n ], (*adp_1_to_1_2)[adp::tsk::push_1], 1, thread_pinnig, { 4 });
-	tools::Chain chain_stage3((*adp_1_to_1_2)[adp::tsk::pull_n ], (*adp_1_to_n  )[adp::tsk::push_1], 1, thread_pinnig, { 5 });
-	tools::Chain chain_stage4((*adp_n_to_1  )[adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ], 1, thread_pinnig, { 6 });
+	tools::Chain chain_stage0((*radio       )[rad::tsk::receive],   adp_1_to_1_0 [adp::tsk::push_1], 1, thread_pinnig, { 2 });
+	tools::Chain chain_stage1(  adp_1_to_1_0 [adp::tsk::pull_n ],   adp_1_to_1_1 [adp::tsk::push_1], 1, thread_pinnig, { 3 });
+	tools::Chain chain_stage2(  adp_1_to_1_1 [adp::tsk::pull_n ],   adp_1_to_1_2 [adp::tsk::push_1], 1, thread_pinnig, { 4 });
+	tools::Chain chain_stage3(  adp_1_to_1_2 [adp::tsk::pull_n ],   adp_1_to_1_3 [adp::tsk::push_1], 1, thread_pinnig, { 5 });
+	tools::Chain chain_stage4(  adp_1_to_1_3 [adp::tsk::pull_n ],   adp_1_to_1_4 [adp::tsk::push_1], 1, thread_pinnig, { 6 });
+	tools::Chain chain_stage5(  adp_1_to_1_4 [adp::tsk::pull_n ],   adp_1_to_n   [adp::tsk::push_1], 1, thread_pinnig, { 7 });
+	tools::Chain chain_stage7(  adp_n_to_1   [adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ], 1, thread_pinnig, { 8 });
 
-	// chain_stage0  .set_no_copy_mode_adaptors(false);
-	// chain_stage1  .set_no_copy_mode_adaptors(false);
-	// chain_stage2  .set_no_copy_mode_adaptors(false);
-	// chain_stage3  .set_no_copy_mode_adaptors(false);
-	// chain_parallel.set_no_copy_mode_adaptors(false);
-	// chain_stage4  .set_no_copy_mode_adaptors(false);
-
-	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1, &chain_stage2,
-	                                            &chain_stage3, &chain_stage4                 };
+	std::vector<tools::Chain*> chain_stages = { &chain_stage0,          &chain_stage1, &chain_stage2,
+	                                            &chain_stage3,          &chain_stage4, &chain_stage5,
+	                                            &chain_stage6_parallel, &chain_stage7,                };
 
 	for (size_t cs = 0; cs < chain_stages.size(); cs++)
 	{
 		std::ofstream fs("chain_stage" + std::to_string(cs) + ".dot");
 		chain_stages[cs]->export_dot(fs);
 	}
-	sync_timing->set_act(true);
-	// reset the stats of all the tasks
-	for (auto &cs : chain_stages)
-		for (auto &tt : cs->get_tasks_per_threads())
-			for (auto &t : tt) t->reset();
 
 	// function to wake up and stop all the threads
-	auto stop_threads = [&chain_parallel, &chain_stages]()
+	auto stop_threads = [&chain_stages]()
 	{
-		for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
-			m->cancel_waiting();
 		for (auto &cs : chain_stages)
 			for (auto &m : cs->get_modules<tools::Interface_waiting>())
 				m->cancel_waiting();
 	};
 
-	// start the pipeline threads
+	// start the pipeline stages in separated threads
 	std::vector<std::thread> threads;
 	for (auto &cs : chain_stages)
 	{
@@ -380,82 +379,10 @@ int main(int argc, char** argv)
 		}));
 	}
 
-	// start the parallel chain
-	chain_parallel.exec([&monitor, &terminal]()
-	{
-		monitor->is_done();
-		return terminal->is_interrupt();
-	});
-	stop_threads();
-
 	// wait all the pipeline threads here
 	for (auto &t : threads)
 		t.join();
-
-	///////////////////////////////////////////////////////////////////////////
-	// DEBUG //////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-	// terminal->final_report();
-	// terminal->reset();
-	// monitor->reset();
-	// sink->reset();
-
-	// // reset the adaptors
-	// for (auto &m : chain_parallel.get_modules<tools::Interface_waiting>())
-	// 	m->reset();
-	// for (auto &cs : chain_stages)
-	// 	for (auto &m : cs->get_modules<tools::Interface_waiting>())
-	// 		m->reset();
-
-	// // reset the stats of all the tasks
-	// for (auto &cs : chain_stages)
-	// 	for (auto &tt : cs->get_tasks_per_threads())
-	// 		for (auto &t : tt) t->reset();
-
-	// chain_stage0  .set_no_copy_mode_adaptors(false);
-	// chain_stage1  .set_no_copy_mode_adaptors(false);
-	// chain_stage2  .set_no_copy_mode_adaptors(false);
-	// chain_stage3  .set_no_copy_mode_adaptors(false);
-	// chain_parallel.set_no_copy_mode_adaptors(false);
-	// chain_stage4  .set_no_copy_mode_adaptors(false);
-
-	// if (params.ter_freq != std::chrono::nanoseconds(0))
-	// 	terminal->start_temp_report(params.ter_freq);
-
-	// std::cout << "#"                      << std::endl;
-	// std::cout << "# TRANSMISSION PHASE 2" << std::endl;
-	// std::cout << "# --------------------" << std::endl;
-
-	// // display the legend in the terminal
-	// terminal->legend();
-
-	// // start the pipeline threads
-	// threads.clear();
-	// for (auto &cs : chain_stages)
-	// {
-	// 	threads.push_back(std::thread([cs, &terminal, &stop_threads]() {
-	// 		cs->exec([&terminal]() { return terminal->is_interrupt(); } );
-	// 		stop_threads();
-	// 	}));
-	// }
-
-	// // start the parallel chain
-	// chain_parallel.exec([&monitor, &terminal]()
-	// {
-	// 	monitor->is_done();
-	// 	return terminal->is_interrupt();
-	// });
-	// stop_threads();
-
-	// // wait all the pipeline threads here
-	// for (auto &t : threads)
-	// 	t.join();
-	///////////////////////////////////////////////////////////////////////////
-	// DEBUG //////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-
 #else
-	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*sync_lr     )[sff::sck::synchronize  ::Y_N2]);
 	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
 	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
 	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
@@ -475,7 +402,6 @@ int main(int argc, char** argv)
 	// start the transmission chain
 	chain_sequential3.exec([&monitor, &terminal]()
 	{
-		monitor->is_done();
 		return terminal->is_interrupt();
 	});
 
@@ -494,8 +420,6 @@ int main(int argc, char** argv)
 			modules_stats.push_back(modules[m]);
 
 		const auto ordered = true;
-		// std::cout << "#" << std::endl;
-		// tools::Stats::show(modules_stats, ordered);
 #ifdef MULTI_THREADED
 		for (size_t cs = 0; cs < chain_stages.size(); cs++)
 		{
@@ -503,9 +427,6 @@ int main(int argc, char** argv)
 			                 << " thread(s)): " << std::endl;
 			tools::Stats::show(chain_stages[cs]->get_tasks_per_types(), ordered);
 		}
-		std::cout << "#" << std::endl << "# Chain parallel (" << chain_parallel.get_n_threads() << " thread(s)): "
-		          << std::endl;
-		tools::Stats::show(chain_parallel.get_tasks_per_types(), ordered);
 #else
 		std::cout << "#" << std::endl << "# Chain sequential (" << chain_sequential3.get_n_threads() << " thread(s)): "
 		          << std::endl;
