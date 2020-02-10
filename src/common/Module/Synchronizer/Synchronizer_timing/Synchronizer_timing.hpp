@@ -15,8 +15,8 @@ namespace module
 
 		namespace sck
 		{
-			enum class synchronize : uint8_t { X_N1, Y_N1, B_N1, SIZE };
-			enum class extract     : uint8_t { Y_N1, B_N1, Y_N2, SIZE };
+			enum class synchronize : uint8_t { X_N1, Y_N1, B_N1, status };
+			enum class extract     : uint8_t { Y_N1, B_N1, Y_N2, status };
 		}
 	}
 

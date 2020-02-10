@@ -24,8 +24,8 @@ namespace module
 
 		namespace sck
 		{
-			enum class generate   : uint8_t { Y_N1, Y_N2, SIZE };
-			enum class remove_plh : uint8_t { Y_N1, Y_N2, SIZE };
+			enum class generate   : uint8_t { Y_N1, Y_N2, status };
+			enum class remove_plh : uint8_t { Y_N1, Y_N2, status };
 		}
 	}
 
