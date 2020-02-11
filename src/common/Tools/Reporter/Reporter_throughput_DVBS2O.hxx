@@ -19,11 +19,11 @@ Reporter_throughput_DVBS2O<T>
   get_nbits_function(get_nbits_function),
   progress_limit(progress_limit),
   nbits_factor(nbits_factor),
-  t_report(std::chrono::steady_clock::now()),
-  t_prev_report(std::chrono::steady_clock::now()),
   n_frames(n_frames),
   alpha(alpha),
-  tpt_mem(0.0)
+  tpt_mem(0.0),
+  t_report(std::chrono::steady_clock::now()),
+  t_prev_report(std::chrono::steady_clock::now())
 {
 	auto& throughput_title = throughput_group.first;
 	auto& throughput_cols  = throughput_group.second;
@@ -82,13 +82,13 @@ Reporter::report_t Reporter_throughput_DVBS2O<T>
 
 	auto& thgput_report = report[0];
 
-	T progress = 0, nbits = 0;
+	T progress = 0/*, nbits = 0*/;
 
 	if (progress_function != nullptr)
 		progress = progress_function();
 
-	if (get_nbits_function != nullptr)
-		nbits = get_nbits_function() * nbits_factor;
+	// if (get_nbits_function != nullptr)
+	// 	nbits = get_nbits_function() * nbits_factor;
 
 	using namespace std::chrono;
 	auto now       = steady_clock::now();
