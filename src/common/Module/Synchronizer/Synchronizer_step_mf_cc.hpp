@@ -20,7 +20,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class synchronize : uint8_t { delay, X_N1, Y_N1, B_N1, SIZE };
+			enum class synchronize : uint8_t { delay, X_N1, Y_N1, B_N1, status };
 		}
 	}
 

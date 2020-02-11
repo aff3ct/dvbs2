@@ -5,20 +5,21 @@
 
 using namespace aff3ct;
 
-#define MULTI_THREADED
+#define MULTI_THREADED // comment this line to disable multi-threaded TX
+
+#ifdef MULTI_THREADED
+const bool thread_pinnig = true;
+const bool active_waiting = false;
+#endif
 
 int main(int argc, char** argv)
 {
 #ifdef MULTI_THREADED
-	aff3ct::tools::Thread_pinning::init();
-	aff3ct::tools::Thread_pinning::set_logs(true);
-
-	// aff3ct::tools::Thread_pinning::example1();
-	// aff3ct::tools::Thread_pinning::example2();
-	// aff3ct::tools::Thread_pinning::example3();
-	// aff3ct::tools::Thread_pinning::example4();
-	// aff3ct::tools::Thread_pinning::example5();
-	// aff3ct::tools::Thread_pinning::example6();
+	if (thread_pinnig)
+	{
+		tools::Thread_pinning::init();
+		// tools::Thread_pinning::set_logs(true);
+	}
 #endif
 
 	// get the parameter to configure the tools and modules
@@ -64,7 +65,6 @@ int main(int argc, char** argv)
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 
 #ifdef MULTI_THREADED
-	const bool active_waiting = false;
 	std::unique_ptr<module::Adaptor_1_to_n> adaptor_1_to_n(new module::Adaptor_1_to_n(params.K_bch,             typeid(int  ), 1, active_waiting, params.n_frames));
 	std::unique_ptr<module::Adaptor_n_to_1> adaptor_n_to_1(new module::Adaptor_n_to_1(2 * params.pl_frame_size, typeid(float), 1, active_waiting, params.n_frames));
 #endif
@@ -218,7 +218,8 @@ int main(int argc, char** argv)
 	}
 
 #ifdef MULTI_THREADED
-	aff3ct::tools::Thread_pinning::destroy();
+	if (thread_pinnig)
+		tools::Thread_pinning::destroy();
 #endif
 
 	return EXIT_SUCCESS;

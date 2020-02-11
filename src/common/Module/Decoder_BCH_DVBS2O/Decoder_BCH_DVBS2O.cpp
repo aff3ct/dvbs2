@@ -26,32 +26,34 @@ Decoder_BCH_DVBS2O<B,R>* Decoder_BCH_DVBS2O<B,R>
 }
 
 template <typename B, typename R>
-void Decoder_BCH_DVBS2O<B, R>
+int Decoder_BCH_DVBS2O<B, R>
 ::_decode_hiho(const B *Y_N, B *V_K, const int frame_id)
 {
 	std::reverse_copy(Y_N, Y_N + this->N, this->YH_N.begin());
 
-	this->_decode(this->YH_N.data(), frame_id);
+	auto status = this->_decode(this->YH_N.data(), frame_id);
 
 	std::reverse_copy(this->YH_N.data() + this->N - this->K, this->YH_N.data() + this->N, V_K);
+
+	return status;
 }
 
 template <typename B, typename R>
-void Decoder_BCH_DVBS2O<B, R>
+int Decoder_BCH_DVBS2O<B, R>
 ::_decode_hiho_cw(const B *Y_N, B *V_N, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename B, typename R>
-void Decoder_BCH_DVBS2O<B, R>
+int Decoder_BCH_DVBS2O<B, R>
 ::_decode_siho(const R *Y_N, B *V_K, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename B, typename R>
-void Decoder_BCH_DVBS2O<B, R>
+int Decoder_BCH_DVBS2O<B, R>
 ::_decode_siho_cw(const R *Y_N, B *V_N, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);

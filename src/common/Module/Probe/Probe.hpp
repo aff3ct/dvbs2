@@ -24,7 +24,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class probe : uint8_t { X_N, SIZE };
+			enum class probe : uint8_t { X_N, status };
 		}
 	}
 

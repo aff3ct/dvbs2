@@ -21,8 +21,8 @@ namespace module
 
 		namespace sck
 		{
-			enum class send    : uint8_t { X_N1, SIZE };
-			enum class receive : uint8_t { Y_N1, SIZE };
+			enum class send    : uint8_t { X_N1, status };
+			enum class receive : uint8_t { Y_N1, status };
 		}
 	}
 

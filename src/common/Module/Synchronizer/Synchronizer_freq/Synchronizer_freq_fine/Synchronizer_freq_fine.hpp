@@ -16,7 +16,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class synchronize : uint8_t { X_N1, Y_N2, SIZE };
+			enum class synchronize : uint8_t { X_N1, Y_N2, status };
 		}
 	}
 
