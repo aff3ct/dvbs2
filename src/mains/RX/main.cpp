@@ -206,7 +206,9 @@ int main(int argc, char** argv)
 	(*front_agc   )[mlt::sck::imultiply  ::X_N  ].bind((*radio       )[rad::sck::receive    ::Y_N1 ]);
 	(*sync_step_mf)[smf::sck::synchronize::X_N1 ].bind((*front_agc   )[mlt::sck::imultiply  ::Z_N  ]);
 	(*sync_step_mf)[smf::sck::synchronize::delay].bind((*sync_frame  )[sfm::sck::synchronize::delay]);
-	(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N2 ]);
+	(*sync_timing )[stm::sck::extract    ::B_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1 ]);
+	(*sync_timing )[stm::sck::extract    ::Y_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::B_N1 ]);
+	(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_timing )[stm::sck::extract    ::Y_N2 ]);
 	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N  ]);
 	(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2 ]);
 
