@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 	module::Adaptor_1_to_n adp_1_to_1_3(2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
 	module::Adaptor_1_to_n adp_1_to_1_4(2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
 	module::Adaptor_1_to_n adp_1_to_n  ({(size_t)2 * params.N_xfec_frame, (size_t)params.N_ldpc}, {typeid(float), typeid(float)}, buffer_size, active_waiting, params.n_frames);
-	module::Adaptor_n_to_1 adp_n_to_1  ({(size_t)params.K_bch, (size_t)1, (size_t)1}, {typeid(int), typeid(int), typeid(int)}, buffer_size, active_waiting, params.n_frames);
+	module::Adaptor_n_to_1 adp_n_to_1  ({(size_t)1, (size_t)1, (size_t)params.K_bch}, {typeid(int), typeid(int), typeid(int)}, buffer_size, active_waiting, params.n_frames);
 #endif /* MULTI_THREADED */
 
 	// manage noise
@@ -173,9 +173,9 @@ int main(int argc, char** argv)
 	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat   ]);
 	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K   ]);
 	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K   ]);
-	  adp_n_to_1   [adp::sck::push_n       ::in1 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2  ]);
-	  adp_n_to_1   [adp::sck::push_n       ::in2 ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::status]);
-	  adp_n_to_1   [adp::sck::push_n       ::in3 ].bind((*BCH_decoder )[dec::sck::decode_hiho  ::status]);
+	  adp_n_to_1   [adp::sck::push_n       ::in1 ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::status]);
+	  adp_n_to_1   [adp::sck::push_n       ::in2 ].bind((*BCH_decoder )[dec::sck::decode_hiho  ::status]);
+	  adp_n_to_1   [adp::sck::push_n       ::in3 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2  ]);
 
 	std::cout << "Cloning the modules of the parallel chain... ";
 	std::cout.flush();
@@ -341,8 +341,8 @@ int main(int argc, char** argv)
 	  adp_1_to_n    [adp::sck::push_1     ::in2 ].bind((*framer       )[frm::sck::remove_plh ::Y_N2]);
 	// parallel chain (modem / decoder LDPC / decoder BCH)
 	(*monitor      )[mnt::sck::check_errors::U  ].bind((*source       )[src::sck::generate   ::U_K ]);
-	(*monitor      )[mnt::sck::check_errors::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out1]);
-	(*sink         )[snk::sck::send        ::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out1]);
+	(*monitor      )[mnt::sck::check_errors::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
+	(*sink         )[snk::sck::send        ::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
 
 	// create a chain per pipeline stage
 	tools::Chain chain_stage0((*radio       )[rad::tsk::receive],   adp_1_to_1_0 [adp::tsk::push_1], 1, thread_pinnig, { 2 });
