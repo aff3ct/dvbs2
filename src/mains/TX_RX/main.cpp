@@ -138,7 +138,7 @@ int main(int argc, char** argv)
 	            mult_agc    .get(), sync_frame  .get(), delay        .get(), sync_coarse_f .get(),
 	            matched_flt .get(), sync_timing .get(), sync_step_mf .get(), source        .get(),
 	            channel     .get(), chn_agc     .get(), chn_int_del  .get(), estimator     .get(),
-				stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe     .get()};
+	            stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe     .get()};
 
 	// configuration of the module tasks
 	for (auto& m : modules)

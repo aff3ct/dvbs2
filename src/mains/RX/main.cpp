@@ -1,5 +1,8 @@
 #include <aff3ct.hpp>
 
+#include "Tools/Reporter/Reporter_DVBS2O.hpp"
+#include "Tools/Reporter/Reporter_throughput_DVBS2O.hpp"
+#include "Tools/Reporter/Reporter_noise_DVBS2O.hpp"
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
 using namespace aff3ct;
@@ -72,6 +75,28 @@ int main(int argc, char** argv)
 
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
+	// allocate reporters to display results in the terminal
+	tools::Reporter_DVBS2O<> syncro_reporter(*sync_coarse_f.get(),
+	                                         *sync_timing  .get(),
+	                                         *sync_frame   .get(),
+	                                         *sync_lr      .get());
+
+	reporters.push_back(std::unique_ptr<tools::Reporter>(&syncro_reporter)); //
+	std::unique_ptr<module::Probe<>> stm_probe(syncro_reporter.build_stm_probe());
+	std::unique_ptr<module::Probe<>> sfm_probe(syncro_reporter.build_sfm_probe());
+	std::unique_ptr<module::Probe<>> sff_probe(syncro_reporter.build_sff_probe());
+	std::unique_ptr<module::Probe<>> sfc_probe(syncro_reporter.build_sfc_probe());
+
+	// allocate reporters to display results in the terminal
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise_DVBS2O<>(noise, noise, false))); // report the noise values (Es/N0 and Eb/N0)
+	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER        <>(*monitor))); //report the bit/frame error rates
+
+	tools::Reporter_throughput_DVBS2O<> tpt_monitor(*monitor);
+	reporters.push_back(std::unique_ptr<tools::Reporter>(&tpt_monitor)); // report the simulation throughputs
+
+	// allocate a terminal that will display the collected data from the reporters
+	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
+
 #ifdef MULTI_THREADED
 	const size_t buffer_size = 1;
 	module::Adaptor_1_to_n adp_1_to_1_0(params.osf * 2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
@@ -114,6 +139,7 @@ int main(int argc, char** argv)
 	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt .get(),
 	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
 	            estimator   .get(), front_agc   .get(),
+	            stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe   .get(),
 #ifdef MULTI_THREADED
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
 	            &adp_1_to_1_4, &adp_1_to_n  , &adp_n_to_1
@@ -134,37 +160,7 @@ int main(int argc, char** argv)
 	// exec the source once
 	(*source)[module::src::tsk::generate].exec();
 
-	int n_phase = 1;
-	int m = 0;
-	auto print_metrics = [&](bool last = false)
-	{
-		if (m == 0)
-		{
-			std::cout << "# LEARNING PHASE" << std::endl;
-			std::cout << "# --------------" << std::endl;
-			std::cout << "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------" << std::endl;
-			std::cout << "#  Phase |    m  |        mu       |  Frame  |      PLL CFO      |      LR CFO       |       F CFO       " << std::endl;
-			std::cout << "# -------|-------|-----------------|---------|-------------------|-------------------|-------------------" << std::endl;
-		}
-		char buf[256];
-		char pattern[] = "#    %2d  |  %4d |   %2.6e  |  %6d |    %+2.6e  |    %+2.6e  |    %+2.6e  ";
-		sprintf(buf, pattern, n_phase, m,
-				sync_timing ->get_mu(),
-				sync_coarse_f->get_estimated_freq(),
-				sync_coarse_f->get_curr_idx(),
-				sync_lr      ->get_estimated_freq() / (float)params.osf,
-				sync_fine_pf ->get_estimated_freq() / (float)params.osf);
-		if (last)
-			std::cout << buf << std::endl;
-		else
-		{
-			std::cerr << buf << "\r";
-			std::cerr.flush();
-		}
-	};
-
 	using namespace module;
-
 #ifdef MULTI_THREADED
 	// parallel chain
 	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind(  adp_1_to_n   [adp::sck::pull_n       ::out1  ]);
@@ -200,30 +196,38 @@ int main(int argc, char** argv)
 		tools::Thread_pinning::pin(0);
 #endif /* MULTI_THREADED */
 
+	// display the legend in the terminal
+	terminal->legend();
+
 	// ================================================================================================================
 	// LEARNING PHASE 1 & 2 ===========================================================================================
 
 	(*front_agc   )[mlt::sck::imultiply  ::X_N  ].bind((*radio       )[rad::sck::receive    ::Y_N1 ]);
 	(*sync_step_mf)[smf::sck::synchronize::X_N1 ].bind((*front_agc   )[mlt::sck::imultiply  ::Z_N  ]);
 	(*sync_step_mf)[smf::sck::synchronize::delay].bind((*sync_frame  )[sfm::sck::synchronize::delay]);
-	(*sync_timing )[stm::sck::extract    ::B_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1 ]);
-	(*sync_timing )[stm::sck::extract    ::Y_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::B_N1 ]);
+	(*sync_timing )[stm::sck::extract    ::B_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::B_N1 ]);
+	(*sync_timing )[stm::sck::extract    ::Y_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1 ]);
 	(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_timing )[stm::sck::extract    ::Y_N2 ]);
 	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N  ]);
 	(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2 ]);
+
+	// const int high_priority = -1;
+	// (*sfc_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
+	// (*stm_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
+	// (*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2], high_priority);
 
 	tools::Chain chain_sequential1((*radio)[rad::tsk::receive], (*pl_scrambler)[scr::tsk::descramble]);
 	std::ofstream fs1("chain_sequential1.dot");
 	chain_sequential1.export_dot(fs1);
 
+	int m = 0;
 	int limit = 150;
 	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 	chain_sequential1.exec([&]()
 	{
-		print_metrics((limit == 150 && m >= 150) || m >= 300);
+		terminal->temp_report();
 		if (limit == 150 && m >= 150)
 		{
-			n_phase = 2;
 			limit = 300;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 		}
@@ -257,15 +261,18 @@ int main(int argc, char** argv)
 	(*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
 	(*sync_fine_pf )[sff::sck::synchronize::X_N1].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
 
+	// (*sff_probe)[prb::sck::probe::X_N ].bind((*sync_lr      )[sff::sck::synchronize::Y_N2], high_priority);
+	// (*sfc_probe)[prb::sck::probe::X_N ].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
+	// (*stm_probe)[prb::sck::probe::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
+
 	tools::Chain chain_sequential2((*radio)[rad::tsk::receive], (*sync_fine_pf)[sff::tsk::synchronize]);
 	std::ofstream fs2("chain_sequential2.dot");
 	chain_sequential2.export_dot(fs2);
 
-	n_phase = 3;
 	chain_sequential2.exec([&]()
 	{
+		terminal->temp_report();
 		const auto stop = m >= 500;
-		print_metrics(stop);
 		m += params.n_frames;
 		return stop;
 	});
@@ -275,23 +282,20 @@ int main(int argc, char** argv)
 		for (auto& ta : m->tasks)
 			ta->reset();
 
-	// allocate reporters to display results in the terminal
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>( noise  ))); // report the noise values (Es/N0 and Eb/N0)
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor))); // report the bit/frame error rates
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor))); // report the simulation throughputs
+	// // allocate reporters to display results in the terminal
+	// reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>( noise  ))); // report the noise values (Es/N0 and Eb/N0)
+	// reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor))); // report the bit/frame error rates
+	// reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor))); // report the simulation throughputs
 
-	// allocate a terminal that will display the collected data from the reporters
-	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
+	// // allocate a terminal that will display the collected data from the reporters
+	// terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
 
-	if (params.ter_freq != std::chrono::nanoseconds(0))
-		terminal->start_temp_report(params.ter_freq);
+	// if (params.ter_freq != std::chrono::nanoseconds(0))
+	// 	terminal->start_temp_report(params.ter_freq);
 
 	std::cout << "#"                    << std::endl;
 	std::cout << "# TRANSMISSION PHASE" << std::endl;
 	std::cout << "# ------------------" << std::endl;
-
-	// display the legend in the terminal
-	terminal->legend();
 
 	sync_timing->set_act(true);
 
@@ -376,11 +380,18 @@ int main(int argc, char** argv)
 	// start the pipeline stages in separated threads
 	std::vector<std::thread> threads;
 	for (auto &cs : chain_stages)
+	for (size_t s = 0; s < chain_stages.size(); s++)
 	{
-		threads.push_back(std::thread([cs, &terminal, &stop_threads]() {
-			cs->exec([&terminal]() { return terminal->is_interrupt(); } );
-			stop_threads();
-		}));
+		if (s != chain_stages.size() -1)
+			threads.push_back(std::thread([cs, &terminal, &stop_threads]() {
+				cs->exec([&terminal]() { return terminal->is_interrupt(); } );
+				stop_threads();
+			}));
+		else
+			threads.push_back(std::thread([cs, &terminal, &stop_threads]() {
+				cs->exec([&terminal]() { terminal->temp_report(); return terminal->is_interrupt(); } );
+				stop_threads();
+			}));
 	}
 
 	// wait all the pipeline threads here
@@ -406,6 +417,7 @@ int main(int argc, char** argv)
 	// start the transmission chain
 	chain_sequential3.exec([&monitor, &terminal]()
 	{
+		terminal->temp_report();
 		return terminal->is_interrupt();
 	});
 
