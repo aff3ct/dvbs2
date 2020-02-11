@@ -20,7 +20,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class synchronize : uint8_t { delay, X_N1, Y_N2, SIZE };
+			enum class synchronize : uint8_t { delay, X_N1, Y_N1, B_N1, SIZE };
 		}
 	}
 
@@ -78,12 +78,12 @@ public:
 	 * \param Y_N2: a synchronized vector.
 	 */
 	template <class AB = std::allocator<B>, class AR = std::allocator<R>>
-	void synchronize(const std::vector<int>& delay, const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_id = -1);
+	void synchronize(const std::vector<int>& delay, const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N1, std::vector<B,AB>& B_N1, const int frame_id = -1);
 
-	virtual void synchronize(const int* delay, const R *X_N1, R *Y_N2, const int frame_id = -1);
+	virtual void synchronize(const int* delay, const R *X_N1, R *Y_N1, B *B_N1, const int frame_id = -1);
 
 protected:
-	virtual void _synchronize(const int* delay, const R *X_N1, R *Y_N2, const int frame_id);
+	virtual void _synchronize(const int* delay, const R *X_N1, R *Y_N1, B *B_N1, const int frame_id);
 };
 
 }
