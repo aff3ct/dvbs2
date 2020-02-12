@@ -187,6 +187,10 @@ public:
 	build_channel_int_delay(const DVBS2O& params);
 
 	template <typename R = float>
+	static module::Filter_buffered_delay<R>*
+	build_channel_frame_delay(const DVBS2O& params);
+
+	template <typename R = float>
 	static module::Filter_RRC_ccr_naive<R>*
 	build_matched_filter(const DVBS2O& params);
 

@@ -2,6 +2,8 @@
 #include <numeric>
 #include <string>
 #include <iostream>
+#include <vector>
+#include <algorithm>
 
 #include <aff3ct.hpp>
 
@@ -14,6 +16,30 @@ using namespace aff3ct;
 
 int main(int argc, char** argv)
 {
+	/*aff3ct::module::Filter_buffered_delay<float> buffer (10, 1, 1);
+	buffer.set_delay(1);
+	buffer.print_buffer();
+
+	std::vector<float> x(10, 0);
+	std::vector<float> y(10, 0);
+
+	for (size_t k = 0; k < 20 ; k++)
+	{
+		std::cout << std::endl << "k = " << k << std::endl;
+		std::iota(x.begin(), x.end(), x[9] + 1);
+		buffer.filter(x.data(), y.data());
+		buffer.print_buffer();
+
+		std::cout << "x = ";
+		for (auto i = 0; i < 10; i++)
+			std::cout << x[i] << " ";
+		std::cout << std::endl;
+		std::cout << "y = ";
+		for (auto i = 0; i < 10; i++)
+			std::cout << y[i] << " ";
+		std::cout << std::endl;
+	}
+	return(0);*/
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2O(argc, argv);
 
@@ -52,6 +78,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Multiplier_sine_ccc_naive<> > freq_shift  (factory::DVBS2O::build_freq_shift          <>(params                   ));
 	std::unique_ptr<module::Filter_Farrow_ccr_naive<>   > chn_frac_del(factory::DVBS2O::build_channel_frac_delay  <>(params                   ));
 	std::unique_ptr<module::Variable_delay_cc_naive<>   > chn_int_del (factory::DVBS2O::build_channel_int_delay   <>(params                   ));
+	std::unique_ptr<module::Filter_buffered_delay<float>> chn_frm_del (factory::DVBS2O::build_channel_frame_delay <>(params                   ));
 	std::unique_ptr<module::Synchronizer_frame<>        > sync_frame  (factory::DVBS2O::build_synchronizer_frame  <>(params                   ));
 	std::unique_ptr<module::Framer<>                    > framer      (factory::DVBS2O::build_framer              <>(params                   ));
 	std::unique_ptr<module::Scrambler<float>            > pl_scrambler(factory::DVBS2O::build_pl_scrambler        <>(params                   ));
@@ -60,7 +87,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Filter_RRC_ccr_naive<>      > matched_flt (factory::DVBS2O::build_matched_filter      <>(params                   ));
 	std::unique_ptr<module::Synchronizer_timing<>       > sync_timing (factory::DVBS2O::build_synchronizer_timing <>(params                   ));
 	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > mult_agc    (factory::DVBS2O::build_agc_shift           <>(params                   ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > chn_agc     (factory::DVBS2O::build_channel_agc         <>(params                   ));
+	//std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > chn_agc     (factory::DVBS2O::build_channel_agc         <>(params                   ));
 	std::unique_ptr<module::Estimator<>                 > estimator   (factory::DVBS2O::build_estimator           <>(params, &noise           ));
 
 	std::unique_ptr<module::Synchronizer_freq_coarse<>> sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse <>(params             ));
@@ -99,7 +126,7 @@ int main(int argc, char** argv)
 	shaping_flt  ->set_custom_name("Shaping Flt" );
 	sync_coarse_f->set_custom_name("Coarse_Synch");
 	sync_step_mf ->set_custom_name("MF_Synch"    );
-	chn_agc      ->set_custom_name("Mult Ch. AGC");
+	//chn_agc      ->set_custom_name("Mult Ch. AGC");
 	freq_shift   ->set_custom_name("Mult Freq."  );
 	mult_agc     ->set_custom_name("Mult AGC"    );
 	chn_int_del  ->set_custom_name("Chn int del ");
@@ -137,8 +164,9 @@ int main(int argc, char** argv)
 	            sync_fine_lr.get(), sync_fine_pf.get(), shaping_flt  .get(), chn_frac_del  .get(),
 	            mult_agc    .get(), sync_frame  .get(), delay        .get(), sync_coarse_f .get(),
 	            matched_flt .get(), sync_timing .get(), sync_step_mf .get(), source        .get(),
-	            channel     .get(), chn_agc     .get(), chn_int_del  .get(), estimator     .get(),
-	            stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe     .get()};
+	            channel     .get(), chn_int_del  .get(), estimator     .get(), //chn_agc     .get(),
+	            stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe     .get(),
+	            chn_frm_del .get()};
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -163,10 +191,12 @@ int main(int argc, char** argv)
 	(*framer      )[frm::sck::generate     ::Y_N1].bind((*modem       )[mdm::sck::modulate     ::X_N2]);
 	(*pl_scrambler)[scr::sck::scramble     ::X_N1].bind((*framer      )[frm::sck::generate     ::Y_N2]);
 	(*shaping_flt )[flt::sck::filter       ::X_N1].bind((*pl_scrambler)[scr::sck::scramble     ::X_N2]);
-	(*chn_int_del )[flt::sck::filter       ::X_N1].bind((*shaping_flt )[flt::sck::filter       ::Y_N2]);
+	(*chn_frm_del )[flt::sck::filter       ::X_N1].bind((*shaping_flt )[flt::sck::filter       ::Y_N2]);
+	(*chn_int_del )[flt::sck::filter       ::X_N1].bind((*chn_frm_del )[flt::sck::filter       ::Y_N2]);
 	(*chn_frac_del)[flt::sck::filter       ::X_N1].bind((*chn_int_del )[flt::sck::filter       ::Y_N2]);
-	(*chn_agc     )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del)[flt::sck::filter       ::Y_N2]);
-	(*freq_shift  )[mlt::sck::imultiply    ::X_N ].bind((*chn_agc     )[mlt::sck::imultiply    ::Z_N ]);
+	//(*chn_agc     )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del)[flt::sck::filter       ::Y_N2]);
+	//(*freq_shift  )[mlt::sck::imultiply    ::X_N ].bind((*chn_agc     )[mlt::sck::imultiply    ::Z_N ]);
+	(*freq_shift  )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del)[flt::sck::filter       ::Y_N2]);
 	(*sync_fine_lr)[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2]);
 	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr)[sff::sck::synchronize  ::Y_N2]);
 	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
@@ -243,6 +273,11 @@ int main(int argc, char** argv)
 			//}
 			// tasks execution
 			auto n_phase = 1;
+			//(*chn_frac_del  )[flt::tsk::filter     ].set_debug(true);
+			//(*chn_frac_del  )[flt::tsk::filter     ].set_debug_limit(100);
+			//(*sync_step_mf )[smf::tsk::synchronize].set_debug(true);
+			//(*sync_step_mf )[smf::tsk::synchronize].set_debug_limit(100);
+			
 			for (int m = 0; m < 500; m += params.n_frames)
 			{
 				try
@@ -257,9 +292,10 @@ int main(int argc, char** argv)
 					(*framer        )[frm::tsk::generate   ].exec();
 					(*pl_scrambler  )[scr::tsk::scramble   ].exec();
 					(*shaping_flt   )[flt::tsk::filter     ].exec();
+					(*chn_frm_del   )[flt::tsk::filter     ].exec();
 					(*chn_int_del   )[flt::tsk::filter     ].exec();
 					(*chn_frac_del  )[flt::tsk::filter     ].exec();
-					(*chn_agc       )[mlt::tsk::imultiply  ].exec();
+					//(*chn_agc       )[mlt::tsk::imultiply  ].exec();
 					(*freq_shift    )[mlt::tsk::imultiply  ].exec();
 					(*channel       )[chn::tsk::add_noise  ].exec();
 
@@ -380,9 +416,10 @@ int main(int argc, char** argv)
 				(*framer       )[frm::tsk::generate     ].exec();
 				(*pl_scrambler )[scr::tsk::scramble     ].exec();
 				(*shaping_flt  )[flt::tsk::filter       ].exec();
+				(*chn_frm_del  )[flt::tsk::filter       ].exec();
 				(*chn_int_del  )[flt::tsk::filter       ].exec();
 				(*chn_frac_del )[flt::tsk::filter       ].exec();
-				(*chn_agc      )[mlt::tsk::imultiply    ].exec();
+				//(*chn_agc      )[mlt::tsk::imultiply    ].exec();
 				(*freq_shift   )[mlt::tsk::imultiply    ].exec();
 				(*channel      )[chn::tsk::add_noise    ].exec();
 				(*sync_coarse_f)[sfc::tsk::synchronize  ].exec();

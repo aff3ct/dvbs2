@@ -127,7 +127,13 @@ void DVBS2O
 	channel_type             = vals.exist({"chn-type"}           ) ? vals.at      ({"chn-type"}          ) : "AWGN"      ;
 	channel_path             = vals.exist({"chn-path"}           ) ? vals.at      ({"chn-path"}          ) : channel_path;
 	max_freq_shift           = vals.exist({"chn-max-freq-shift"} ) ? vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
-	max_delay                = vals.exist({"chn-max-delay"}      ) ? vals.to_float({"chn-max-delay"}     ) : 0.f         ;
+	max_delay                = vals.exist({"chn-max-delay"}      ) ? vals.to_float({"chn-max-delay"}     ) : 2.f         ;
+	if (max_delay < 2)
+	{
+		std::stringstream message;
+		message << "Argument 'max_delay' has to be greater than 2.";
+		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+	}
 	ldpc_nite                = vals.exist({"dec-ite"}            ) ? vals.to_int  ({"dec-ite"}           ) : 50          ;
 	max_fe                   = vals.exist({"max-fe","e"}         ) ? vals.to_int  ({"max-fe","e"}        ) : 100         ;
 	sink_path                = vals.exist({"snk-path"}           ) ? vals.at      ({"snk-path"}          ) : "sink.out"  ;
@@ -423,11 +429,11 @@ template <typename R>
 module::Filter_UPRRC_ccr_naive<R>* DVBS2O
 ::build_uprrc_filter(const DVBS2O& params)
 {
-	return new module::Filter_UPRRC_ccr_naive<float>(params.pl_frame_size * 2,
-	                                                 params.rolloff,
-	                                                 params.osf,
-	                                                 params.grp_delay,
-	                                                 params.n_frames);
+	return new module::Filter_UPRRC_ccr_naive<R>(params.pl_frame_size * 2,
+	                                             params.rolloff,
+	                                             params.osf,
+	                                             params.grp_delay,
+	                                             params.n_frames);
 }
 
 template <typename R>
@@ -435,8 +441,8 @@ module::Filter_Farrow_ccr_naive<R>* DVBS2O
 ::build_channel_frac_delay(const DVBS2O& params)
 {
 	R frac_delay = params.max_delay - std::floor(params.max_delay);
-	return new module::Filter_Farrow_ccr_naive <float>(params.pl_frame_size * 2 * params.osf,
-	                                                   frac_delay, params.n_frames);
+	return new module::Filter_Farrow_ccr_naive <R>(params.pl_frame_size * 2 * params.osf,
+	                                               frac_delay, params.n_frames);
 }
 
 template <typename R>
@@ -444,9 +450,18 @@ module::Variable_delay_cc_naive<R>* DVBS2O
 ::build_channel_int_delay(const DVBS2O& params)
 {
 	int N_cplx = params.pl_frame_size * params.osf;
-	int int_delay = ((int)std::floor(params.max_delay) + N_cplx - 2) % N_cplx;
-	return new module::Variable_delay_cc_naive <float>(N_cplx * 2,
-	                                                   int_delay, int_delay, params.n_frames);
+	int int_delay = ((int)std::floor(params.max_delay) - 2 + N_cplx) % N_cplx;
+	return new module::Variable_delay_cc_naive <R>(N_cplx * 2, int_delay, int_delay, params.n_frames);
+}
+
+template <typename R>
+module::Filter_buffered_delay<R>* DVBS2O
+::build_channel_frame_delay(const DVBS2O& params)
+{
+	int int_delay = (int)std::floor(params.max_delay) - 2;
+	int N_cplx = params.pl_frame_size * params.osf;
+	int frame_delay = int_delay / N_cplx;
+	return new module::Filter_buffered_delay<R>(N_cplx*2, frame_delay, frame_delay, params.n_frames);
 }
 
 template <typename R>
@@ -618,7 +633,7 @@ template <typename B>
 module::Filter_buffered_delay<B>* DVBS2O
 ::build_txrx_delay(const DVBS2O& params)
 {
-	return new module::Filter_buffered_delay<B>(params.K_bch, 100, params.n_frames);
+	return new module::Filter_buffered_delay<B>(params.K_bch, 100, 1, params.n_frames);
 }
 
 template <typename B, typename R>
@@ -653,6 +668,7 @@ template aff3ct::module::Scrambler_PL<R>*              DVBS2O::build_pl_scramble
 template aff3ct::module::Filter_UPRRC_ccr_naive<R>*    DVBS2O::build_uprrc_filter<R>            (const DVBS2O& params);
 template aff3ct::module::Filter_Farrow_ccr_naive<R>*   DVBS2O::build_channel_frac_delay<R>      (const DVBS2O& params);
 template aff3ct::module::Variable_delay_cc_naive<R>*   DVBS2O::build_channel_int_delay<R>       (const DVBS2O& params);
+template aff3ct::module::Filter_buffered_delay<R>*     DVBS2O::build_channel_frame_delay<R>     (const DVBS2O& params);
 template aff3ct::module::Filter_RRC_ccr_naive<R>*      DVBS2O::build_matched_filter<R>          (const DVBS2O& params);
 template aff3ct::module::Estimator<R>*                 DVBS2O::build_estimator<R>               (const DVBS2O& params, tools::Noise<R>* noise_ref);
 template aff3ct::module::Monitor_BFER<B>*              DVBS2O::build_monitor<B>                 (const DVBS2O& params);
