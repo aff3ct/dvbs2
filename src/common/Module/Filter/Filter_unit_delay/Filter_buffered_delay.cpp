@@ -50,10 +50,10 @@ template <typename R>
 void Filter_buffered_delay<R>
 ::print_buffer()
 {
-	for (auto j = 0; j< mem.size(); j++)
+	for (size_t j = 0; j< mem.size(); j++)
 	{
 		std::cout << "mem[" << j << "] " << +mem[j].data() << " | ";
-		for (auto i = 0; i < this->N; i++)
+		for (size_t i = 0; i < (size_t)this->N; i++)
 		{
 			std::cout << mem[j][i] << " ";
 		}
