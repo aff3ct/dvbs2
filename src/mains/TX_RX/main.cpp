@@ -405,7 +405,6 @@ int main(int argc, char** argv)
 		delay->set_delay(delay_tx_rx);
 		sync_timing->set_act(true);
 
-		unsigned long long old_n_fe = 0;
 		while (!monitor->is_done() && !terminal->is_interrupt())
 		{
 			try
@@ -452,14 +451,10 @@ int main(int argc, char** argv)
 			catch (tools::processing_aborted const&) {}
 
 			if (n_frames < delay_tx_rx) // first frame is delayed
-			{
 				monitor->reset();
-				old_n_fe = 0;
-			}
 
 
 			terminal->temp_report(std::cerr);
-			old_n_fe = monitor->get_n_fe();
 			n_frames++;
 		}
 
