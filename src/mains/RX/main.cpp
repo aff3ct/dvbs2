@@ -139,7 +139,6 @@ int main(int argc, char** argv)
 	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt .get(),
 	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
 	            estimator   .get(), front_agc   .get(),
-	            stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe   .get(),
 #ifdef MULTI_THREADED
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
 	            &adp_1_to_1_4, &adp_1_to_n  , &adp_n_to_1
@@ -161,6 +160,7 @@ int main(int argc, char** argv)
 	(*source)[module::src::tsk::generate].exec();
 
 	using namespace module;
+
 #ifdef MULTI_THREADED
 	// parallel chain
 	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind(  adp_1_to_n   [adp::sck::pull_n       ::out1  ]);
@@ -211,7 +211,7 @@ int main(int argc, char** argv)
 	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N  ]);
 	(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2 ]);
 
-	// const int high_priority = -1;
+	// const int high_priority = 0;
 	// (*sfc_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
 	// (*stm_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
 	// (*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2], high_priority);
@@ -239,10 +239,39 @@ int main(int argc, char** argv)
 	// ================================================================================================================
 	// LEARNING PHASE 3 ===============================================================================================
 
+	// (*radio       )[rad::sck::receive    ::Y_N1 ].reset();
+	// (*front_agc   )[mlt::sck::imultiply  ::X_N  ].reset();
+	// (*front_agc   )[mlt::sck::imultiply  ::Z_N  ].reset();
+	// (*sync_frame  )[sfm::sck::synchronize::delay].reset();
+	// (*mult_agc    )[mlt::sck::imultiply  ::X_N  ].reset();
+	// (*mult_agc    )[mlt::sck::imultiply  ::Z_N  ].reset();
+	// (*sync_frame  )[sfm::sck::synchronize::X_N1 ].reset();
+	// (*sync_frame  )[sfm::sck::synchronize::Y_N2 ].reset();
+	// (*pl_scrambler)[scr::sck::descramble ::Y_N1 ].reset();
+
+	// (*front_agc    )[mlt::sck::imultiply  ::X_N ].bind((*radio        )[rad::sck::receive    ::Y_N1]);
+	// (*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
+	// (*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
+	// (*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
+	// (*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+	// (*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+	// (*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
+	// (*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
+	// (*pl_scrambler )[scr::sck::descramble ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
+	// (*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
+	// (*sync_fine_pf )[sff::sck::synchronize::X_N1].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
+
 	(*radio       )[rad::sck::receive    ::Y_N1 ].reset();
 	(*front_agc   )[mlt::sck::imultiply  ::X_N  ].reset();
 	(*front_agc   )[mlt::sck::imultiply  ::Z_N  ].reset();
+	(*sync_step_mf)[smf::sck::synchronize::X_N1 ].reset();
 	(*sync_frame  )[sfm::sck::synchronize::delay].reset();
+	(*sync_step_mf)[smf::sck::synchronize::delay].reset();
+	(*sync_step_mf)[smf::sck::synchronize::B_N1 ].reset();
+	(*sync_timing )[stm::sck::extract    ::B_N1 ].reset();
+	(*sync_step_mf)[smf::sck::synchronize::Y_N1 ].reset();
+	(*sync_timing )[stm::sck::extract    ::Y_N1 ].reset();
+	(*sync_timing )[stm::sck::extract    ::Y_N2 ].reset();
 	(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].reset();
 	(*mult_agc    )[mlt::sck::imultiply  ::Z_N  ].reset();
 	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].reset();
@@ -271,8 +300,8 @@ int main(int argc, char** argv)
 
 	chain_sequential2.exec([&]()
 	{
-		terminal->temp_report();
 		const auto stop = m >= 500;
+		terminal->temp_report();
 		m += params.n_frames;
 		return stop;
 	});
@@ -293,9 +322,9 @@ int main(int argc, char** argv)
 	// if (params.ter_freq != std::chrono::nanoseconds(0))
 	// 	terminal->start_temp_report(params.ter_freq);
 
-	std::cout << "#"                    << std::endl;
-	std::cout << "# TRANSMISSION PHASE" << std::endl;
-	std::cout << "# ------------------" << std::endl;
+	// std::cout << "#"                    << std::endl;
+	// std::cout << "# TRANSMISSION PHASE" << std::endl;
+	// std::cout << "# ------------------" << std::endl;
 
 	sync_timing->set_act(true);
 
@@ -379,20 +408,22 @@ int main(int argc, char** argv)
 
 	// start the pipeline stages in separated threads
 	std::vector<std::thread> threads;
-	for (auto &cs : chain_stages)
 	for (size_t s = 0; s < chain_stages.size(); s++)
 	{
-		if (s != chain_stages.size() -1)
-			threads.push_back(std::thread([cs, &terminal, &stop_threads]() {
-				cs->exec([&terminal]() { return terminal->is_interrupt(); } );
-				stop_threads();
-			}));
-		else
-			threads.push_back(std::thread([cs, &terminal, &stop_threads]() {
-				cs->exec([&terminal]() { terminal->temp_report(); return terminal->is_interrupt(); } );
-				stop_threads();
-			}));
+		const bool last_stage = s == chain_stages.size() -1;
+		auto cs = chain_stages[s];
+		threads.push_back(std::thread([cs, last_stage, &terminal, &stop_threads]() {
+			cs->exec([last_stage, &terminal]()
+			{
+				if (last_stage) terminal->temp_report();
+				return terminal->is_interrupt();
+			});
+			stop_threads();
+		}));
 	}
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	stop_threads();
 
 	// wait all the pipeline threads here
 	for (auto &t : threads)
