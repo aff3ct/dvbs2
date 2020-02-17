@@ -37,6 +37,7 @@ protected:
 	std::chrono::time_point<std::chrono::steady_clock> t_prev_report;
 
 	group_t throughput_group;
+	Reporter::report_t final_report;
 
 
 public:

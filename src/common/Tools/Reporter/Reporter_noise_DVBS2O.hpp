@@ -20,6 +20,7 @@ protected:
 	const Noise<R>& noise;
 	const bool show_ground_truth;
 	group_t noise_group;
+	report_t final_report;
 
 	R Eb_N0_avg;
 	R alpha;

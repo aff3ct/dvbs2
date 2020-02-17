@@ -55,10 +55,12 @@ public:
 	float ebn0_step;
 	float max_freq_shift;
 	float max_delay;
+	float sfm_alpha;
+	float sfm_trigger;
+	int   overall_delay;
 	bool  debug;
 	bool  stats;
 	bool  no_sync_info;
-	bool  frame_sync_fast;
 	bool  perfect_sync;
 	bool  perfect_coarse_freq_sync;
 	bool  perfect_lr_freq_sync;
@@ -94,6 +96,7 @@ public:
 	std::string section;
 	std::string src_type;
 	std::string stm_type;
+	std::string sfm_type;
 	std::string src_path;
 	std::string sink_path;
 	std::string channel_path;

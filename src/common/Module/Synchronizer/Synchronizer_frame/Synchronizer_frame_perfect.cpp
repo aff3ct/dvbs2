@@ -38,6 +38,20 @@ void Synchronizer_frame_perfect<R>
 	this->output_delay.reset();
 }
 
+template <typename R>
+R Synchronizer_frame_perfect<R>
+::_get_metric() const
+{
+	return (R)0;
+};
+
+template <typename R>
+bool Synchronizer_frame_perfect<R>
+::_get_packet_flag() const
+{
+	return true;
+};
+
 // ==================================================================================== explicit template instantiation
 template class aff3ct::module::Synchronizer_frame_perfect<float>;
 template class aff3ct::module::Synchronizer_frame_perfect<double>;

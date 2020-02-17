@@ -42,6 +42,10 @@ public:
 	int get_delay() const;
 	virtual void reset() = 0;
 
+	R    get_metric()      const {return this->_get_metric();     };
+	bool get_packet_flag() const {return this->_get_packet_flag();};
+
+
 	/*!
 	 * \brief Synchronizes a vector of samples.
 	 *
@@ -57,6 +61,8 @@ public:
 
 protected:
 	virtual void _synchronize(const R *X_N1, int* delay, R *Y_N2, const int frame_id) = 0;
+	virtual R    _get_metric     () const = 0;
+	virtual bool _get_packet_flag() const = 0;
 };
 
 }

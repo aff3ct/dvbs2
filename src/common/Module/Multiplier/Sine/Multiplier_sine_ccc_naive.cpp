@@ -30,20 +30,14 @@ template <typename R>
 void Multiplier_sine_ccc_naive<R>
 ::set_f(R f)
 {
-	R new_nu = std::floor(f/Fs * (R)1e6) /(R)1e6;
-	this->nu = new_nu;
-	this->f  = new_nu * this->Fs;
-	this->omega = 2 * M_PI * new_nu;
+	this->set_nu(f/Fs);
 }
 
 template <typename R>
 void Multiplier_sine_ccc_naive<R>
 ::set_omega(R omega)
 {
-	R new_nu = std::floor(omega / (2 * M_PI) * (R)1e6) /(R)1e6;
-	this->nu = new_nu;
-	this->f  = new_nu * this->Fs;
-	this->omega = 2 * M_PI * new_nu;
+	this->set_nu(omega / (2 * M_PI));
 }
 
 template <typename R>

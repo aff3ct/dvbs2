@@ -43,16 +43,22 @@ private:
 	std::vector<R> cor_SOF_delayed;
 	std::vector<R> cor_PLSC;
 	std::vector<R> diff_signal;
+
+	R alpha;
+	R max_corr;
+	R trigger;
 	// std::vector<R> cor_PLSC_re;
 	// std::vector<R> cor_PLSC_im;
 	// std::vector<R> cor_SOF_delayed_re;
 	// std::vector<R> cor_SOF_delayed_im;
 
 public:
-	Synchronizer_frame_DVBS2_fast (const int N, const int n_frames = 1);
+	Synchronizer_frame_DVBS2_fast (const int N, const R alpha = 0, const R trigger = 25, const int n_frames = 1);
 	virtual ~Synchronizer_frame_DVBS2_fast();
 	void step(const std::complex<R>* x_elt, R* y_elt);
 	void reset();
+	R _get_metric() const {return this->max_corr;};
+	bool _get_packet_flag() const {return(this->max_corr > this->trigger);};
 
 protected:
 	void _synchronize(const R *X_N1, int* delay, R *Y_N2, const int frame_id);
