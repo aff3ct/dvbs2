@@ -51,7 +51,6 @@ int main(int argc, char** argv)
 	param_vec.push_back(&params);
 	tools::Header::print_parameters(param_vec, false, std::cout);
 
-	std::vector<std::unique_ptr<tools::Reporter>> reporters;
 	std::unique_ptr<tools::Terminal> terminal;
 	tools::Sigma<> noise(1.0f);
 
@@ -135,32 +134,33 @@ int main(int argc, char** argv)
 	chn_frac_del ->set_custom_name("Chn frac del");
 
 	// allocate reporters to display results in the terminal
-	tools::Reporter_sfm_DVBS2O<>     sfm_reporter(*sync_frame  .get());
-	tools::Reporter_stm_DVBS2O<>     stm_reporter(*sync_timing  .get());
-	tools::Reporter_sfc_sff_DVBS2O<> sfc_reporter(*sync_coarse_f.get(),
-	                                              *sync_fine_lr .get(),
-	                                              *sync_fine_pf .get(),
-	                                              params.osf);
+	tools::Reporter_sfm_DVBS2O<>     sfm_reporter  (*sync_frame   .get());
+	tools::Reporter_stm_DVBS2O<>     stm_reporter  (*sync_timing  .get());
+	tools::Reporter_sfc_sff_DVBS2O<> sfc_reporter  (*sync_coarse_f.get(), *sync_fine_lr .get(), *sync_fine_pf .get(), params.osf);
+	tools::Reporter_noise_DVBS2O<>   noise_reporter(noise_estimated, noise, true);
+	tools::Reporter_BFER        <>   bfer_reporter (*monitor);
+	tools::Reporter_throughput_DVBS2O<> tpt_monitor(*monitor);
 
-
-	reporters.push_back(std::unique_ptr<tools::Reporter>(&sfm_reporter)); //
-	reporters.push_back(std::unique_ptr<tools::Reporter>(&stm_reporter)); //
-	reporters.push_back(std::unique_ptr<tools::Reporter>(&sfc_reporter)); //
 	std::unique_ptr<module::Probe<> > stm_probe(stm_reporter.build_probe());
 	std::unique_ptr<module::Probe<> > sfm_probe(sfm_reporter.build_probe());
 	std::unique_ptr<module::Probe<> > spf_probe(sfc_reporter.build_spf_probe());
 	std::unique_ptr<module::Probe<> > sff_probe(sfc_reporter.build_sff_probe());
 	std::unique_ptr<module::Probe<> > sfc_probe(sfc_reporter.build_sfc_probe());
 
-	// allocate reporters to display results in the terminal
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise_DVBS2O<> (noise_estimated, noise, true))); // report the noise values (Es/N0 and Eb/N0)
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER        <> (*monitor))); //report the bit/frame error rates
+	//reporters.push_back(std::unique_ptr<tools::Reporter>(std::move(sfm_reporter))); //
+	//reporters.push_back(std::unique_ptr<tools::Reporter>(std::move(stm_reporter))); //
+	//reporters.push_back(std::unique_ptr<tools::Reporter>(std::move(sfc_reporter))); //
 
-	tools::Reporter_throughput_DVBS2O<> tpt_monitor(*monitor);
-	reporters.push_back(std::unique_ptr<tools::Reporter>(&tpt_monitor)); // report the simulation throughputs
+	// allocate reporters to display results in the terminal
+	//reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise_DVBS2O<> (noise_estimated, noise, true))); // report the noise values (Es/N0 and Eb/N0)
+	//reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER        <> (*monitor))); //report the bit/frame error rates
+	// reporters.push_back(std::unique_ptr<tools::Reporter>(&tpt_monitor)); // report the simulation throughputs
+
+	//std::vector<tools::Reporter *> reporters = {&sfm_reporter, &stm_reporter, &sfc_reporter, &noise_reporter, &bfer_reporter, &tpt_monitor};
 
 	// allocate a terminal that will display the collected data from the reporters
-	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
+	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std( {&sfm_reporter, &stm_reporter, &sfc_reporter, &noise_reporter, &bfer_reporter, &tpt_monitor}));
+
 
 	// display the legend in the terminal
 	terminal->legend();
