@@ -51,8 +51,6 @@ Reporter::report_t Reporter_noise_DVBS2O<R>
 	std::stringstream stream;
 
 	auto sig = dynamic_cast<const tools::Sigma<R>*>(&noise_estimated);
-
-	bool has_esn0_been_set = true;
 	try
 	{
 		stream << std::setprecision(2) << std::fixed << sig->get_esn0();
