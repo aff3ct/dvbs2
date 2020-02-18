@@ -84,10 +84,10 @@ void Synchronizer_frame_DVBS2_fast<R>
 		                                     reg_dif_sof_plsc_im * reg_dif_sof_plsc_im);
 
 		auto reg_corr_vec = mipp::sqrt(mipp::max(reg_abs2_sum_corr, reg_abs2_dif_corr));
-		//mipp::Reg<R> corr_vec = &this->corr_vec[i];
-		//mipp::Reg<R> reg_alpha        (  this->alpha);
-		//mipp::Reg<R> reg_1_minus_alpha(1-this->alpha);
-		//corr_vec = reg_alpha * corr_vec + reg_1_minus_alpha*reg_corr_vec;
+		mipp::Reg<R> corr_vec = &this->corr_vec[i];
+		mipp::Reg<R> reg_alpha        (  this->alpha);
+		mipp::Reg<R> reg_1_minus_alpha(1-this->alpha);
+		reg_corr_vec = reg_alpha * corr_vec + reg_1_minus_alpha*reg_corr_vec;
 		reg_corr_vec.store(&this->corr_vec[i]);
 
 		for (auto n = 0; n < mipp::N<R>(); n++)
@@ -110,7 +110,7 @@ void Synchronizer_frame_DVBS2_fast<R>
 		R dif_sof_plsc_im = cor_SOF_delayed[2*i + 1] - cor_PLSC[2*i + 1];
 		R abs2_dif_corr = dif_sof_plsc_re * dif_sof_plsc_re + dif_sof_plsc_im * dif_sof_plsc_im;
 
-		//this->corr_vec[i] = this->alpha * this->corr_vec[i] + (1-this->alpha)*std::sqrt(std::max(abs2_sum_corr, abs2_dif_corr));
+		this->corr_vec[i] = this->alpha * this->corr_vec[i] + (1-this->alpha)*std::sqrt(std::max(abs2_sum_corr, abs2_dif_corr));
 		this->corr_vec[i] = std::sqrt(std::max(abs2_sum_corr, abs2_dif_corr));
 
 		if (this->corr_vec[i] > max_corr)
