@@ -130,6 +130,7 @@ int main(int argc, char** argv)
 	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt .get(),
 	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
 	            estimator   .get(), front_agc   .get(),
+	            stm_probe    .get(), sfm_probe  .get(), sff_probe    .get(), sfc_probe   .get(),
 #ifdef MULTI_THREADED
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
 	            &adp_1_to_1_4, &adp_1_to_n  , &adp_n_to_1
@@ -200,14 +201,14 @@ int main(int argc, char** argv)
 	(*sync_timing )[stm::sck::extract    ::Y_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1 ]);
 	(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_timing )[stm::sck::extract    ::Y_N2 ]);
 	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N  ]);
-	(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2 ]);
 
-	// const int high_priority = 0;
-	// (*sfc_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
-	// (*stm_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
-	// (*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2], high_priority);
+	// add probes
+	const int high_priority = 0;
+	(*sfc_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
+	(*stm_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
+	(*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2], high_priority);
 
-	tools::Chain chain_sequential1((*radio)[rad::tsk::receive], (*pl_scrambler)[scr::tsk::descramble]);
+	tools::Chain chain_sequential1((*radio)[rad::tsk::receive], (*sfm_probe)[prb::tsk::probe]);
 	std::ofstream fs1("chain_sequential1.dot");
 	chain_sequential1.export_dot(fs1);
 
@@ -223,7 +224,7 @@ int main(int argc, char** argv)
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 		}
 		const auto stop = m >= limit;
-		m += statuses.back() != tools::status_t::SKIPPED ? params.n_frames : 0;
+		m += statuses.back() != status_t::SKIPPED ? params.n_frames : 0;
 		return stop;
 	});
 
@@ -245,7 +246,6 @@ int main(int argc, char** argv)
 	(*mult_agc    )[mlt::sck::imultiply  ::Z_N  ].reset();
 	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].reset();
 	(*sync_frame  )[sfm::sck::synchronize::Y_N2 ].reset();
-	(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].reset();
 
 	(*front_agc    )[mlt::sck::imultiply  ::X_N ].bind((*radio        )[rad::sck::receive    ::Y_N1]);
 	(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
@@ -259,9 +259,16 @@ int main(int argc, char** argv)
 	(*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
 	(*sync_fine_pf )[sff::sck::synchronize::X_N1].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
 
-	// (*sff_probe)[prb::sck::probe::X_N ].bind((*sync_lr      )[sff::sck::synchronize::Y_N2], high_priority);
-	// (*sfc_probe)[prb::sck::probe::X_N ].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
-	// (*stm_probe)[prb::sck::probe::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
+	// add probes
+	(*sfm_probe)[prb::sck::probe::X_N].reset();
+	(*sff_probe)[prb::sck::probe::X_N].reset();
+	(*sfc_probe)[prb::sck::probe::X_N].reset();
+	(*stm_probe)[prb::sck::probe::X_N].reset();
+
+	(*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2], high_priority);
+	(*sff_probe)[prb::sck::probe::X_N].bind((*sync_lr      )[sff::sck::synchronize::Y_N2], high_priority);
+	(*sfc_probe)[prb::sck::probe::X_N].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
+	(*stm_probe)[prb::sck::probe::X_N].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
 
 	tools::Chain chain_sequential2((*radio)[rad::tsk::receive], (*sync_fine_pf)[sff::tsk::synchronize]);
 	std::ofstream fs2("chain_sequential2.dot");
@@ -271,7 +278,7 @@ int main(int argc, char** argv)
 	{
 		const auto stop = m >= 500;
 		terminal.temp_report();
-		m += statuses.back() != tools::status_t::SKIPPED ? params.n_frames : 0;
+		m += statuses.back() != status_t::SKIPPED ? params.n_frames : 0;
 		return stop;
 	});
 
@@ -332,6 +339,17 @@ int main(int argc, char** argv)
 	(*monitor      )[mnt::sck::check_errors::U  ].bind((*source       )[src::sck::generate   ::U_K ]);
 	(*monitor      )[mnt::sck::check_errors::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
 	(*sink         )[snk::sck::send        ::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
+
+	// add probes
+	(*sfm_probe)[prb::sck::probe::X_N].reset();
+	(*sff_probe)[prb::sck::probe::X_N].reset();
+	(*sfc_probe)[prb::sck::probe::X_N].reset();
+	(*stm_probe)[prb::sck::probe::X_N].reset();
+
+	(*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2], high_priority);
+	(*sff_probe)[prb::sck::probe::X_N].bind((*sync_lr      )[sff::sck::synchronize::Y_N2], high_priority);
+	(*sfc_probe)[prb::sck::probe::X_N].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
+	(*stm_probe)[prb::sck::probe::X_N].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
 
 	// create a chain per pipeline stage
 	tools::Chain chain_stage0((*radio       )[rad::tsk::receive],   adp_1_to_1_0 [adp::tsk::push_1], 1, thread_pinnig, { 2 });
