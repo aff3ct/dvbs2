@@ -33,14 +33,6 @@ int main(int argc, char** argv)
 	param_vec.push_back(&params);
 	tools::Header::print_parameters(param_vec, true, std::cout);
 
-	std::vector<std::unique_ptr<tools::Reporter>> reporters;
-	std::unique_ptr<tools::Terminal> terminal;
-	tools::Sigma<> noise;
-
-	// the list of the allocated modules for the simulation
-	std::vector<const module::Module*> modules;
-	std::vector<const module::Module*> modules_each_snr;
-
 	// construct tools
 	std::unique_ptr<tools::Constellation<float>> cstl(new tools::Constellation_user<float>(params.constellation_file));
 	std::unique_ptr<tools::Interleaver_core<>> itl_core(factory::DVBS2O::build_itl_core<>(params));
@@ -72,7 +64,6 @@ int main(int argc, char** argv)
 	                                                                                                                     sync_coarse_f.get(),
 	                                                                                                                     matched_flt  .get(),
 	                                                                                                                     sync_timing  .get() ));
-
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 	// allocate reporters to display results in the terminal
@@ -81,21 +72,20 @@ int main(int argc, char** argv)
 	                                         *sync_frame   .get(),
 	                                         *sync_lr      .get());
 
-	reporters.push_back(std::unique_ptr<tools::Reporter>(&syncro_reporter)); //
 	std::unique_ptr<module::Probe<>> stm_probe(syncro_reporter.build_stm_probe());
 	std::unique_ptr<module::Probe<>> sfm_probe(syncro_reporter.build_sfm_probe());
 	std::unique_ptr<module::Probe<>> sff_probe(syncro_reporter.build_sff_probe());
 	std::unique_ptr<module::Probe<>> sfc_probe(syncro_reporter.build_sfc_probe());
 
-	// allocate reporters to display results in the terminal
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise_DVBS2O<>(noise, noise, false))); // report the noise values (Es/N0 and Eb/N0)
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER        <>(*monitor))); //report the bit/frame error rates
-
-	tools::Reporter_throughput_DVBS2O<> tpt_monitor(*monitor);
-	reporters.push_back(std::unique_ptr<tools::Reporter>(&tpt_monitor)); // report the simulation throughputs
+	tools::Sigma<> noise;
+	std::vector<tools::Reporter*> reporters;
+	reporters.push_back(&syncro_reporter                                            );
+	reporters.push_back(new tools::Reporter_noise_DVBS2O     <>(noise, noise, false)); // report the noise values (Es/N0 and Eb/N0)
+	reporters.push_back(new tools::Reporter_BFER             <>(*monitor           )); // report the bit/frame error rates
+	reporters.push_back(new tools::Reporter_throughput_DVBS2O<>(*monitor           )); // report the simulation throughputs
 
 	// allocate a terminal that will display the collected data from the reporters
-	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
+	tools::Terminal_std terminal(reporters);
 
 #ifdef MULTI_THREADED
 	const size_t buffer_size = 1;
@@ -133,6 +123,7 @@ int main(int argc, char** argv)
 #endif /* MULTI_THREADED */
 
 	// fill the list of modules
+	std::vector<const module::Module*> modules;
 	modules = { bb_scrambler.get(), BCH_decoder .get(), source       .get(), LDPC_decoder      ,
 	            itl_rx      .get(), modem       .get(), framer       .get(), pl_scrambler.get(),
 	            monitor     .get(), freq_shift  .get(), sync_lr      .get(), sync_fine_pf.get(),
@@ -197,7 +188,7 @@ int main(int argc, char** argv)
 #endif /* MULTI_THREADED */
 
 	// display the legend in the terminal
-	terminal->legend();
+	terminal.legend();
 
 	// ================================================================================================================
 	// LEARNING PHASE 1 & 2 ===========================================================================================
@@ -223,43 +214,21 @@ int main(int argc, char** argv)
 	int m = 0;
 	int limit = 150;
 	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
-	chain_sequential1.exec([&]()
+	chain_sequential1.exec([&](const std::vector<int>& statuses)
 	{
-		terminal->temp_report();
+		terminal.temp_report();
 		if (limit == 150 && m >= 150)
 		{
 			limit = 300;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 		}
 		const auto stop = m >= limit;
-		m += params.n_frames;
+		m += statuses.back() != tools::status_t::SKIPPED ? params.n_frames : 0;
 		return stop;
 	});
 
 	// ================================================================================================================
 	// LEARNING PHASE 3 ===============================================================================================
-
-	// (*radio       )[rad::sck::receive    ::Y_N1 ].reset();
-	// (*front_agc   )[mlt::sck::imultiply  ::X_N  ].reset();
-	// (*front_agc   )[mlt::sck::imultiply  ::Z_N  ].reset();
-	// (*sync_frame  )[sfm::sck::synchronize::delay].reset();
-	// (*mult_agc    )[mlt::sck::imultiply  ::X_N  ].reset();
-	// (*mult_agc    )[mlt::sck::imultiply  ::Z_N  ].reset();
-	// (*sync_frame  )[sfm::sck::synchronize::X_N1 ].reset();
-	// (*sync_frame  )[sfm::sck::synchronize::Y_N2 ].reset();
-	// (*pl_scrambler)[scr::sck::descramble ::Y_N1 ].reset();
-
-	// (*front_agc    )[mlt::sck::imultiply  ::X_N ].bind((*radio        )[rad::sck::receive    ::Y_N1]);
-	// (*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
-	// (*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
-	// (*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
-	// (*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
-	// (*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
-	// (*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
-	// (*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
-	// (*pl_scrambler )[scr::sck::descramble ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2]);
-	// (*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
-	// (*sync_fine_pf )[sff::sck::synchronize::X_N1].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
 
 	(*radio       )[rad::sck::receive    ::Y_N1 ].reset();
 	(*front_agc   )[mlt::sck::imultiply  ::X_N  ].reset();
@@ -298,11 +267,11 @@ int main(int argc, char** argv)
 	std::ofstream fs2("chain_sequential2.dot");
 	chain_sequential2.export_dot(fs2);
 
-	chain_sequential2.exec([&]()
+	chain_sequential2.exec([&](const std::vector<int>& statuses)
 	{
 		const auto stop = m >= 500;
-		terminal->temp_report();
-		m += params.n_frames;
+		terminal.temp_report();
+		m += statuses.back() != tools::status_t::SKIPPED ? params.n_frames : 0;
 		return stop;
 	});
 
@@ -310,21 +279,6 @@ int main(int argc, char** argv)
 	for (auto& m : modules)
 		for (auto& ta : m->tasks)
 			ta->reset();
-
-	// // allocate reporters to display results in the terminal
-	// reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise     <>( noise  ))); // report the noise values (Es/N0 and Eb/N0)
-	// reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER      <>(*monitor))); // report the bit/frame error rates
-	// reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*monitor))); // report the simulation throughputs
-
-	// // allocate a terminal that will display the collected data from the reporters
-	// terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
-
-	// if (params.ter_freq != std::chrono::nanoseconds(0))
-	// 	terminal->start_temp_report(params.ter_freq);
-
-	// std::cout << "#"                    << std::endl;
-	// std::cout << "# TRANSMISSION PHASE" << std::endl;
-	// std::cout << "# ------------------" << std::endl;
 
 	sync_timing->set_act(true);
 
@@ -415,15 +369,15 @@ int main(int argc, char** argv)
 		threads.push_back(std::thread([cs, last_stage, &terminal, &stop_threads]() {
 			cs->exec([last_stage, &terminal]()
 			{
-				if (last_stage) terminal->temp_report();
-				return terminal->is_interrupt();
+				if (last_stage) terminal.temp_report();
+				return terminal.is_interrupt();
 			});
 			stop_threads();
 		}));
 	}
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-	stop_threads();
+	// std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	// stop_threads();
 
 	// wait all the pipeline threads here
 	for (auto &t : threads)
@@ -448,8 +402,8 @@ int main(int argc, char** argv)
 	// start the transmission chain
 	chain_sequential3.exec([&monitor, &terminal]()
 	{
-		terminal->temp_report();
-		return terminal->is_interrupt();
+		terminal.temp_report();
+		return terminal.is_interrupt();
 	});
 
 	// stop the radio thread
@@ -458,7 +412,7 @@ int main(int argc, char** argv)
 #endif /* MULTI_THREADED */
 
 	// display the performance (BER and FER) in the terminal
-	terminal->final_report();
+	terminal.final_report();
 
 	if (params.stats)
 	{
