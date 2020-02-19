@@ -76,6 +76,13 @@ template <typename T>
 Reporter::report_t Reporter_throughput_DVBS2O<T>
 ::report(bool final)
 {
+	if (final)
+	{
+		auto old_report = this->final_report;
+		init();
+		return old_report;
+	}
+
 	assert(this->cols_groups.size() == 1);
 
 	report_t report(this->cols_groups.size());
@@ -121,9 +128,7 @@ Reporter::report_t Reporter_throughput_DVBS2O<T>
 	thgput_report.push_back(str_thr.str());
 	thgput_report.push_back(str_time);
 
-	if (final)
-		init();
-
+	this->final_report = report;
 	return report;
 }
 
@@ -135,6 +140,8 @@ void Reporter_throughput_DVBS2O<T>
 
 	t_report = std::chrono::steady_clock::now();
 	t_prev_report = std::chrono::steady_clock::now();
+
+	this->final_report.clear();
 }
 }
 }

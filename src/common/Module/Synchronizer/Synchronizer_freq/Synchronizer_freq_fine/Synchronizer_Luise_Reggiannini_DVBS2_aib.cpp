@@ -125,10 +125,10 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 	}
 	this->estimated_freq = std::atan2(this->R_l[1], this->R_l[0]);
 	this->estimated_freq /= (Lp_2 + 1) * M_PI;
-	this->estimated_freq *= M_PI;
+	R esimated_freq_ = this->estimated_freq * M_PI;
 
 	mipp::Reg<R> reg_n = this->n_vals;
-	mipp::Reg<R> reg_estimated_freq = this->estimated_freq;
+	mipp::Reg<R> reg_estimated_freq = esimated_freq_;
 	mipp::Regx2<R> reg_cos_sin_theta;
 
 	auto end_vec_loop = (this->N / (2 * mipp::N<R>())) * (2 * mipp::N<R>());
@@ -151,7 +151,7 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 
 	for (int n = end_vec_loop; n < this->N; n += 2)
 	{
-		R theta = this->estimated_freq * (R)n;
+		R theta = esimated_freq_ * (R)n;
 		R cos_theta = std::cos(theta);
 		R sin_theta = std::sin(theta);
 

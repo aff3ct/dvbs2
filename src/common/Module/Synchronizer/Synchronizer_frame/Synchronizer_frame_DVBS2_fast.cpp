@@ -14,7 +14,7 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_frame_DVBS2_fast<R>
-::Synchronizer_frame_DVBS2_fast(const int N, const int n_frames)
+::Synchronizer_frame_DVBS2_fast(const int N, const R alpha, const R trigger, const int n_frames)
 : Synchronizer_frame<R>(N, n_frames),
   reg_channel(std::complex<R>((R)1,(R)0)),
   corr_vec(N/2, (R)0),
@@ -25,7 +25,10 @@ Synchronizer_frame_DVBS2_fast<R>
   cor_SOF        (N, (R)0),
   cor_SOF_delayed(N, (R)0),
   cor_PLSC       (N, (R)0),
-  diff_signal    (N, (R)0)
+  diff_signal    (N, (R)0),
+  alpha          (alpha  ),
+  max_corr       ((R)0),
+  trigger        (trigger)
   // cor_PLSC_re       (N/2, (R)0),
   // cor_PLSC_im       (N/2, (R)0),
   // cor_SOF_delayed_re(N/2, (R)0),
@@ -56,7 +59,7 @@ void Synchronizer_frame_DVBS2_fast<R>
 	corr_PLSC     .filter(&diff_signal[0], &cor_PLSC[0]       );
 	SOF_PLSC_delay.filter(&cor_SOF[0]    , &cor_SOF_delayed[0]);
 
-	R max_corr   = 0;
+	max_corr   = 0;
 	int max_idx  = 0;
 
 	auto end_vec_loop = (cplx_in_sz / (mipp::N<R>())) * mipp::N<R>();
@@ -81,6 +84,10 @@ void Synchronizer_frame_DVBS2_fast<R>
 		                                     reg_dif_sof_plsc_im * reg_dif_sof_plsc_im);
 
 		auto reg_corr_vec = mipp::sqrt(mipp::max(reg_abs2_sum_corr, reg_abs2_dif_corr));
+		mipp::Reg<R> corr_vec = &this->corr_vec[i];
+		mipp::Reg<R> reg_alpha        (  this->alpha);
+		mipp::Reg<R> reg_1_minus_alpha(1-this->alpha);
+		reg_corr_vec = reg_alpha * corr_vec + reg_1_minus_alpha*reg_corr_vec;
 		reg_corr_vec.store(&this->corr_vec[i]);
 
 		for (auto n = 0; n < mipp::N<R>(); n++)
@@ -103,6 +110,7 @@ void Synchronizer_frame_DVBS2_fast<R>
 		R dif_sof_plsc_im = cor_SOF_delayed[2*i + 1] - cor_PLSC[2*i + 1];
 		R abs2_dif_corr = dif_sof_plsc_re * dif_sof_plsc_re + dif_sof_plsc_im * dif_sof_plsc_im;
 
+		this->corr_vec[i] = this->alpha * this->corr_vec[i] + (1-this->alpha)*std::sqrt(std::max(abs2_sum_corr, abs2_dif_corr));
 		this->corr_vec[i] = std::sqrt(std::max(abs2_sum_corr, abs2_dif_corr));
 
 		if (this->corr_vec[i] > max_corr)
