@@ -2,7 +2,9 @@
 #include <fstream>
 #include <aff3ct.hpp>
 
-#include "Tools/Reporter/Reporter_DVBS2O.hpp"
+#include "Tools/Reporter/Reporter_sfc_sff_DVBS2O.hpp"
+#include "Tools/Reporter/Reporter_sfm_DVBS2O.hpp"
+#include "Tools/Reporter/Reporter_stm_DVBS2O.hpp"
 #include "Tools/Reporter/Reporter_throughput_DVBS2O.hpp"
 #include "Tools/Reporter/Reporter_noise_DVBS2O.hpp"
 #include "Factory/DVBS2O/DVBS2O.hpp"
@@ -68,21 +70,24 @@ int main(int argc, char** argv)
 	                                                                                                                     sync_timing  .get() ));
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
-	// allocate reporters to display results in the terminal
-	tools::Reporter_DVBS2O<> rep_syncro_stats(*sync_coarse_f.get(), *sync_timing.get(), *sync_frame.get(), *sync_lr.get());
-
-	std::unique_ptr<module::Probe<>> stm_probe(rep_syncro_stats.build_stm_probe());
-	std::unique_ptr<module::Probe<>> sfm_probe(rep_syncro_stats.build_sfm_probe());
-	std::unique_ptr<module::Probe<>> sff_probe(rep_syncro_stats.build_sff_probe());
-	std::unique_ptr<module::Probe<>> sfc_probe(rep_syncro_stats.build_sfc_probe());
-
 	tools::Sigma<> noise;
-	tools::Reporter_noise_DVBS2O<>      rep_noise_stats(noise, noise, false); // report the noise values (Es/N0 and Eb/N0)
-	tools::Reporter_BFER<>              rep_BFER_stats (*monitor           ); // report the bit/frame error rates
-	tools::Reporter_throughput_DVBS2O<> rep_thr_stats  (*monitor           ); // report the simulation throughputs
 
-	// allocate a terminal that will display the collected data from the reporters
-	tools::Terminal_std terminal_stats({ &rep_syncro_stats, &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats });
+	// allocate reporters to display results in the terminal
+	tools::Reporter_sfm_DVBS2O<>        rep_sfm_stats  (*sync_frame   .get());
+	tools::Reporter_stm_DVBS2O<>        rep_stm_stats  (*sync_timing  .get());
+	tools::Reporter_sfc_sff_DVBS2O<>    rep_sfc_stats  (*sync_coarse_f.get(), *sync_lr.get(), *sync_fine_pf.get(), params.osf);
+	tools::Reporter_noise_DVBS2O<>      rep_noise_stats( noise, noise, false);
+	tools::Reporter_BFER<>              rep_BFER_stats (*monitor);
+	tools::Reporter_throughput_DVBS2O<> rep_thr_stats  (*monitor);
+
+	std::unique_ptr<module::Probe<> > stm_probe(rep_stm_stats.build_probe());
+	std::unique_ptr<module::Probe<> > sfm_probe(rep_sfm_stats.build_probe());
+	std::unique_ptr<module::Probe<> > spf_probe(rep_sfc_stats.build_spf_probe());
+	std::unique_ptr<module::Probe<> > sff_probe(rep_sfc_stats.build_sff_probe());
+	std::unique_ptr<module::Probe<> > sfc_probe(rep_sfc_stats.build_sfc_probe());
+
+	tools::Terminal_std terminal_stats({ &rep_sfm_stats,   &rep_stm_stats,  &rep_sfc_stats,
+	                                     &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats });
 
 #ifdef MULTI_THREADED
 	const size_t buffer_size = 1;
@@ -281,6 +286,7 @@ int main(int argc, char** argv)
 	(*sff_probe)[prb::sck::probe::X_N].bind((*sync_lr      )[sff::sck::synchronize::Y_N2], high_priority);
 	(*sfc_probe)[prb::sck::probe::X_N].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
 	(*stm_probe)[prb::sck::probe::X_N].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
+	(*spf_probe)[prb::sck::probe::X_N].bind((*sync_fine_pf )[sff::sck::synchronize::Y_N2], high_priority);
 
 	tools::Chain chain_sequential2((*radio)[rad::tsk::receive], (*sync_fine_pf)[sff::tsk::synchronize]);
 	std::ofstream fs2("chain_sequential2.dot");
@@ -385,11 +391,13 @@ int main(int argc, char** argv)
 	(*sff_probe)[prb::sck::probe::X_N].reset();
 	(*sfc_probe)[prb::sck::probe::X_N].reset();
 	(*stm_probe)[prb::sck::probe::X_N].reset();
+	(*spf_probe)[prb::sck::probe::X_N].reset();
 
 	(*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2], high_priority);
 	(*sff_probe)[prb::sck::probe::X_N].bind((*sync_lr      )[sff::sck::synchronize::Y_N2], high_priority);
 	(*sfc_probe)[prb::sck::probe::X_N].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
 	(*stm_probe)[prb::sck::probe::X_N].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
+	(*spf_probe)[prb::sck::probe::X_N].bind((*sync_fine_pf )[sff::sck::synchronize::Y_N2], high_priority);
 
 	// create a chain per pipeline stage
 	tools::Chain chain_stage0((*radio       )[rad::tsk::receive],   adp_1_to_1_0 [adp::tsk::push_1], 1, thread_pinnig, { 2 });
