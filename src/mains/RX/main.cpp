@@ -1,3 +1,5 @@
+#include <chrono>
+#include <fstream>
 #include <aff3ct.hpp>
 
 #include "Tools/Reporter/Reporter_DVBS2O.hpp"
@@ -67,25 +69,20 @@ int main(int argc, char** argv)
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 	// allocate reporters to display results in the terminal
-	tools::Reporter_DVBS2O<> syncro_reporter(*sync_coarse_f.get(),
-	                                         *sync_timing  .get(),
-	                                         *sync_frame   .get(),
-	                                         *sync_lr      .get());
+	tools::Reporter_DVBS2O<> rep_syncro_stats(*sync_coarse_f.get(), *sync_timing.get(), *sync_frame.get(), *sync_lr.get());
 
-	std::unique_ptr<module::Probe<>> stm_probe(syncro_reporter.build_stm_probe());
-	std::unique_ptr<module::Probe<>> sfm_probe(syncro_reporter.build_sfm_probe());
-	std::unique_ptr<module::Probe<>> sff_probe(syncro_reporter.build_sff_probe());
-	std::unique_ptr<module::Probe<>> sfc_probe(syncro_reporter.build_sfc_probe());
+	std::unique_ptr<module::Probe<>> stm_probe(rep_syncro_stats.build_stm_probe());
+	std::unique_ptr<module::Probe<>> sfm_probe(rep_syncro_stats.build_sfm_probe());
+	std::unique_ptr<module::Probe<>> sff_probe(rep_syncro_stats.build_sff_probe());
+	std::unique_ptr<module::Probe<>> sfc_probe(rep_syncro_stats.build_sfc_probe());
 
 	tools::Sigma<> noise;
-	std::vector<tools::Reporter*> reporters;
-	reporters.push_back(&syncro_reporter                                            );
-	reporters.push_back(new tools::Reporter_noise_DVBS2O     <>(noise, noise, false)); // report the noise values (Es/N0 and Eb/N0)
-	reporters.push_back(new tools::Reporter_BFER             <>(*monitor           )); // report the bit/frame error rates
-	reporters.push_back(new tools::Reporter_throughput_DVBS2O<>(*monitor           )); // report the simulation throughputs
+	tools::Reporter_noise_DVBS2O<>      rep_noise_stats(noise, noise, false); // report the noise values (Es/N0 and Eb/N0)
+	tools::Reporter_BFER<>              rep_BFER_stats (*monitor           ); // report the bit/frame error rates
+	tools::Reporter_throughput_DVBS2O<> rep_thr_stats  (*monitor           ); // report the simulation throughputs
 
 	// allocate a terminal that will display the collected data from the reporters
-	tools::Terminal_std terminal(reporters);
+	tools::Terminal_std terminal_stats({ &rep_syncro_stats, &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats });
 
 #ifdef MULTI_THREADED
 	const size_t buffer_size = 1;
@@ -130,7 +127,7 @@ int main(int argc, char** argv)
 	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt .get(),
 	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
 	            estimator   .get(), front_agc   .get(),
-	            stm_probe    .get(), sfm_probe  .get(), sff_probe    .get(), sfc_probe   .get(),
+	            stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe   .get(),
 #ifdef MULTI_THREADED
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
 	            &adp_1_to_1_4, &adp_1_to_n  , &adp_n_to_1
@@ -165,6 +162,7 @@ int main(int argc, char** argv)
 	  adp_n_to_1   [adp::sck::push_n       ::in2 ].bind((*BCH_decoder )[dec::sck::decode_hiho  ::status]);
 	  adp_n_to_1   [adp::sck::push_n       ::in3 ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2  ]);
 
+	auto start_clone = std::chrono::system_clock::now();
 	std::cout << "Cloning the modules of the parallel chain... ";
 	std::cout.flush();
 	tools::Chain chain_stage6_parallel(adp_1_to_n[module::adp::tsk::pull_n],
@@ -173,7 +171,7 @@ int main(int argc, char** argv)
 	                                   thread_pinnig,
 	                                   { 12, 24, 25, 26, 27,
 	                                     28, 29, 13, 30, 14,
-	                                     31, 15, 32/*44*/, 16, 33,
+	                                     31, 15, 32, 16, 33,
 	                                     17, 34, 18, 35, 19,
 	                                     36, 20, 37, 21, 38,
 	                                     22, 39, 23, 39, 40,
@@ -182,17 +180,20 @@ int main(int argc, char** argv)
 	                                   true); // 'false' results in an error because of the clones of the adaptors...
 	std::ofstream f("chain_stage6_parallel.dot");
 	chain_stage6_parallel.export_dot(f);
-	std::cout << "Done." << std::endl;
+	auto end_clone = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds_clone = end_clone - start_clone;
+	std::cout << "Done (" << elapsed_seconds_clone.count() << "s)." << std::endl;
 
 	if (thread_pinnig)
 		tools::Thread_pinning::pin(0);
 #endif /* MULTI_THREADED */
 
-	// display the legend in the terminal
-	terminal.legend();
-
 	// ================================================================================================================
 	// LEARNING PHASE 1 & 2 ===========================================================================================
+
+	auto start_learning = std::chrono::system_clock::now();
+	std::cout << "Learning phase... ";
+	std::cout.flush();
 
 	(*front_agc   )[mlt::sck::imultiply  ::X_N  ].bind((*radio       )[rad::sck::receive    ::Y_N1 ]);
 	(*sync_step_mf)[smf::sck::synchronize::X_N1 ].bind((*front_agc   )[mlt::sck::imultiply  ::Z_N  ]);
@@ -212,14 +213,25 @@ int main(int argc, char** argv)
 	std::ofstream fs1("chain_sequential1.dot");
 	chain_sequential1.export_dot(fs1);
 
+	// display the legend in the terminal
+	std::ofstream stats_file("stats.txt");
+	stats_file << "####################" << std::endl;
+	stats_file << "# LEARNING PHASE 1 #" << std::endl;
+	stats_file << "####################" << std::endl;
+	terminal_stats.legend(stats_file);
+
 	int m = 0;
 	int limit = 150;
 	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 	chain_sequential1.exec([&](const std::vector<int>& statuses)
 	{
-		terminal.temp_report();
+		terminal_stats.temp_report(stats_file);
 		if (limit == 150 && m >= 150)
 		{
+			stats_file << "####################" << std::endl;
+			stats_file << "# LEARNING PHASE 2 #" << std::endl;
+			stats_file << "####################" << std::endl;
+			terminal_stats.legend(stats_file);
 			limit = 300;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 		}
@@ -274,20 +286,48 @@ int main(int argc, char** argv)
 	std::ofstream fs2("chain_sequential2.dot");
 	chain_sequential2.export_dot(fs2);
 
+	stats_file << "####################" << std::endl;
+	stats_file << "# LEARNING PHASE 3 #" << std::endl;
+	stats_file << "####################" << std::endl;
+	terminal_stats.legend(stats_file);
+
 	chain_sequential2.exec([&](const std::vector<int>& statuses)
 	{
 		const auto stop = m >= 500;
-		terminal.temp_report();
+		terminal_stats.temp_report(stats_file);
 		m += statuses.back() != status_t::SKIPPED ? params.n_frames : 0;
 		return stop;
 	});
+
+	auto end_learning = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds_learning = end_learning - start_learning;
+	std::cout << "Done (" << elapsed_seconds_learning.count() << "s)." << std::endl;
 
 	// reset the stats of the tasks
 	for (auto& m : modules)
 		for (auto& ta : m->tasks)
 			ta->reset();
 
+	// allocate reporters to display results in the terminal
+	tools::Reporter_noise<>      rep_noise( noise  );
+	tools::Reporter_BFER<>       rep_BFER (*monitor);
+	tools::Reporter_throughput<> rep_thr  (*monitor);
+
+	// allocate a terminal that will display the collected data from the reporters
+	tools::Terminal_std terminal({ &rep_noise, &rep_BFER, &rep_thr });
+
+	// display the legend in the terminal
+	terminal.legend();
+
+	if (params.ter_freq != std::chrono::nanoseconds(0))
+		terminal.start_temp_report(params.ter_freq);
+
 	sync_timing->set_act(true);
+
+	stats_file << "######################" << std::endl;
+	stats_file << "# TRANSMISSION PHASE #" << std::endl;
+	stats_file << "######################" << std::endl;
+	terminal_stats.legend(stats_file);
 
 #ifdef MULTI_THREADED
 	(*radio        )[rad::sck::receive    ::Y_N1].reset();
@@ -384,11 +424,11 @@ int main(int argc, char** argv)
 	{
 		const bool last_stage = s == chain_stages.size() -1;
 		auto cs = chain_stages[s];
-		threads.push_back(std::thread([cs, last_stage, &terminal, &stop_threads]() {
-			cs->exec([last_stage, &terminal]()
+		threads.push_back(std::thread([cs, last_stage, &terminal_stats, &stats_file, &stop_threads]() {
+			cs->exec([last_stage, &terminal_stats, &stats_file]()
 			{
-				if (last_stage) terminal.temp_report();
-				return terminal.is_interrupt();
+				if (last_stage) terminal_stats.temp_report(stats_file);
+				return terminal_stats.is_interrupt();
 			});
 			stop_threads();
 		}));
@@ -418,10 +458,10 @@ int main(int argc, char** argv)
 	chain_sequential3.export_dot(fs3);
 
 	// start the transmission chain
-	chain_sequential3.exec([&monitor, &terminal]()
+	chain_sequential3.exec([&monitor, &terminal_stats, &stats_file]()
 	{
-		terminal.temp_report();
-		return terminal.is_interrupt();
+		terminal_stats.temp_report(stats_file);
+		return terminal_stats.is_interrupt();
 	});
 
 	// stop the radio thread
@@ -431,6 +471,7 @@ int main(int argc, char** argv)
 
 	// display the performance (BER and FER) in the terminal
 	terminal.final_report();
+	terminal_stats.final_report(stats_file);
 
 	if (params.stats)
 	{
