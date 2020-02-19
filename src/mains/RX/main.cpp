@@ -133,6 +133,7 @@ int main(int argc, char** argv)
 	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
 	            estimator   .get(), front_agc   .get(),
 	            stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe   .get(),
+	            spf_probe   .get(),
 #ifdef MULTI_THREADED
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
 	            &adp_1_to_1_4, &adp_1_to_n  , &adp_n_to_1
