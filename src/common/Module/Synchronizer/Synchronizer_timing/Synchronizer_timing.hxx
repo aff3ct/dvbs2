@@ -51,7 +51,7 @@ Synchronizer_timing<B, R>
 
 	auto &p0 = this->create_task("synchronize");
 	auto p0s_X_N1 = this->template create_socket_in <R>(p0, "X_N1", this->N_in    );
-	auto p0s_MU   = this->template create_socket_out<R>(p0, "MU",   this->n_frames);
+	auto p0s_MU   = this->template create_socket_out<R>(p0, "MU"  , 1             );
 	auto p0s_Y_N1 = this->template create_socket_out<R>(p0, "Y_N1", this->N_in    );
 	auto p0s_B_N1 = this->template create_socket_out<B>(p0, "B_N1", this->N_in    );
 	this->create_codelet(p0, [p0s_X_N1, p0s_MU, p0s_Y_N1,p0s_B_N1](Module &m, Task &t) -> int
