@@ -50,12 +50,14 @@ Synchronizer_timing<B, R>
 	}
 
 	auto &p0 = this->create_task("synchronize");
-	auto p0s_X_N1 = this->template create_socket_in <R>(p0, "X_N1", this->N_in);
-	auto p0s_Y_N1 = this->template create_socket_out<R>(p0, "Y_N1", this->N_in);
-	auto p0s_B_N1 = this->template create_socket_out<B>(p0, "B_N1", this->N_in);
-	this->create_codelet(p0, [p0s_X_N1, p0s_Y_N1,p0s_B_N1](Module &m, Task &t) -> int
+	auto p0s_X_N1 = this->template create_socket_in <R>(p0, "X_N1", this->N_in    );
+	auto p0s_MU   = this->template create_socket_out<R>(p0, "MU",   this->n_frames);
+	auto p0s_Y_N1 = this->template create_socket_out<R>(p0, "Y_N1", this->N_in    );
+	auto p0s_B_N1 = this->template create_socket_out<B>(p0, "B_N1", this->N_in    );
+	this->create_codelet(p0, [p0s_X_N1, p0s_MU, p0s_Y_N1,p0s_B_N1](Module &m, Task &t) -> int
 	{
 		static_cast<Synchronizer_timing<B,R>&>(m).synchronize(static_cast<R*>(t[p0s_X_N1].get_dataptr()),
+		                                                      static_cast<R*>(t[p0s_MU  ].get_dataptr()),
 		                                                      static_cast<R*>(t[p0s_Y_N1].get_dataptr()),
 		                                                      static_cast<B*>(t[p0s_B_N1].get_dataptr()));
 		return 0;
@@ -159,13 +161,21 @@ bool Synchronizer_timing<B,R>
 template <typename B, typename R>
 template <class AB, class AR>
 void Synchronizer_timing<B,R>
-::synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N1, std::vector<B,AB>& B_N1, const int frame_id)
+::synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& MU, std::vector<R,AR>& Y_N1, std::vector<B,AB>& B_N1, const int frame_id)
 {
 	if (this->N_in * this->n_frames != (int)X_N1.size())
 	{
 		std::stringstream message;
 		message << "'X_N1.size()' has to be equal to 'N' * 'n_frames' ('X_N1.size()' = " << X_N1.size()
 		        << ", 'N' = " << this->N_in << ", 'n_frames' = " << this->n_frames << ").";
+		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+	}
+
+	if (this->n_frames != (int)MU.size())
+	{
+		std::stringstream message;
+		message << "'MU.size()' has to be equal to 'n_frames' ('MU.size()' = " << MU.size()
+		        << ", 'n_frames' = " << this->n_frames << ").";
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
@@ -185,18 +195,21 @@ void Synchronizer_timing<B,R>
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->synchronize(X_N1.data(), Y_N1.data(), B_N1.data(), frame_id);
+	this->synchronize(X_N1.data(), MU.data(), Y_N1.data(), B_N1.data(), frame_id);
 }
 
 template <typename B, typename R>
 void Synchronizer_timing<B,R>
-::synchronize(const R *X_N1, R *Y_N1, B *B_N1, const int frame_id)
+::synchronize(const R *X_N1, R *MU, R *Y_N1, B *B_N1, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
+	{
 		this->_synchronize(X_N1 + f * this->N_in, Y_N1 + f * this->N_in, B_N1 + f * this->N_in, f);
+		MU[f] = this->mu;
+	}
 }
 
 template <typename B, typename R>
