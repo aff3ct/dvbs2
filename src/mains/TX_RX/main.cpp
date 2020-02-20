@@ -368,13 +368,20 @@ int main(int argc, char** argv)
 					{
 						m = 300;
 						n_phase++;
+
+						(*sync_timing  )[stm::sck::extract    ::B_N1].reset();
+						(*sync_timing  )[stm::sck::extract    ::Y_N1].reset();
+						(*sync_timing  )[stm::sck::extract    ::Y_N2].reset();
+						(*mult_agc     )[mlt::sck::imultiply  ::X_N ].reset();
+						(*sfc_probe    )[prb::sck::probe      ::X_N ].reset();
+						(*stm_probe    )[prb::sck::probe      ::X_N ].reset();
+
 						(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N ]);
 						(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
 						(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
 						(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
 						(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
 						(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
-						(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 
 						(*sfc_probe)[prb::sck::probe::X_N ].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
 						(*stm_probe)[prb::sck::probe::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
