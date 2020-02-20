@@ -374,8 +374,8 @@ int main(int argc, char** argv)
 						(*sync_timing  )[stm::sck::extract    ::Y_N1].reset();
 						(*sync_timing  )[stm::sck::extract    ::Y_N2].reset();
 						(*mult_agc     )[mlt::sck::imultiply  ::X_N ].reset();
-						(*sfc_probe    )[prb::sck::probe      ::X_N ].reset();
-						(*stm_probe    )[prb::sck::probe      ::X_N ].reset();
+						// (*sfc_probe    )[prb::sck::probe      ::X_N ].reset();
+						// (*stm_probe    )[prb::sck::probe      ::X_N ].reset();
 
 						(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N ]);
 						(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);

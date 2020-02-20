@@ -2,9 +2,6 @@
 #include <fstream>
 #include <aff3ct.hpp>
 
-// #include "Tools/Reporter/Reporter_sfc_sff_DVBS2O.hpp"
-// #include "Tools/Reporter/Reporter_sfm_DVBS2O.hpp"
-// #include "Tools/Reporter/Reporter_stm_DVBS2O.hpp"
 #include "Tools/Reporter/Reporter_probe.hpp"
 #include "Tools/Reporter/Reporter_probe_decstat.hpp"
 #include "Tools/Reporter/Reporter_throughput_DVBS2O.hpp"
@@ -73,42 +70,29 @@ int main(int argc, char** argv)
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 	tools::Sigma<> noise;
-
-	// allocate reporters to display results in the terminal
-	// tools::Reporter_sfm_DVBS2O<>        rep_sfm_stats  (*sync_frame   .get());
-	// tools::Reporter_stm_DVBS2O<>        rep_stm_stats  (*sync_timing  .get());
-	// tools::Reporter_sfc_sff_DVBS2O<>    rep_sfc_stats  (*sync_coarse_f.get(), *sync_lr.get(), *sync_fine_pf.get(), params.osf);
-	tools::Reporter_noise_DVBS2O<>      rep_noise_stats( noise, noise, false);
+	tools::Reporter_noise_DVBS2O<>      rep_noise_stats(noise, noise, false);
 	tools::Reporter_BFER<>              rep_BFER_stats (*monitor);
 	tools::Reporter_throughput_DVBS2O<> rep_thr_stats  (*monitor);
 
-	// std::unique_ptr<module::Probe<> > stm_probe(rep_stm_stats.build_probe());
-	// std::unique_ptr<module::Probe<> > sfm_probe(rep_sfm_stats.build_probe());
-	// std::unique_ptr<module::Probe<> > spf_probe(rep_sfc_stats.build_spf_probe());
-	// std::unique_ptr<module::Probe<> > sff_probe(rep_sfc_stats.build_sff_probe());
-	// std::unique_ptr<module::Probe<> > sfc_probe(rep_sfc_stats.build_sfc_probe());
+	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
+	std::unique_ptr<module::Probe<int  >> prb_sfm_del(rep_sfm_stats.create_probe<int  >("DEL", ""));
+	std::unique_ptr<module::Probe<int  >> prb_sfm_flg(rep_sfm_stats.create_probe<int  >("FLG", ""));
+	std::unique_ptr<module::Probe<float>> prb_sfm_tri(rep_sfm_stats.create_probe<float>("TRI", ""));
 
-	// tools::Terminal_std terminal_stats({ &rep_sfm_stats,   &rep_stm_stats,  &rep_sfc_stats,
-	//                                      &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats });
+	tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm", params.n_frames);
+	std::unique_ptr<module::Probe<float>> prb_stm_del(rep_stm_stats.create_probe<float>("DEL", "FRAC"));
 
-	// tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
-	// auto prb_sfm_del = rep_sfm_stats.create_probe<int  >("DEL", "");
-	// auto prb_sfm_flg = rep_sfm_stats.create_probe<int  >("FLG", "");
-	// auto prb_sfm_tri = rep_sfm_stats.create_probe<float>("TRI", "");
-
-	// tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm", params.n_frames);
-	// auto prb_stm_del = rep_stm_stats.create_probe<float>("DEL", "FRAC");
-
-	// tools::Reporter_probe rep_frq_stats("Freq. Synchronization", params.n_frames);
-	// auto prb_frq_coa = rep_frq_stats.create_probe<float>("COA", "CFO");
-	// auto prb_frq_lr  = rep_frq_stats.create_probe<float>("L&R", "CFO");
-	// auto prb_frq_fin = rep_frq_stats.create_probe<float>("FIN", "CFO");
+	tools::Reporter_probe rep_frq_stats("Freq. Synchronization", params.n_frames);
+	std::unique_ptr<module::Probe<float>> prb_frq_coa(rep_frq_stats.create_probe<float>("COA", "CFO"));
+	std::unique_ptr<module::Probe<float>> prb_frq_lr (rep_frq_stats.create_probe<float>("L&R", "CFO"));
+	std::unique_ptr<module::Probe<float>> prb_frq_fin(rep_frq_stats.create_probe<float>("FIN", "CFO"));
 
 	tools::Reporter_probe_decstat rep_decstat_stats("Decoders decoding status", "('1' = fail, '0' = success)", params.n_frames);
 	std::unique_ptr<module::Probe<int>> prb_decstat_ldpc(rep_decstat_stats.create_probe<int>("LDPC", ""));
 	std::unique_ptr<module::Probe<int>> prb_decstat_bch (rep_decstat_stats.create_probe<int>("BCH", ""));
 
-	tools::Terminal_dump terminal_stats({ &rep_decstat_stats, &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats });
+	tools::Terminal_dump terminal_stats({ &rep_sfm_stats,   &rep_stm_stats,  &rep_frq_stats, &rep_decstat_stats,
+	                                      &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats                      });
 
 #ifdef MULTI_THREADED
 	const size_t buffer_size = 1;
@@ -147,18 +131,18 @@ int main(int argc, char** argv)
 
 	// fill the list of modules
 	std::vector<const module::Module*> modules;
-	modules = { bb_scrambler.get(), BCH_decoder .get(), source       .get(), LDPC_decoder      ,
-	            itl_rx      .get(), modem       .get(), framer       .get(), pl_scrambler.get(),
-	            monitor     .get(), freq_shift  .get(), sync_lr      .get(), sync_fine_pf.get(),
-	            radio       .get(), sync_frame  .get(), sync_coarse_f.get(), matched_flt .get(),
-	            sync_timing .get(), sync_step_mf.get(), mult_agc     .get(), sink        .get(),
-	            estimator   .get(), front_agc   .get(),
-	            /*
-	            stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe   .get(),
-	            spf_probe   .get(),
-	            */
+	modules = { bb_scrambler    .get(), BCH_decoder    .get(), source       .get(), LDPC_decoder      ,
+	            itl_rx          .get(), modem          .get(), framer       .get(), pl_scrambler.get(),
+	            monitor         .get(), freq_shift     .get(), sync_lr      .get(), sync_fine_pf.get(),
+	            radio           .get(), sync_frame     .get(), sync_coarse_f.get(), matched_flt .get(),
+	            sync_timing     .get(), sync_step_mf   .get(), mult_agc     .get(), sink        .get(),
+	            estimator       .get(), front_agc      .get(),
+	            /* probes */
+	            prb_sfm_del     .get(), prb_sfm_flg    .get(), prb_sfm_tri  .get(), prb_stm_del .get(),
+	            prb_frq_coa     .get(), prb_frq_lr     .get(), prb_frq_fin  .get(),
 	            prb_decstat_ldpc.get(), prb_decstat_bch.get(),
 #ifdef MULTI_THREADED
+	            /* adaptors */
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
 	            &adp_1_to_1_4, &adp_1_to_n  , &adp_n_to_1
 #endif /* MULTI_THREADED */
@@ -235,12 +219,13 @@ int main(int argc, char** argv)
 
 	// add probes
 	const int high_priority = 0;
-	// (*sfc_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
-	// (*stm_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
-	// (*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2], high_priority);
+	(*prb_frq_coa)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::FRQ], high_priority);
+	(*prb_stm_del)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::MU ], high_priority);
+	(*prb_sfm_del)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::DEL], high_priority);
+	(*prb_sfm_tri)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::TRI], high_priority);
+	(*prb_sfm_flg)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::FLG], high_priority);
 
-	// tools::Chain chain_sequential1((*radio)[rad::tsk::receive], (*sfm_probe)[prb::tsk::probe]);
-	tools::Chain chain_sequential1((*radio)[rad::tsk::receive], (*sync_frame)[sfm::tsk::synchronize]);
+	tools::Chain chain_sequential1((*radio)[rad::tsk::receive]);
 	std::ofstream fs1("chain_sequential1.dot");
 	chain_sequential1.export_dot(fs1);
 
@@ -302,19 +287,27 @@ int main(int argc, char** argv)
 	(*sync_lr      )[sff::sck::synchronize::X_N1].bind((*pl_scrambler )[scr::sck::descramble ::Y_N2]);
 	(*sync_fine_pf )[sff::sck::synchronize::X_N1].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
 
-	// // add probes
-	// (*sfm_probe)[prb::sck::probe::X_N].reset();
-	// (*sff_probe)[prb::sck::probe::X_N].reset();
-	// (*sfc_probe)[prb::sck::probe::X_N].reset();
-	// (*stm_probe)[prb::sck::probe::X_N].reset();
+	// add probes
+	(*prb_frq_coa )[prb::sck::probe      ::X_N].reset();
+	(*prb_stm_del )[prb::sck::probe      ::X_N].reset();
+	(*prb_sfm_del )[prb::sck::probe      ::X_N].reset();
+	(*prb_sfm_tri )[prb::sck::probe      ::X_N].reset();
+	(*prb_sfm_flg )[prb::sck::probe      ::X_N].reset();
+	(*sync_step_mf)[smf::sck::synchronize::FRQ].reset();
+	(*sync_step_mf)[smf::sck::synchronize::MU ].reset();
+	(*sync_frame  )[sfm::sck::synchronize::DEL].reset();
+	(*sync_frame  )[sfm::sck::synchronize::TRI].reset();
+	(*sync_frame  )[sfm::sck::synchronize::FLG].reset();
 
-	// (*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2], high_priority);
-	// (*sff_probe)[prb::sck::probe::X_N].bind((*sync_lr      )[sff::sck::synchronize::Y_N2], high_priority);
-	// (*sfc_probe)[prb::sck::probe::X_N].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
-	// (*stm_probe)[prb::sck::probe::X_N].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
-	// (*spf_probe)[prb::sck::probe::X_N].bind((*sync_fine_pf )[sff::sck::synchronize::Y_N2], high_priority);
+	(*prb_frq_coa)[prb::sck::probe::X_N].bind((*sync_coarse_f)[sfc::sck::synchronize::FRQ], high_priority);
+	(*prb_stm_del)[prb::sck::probe::X_N].bind((*sync_timing  )[stm::sck::synchronize::MU ], high_priority);
+	(*prb_sfm_del)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::DEL], high_priority);
+	(*prb_sfm_tri)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::TRI], high_priority);
+	(*prb_sfm_flg)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::FLG], high_priority);
+	(*prb_frq_lr )[prb::sck::probe::X_N].bind((*sync_lr      )[sff::sck::synchronize::FRQ], high_priority);
+	(*prb_frq_fin)[prb::sck::probe::X_N].bind((*sync_fine_pf )[sff::sck::synchronize::FRQ], high_priority);
 
-	tools::Chain chain_sequential2((*radio)[rad::tsk::receive], (*sync_fine_pf)[sff::tsk::synchronize]);
+	tools::Chain chain_sequential2((*radio)[rad::tsk::receive]);
 	std::ofstream fs2("chain_sequential2.dot");
 	chain_sequential2.export_dot(fs2);
 
@@ -412,19 +405,7 @@ int main(int argc, char** argv)
 	(*monitor      )[mnt::sck::check_errors::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
 	(*sink         )[snk::sck::send        ::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
 
-	// // add probes
-	// (*sfm_probe)[prb::sck::probe::X_N].reset();
-	// (*sff_probe)[prb::sck::probe::X_N].reset();
-	// (*sfc_probe)[prb::sck::probe::X_N].reset();
-	// (*stm_probe)[prb::sck::probe::X_N].reset();
-	// (*spf_probe)[prb::sck::probe::X_N].reset();
-
-	// (*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2], high_priority);
-	// (*sff_probe)[prb::sck::probe::X_N].bind((*sync_lr      )[sff::sck::synchronize::Y_N2], high_priority);
-	// (*sfc_probe)[prb::sck::probe::X_N].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
-	// (*stm_probe)[prb::sck::probe::X_N].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
-	// (*spf_probe)[prb::sck::probe::X_N].bind((*sync_fine_pf )[sff::sck::synchronize::Y_N2], high_priority);
-
+	// add probes
 	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind(adp_n_to_1[adp::sck::pull_1::out1], high_priority);
 	(*prb_decstat_bch )[prb::sck::probe::X_N].bind(adp_n_to_1[adp::sck::pull_1::out2], high_priority);
 
