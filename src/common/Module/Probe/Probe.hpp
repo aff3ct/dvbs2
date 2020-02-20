@@ -11,8 +11,8 @@
 #include <vector>
 
 #include "Module/Module.hpp"
-#include "Tools/Reporter/Reporter_buffered.hpp"
 #include "Tools/Noise/noise_utils.h"
+#include "Tools/Reporter/Reporter_probe.hpp"
 
 namespace aff3ct
 {
@@ -44,11 +44,12 @@ public:
 	inline Task&   operator[](const prb::tsk        t) { return Module::operator[]((int)t);                      }
 	inline Socket& operator[](const prb::sck::probe s) { return Module::operator[]((int)prb::tsk::probe)[(int)s];}
 
-
 protected:
 	const int N;  /*!< Size of one frame (= number of samples in one frame) */
 	std::string col_id;
-	Reporter_buffered<R>& reporter;
+	tools::Reporter_probe& reporter;
+	const std::type_index datatype;
+
 public:
 	/*!
 	 * \brief Constructor.
@@ -56,7 +57,7 @@ public:
 	 * \param N:        size of one frame (= number of samples in one frame).
 	 * \param n_frames: number of frames to process in the Probe.
 	 */
-	Probe(const int N, std::string col_id, Reporter_buffered<R>& reporter, const int n_frames = 1);
+	Probe(const int N, const std::string &col_id, tools::Reporter_probe& reporter, const int n_frames = 1);
 
 	void init_processes();
 
@@ -73,9 +74,9 @@ public:
 	 * \param X_N: a vector of samples.
 	 */
 	template <class AR = std::allocator<R>>
-	void probe(std::vector<R,AR>& X_N, const int frame_id = -1);
+	void probe(const std::vector<R,AR>& X_N, const int frame_id = -1);
 
-	void probe(R *X_N, const int frame_id = -1);
+	void probe(const R *X_N, const int frame_id = -1);
 };
 }
 }

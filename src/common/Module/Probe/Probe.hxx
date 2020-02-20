@@ -1,13 +1,3 @@
-/*!
- * \file
- * \brief Filters a signal.
- *
- * \section LICENSE
- * This file is under MIT license (https://opensource.org/licenses/MIT).
- */
-#ifndef PROBE_HXX_
-#define PROBE_HXX_
-
 #include <string>
 #include <memory>
 #include <stdexcept>
@@ -15,6 +5,7 @@
 #include <sstream>
 
 #include "Tools/Exception/exception.hpp"
+#include "Probe.hpp"
 
 namespace aff3ct
 {
@@ -22,11 +13,11 @@ namespace module
 {
 
 template <typename R>
-Probe<R>::
-Probe(const int N, std::string col_id, Reporter_buffered<R>& reporter, const int n_frames)
-: Module(n_frames), N(N), col_id(col_id), reporter(reporter)
+Probe<R>
+::Probe(const int N, const std::string &col_id, tools::Reporter_probe& reporter, const int n_frames)
+: Module(n_frames), N(N), col_id(col_id), reporter(reporter), datatype(typeid(R))
 {
-	const std::string name = "Probe";
+	const std::string name = "Probe<" + col_id + ">";
 	this->set_name(name);
 	this->set_short_name(name);
 
@@ -41,23 +32,22 @@ Probe(const int N, std::string col_id, Reporter_buffered<R>& reporter, const int
 }
 
 template <typename R>
-void Probe<R>::
-init_processes()
+void Probe<R>
+::init_processes()
 {
 	auto &p1 = this->create_task("probe");
-	auto p1s_X_N = this->template create_socket_in <R>(p1, "X_N", this->N );
+	auto p1s_X_N = this->template create_socket_in<R>(p1, "X_N", this->N);
 	this->create_codelet(p1, [p1s_X_N](Module &m, Task &t) -> int
 	{
-		static_cast<Probe<R>&>(m).probe(static_cast<R*>(t[p1s_X_N].get_dataptr()));
-
+		static_cast<Probe<R>&>(m).probe(static_cast<const R*>(t[p1s_X_N].get_dataptr()));
 		return 0;
 	});
 }
 
 template <typename R>
 template <class AR>
-void Probe<R>::
-probe(std::vector<R,AR>& X_N, const int frame_id)
+void Probe<R>
+::probe(const std::vector<R,AR>& X_N, const int frame_id)
 {
 	if (this->N * this->n_frames != (int)X_N.size())
 	{
@@ -71,14 +61,15 @@ probe(std::vector<R,AR>& X_N, const int frame_id)
 }
 
 template <typename R>
-void Probe<R>::
-probe(R *X_N, const int frame_id)
+void Probe<R>
+::probe(const R *X_N, const int frame_id)
 {
-	this->reporter.probe(this->col_id);
+	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
+	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
+
+	for (auto f = f_start; f < f_stop; f++)
+		this->reporter.probe(this->col_id, (void*)(X_N + f * this->N), this->datatype, f);
 }
 
-
 }
 }
-
-#endif
