@@ -69,10 +69,8 @@ int main(int argc, char** argv)
 	                                                                                                                     sync_timing  .get() ));
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
-	tools::Sigma<> noise;
-	tools::Reporter_noise_DVBS2O<>      rep_noise_stats(noise, noise, false);
-	tools::Reporter_BFER<>              rep_BFER_stats (*monitor);
-	tools::Reporter_throughput_DVBS2O<> rep_thr_stats  (*monitor);
+	tools::Reporter_BFER<> rep_BFER_stats(*monitor);
+	tools::Reporter_throughput_DVBS2O<> rep_thr_stats(*monitor);
 
 	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
 	std::unique_ptr<module::Probe<int  >> prb_sfm_del(rep_sfm_stats.create_probe<int  >("DEL", ""));
@@ -91,6 +89,10 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Probe<int>> prb_decstat_ldpc(rep_decstat_stats.create_probe<int>("LDPC", ""));
 	std::unique_ptr<module::Probe<int>> prb_decstat_bch (rep_decstat_stats.create_probe<int>("BCH", ""));
 
+	tools::Reporter_probe rep_noise_stats("Signal Noise Ratio", "(SNR)", params.n_frames);
+	std::unique_ptr<module::Probe<float>> prb_noise_es(rep_noise_stats.create_probe<float>("Es/N0", "(dB)"));
+	std::unique_ptr<module::Probe<float>> prb_noise_eb(rep_noise_stats.create_probe<float>("Eb/N0", "(dB)"));
+
 	tools::Terminal_dump terminal_stats({ &rep_sfm_stats,   &rep_stm_stats,  &rep_frq_stats, &rep_decstat_stats,
 	                                      &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats                      });
 
@@ -107,7 +109,8 @@ int main(int argc, char** argv)
 
 	// manage noise
 	tools::Sigma<> fake_noise(1.f);
-	modem    ->set_noise(fake_noise);
+	modem->set_noise(fake_noise);
+	tools::Sigma<> noise;
 	estimator->set_noise(noise);
 
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
@@ -139,7 +142,7 @@ int main(int argc, char** argv)
 	            estimator       .get(), front_agc      .get(),
 	            /* probes */
 	            prb_sfm_del     .get(), prb_sfm_flg    .get(), prb_sfm_tri  .get(), prb_stm_del .get(),
-	            prb_frq_coa     .get(), prb_frq_lr     .get(), prb_frq_fin  .get(),
+	            prb_frq_coa     .get(), prb_frq_lr     .get(), prb_frq_fin  .get(), prb_noise_es.get(),
 	            prb_decstat_ldpc.get(), prb_decstat_bch.get(),
 #ifdef MULTI_THREADED
 	            /* adaptors */
@@ -241,7 +244,8 @@ int main(int argc, char** argv)
 	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 	chain_sequential1.exec([&](const std::vector<int>& statuses)
 	{
-		terminal_stats.temp_report(stats_file);
+		if (statuses.back() != status_t::SKIPPED)
+			terminal_stats.temp_report(stats_file);
 		if (limit == 150 && m >= 150)
 		{
 			stats_file << "####################" << std::endl;
@@ -319,7 +323,8 @@ int main(int argc, char** argv)
 	chain_sequential2.exec([&](const std::vector<int>& statuses)
 	{
 		const auto stop = m >= 500;
-		terminal_stats.temp_report(stats_file);
+		if (statuses.back() != status_t::SKIPPED)
+			terminal_stats.temp_report(stats_file);
 		m += statuses.back() != status_t::SKIPPED ? params.n_frames : 0;
 		return stop;
 	});
@@ -406,8 +411,10 @@ int main(int argc, char** argv)
 	(*sink         )[snk::sck::send        ::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
 
 	// add probes
-	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind(adp_n_to_1[adp::sck::pull_1::out1], high_priority);
-	(*prb_decstat_bch )[prb::sck::probe::X_N].bind(adp_n_to_1[adp::sck::pull_1::out2], high_priority);
+	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind(  adp_n_to_1[adp::sck::pull_1  ::out1 ], high_priority);
+	(*prb_decstat_bch )[prb::sck::probe::X_N].bind(  adp_n_to_1[adp::sck::pull_1  ::out2 ], high_priority);
+	(*prb_noise_es    )[prb::sck::probe::X_N].bind((*estimator)[est::sck::estimate::Es_N0], high_priority);
+	(*prb_noise_eb    )[prb::sck::probe::X_N].bind((*estimator)[est::sck::estimate::Eb_N0], high_priority);
 
 	// create a chain per pipeline stage
 	tools::Chain chain_stage0((*radio       )[rad::tsk::receive],   adp_1_to_1_0 [adp::tsk::push_1], 1, thread_pinnig, { 2 });
@@ -476,9 +483,10 @@ int main(int argc, char** argv)
 	chain_sequential3.export_dot(fs3);
 
 	// start the transmission chain
-	chain_sequential3.exec([&monitor, &terminal_stats, &stats_file]()
+	chain_sequential3.exec([&monitor, &terminal_stats, &stats_file](const std::vector<int>& statuses)
 	{
-		terminal_stats.temp_report(stats_file);
+		if (statuses.back() != status_t::SKIPPED)
+			terminal_stats.temp_report(stats_file);
 		return terminal_stats.is_interrupt();
 	});
 
