@@ -49,7 +49,7 @@ public:
 
 protected:
 	void _reset();
-	void _synchronize(const R *X_N1,  R *Y_N1, B *B_N1, const int frame_id);
+	void _synchronize(const R *X_N1, R *Y_N1, B *B_N1, const int frame_id);
 	inline void TED_update(std::complex<R> strobe);
 	inline void loop_filter();
 	inline void interpolation_control();

@@ -15,7 +15,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class synchronize : uint8_t { X_N1, Y_N1, B_N1, status };
+			enum class synchronize : uint8_t { X_N1, MU, Y_N1, B_N1, status };
 			enum class extract     : uint8_t { Y_N1, B_N1, Y_N2, status };
 		}
 	}
@@ -98,15 +98,18 @@ public:
 	 * \param X_N1: a vector of samples.
 	 */
 	template <class AB = std::allocator<B>, class AR = std::allocator<R>>
-	void synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N1,
-	                 std::vector<B,AB>& B_N1,const int frame_id = -1);
+	void synchronize(const std::vector<R,AR>& X_N1,
+	                 std::vector<R,AR>& MU,
+	                 std::vector<R,AR>& Y_N1,
+	                 std::vector<B,AB>& B_N1,
+	                 const int frame_id = -1);
 
-	void synchronize(const R *X_N1, R *Y_N1, B* B_N1, const int frame_id = -1);
+	void synchronize(const R *X_N1, R *MU, R *Y_N1, B* B_N1, const int frame_id = -1);
 
 protected:
-	virtual void _reset      (                                                          ) = 0;
-	virtual void _synchronize(const R *X_N1, R* Y_N1, B * B_N1,       const int frame_id) = 0;
-	virtual void _extract    (const R* Y_N1, const B * B_N1, R* Y_N2, const int frame_id);
+	virtual void _reset      (                                                           ) = 0;
+	virtual void _synchronize(const R *X_N1, R* Y_N1, B * B_N1, const int frame_id) = 0;
+	virtual void _extract    (const R* Y_N1, const B * B_N1, R* Y_N2,  const int frame_id);
 };
 
 }

@@ -129,7 +129,6 @@ void Synchronizer_Gardner_fast<B,R>
 			this->lf_output = this->lf_prev_in;
 		}
 	}
-
 }
 
 template <typename B, typename R>

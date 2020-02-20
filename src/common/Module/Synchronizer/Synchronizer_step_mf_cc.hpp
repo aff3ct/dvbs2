@@ -20,7 +20,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class synchronize : uint8_t { delay, X_N1, Y_N1, B_N1, status };
+			enum class synchronize : uint8_t {DEL, X_N1, MU, FRQ, PHS, Y_N1, B_N1, status };
 		}
 	}
 
@@ -78,12 +78,12 @@ public:
 	 * \param Y_N2: a synchronized vector.
 	 */
 	template <class AB = std::allocator<B>, class AR = std::allocator<R>>
-	void synchronize(const std::vector<int>& delay, const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N1, std::vector<B,AB>& B_N1, const int frame_id = -1);
+	void synchronize(const std::vector<int>& DEL, const std::vector<R,AR>& X_N1, std::vector<R,AR>& MU, std::vector<R,AR>& FRQ, std::vector<R,AR>& PHS, std::vector<R,AR>& Y_N1, std::vector<B,AB>& B_N1, const int frame_id = -1);
 
-	virtual void synchronize(const int* delay, const R *X_N1, R *Y_N1, B *B_N1, const int frame_id = -1);
+	virtual void synchronize(const int* DEL, const R *X_N1, R* MU, R* FRQ, R* PHS, R *Y_N1, B *B_N1, const int frame_id = -1);
 
 protected:
-	virtual void _synchronize(const int* delay, const R *X_N1, R *Y_N1, B *B_N1, const int frame_id);
+	virtual void _synchronize(const int* DEL, const R *X_N1, R *Y_N1, B *B_N1, const int frame_id);
 };
 
 }
