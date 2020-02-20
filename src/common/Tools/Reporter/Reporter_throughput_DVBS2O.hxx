@@ -116,8 +116,8 @@ Reporter::report_t Reporter_throughput_DVBS2O<T>
 
 	auto str_delay = get_time_format(delta);
 	auto curr_thr = (double)(nbits_factor*n_frames) / delta; // = Mbps
-	this->tpt_mem = this->alpha*this->tpt_mem + (double)curr_thr; // = Mbps
-	auto simu_thr = this->tpt_mem * ((double)1-this->alpha);
+	this->tpt_mem = this->alpha*this->tpt_mem +  ((double)1-this->alpha)*(double)delta; // = Mbps
+	auto simu_thr = (double)(nbits_factor*n_frames) / this->tpt_mem;
 	std::stringstream str_dlt;
 	str_dlt << std::setprecision(3) << std::fixed << curr_thr;
 

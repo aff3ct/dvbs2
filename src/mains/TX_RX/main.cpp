@@ -8,9 +8,9 @@
 #include <aff3ct.hpp>
 
 #include "Factory/DVBS2O/DVBS2O.hpp"
-#include "Tools/Reporter/Reporter_sfc_sff_DVBS2O.hpp"
-#include "Tools/Reporter/Reporter_sfm_DVBS2O.hpp"
-#include "Tools/Reporter/Reporter_stm_DVBS2O.hpp"
+// #include "Tools/Reporter/Reporter_sfc_sff_DVBS2O.hpp"
+// #include "Tools/Reporter/Reporter_sfm_DVBS2O.hpp"
+// #include "Tools/Reporter/Reporter_stm_DVBS2O.hpp"
 #include "Tools/Reporter/Reporter_throughput_DVBS2O.hpp"
 #include "Tools/Reporter/Reporter_noise_DVBS2O.hpp"
 
@@ -134,18 +134,18 @@ int main(int argc, char** argv)
 	chn_frac_del ->set_custom_name("Chn frac del");
 
 	// allocate reporters to display results in the terminal
-	tools::Reporter_sfm_DVBS2O<>     sfm_reporter  (*sync_frame   .get());
-	tools::Reporter_stm_DVBS2O<>     stm_reporter  (*sync_timing  .get());
-	tools::Reporter_sfc_sff_DVBS2O<> sfc_reporter  (*sync_coarse_f.get(), *sync_fine_lr .get(), *sync_fine_pf .get(), params.osf);
+	// tools::Reporter_sfm_DVBS2O<>     sfm_reporter  (*sync_frame   .get());
+	// tools::Reporter_stm_DVBS2O<>     stm_reporter  (*sync_timing  .get());
+	// tools::Reporter_sfc_sff_DVBS2O<> sfc_reporter  (*sync_coarse_f.get(), *sync_fine_lr .get(), *sync_fine_pf .get(), params.osf);
 	tools::Reporter_noise_DVBS2O<>   noise_reporter(noise_estimated, noise, true);
 	tools::Reporter_BFER        <>   bfer_reporter (*monitor);
 	tools::Reporter_throughput_DVBS2O<> tpt_monitor(*monitor);
 
-	std::unique_ptr<module::Probe<> > stm_probe(stm_reporter.build_probe());
-	std::unique_ptr<module::Probe<> > sfm_probe(sfm_reporter.build_probe());
-	std::unique_ptr<module::Probe<> > spf_probe(sfc_reporter.build_spf_probe());
-	std::unique_ptr<module::Probe<> > sff_probe(sfc_reporter.build_sff_probe());
-	std::unique_ptr<module::Probe<> > sfc_probe(sfc_reporter.build_sfc_probe());
+	// std::unique_ptr<module::Probe<> > stm_probe(stm_reporter.build_probe());
+	// std::unique_ptr<module::Probe<> > sfm_probe(sfm_reporter.build_probe());
+	// std::unique_ptr<module::Probe<> > spf_probe(sfc_reporter.build_spf_probe());
+	// std::unique_ptr<module::Probe<> > sff_probe(sfc_reporter.build_sff_probe());
+	// std::unique_ptr<module::Probe<> > sfc_probe(sfc_reporter.build_sfc_probe());
 
 	//reporters.push_back(std::unique_ptr<tools::Reporter>(std::move(sfm_reporter))); //
 	//reporters.push_back(std::unique_ptr<tools::Reporter>(std::move(stm_reporter))); //
@@ -159,7 +159,7 @@ int main(int argc, char** argv)
 	//std::vector<tools::Reporter *> reporters = {&sfm_reporter, &stm_reporter, &sfc_reporter, &noise_reporter, &bfer_reporter, &tpt_monitor};
 
 	// allocate a terminal that will display the collected data from the reporters
-	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std( {&sfm_reporter, &stm_reporter, &sfc_reporter, &noise_reporter, &bfer_reporter, &tpt_monitor}));
+	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std( {/*&sfm_reporter, &stm_reporter, &sfc_reporter, */&noise_reporter, &bfer_reporter, &tpt_monitor}));
 
 
 	// display the legend in the terminal
@@ -173,8 +173,9 @@ int main(int argc, char** argv)
 	            mult_agc    .get(), sync_frame  .get(), delay        .get(), sync_coarse_f .get(),
 	            matched_flt .get(), sync_timing .get(), sync_step_mf .get(), source        .get(),
 	            channel     .get(), chn_int_del .get(), estimator   .get(), //chn_agc     .get(),
+	            /*
 	            stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe     .get(),
-	            chn_frm_del .get(), spf_probe   .get()};
+	            spf_probe   .get(), */ chn_frm_del .get()};
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -235,12 +236,12 @@ int main(int argc, char** argv)
 		(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2 ]);
 		(*delay       )[flt::sck::filter     ::X_N1 ].bind((*source       )[src::sck::generate   ::U_K  ]);
 
-		const int high_priority = 0;
-		(*spf_probe)[prb::sck::probe::X_N].bind((*sync_fine_pf)[sff::sck::synchronize::Y_N2], high_priority);
-		(*sff_probe)[prb::sck::probe::X_N].bind((*sync_fine_lr)[sff::sck::synchronize::Y_N2], high_priority);
-		(*sfc_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
-		(*stm_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
-		(*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2], high_priority);
+		// const int high_priority = 0;
+		// (*spf_probe)[prb::sck::probe::X_N].bind((*sync_fine_pf)[sff::sck::synchronize::Y_N2], high_priority);
+		// (*sff_probe)[prb::sck::probe::X_N].bind((*sync_fine_lr)[sff::sck::synchronize::Y_N2], high_priority);
+		// (*sfc_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
+		// (*stm_probe)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1], high_priority);
+		// (*sfm_probe)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::Y_N2], high_priority);
 
 		// compute the code rate
 		const float R = (float)params.K_bch / (float)params.N_ldpc;
@@ -293,12 +294,12 @@ int main(int argc, char** argv)
 					(*freq_shift    )[mlt::tsk::imultiply  ].exec();
 					(*channel       )[chn::tsk::add_noise  ].exec();
 					(*sync_step_mf )[smf::tsk::synchronize ].exec();
-					(*stm_probe    )[prb::tsk::probe       ].exec();
-					(*sfc_probe    )[prb::tsk::probe       ].exec();
+					// (*stm_probe    )[prb::tsk::probe       ].exec();
+					// (*sfc_probe    )[prb::tsk::probe       ].exec();
 					(*sync_timing  )[stm::tsk::extract     ].exec(); // can raise the 'tools::processing_aborted' exception
 					(*mult_agc     )[mlt::tsk::imultiply   ].exec();
 					(*sync_frame   )[sfm::tsk::synchronize ].exec();
-					(*sfm_probe    )[prb::tsk::probe       ].exec();
+					// (*sfm_probe    )[prb::tsk::probe       ].exec();
 					terminal->temp_report(std::cerr);
 				}
 				catch (tools::processing_aborted const& e){delay_tx_rx++;}
@@ -329,31 +330,31 @@ int main(int argc, char** argv)
 					if (n_phase < 3)
 					{
 						(*sync_step_mf )[smf::tsk::synchronize].exec();
-						(*stm_probe    )[prb::tsk::probe      ].exec();
-						(*sfc_probe    )[prb::tsk::probe      ].exec();
+						// (*stm_probe    )[prb::tsk::probe      ].exec();
+						// (*sfc_probe    )[prb::tsk::probe      ].exec();
 						(*sync_timing  )[stm::tsk::extract    ].exec(); // can raise the 'tools::processing_aborted' exception
 						(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 						(*sync_frame   )[sfm::tsk::synchronize].exec();
-						(*sfm_probe    )[prb::tsk::probe      ].exec();
+						// (*sfm_probe    )[prb::tsk::probe      ].exec();
 						(*pl_scrambler )[scr::tsk::descramble ].exec();
 						terminal->temp_report(std::cerr);
 					}
 					else // n_phase == 3
 					{
 						(*sync_coarse_f)[sfc::tsk::synchronize].exec();
-						(*sfc_probe    )[prb::tsk::probe      ].exec();
+						// (*sfc_probe    )[prb::tsk::probe      ].exec();
 						(*matched_flt  )[flt::tsk::filter     ].exec();
 						(*sync_timing  )[stm::tsk::synchronize].exec();
-						(*stm_probe    )[prb::tsk::probe      ].exec();
+						// (*stm_probe    )[prb::tsk::probe      ].exec();
 						(*sync_timing  )[stm::tsk::extract    ].exec(); // can raise the 'tools::processing_aborted' exception
 						(*mult_agc     )[mlt::tsk::imultiply  ].exec();
 						(*sync_frame   )[sfm::tsk::synchronize].exec();
-						(*sfm_probe    )[prb::tsk::probe      ].exec();
+						// (*sfm_probe    )[prb::tsk::probe      ].exec();
 						(*pl_scrambler )[scr::tsk::descramble ].exec();
 						(*sync_fine_lr )[sff::tsk::synchronize].exec();
-						(*sff_probe    )[prb::tsk::probe      ].exec();
+						// (*sff_probe    )[prb::tsk::probe      ].exec();
 						(*sync_fine_pf )[sff::tsk::synchronize].exec();
-						(*spf_probe    )[prb::tsk::probe      ].exec();
+						// (*spf_probe    )[prb::tsk::probe      ].exec();
 						terminal->temp_report(std::cerr);
 					}
 
@@ -376,8 +377,8 @@ int main(int argc, char** argv)
 						(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
 						(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 
-						(*sfc_probe)[prb::sck::probe::X_N ].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
-						(*stm_probe)[prb::sck::probe::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
+						// (*sfc_probe)[prb::sck::probe::X_N ].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
+						// (*stm_probe)[prb::sck::probe::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
 					}
 				}
 				catch (tools::processing_aborted const& e){delay_tx_rx++;}
@@ -393,7 +394,7 @@ int main(int argc, char** argv)
 			(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
 			(*sync_frame   )[sfm::sck::synchronize::X_N1].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N ]);
 
-			(*stm_probe)[prb::sck::probe::X_N].bind((*sync_timing)[stm::sck::synchronize::Y_N1], high_priority);
+			// (*stm_probe)[prb::sck::probe::X_N].bind((*sync_timing)[stm::sck::synchronize::Y_N1], high_priority);
 		}
 		monitor->reset();
 
@@ -426,19 +427,19 @@ int main(int argc, char** argv)
 				(*freq_shift   )[mlt::tsk::imultiply    ].exec();
 				(*channel      )[chn::tsk::add_noise    ].exec();
 				(*sync_coarse_f)[sfc::tsk::synchronize  ].exec();
-				(*sfc_probe    )[prb::tsk::probe        ].exec();
+				// (*sfc_probe    )[prb::tsk::probe        ].exec();
 				(*matched_flt  )[flt::tsk::filter       ].exec();
 				(*sync_timing  )[stm::tsk::synchronize  ].exec();
-				(*stm_probe    )[prb::tsk::probe        ].exec();
+				// (*stm_probe    )[prb::tsk::probe        ].exec();
 				(*sync_timing  )[stm::tsk::extract      ].exec(); // can raise the 'tools::processing_aborted' exception
 				(*mult_agc     )[mlt::tsk::imultiply    ].exec();
 				(*sync_frame   )[sfm::tsk::synchronize  ].exec();
-				(*sfm_probe    )[prb::tsk::probe        ].exec();
+				// (*sfm_probe    )[prb::tsk::probe        ].exec();
 				(*pl_scrambler )[scr::tsk::descramble   ].exec();
 				(*sync_fine_lr )[sff::tsk::synchronize  ].exec();
-				(*sff_probe    )[prb::tsk::probe        ].exec();
+				// (*sff_probe    )[prb::tsk::probe        ].exec();
 				(*sync_fine_pf )[sff::tsk::synchronize  ].exec();
-				(*spf_probe    )[prb::tsk::probe        ].exec();
+				// (*spf_probe    )[prb::tsk::probe        ].exec();
 				(*framer       )[frm::tsk::remove_plh   ].exec();
 				(*estimator    )[est::tsk::estimate     ].exec();
 				(*modem        )[mdm::tsk::demodulate_wg].exec();
