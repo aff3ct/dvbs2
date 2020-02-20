@@ -25,7 +25,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class estimate   : uint8_t { X_N, H_N, status };
+			enum class estimate   : uint8_t { X_N, Eb_N0, Es_N0, H_N, status };
 		}
 	}
 
@@ -76,9 +76,9 @@ public:
 	 *
 	 */
 	template <class A = std::allocator<R>>
-	void estimate(const std::vector<R,A>& X_N, std::vector<R,A>& H_N, const int frame_id = -1);
+	void estimate(const std::vector<R,A>& X_N, std::vector<R,A>& Eb_N0, std::vector<R,A>& Es_N0, std::vector<R,A>& H_N, const int frame_id = -1);
 
-	virtual void estimate(const R *X_N, R *H_N, const int frame_id = -1);
+	virtual void estimate(const R *X_N, R *Eb_N0, R *Es_N0, R *H_N, const int frame_id = -1);
 
 protected:
 	virtual void _estimate(const R *X_N, R *H_N, const int frame_id);
