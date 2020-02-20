@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "Module/Probe/Probe.hpp"
 #include "Reporter_probe.hpp"
 
@@ -8,7 +10,7 @@ namespace tools
 
 template <typename T>
 module::Probe<T>* Reporter_probe
-::create_probe(const std::string &name, const std::string &unit)
+::create_probe(const std::string &name, const std::string &unit, const std::ios_base::fmtflags &ff)
 {
 	if (column_keys.count(name))
 	{
@@ -25,6 +27,14 @@ module::Probe<T>* Reporter_probe
 	this->column_keys[name] = this->buffer.size() -1;
 
 	return new module::Probe<T>(1, name, *this, this->n_frames);
+}
+
+template <typename T>
+module::Probe<T>* Reporter_probe
+::create_probe(const std::string &name, const std::string &unit)
+{
+	std::ios_base::fmtflags ff;
+	return this->create_probe<T>(name, unit, ff);
 }
 
 template <typename T>

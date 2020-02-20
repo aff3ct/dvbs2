@@ -5,7 +5,6 @@
 #include "Tools/Reporter/Reporter_probe.hpp"
 #include "Tools/Reporter/Reporter_probe_decstat.hpp"
 #include "Tools/Reporter/Reporter_throughput_DVBS2O.hpp"
-#include "Tools/Reporter/Reporter_noise_DVBS2O.hpp"
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
 using namespace aff3ct;

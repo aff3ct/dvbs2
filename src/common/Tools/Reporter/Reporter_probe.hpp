@@ -41,6 +41,9 @@ public:
 	virtual report_t report(bool final = false);
 
 	template <typename T>
+	module::Probe<T>* create_probe(const std::string &name, const std::string &unit, const std::ios_base::fmtflags &ff);
+
+	template <typename T>
 	module::Probe<T>* create_probe(const std::string &name, const std::string &unit);
 
 	virtual void probe(const std::string &id, const void *data, const std::type_index &datatype, const int frame_id);
