@@ -4,6 +4,7 @@
 #include <cassert>
 #include <ios>
 
+#include "Tools/Exception/exception.hpp"
 #include "Reporter_probe_decstat.hpp"
 
 using namespace aff3ct;
@@ -28,9 +29,10 @@ Reporter_probe_decstat
 }
 
 void Reporter_probe_decstat
-::probe(const std::string &id, const void *data, const std::type_index &datatype, const int frame_id)
+::probe(const std::string &name, const void *data, const int frame_id)
 {
-	if (datatype == typeid(int32_t))
+	const int col = this->name_to_col[name];
+	if (this->datatypes[col] == typeid(int32_t))
 	{
 		if (frame_id == 0)
 		{
@@ -42,7 +44,7 @@ void Reporter_probe_decstat
 				packed_statuses >>= 1;
 			}
 			for (auto s : statuses)
-				this->push<int32_t>(s, id);
+				this->push<int32_t>(col, s);
 		}
 	}
 	else

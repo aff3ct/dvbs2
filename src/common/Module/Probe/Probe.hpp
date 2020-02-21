@@ -46,9 +46,8 @@ public:
 
 protected:
 	const int N;  /*!< Size of one frame (= number of samples in one frame) */
-	std::string col_id;
+	std::string col_name;
 	tools::Reporter_probe& reporter;
-	const std::type_index datatype;
 
 public:
 	/*!
@@ -57,7 +56,7 @@ public:
 	 * \param N:        size of one frame (= number of samples in one frame).
 	 * \param n_frames: number of frames to process in the Probe.
 	 */
-	Probe(const int N, const std::string &col_id, tools::Reporter_probe& reporter, const int n_frames = 1);
+	Probe(const int N, const std::string &col_name, tools::Reporter_probe& reporter, const int n_frames = 1);
 
 	void init_processes();
 

@@ -14,10 +14,10 @@ namespace module
 
 template <typename R>
 Probe<R>
-::Probe(const int N, const std::string &col_id, tools::Reporter_probe& reporter, const int n_frames)
-: Module(n_frames), N(N), col_id(col_id), reporter(reporter), datatype(typeid(R))
+::Probe(const int N, const std::string &col_name, tools::Reporter_probe& reporter, const int n_frames)
+: Module(n_frames), N(N), col_name(col_name), reporter(reporter)
 {
-	const std::string name = "Probe<" + col_id + ">";
+	const std::string name = "Probe<" + col_name + ">";
 	this->set_name(name);
 	this->set_short_name(name);
 
@@ -68,7 +68,7 @@ void Probe<R>
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->reporter.probe(this->col_id, (void*)(X_N + f * this->N), this->datatype, f);
+		this->reporter.probe(this->col_name, (void*)(X_N + f * this->N), f);
 }
 
 }

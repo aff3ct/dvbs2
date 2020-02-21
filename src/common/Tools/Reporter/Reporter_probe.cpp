@@ -45,14 +45,15 @@ int Reporter_probe
 }
 
 void Reporter_probe
-::probe(const std::string &id, const void *data, const std::type_index &datatype, const int frame_id)
+::probe(const std::string &name, const void *data, const int frame_id)
 {
-	     if (datatype == typeid(double )) this->push<double >(((double* )data)[0], id);
-	else if (datatype == typeid(float  )) this->push<float  >(((float*  )data)[0], id);
-	else if (datatype == typeid(int64_t)) this->push<int64_t>(((int64_t*)data)[0], id);
-	else if (datatype == typeid(int32_t)) this->push<int32_t>(((int32_t*)data)[0], id);
-	else if (datatype == typeid(int16_t)) this->push<int16_t>(((int16_t*)data)[0], id);
-	else if (datatype == typeid(int8_t )) this->push<int8_t >(((int8_t* )data)[0], id);
+	const int col = this->name_to_col[name];
+	     if (this->datatypes[col] == typeid(double )) this->push<double >(col, ((double* )data)[0]);
+	else if (this->datatypes[col] == typeid(float  )) this->push<float  >(col, ((float*  )data)[0]);
+	else if (this->datatypes[col] == typeid(int64_t)) this->push<int64_t>(col, ((int64_t*)data)[0]);
+	else if (this->datatypes[col] == typeid(int32_t)) this->push<int32_t>(col, ((int32_t*)data)[0]);
+	else if (this->datatypes[col] == typeid(int16_t)) this->push<int16_t>(col, ((int16_t*)data)[0]);
+	else if (this->datatypes[col] == typeid(int8_t )) this->push<int8_t >(col, ((int8_t* )data)[0]);
 	else
 	{
 		std::stringstream message;
@@ -84,41 +85,42 @@ Reporter::report_t Reporter_probe
 		for (size_t col = 0; col < this->buffer.size(); col++)
 		{
 			std::stringstream stream, temp_stream;
-			if (this->types[col] == typeid(double))
+			temp_stream.flags(this->stream_flags[col]);
+			if (this->datatypes[col] == typeid(double))
 			{
 				const double val = this->pull<double>(col, can_pull);
 				const std::string s = (val >= 0) ? " " : "";
-				if (can_pull) temp_stream << std::setprecision(3) << std::scientific << s << val;
+				if (can_pull) temp_stream << std::setprecision(this->precisions[col]) << s << val;
 			}
-			else if (this->types[col] == typeid(float))
+			else if (this->datatypes[col] == typeid(float))
 			{
 				const float val = this->pull<float>(col, can_pull);
 				const std::string s = (val >= 0) ? " " : "";
-				if (can_pull) temp_stream << std::setprecision(3) << std::scientific << s << val;
+				if (can_pull) temp_stream << std::setprecision(this->precisions[col]) << s << val;
 			}
-			else if (this->types[col] == typeid(int64_t))
+			else if (this->datatypes[col] == typeid(int64_t))
 			{
 				const int64_t val = this->pull<int64_t>(col, can_pull);
 				const std::string s = (val >= 0) ? " " : "";
-				if (can_pull) temp_stream << std::setprecision(3) << std::scientific << s << val;
+				if (can_pull) temp_stream << std::setprecision(this->precisions[col]) << s << val;
 			}
-			else if (this->types[col] == typeid(int32_t))
+			else if (this->datatypes[col] == typeid(int32_t))
 			{
 				const int32_t val = this->pull<int32_t>(col, can_pull);
 				const std::string s = (val >= 0) ? " " : "";
-				if (can_pull) temp_stream << std::setprecision(3) << std::scientific << s << val;
+				if (can_pull) temp_stream << std::setprecision(this->precisions[col]) << s << val;
 			}
-			else if (this->types[col] == typeid(int16_t))
+			else if (this->datatypes[col] == typeid(int16_t))
 			{
 				const int16_t val = this->pull<int16_t>(col, can_pull);
 				const std::string s = (val >= 0) ? " " : "";
-				if (can_pull) temp_stream << std::setprecision(3) << std::scientific << s << val;
+				if (can_pull) temp_stream << std::setprecision(this->precisions[col]) << s << val;
 			}
-			else if (this->types[col] == typeid(int8_t))
+			else if (this->datatypes[col] == typeid(int8_t))
 			{
 				const int8_t val = this->pull<int8_t>(col, can_pull);
 				const std::string s = (val >= 0) ? " " : "";
-				if (can_pull) temp_stream << std::setprecision(3) << std::scientific << s << val;
+				if (can_pull) temp_stream << std::setprecision(this->precisions[col]) << s << val;
 			}
 			else
 			{

@@ -24,7 +24,7 @@ public:
 
 	virtual ~Reporter_probe_decstat() = default;
 
-	virtual void probe(const std::string &id, const void *data, const std::type_index &datatype, const int frame_id);
+	virtual void probe(const std::string &name, const void *data, const int frame_id);
 };
 }
 }

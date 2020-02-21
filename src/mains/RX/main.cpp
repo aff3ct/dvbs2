@@ -88,9 +88,11 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Probe<int>> prb_decstat_ldpc(rep_decstat_stats.create_probe<int>("LDPC", ""));
 	std::unique_ptr<module::Probe<int>> prb_decstat_bch (rep_decstat_stats.create_probe<int>("BCH", ""));
 
+	std::ios_base::fmtflags ff;
+	ff |= std::cout.fixed;
 	tools::Reporter_probe rep_noise_stats("Signal Noise Ratio", "(SNR)", params.n_frames);
-	std::unique_ptr<module::Probe<float>> prb_noise_es(rep_noise_stats.create_probe<float>("Es/N0", "(dB)"));
-	std::unique_ptr<module::Probe<float>> prb_noise_eb(rep_noise_stats.create_probe<float>("Eb/N0", "(dB)"));
+	std::unique_ptr<module::Probe<float>> prb_noise_es(rep_noise_stats.create_probe<float>("Es/N0", "(dB)", ff, 4));
+	std::unique_ptr<module::Probe<float>> prb_noise_eb(rep_noise_stats.create_probe<float>("Eb/N0", "(dB)", ff, 4));
 
 	tools::Terminal_dump terminal_stats({ &rep_sfm_stats,   &rep_stm_stats,  &rep_frq_stats, &rep_decstat_stats,
 	                                      &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats                      });

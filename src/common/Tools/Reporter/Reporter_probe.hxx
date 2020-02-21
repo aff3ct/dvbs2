@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "Module/Probe/Probe.hpp"
 #include "Reporter_probe.hpp"
 
@@ -10,9 +8,9 @@ namespace tools
 
 template <typename T>
 module::Probe<T>* Reporter_probe
-::create_probe(const std::string &name, const std::string &unit, const std::ios_base::fmtflags &ff)
+::create_probe(const std::string &name, const std::string &unit, const std::ios_base::fmtflags &ff, const size_t precision)
 {
-	if (column_keys.count(name))
+	if (name_to_col.count(name))
 	{
 		std::stringstream message;
 		message << "'name' already exist in this reporter ('name' = " << name << ").";
@@ -22,24 +20,27 @@ module::Probe<T>* Reporter_probe
 	this->head                 .push_back(0);
 	this->tail                 .push_back(0);
 	this->buffer               .push_back(std::vector<int8_t>(this->n_frames * sizeof(T) * 10000));
-	this->types                .push_back(typeid(T));
+	this->datatypes            .push_back(typeid(T));
+	this->stream_flags         .push_back(ff);
+	this->precisions           .push_back(precision);
 	this->cols_groups[0].second.push_back(std::make_pair(name, unit));
-	this->column_keys[name] = this->buffer.size() -1;
+	this->name_to_col[name] = this->buffer.size() -1;
 
 	return new module::Probe<T>(1, name, *this, this->n_frames);
 }
 
 template <typename T>
 module::Probe<T>* Reporter_probe
-::create_probe(const std::string &name, const std::string &unit)
+::create_probe(const std::string &name, const std::string &unit, const size_t precision)
 {
 	std::ios_base::fmtflags ff;
-	return this->create_probe<T>(name, unit, ff);
+	ff |= std::cout.scientific;
+	return this->create_probe<T>(name, unit, ff, precision);
 }
 
 template <typename T>
 void Reporter_probe
-::push(const T &elt, const int col)
+::push(const int col, const T &elt)
 {
 	if ((size_t)this->col_size(col) >= this->buffer[col].size())
 		return;
@@ -47,13 +48,6 @@ void Reporter_probe
 	auto buff = reinterpret_cast<T*>(this->buffer[col].data());
 	buff[this->head[col]++] = elt;
 	this->head[col] %= buffer[col].size();
-}
-
-template <typename T>
-void Reporter_probe
-::push(const T &elt, const std::string &key)
-{
-	this->push<T>(elt, this->column_keys[key]);
 }
 
 template <typename T>
@@ -72,13 +66,6 @@ T Reporter_probe
 
 	can_pull = true;
 	return elt;
-}
-
-template <typename T>
-T Reporter_probe
-::pull(const std::string& key, bool &can_pull)
-{
-	return this->pull<T>(this->column_keys[key], can_pull);
 }
 
 }

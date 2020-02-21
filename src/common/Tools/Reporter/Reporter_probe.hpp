@@ -5,6 +5,7 @@
 #ifndef REPORTER_PROBE_HPP_
 #define REPORTER_PROBE_HPP_
 
+#include <iostream>
 #include <aff3ct.hpp>
 
 namespace aff3ct
@@ -23,8 +24,10 @@ protected:
 	std::vector<int> head;
 	std::vector<int> tail;
 	std::vector<std::vector<int8_t>> buffer;
-	std::vector<std::type_index> types;
-	std::map<std::string, int> column_keys;
+	std::vector<std::type_index> datatypes;
+	std::vector<std::ios_base::fmtflags> stream_flags;
+	std::vector<size_t> precisions;
+	std::map<std::string, int> name_to_col;
 	const int n_frames;
 	Reporter::report_t final_report;
 
@@ -41,27 +44,26 @@ public:
 	virtual report_t report(bool final = false);
 
 	template <typename T>
-	module::Probe<T>* create_probe(const std::string &name, const std::string &unit, const std::ios_base::fmtflags &ff);
+	module::Probe<T>* create_probe(const std::string &name,
+	                               const std::string &unit,
+	                               const std::ios_base::fmtflags &ff,
+	                               const size_t precision = 3);
 
 	template <typename T>
-	module::Probe<T>* create_probe(const std::string &name, const std::string &unit);
+	module::Probe<T>* create_probe(const std::string &name,
+	                               const std::string &unit,
+	                               const size_t precision = 3);
 
-	virtual void probe(const std::string &id, const void *data, const std::type_index &datatype, const int frame_id);
+	virtual void probe(const std::string &name, const void *data, const int frame_id);
 
 protected:
 	int col_size(int col);
 
 	template <typename T>
-	void push(const T &elt, const int col);
-
-	template <typename T>
-	void push(const T &elt, const std::string &key);
+	void push(const int col, const T &elt);
 
 	template <typename T>
 	T pull(const int col, bool &can_pull);
-
-	template <typename T>
-	T pull(const std::string &key, bool &can_pull);
 };
 }
 }
