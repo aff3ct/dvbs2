@@ -487,7 +487,7 @@ int main(int argc, char** argv)
 		}));
 	}
 
-	// std::this_thread::sleep_for(std::chrono::milliseconds(240000));
+	// std::this_thread::sleep_for(std::chrono::seconds(240));
 	// stop_threads();
 
 	// wait all the pipeline threads here
@@ -522,7 +522,7 @@ int main(int argc, char** argv)
 	chain_sequential3.export_dot(fs3);
 
 	// start the transmission chain
-	chain_sequential3.exec([&m, &monitor, &terminal_stats, &stats_file](const std::vector<int>& statuses)
+	chain_sequential3.exec([&params, &m, &monitor, &terminal_stats, &stats_file](const std::vector<int>& statuses)
 	{
 		if (statuses.back() != status_t::SKIPPED)
 		{
