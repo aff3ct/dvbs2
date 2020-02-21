@@ -68,13 +68,12 @@ int main(int argc, char** argv)
 	                                                                                                                     sync_timing  .get() ));
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
-	tools::Reporter_BFER<> rep_BFER_stats(*monitor);
 	tools::Reporter_throughput_DVBS2O<> rep_thr_stats(*monitor);
 
 	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
-	std::unique_ptr<module::Probe<int  >> prb_sfm_del(rep_sfm_stats.create_probe<int  >("DEL", ""));
-	std::unique_ptr<module::Probe<int  >> prb_sfm_flg(rep_sfm_stats.create_probe<int  >("FLG", ""));
-	std::unique_ptr<module::Probe<float>> prb_sfm_tri(rep_sfm_stats.create_probe<float>("TRI", ""));
+	std::unique_ptr<module::Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe<int32_t>("DEL", ""));
+	std::unique_ptr<module::Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe<int32_t>("FLG", ""));
+	std::unique_ptr<module::Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe<float  >("TRI", "", std::ios_base::dec | std::ios_base::fixed));
 
 	tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm", params.n_frames);
 	std::unique_ptr<module::Probe<float>> prb_stm_del(rep_stm_stats.create_probe<float>("DEL", "FRAC"));
@@ -84,15 +83,20 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Probe<float>> prb_frq_lr (rep_frq_stats.create_probe<float>("L&R", "CFO"));
 	std::unique_ptr<module::Probe<float>> prb_frq_fin(rep_frq_stats.create_probe<float>("FIN", "CFO"));
 
-	tools::Reporter_probe_decstat rep_decstat_stats("Decoders decoding status", "('1' = fail, '0' = success)", params.n_frames);
-	std::unique_ptr<module::Probe<int>> prb_decstat_ldpc(rep_decstat_stats.create_probe<int>("LDPC", ""));
-	std::unique_ptr<module::Probe<int>> prb_decstat_bch (rep_decstat_stats.create_probe<int>("BCH", ""));
+	tools::Reporter_probe_decstat rep_decstat_stats("Decoders decoding status", "('0' = success, '1' = fail)", params.n_frames);
+	std::unique_ptr<module::Probe<int32_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe<int32_t>("LDPC", ""));
+	std::unique_ptr<module::Probe<int32_t>> prb_decstat_bch (rep_decstat_stats.create_probe<int32_t>("BCH", ""));
 
-	std::ios_base::fmtflags ff;
-	ff |= std::cout.fixed;
 	tools::Reporter_probe rep_noise_stats("Signal Noise Ratio", "(SNR)", params.n_frames);
-	std::unique_ptr<module::Probe<float>> prb_noise_es(rep_noise_stats.create_probe<float>("Es/N0", "(dB)", ff, 4));
-	std::unique_ptr<module::Probe<float>> prb_noise_eb(rep_noise_stats.create_probe<float>("Eb/N0", "(dB)", ff, 4));
+	std::unique_ptr<module::Probe<float>> prb_noise_es(rep_noise_stats.create_probe<float>("Es/N0", "(dB)", std::ios_base::dec | std::ios_base::fixed, 4));
+	std::unique_ptr<module::Probe<float>> prb_noise_eb(rep_noise_stats.create_probe<float>("Eb/N0", "(dB)", std::ios_base::dec | std::ios_base::fixed, 4));
+
+	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER) and Frame Error Rate (FER)", params.n_frames);
+	std::unique_ptr<module::Probe<int64_t>> prb_bfer_fra(rep_BFER_stats.create_probe<int64_t>("FRA", ""));
+	std::unique_ptr<module::Probe<int64_t>> prb_bfer_be (rep_BFER_stats.create_probe<int64_t>("BE" , ""));
+	std::unique_ptr<module::Probe<int64_t>> prb_bfer_fe (rep_BFER_stats.create_probe<int64_t>("FE" , ""));
+	std::unique_ptr<module::Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe<float  >("BER", ""));
+	std::unique_ptr<module::Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe<float  >("FER", ""));
 
 	tools::Terminal_dump terminal_stats({ &rep_sfm_stats,   &rep_stm_stats,  &rep_frq_stats, &rep_decstat_stats,
 	                                      &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats                      });
@@ -135,16 +139,17 @@ int main(int argc, char** argv)
 
 	// fill the list of modules
 	std::vector<const module::Module*> modules;
-	modules = { bb_scrambler    .get(), BCH_decoder     .get(), source         .get(), LDPC_decoder,
-	            itl_rx          .get(), modem           .get(), framer         .get(), pl_scrambler.get(),
-	            monitor         .get(), freq_shift      .get(), sync_lr        .get(), sync_fine_pf.get(),
-	            radio           .get(), sync_frame      .get(), sync_coarse_f  .get(), matched_flt .get(),
-	            sync_timing     .get(), sync_step_mf    .get(), mult_agc       .get(), sink        .get(),
-	            estimator       .get(), front_agc       .get(),
+	modules = { bb_scrambler.get(), BCH_decoder     .get(), source         .get(), LDPC_decoder,
+	            itl_rx      .get(), modem           .get(), framer         .get(), pl_scrambler.get(),
+	            monitor     .get(), freq_shift      .get(), sync_lr        .get(), sync_fine_pf.get(),
+	            radio       .get(), sync_frame      .get(), sync_coarse_f  .get(), matched_flt .get(),
+	            sync_timing .get(), sync_step_mf    .get(), mult_agc       .get(), sink        .get(),
+	            estimator   .get(), front_agc       .get(),
 	            /* probes */
-	            prb_sfm_del     .get(), prb_sfm_flg     .get(), prb_sfm_tri    .get(), prb_stm_del .get(),
-	            prb_frq_coa     .get(), prb_frq_lr      .get(), prb_frq_fin    .get(), prb_noise_es.get(),
-	            prb_noise_eb    .get(), prb_decstat_ldpc.get(), prb_decstat_bch.get(),
+	            prb_sfm_del .get(), prb_sfm_flg     .get(), prb_sfm_tri    .get(), prb_stm_del .get(),
+	            prb_frq_coa .get(), prb_frq_lr      .get(), prb_frq_fin    .get(), prb_noise_es.get(),
+	            prb_noise_eb.get(), prb_decstat_ldpc.get(), prb_decstat_bch.get(), prb_bfer_fra.get(),
+	            prb_bfer_be .get(), prb_bfer_fe     .get(), prb_bfer_ber   .get(), prb_bfer_fer.get(),
 #ifdef MULTI_THREADED
 	            /* adaptors */
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
@@ -412,10 +417,15 @@ int main(int argc, char** argv)
 	(*sink         )[snk::sck::send        ::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
 
 	// add probes
-	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind(  adp_n_to_1[adp::sck::pull_1  ::out1 ], high_priority);
-	(*prb_decstat_bch )[prb::sck::probe::X_N].bind(  adp_n_to_1[adp::sck::pull_1  ::out2 ], high_priority);
-	(*prb_noise_es    )[prb::sck::probe::X_N].bind((*estimator)[est::sck::estimate::Es_N0], high_priority);
-	(*prb_noise_eb    )[prb::sck::probe::X_N].bind((*estimator)[est::sck::estimate::Eb_N0], high_priority);
+	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind(  adp_n_to_1[adp::sck::pull_1      ::out1 ], high_priority);
+	(*prb_decstat_bch )[prb::sck::probe::X_N].bind(  adp_n_to_1[adp::sck::pull_1      ::out2 ], high_priority);
+	(*prb_noise_es    )[prb::sck::probe::X_N].bind((*estimator)[est::sck::estimate    ::Es_N0], high_priority);
+	(*prb_noise_eb    )[prb::sck::probe::X_N].bind((*estimator)[est::sck::estimate    ::Eb_N0], high_priority);
+	(*prb_bfer_fra    )[prb::sck::probe::X_N].bind((*monitor  )[mnt::sck::check_errors::FRA  ], high_priority);
+	(*prb_bfer_be     )[prb::sck::probe::X_N].bind((*monitor  )[mnt::sck::check_errors::BE   ], high_priority);
+	(*prb_bfer_fe     )[prb::sck::probe::X_N].bind((*monitor  )[mnt::sck::check_errors::FE   ], high_priority);
+	(*prb_bfer_ber    )[prb::sck::probe::X_N].bind((*monitor  )[mnt::sck::check_errors::BER  ], high_priority);
+	(*prb_bfer_fer    )[prb::sck::probe::X_N].bind((*monitor  )[mnt::sck::check_errors::FER  ], high_priority);
 
 	// create a chain per pipeline stage
 	tools::Chain chain_stage0((*radio       )[rad::tsk::receive],   adp_1_to_1_0 [adp::tsk::push_1], 1, thread_pinnig, { 2 });
@@ -479,7 +489,18 @@ int main(int argc, char** argv)
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 	(*sink        )[snk::sck::send         ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
-	tools::Chain chain_sequential3((*radio)[rad::tsk::receive], (*sink)[snk::tsk::send]);
+	// add probes
+	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind((*LDPC_decoder)[dec::sck::decode_siho ::status], high_priority);
+	(*prb_decstat_bch )[prb::sck::probe::X_N].bind((*BCH_decoder )[dec::sck::decode_hiho ::status], high_priority);
+	(*prb_noise_es    )[prb::sck::probe::X_N].bind((*estimator   )[est::sck::estimate    ::Es_N0 ], high_priority);
+	(*prb_noise_eb    )[prb::sck::probe::X_N].bind((*estimator   )[est::sck::estimate    ::Eb_N0 ], high_priority);
+	(*prb_bfer_fra    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FRA   ], high_priority);
+	(*prb_bfer_be     )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::BE    ], high_priority);
+	(*prb_bfer_fe     )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FE    ], high_priority);
+	(*prb_bfer_ber    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::BER   ], high_priority);
+	(*prb_bfer_fer    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FER   ], high_priority);
+
+	tools::Chain chain_sequential3((*radio)[rad::tsk::receive]);
 	std::ofstream fs3("chain_sequential3.dot");
 	chain_sequential3.export_dot(fs3);
 

@@ -130,9 +130,9 @@ Reporter::report_t Reporter_probe
 			}
 
 			if (!can_pull)
-				temp_stream << std::setprecision(3) << std::scientific << " -";
+				temp_stream << std::setprecision(this->precisions[col]) << std::scientific << " -";
 
-			stream << std::setprecision(4) << temp_stream.str();
+			stream << std::setprecision(this->precisions[col] +1) << temp_stream.str();
 			probe_report.push_back(stream.str());
 		}
 	}

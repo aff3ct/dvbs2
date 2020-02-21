@@ -8,7 +8,7 @@ namespace tools
 
 template <typename T>
 module::Probe<T>* Reporter_probe
-::create_probe(const std::string &name, const std::string &unit, const std::ios_base::fmtflags &ff, const size_t precision)
+::create_probe(const std::string &name, const std::string &unit, const std::ios_base::fmtflags ff, const size_t precision)
 {
 	if (name_to_col.count(name))
 	{
@@ -33,9 +33,7 @@ template <typename T>
 module::Probe<T>* Reporter_probe
 ::create_probe(const std::string &name, const std::string &unit, const size_t precision)
 {
-	std::ios_base::fmtflags ff;
-	ff |= std::cout.scientific;
-	return this->create_probe<T>(name, unit, ff, precision);
+	return this->create_probe<T>(name, unit, std::ios_base::scientific, precision);
 }
 
 template <typename T>

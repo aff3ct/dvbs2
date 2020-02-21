@@ -46,7 +46,7 @@ public:
 	template <typename T>
 	module::Probe<T>* create_probe(const std::string &name,
 	                               const std::string &unit,
-	                               const std::ios_base::fmtflags &ff,
+	                               const std::ios_base::fmtflags ff,
 	                               const size_t precision = 3);
 
 	template <typename T>
