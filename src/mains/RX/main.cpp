@@ -92,9 +92,9 @@ int main(int argc, char** argv)
 	std::unique_ptr<module::Probe<float>> prb_noise_eb(rep_noise_stats.create_probe<float>("Eb/N0", "(dB)", std::ios_base::dec | std::ios_base::fixed, 4));
 
 	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER) and Frame Error Rate (FER)", params.n_frames);
-	std::unique_ptr<module::Probe<int64_t>> prb_bfer_fra(rep_BFER_stats.create_probe<int64_t>("FRA", ""));
-	std::unique_ptr<module::Probe<int64_t>> prb_bfer_be (rep_BFER_stats.create_probe<int64_t>("BE" , ""));
-	std::unique_ptr<module::Probe<int64_t>> prb_bfer_fe (rep_BFER_stats.create_probe<int64_t>("FE" , ""));
+	std::unique_ptr<module::Probe<int64_t>> prb_bfer_fra(rep_BFER_stats.create_probe<int64_t>("FRA", "Total"));
+	std::unique_ptr<module::Probe<int64_t>> prb_bfer_be (rep_BFER_stats.create_probe<int64_t>("BE" , "Total"));
+	std::unique_ptr<module::Probe<int64_t>> prb_bfer_fe (rep_BFER_stats.create_probe<int64_t>("FE" , "Total"));
 	std::unique_ptr<module::Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe<float  >("BER", ""));
 	std::unique_ptr<module::Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe<float  >("FER", ""));
 
@@ -227,12 +227,11 @@ int main(int argc, char** argv)
 	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N  ]);
 
 	// add probes
-	const int high_priority = 0;
-	(*prb_frq_coa)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::FRQ], high_priority);
-	(*prb_stm_del)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::MU ], high_priority);
-	(*prb_sfm_del)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::DEL], high_priority);
-	(*prb_sfm_tri)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::TRI], high_priority);
-	(*prb_sfm_flg)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::FLG], high_priority);
+	(*prb_frq_coa)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::FRQ]);
+	(*prb_stm_del)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::MU ]);
+	(*prb_sfm_del)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::DEL]);
+	(*prb_sfm_tri)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::TRI]);
+	(*prb_sfm_flg)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::FLG]);
 
 	tools::Chain chain_sequential1((*radio)[rad::tsk::receive]);
 	std::ofstream fs1("chain_sequential1.dot");
@@ -251,19 +250,24 @@ int main(int argc, char** argv)
 	chain_sequential1.exec([&](const std::vector<int>& statuses)
 	{
 		if (statuses.back() != status_t::SKIPPED)
+		{
 			terminal_stats.temp_report(stats_file);
+			m += params.n_frames;
+		}
+		else
+			std::clog << rang::tag::warning << "Chain aborted! (learning phase 1&2, m = " << m << ")" << std::endl;
+
 		if (limit == 150 && m >= 150)
 		{
 			stats_file << "####################" << std::endl;
 			stats_file << "# LEARNING PHASE 2 #" << std::endl;
 			stats_file << "####################" << std::endl;
 			terminal_stats.legend(stats_file);
+			m = 150;
 			limit = 300;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 		}
-		const auto stop = m >= limit;
-		m += statuses.back() != status_t::SKIPPED ? params.n_frames : 0;
-		return stop;
+		return m >= limit;
 	});
 
 	// ================================================================================================================
@@ -309,13 +313,13 @@ int main(int argc, char** argv)
 	(*sync_frame  )[sfm::sck::synchronize::TRI].reset();
 	(*sync_frame  )[sfm::sck::synchronize::FLG].reset();
 
-	(*prb_frq_coa)[prb::sck::probe::X_N].bind((*sync_coarse_f)[sfc::sck::synchronize::FRQ], high_priority);
-	(*prb_stm_del)[prb::sck::probe::X_N].bind((*sync_timing  )[stm::sck::synchronize::MU ], high_priority);
-	(*prb_sfm_del)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::DEL], high_priority);
-	(*prb_sfm_tri)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::TRI], high_priority);
-	(*prb_sfm_flg)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::FLG], high_priority);
-	(*prb_frq_lr )[prb::sck::probe::X_N].bind((*sync_lr      )[sff::sck::synchronize::FRQ], high_priority);
-	(*prb_frq_fin)[prb::sck::probe::X_N].bind((*sync_fine_pf )[sff::sck::synchronize::FRQ], high_priority);
+	(*prb_frq_coa)[prb::sck::probe::X_N].bind((*sync_coarse_f)[sfc::sck::synchronize::FRQ]);
+	(*prb_stm_del)[prb::sck::probe::X_N].bind((*sync_timing  )[stm::sck::synchronize::MU ]);
+	(*prb_sfm_del)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::DEL]);
+	(*prb_sfm_tri)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::TRI]);
+	(*prb_sfm_flg)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::FLG]);
+	(*prb_frq_lr )[prb::sck::probe::X_N].bind((*sync_lr      )[sff::sck::synchronize::FRQ]);
+	(*prb_frq_fin)[prb::sck::probe::X_N].bind((*sync_fine_pf )[sff::sck::synchronize::FRQ]);
 
 	tools::Chain chain_sequential2((*radio)[rad::tsk::receive]);
 	std::ofstream fs2("chain_sequential2.dot");
@@ -326,13 +330,18 @@ int main(int argc, char** argv)
 	stats_file << "####################" << std::endl;
 	terminal_stats.legend(stats_file);
 
+	m = 300;
 	chain_sequential2.exec([&](const std::vector<int>& statuses)
 	{
-		const auto stop = m >= 500;
 		if (statuses.back() != status_t::SKIPPED)
+		{
 			terminal_stats.temp_report(stats_file);
-		m += statuses.back() != status_t::SKIPPED ? params.n_frames : 0;
-		return stop;
+			m += params.n_frames;
+		}
+		else
+			std::clog << rang::tag::warning << "Chain aborted! (learning phase 3, m = " << m << ")" << std::endl;
+
+		return m >= 500;
 	});
 
 	auto end_learning = std::chrono::system_clock::now();
@@ -417,6 +426,7 @@ int main(int argc, char** argv)
 	(*sink         )[snk::sck::send        ::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
 
 	// add probes
+	const int high_priority = 0;
 	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind(  adp_n_to_1[adp::sck::pull_1      ::out1 ], high_priority);
 	(*prb_decstat_bch )[prb::sck::probe::X_N].bind(  adp_n_to_1[adp::sck::pull_1      ::out2 ], high_priority);
 	(*prb_noise_es    )[prb::sck::probe::X_N].bind((*estimator)[est::sck::estimate    ::Es_N0], high_priority);
@@ -460,17 +470,24 @@ int main(int argc, char** argv)
 	{
 		const bool last_stage = s == chain_stages.size() -1;
 		auto cs = chain_stages[s];
-		threads.push_back(std::thread([cs, last_stage, &terminal_stats, &stats_file, &stop_threads]() {
-			cs->exec([last_stage, &terminal_stats, &stats_file]()
+		threads.push_back(std::thread([&m, &params, s, cs, last_stage, &terminal_stats, &stats_file, &stop_threads]() {
+			cs->exec([&m, &params, s, last_stage, &terminal_stats, &stats_file](const std::vector<int>& statuses)
 			{
-				if (last_stage) terminal_stats.temp_report(stats_file);
+				if (s == 3 && statuses.back() == status_t::SKIPPED)
+					std::clog << std::endl << rang::tag::warning << "Chain aborted! (transmission phase, stage = " << s
+					                                             << ", m = " << m << ")" << std::endl;
+				if (last_stage)
+				{
+					terminal_stats.temp_report(stats_file);
+					m += params.n_frames;
+				}
 				return terminal_stats.is_interrupt();
 			});
 			stop_threads();
 		}));
 	}
 
-	// std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	// std::this_thread::sleep_for(std::chrono::milliseconds(240000));
 	// stop_threads();
 
 	// wait all the pipeline threads here
@@ -490,25 +507,31 @@ int main(int argc, char** argv)
 	(*sink        )[snk::sck::send         ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
 	// add probes
-	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind((*LDPC_decoder)[dec::sck::decode_siho ::status], high_priority);
-	(*prb_decstat_bch )[prb::sck::probe::X_N].bind((*BCH_decoder )[dec::sck::decode_hiho ::status], high_priority);
-	(*prb_noise_es    )[prb::sck::probe::X_N].bind((*estimator   )[est::sck::estimate    ::Es_N0 ], high_priority);
-	(*prb_noise_eb    )[prb::sck::probe::X_N].bind((*estimator   )[est::sck::estimate    ::Eb_N0 ], high_priority);
-	(*prb_bfer_fra    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FRA   ], high_priority);
-	(*prb_bfer_be     )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::BE    ], high_priority);
-	(*prb_bfer_fe     )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FE    ], high_priority);
-	(*prb_bfer_ber    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::BER   ], high_priority);
-	(*prb_bfer_fer    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FER   ], high_priority);
+	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind((*LDPC_decoder)[dec::sck::decode_siho ::status]);
+	(*prb_decstat_bch )[prb::sck::probe::X_N].bind((*BCH_decoder )[dec::sck::decode_hiho ::status]);
+	(*prb_noise_es    )[prb::sck::probe::X_N].bind((*estimator   )[est::sck::estimate    ::Es_N0 ]);
+	(*prb_noise_eb    )[prb::sck::probe::X_N].bind((*estimator   )[est::sck::estimate    ::Eb_N0 ]);
+	(*prb_bfer_fra    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FRA   ]);
+	(*prb_bfer_be     )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::BE    ]);
+	(*prb_bfer_fe     )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FE    ]);
+	(*prb_bfer_ber    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::BER   ]);
+	(*prb_bfer_fer    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FER   ]);
 
 	tools::Chain chain_sequential3((*radio)[rad::tsk::receive]);
 	std::ofstream fs3("chain_sequential3.dot");
 	chain_sequential3.export_dot(fs3);
 
 	// start the transmission chain
-	chain_sequential3.exec([&monitor, &terminal_stats, &stats_file](const std::vector<int>& statuses)
+	chain_sequential3.exec([&m, &monitor, &terminal_stats, &stats_file](const std::vector<int>& statuses)
 	{
 		if (statuses.back() != status_t::SKIPPED)
+		{
 			terminal_stats.temp_report(stats_file);
+			m += params.n_frames;
+		}
+		else
+			std::clog << std::endl << rang::tag::warning << "Chain aborted! (transmission phase, m = " << m << ")"
+			          << std::endl;
 		return terminal_stats.is_interrupt();
 	});
 
