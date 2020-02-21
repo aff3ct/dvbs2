@@ -135,16 +135,16 @@ int main(int argc, char** argv)
 
 	// fill the list of modules
 	std::vector<const module::Module*> modules;
-	modules = { bb_scrambler    .get(), BCH_decoder    .get(), source       .get(), LDPC_decoder      ,
-	            itl_rx          .get(), modem          .get(), framer       .get(), pl_scrambler.get(),
-	            monitor         .get(), freq_shift     .get(), sync_lr      .get(), sync_fine_pf.get(),
-	            radio           .get(), sync_frame     .get(), sync_coarse_f.get(), matched_flt .get(),
-	            sync_timing     .get(), sync_step_mf   .get(), mult_agc     .get(), sink        .get(),
-	            estimator       .get(), front_agc      .get(),
+	modules = { bb_scrambler    .get(), BCH_decoder     .get(), source         .get(), LDPC_decoder,
+	            itl_rx          .get(), modem           .get(), framer         .get(), pl_scrambler.get(),
+	            monitor         .get(), freq_shift      .get(), sync_lr        .get(), sync_fine_pf.get(),
+	            radio           .get(), sync_frame      .get(), sync_coarse_f  .get(), matched_flt .get(),
+	            sync_timing     .get(), sync_step_mf    .get(), mult_agc       .get(), sink        .get(),
+	            estimator       .get(), front_agc       .get(),
 	            /* probes */
-	            prb_sfm_del     .get(), prb_sfm_flg    .get(), prb_sfm_tri  .get(), prb_stm_del .get(),
-	            prb_frq_coa     .get(), prb_frq_lr     .get(), prb_frq_fin  .get(), prb_noise_es.get(),
-	            prb_decstat_ldpc.get(), prb_decstat_bch.get(),
+	            prb_sfm_del     .get(), prb_sfm_flg     .get(), prb_sfm_tri    .get(), prb_stm_del .get(),
+	            prb_frq_coa     .get(), prb_frq_lr      .get(), prb_frq_fin    .get(), prb_noise_es.get(),
+	            prb_noise_eb    .get(), prb_decstat_ldpc.get(), prb_decstat_bch.get(),
 #ifdef MULTI_THREADED
 	            /* adaptors */
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
