@@ -6,6 +6,7 @@
 #define REPORTER_PROBE_HPP_
 
 #include <iostream>
+#include <mutex>
 #include <aff3ct.hpp>
 
 namespace aff3ct
@@ -30,6 +31,7 @@ protected:
 	std::map<std::string, int> name_to_col;
 	const int n_frames;
 	Reporter::report_t final_report;
+	std::mutex mtx;
 
 public:
 	Reporter_probe(const std::string &group_name,

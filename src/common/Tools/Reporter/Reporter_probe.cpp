@@ -12,7 +12,8 @@ using namespace aff3ct::tools;
 Reporter_probe
 ::Reporter_probe(const std::string &group_name, const std::string &group_description, const int n_frames)
 : Reporter(),
-  n_frames(n_frames)
+  n_frames(n_frames),
+  mtx()
 {
 	if (group_name.empty())
 	{

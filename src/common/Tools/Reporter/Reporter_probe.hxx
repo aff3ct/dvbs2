@@ -40,6 +40,7 @@ template <typename T>
 void Reporter_probe
 ::push(const int col, const T &elt)
 {
+	std::unique_lock<std::mutex> lck (this->mtx);
 	if ((size_t)this->col_size(col) >= this->buffer[col].size())
 		return;
 
@@ -52,6 +53,7 @@ template <typename T>
 T Reporter_probe
 ::pull(const int col, bool &can_pull)
 {
+	std::unique_lock<std::mutex> lck (this->mtx);
 	if (this->col_size(col) == 0)
 	{
 		can_pull = false;
