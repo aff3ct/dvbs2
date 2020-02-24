@@ -263,8 +263,7 @@ int main(int argc, char** argv)
 			stats_file << "# LEARNING PHASE 2 #" << std::endl;
 			stats_file << "####################" << std::endl;
 			terminal_stats.legend(stats_file);
-			m = 150;
-			limit = 300;
+			limit = m + 150;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 		}
 		return m >= limit;
@@ -330,7 +329,7 @@ int main(int argc, char** argv)
 	stats_file << "####################" << std::endl;
 	terminal_stats.legend(stats_file);
 
-	m = 300;
+	limit = m + 200;
 	chain_sequential2.exec([&](const std::vector<int>& statuses)
 	{
 		if (statuses.back() != status_t::SKIPPED)
@@ -341,7 +340,7 @@ int main(int argc, char** argv)
 		else
 			std::clog << rang::tag::warning << "Chain aborted! (learning phase 3, m = " << m << ")" << std::endl;
 
-		return m >= 500;
+		return m >= limit;
 	});
 
 	auto end_learning = std::chrono::system_clock::now();
