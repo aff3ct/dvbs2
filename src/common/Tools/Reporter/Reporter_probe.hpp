@@ -22,16 +22,17 @@ namespace tools
 class Reporter_probe : public Reporter
 {
 protected:
-	std::vector<int> head;
-	std::vector<int> tail;
+	std::vector<size_t> head;
+	std::vector<size_t> tail;
 	std::vector<std::vector<int8_t>> buffer;
 	std::vector<std::type_index> datatypes;
 	std::vector<std::ios_base::fmtflags> stream_flags;
 	std::vector<size_t> precisions;
 	std::map<std::string, int> name_to_col;
+	std::map<int, std::string> col_to_name;
 	const int n_frames;
 	Reporter::report_t final_report;
-	std::mutex mtx;
+	std::vector<std::mutex> mtx;
 
 public:
 	Reporter_probe(const std::string &group_name,
@@ -59,10 +60,11 @@ public:
 	virtual void probe(const std::string &name, const void *data, const int frame_id);
 
 protected:
-	int col_size(int col);
+	template <typename T>
+	size_t col_size(const int col, const size_t buffer_size);
 
 	template <typename T>
-	void push(const int col, const T &elt);
+	bool push(const int col, const T &elt);
 
 	template <typename T>
 	T pull(const int col, bool &can_pull);

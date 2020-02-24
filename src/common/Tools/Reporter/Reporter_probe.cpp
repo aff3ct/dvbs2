@@ -13,7 +13,7 @@ Reporter_probe
 ::Reporter_probe(const std::string &group_name, const std::string &group_description, const int n_frames)
 : Reporter(),
   n_frames(n_frames),
-  mtx()
+  mtx(100)
 {
 	if (group_name.empty())
 	{
@@ -39,22 +39,17 @@ Reporter_probe
 {
 }
 
-int Reporter_probe
-::col_size(int col)
-{
-	return head[col] >= tail[col] ? head[col]-tail[col] : head[col]-tail[col]+this->buffer[col].size();
-}
-
 void Reporter_probe
 ::probe(const std::string &name, const void *data, const int frame_id)
 {
 	const int col = this->name_to_col[name];
-	     if (this->datatypes[col] == typeid(double )) this->push<double >(col, ((double* )data)[0]);
-	else if (this->datatypes[col] == typeid(float  )) this->push<float  >(col, ((float*  )data)[0]);
-	else if (this->datatypes[col] == typeid(int64_t)) this->push<int64_t>(col, ((int64_t*)data)[0]);
-	else if (this->datatypes[col] == typeid(int32_t)) this->push<int32_t>(col, ((int32_t*)data)[0]);
-	else if (this->datatypes[col] == typeid(int16_t)) this->push<int16_t>(col, ((int16_t*)data)[0]);
-	else if (this->datatypes[col] == typeid(int8_t )) this->push<int8_t >(col, ((int8_t* )data)[0]);
+	// bool can_push = false;
+	     if (this->datatypes[col] == typeid(double )) /* can_push = */ this->push<double >(col, ((double* )data)[0]);
+	else if (this->datatypes[col] == typeid(float  )) /* can_push = */ this->push<float  >(col, ((float*  )data)[0]);
+	else if (this->datatypes[col] == typeid(int64_t)) /* can_push = */ this->push<int64_t>(col, ((int64_t*)data)[0]);
+	else if (this->datatypes[col] == typeid(int32_t)) /* can_push = */ this->push<int32_t>(col, ((int32_t*)data)[0]);
+	else if (this->datatypes[col] == typeid(int16_t)) /* can_push = */ this->push<int16_t>(col, ((int16_t*)data)[0]);
+	else if (this->datatypes[col] == typeid(int8_t )) /* can_push = */ this->push<int8_t >(col, ((int8_t* )data)[0]);
 	else
 	{
 		std::stringstream message;
@@ -130,8 +125,8 @@ Reporter::report_t Reporter_probe
 				throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 			}
 
-			if (!can_pull)
-				temp_stream << std::setprecision(this->precisions[col]) << std::scientific << " -";
+			// if (!can_pull)
+			// 	temp_stream << std::setprecision(this->precisions[col]) << std::scientific << " -";
 
 			stream << std::setprecision(this->precisions[col] +1) << temp_stream.str();
 			probe_report.push_back(stream.str());
