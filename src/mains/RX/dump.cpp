@@ -8,69 +8,51 @@
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
 using namespace aff3ct;
+using namespace aff3ct::module;
+
+// alias
+template<class T>
+using uptr = std::unique_ptr<T>;
+
+const std::string extension = "bin";
 
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
 	const auto params = factory::DVBS2O(argc, argv);
 
-	std::vector<std::unique_ptr<tools::Reporter>> reporters;
-	std::unique_ptr<tools::Terminal> terminal;
-	tools::Sigma<> noise(1.f,1.f,1.f);
-
-	// the list of the allocated modules for the simulation
-	std::vector<const module::Module*> modules;
-	tools::Dumper dumper;
-
 	// construct modules
-	std::unique_ptr<module::Source<>> source(factory::DVBS2O::build_source<>(params));
-	std::unique_ptr<module::Radio<> > radio(factory::DVBS2O::build_radio<>(params));
+	uptr<Radio<>> radio(factory::DVBS2O::build_radio<>(params));
 
-	// allocate reporters to display results in the terminal
-	reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise<>(noise))); // report the noise values (Es/N0 and Eb/N0)
-
-	// allocate a terminal that will display the collected data from the reporters
-	terminal = std::unique_ptr<tools::Terminal>(new tools::Terminal_std(reporters));
-
-	// display the legend in the terminal
-	terminal->legend();
-
-	// fulfill the list of modules
-	modules = { source.get(), radio.get() };
-
-	// configuration of the module tasks
-	for (auto& m : modules)
-		for (auto& ta : m->tasks)
-		{
-			ta->set_autoalloc      (true        ); // enable the automatic allocation of the data in the tasks
-			ta->set_debug          (params.debug); // disable the debug mode
-			ta->set_debug_limit    (-1          ); // display only the 16 first bits if the debug mode is enabled
-			ta->set_debug_precision(8           );
-			ta->set_stats          (params.stats); // enable the statistics
-			ta->set_fast           (false       ); // disable the fast mode
-		}
-
-	using namespace module;
-
+	tools::Dumper dumper;
 	dumper.register_data(static_cast<R*>((*radio)[rad::sck::receive::Y_N1].get_dataptr()),
 	                     2 * params.p_rad.N,
 	                     0,
-	                     std::string("bin"),
-	                     true);
+	                     extension,
+	                     true,
+	                     params.n_frames);
 
-	for (auto i = 0; !terminal->is_interrupt(); i++)
+	std::cout << rang::tag::info << "The samples recording is running, press 'ctrl+c' to stop..." << std::endl;
+
+	uint64_t bytes = 0;
+	const unsigned n_err = 1;
+	tools::Terminal::init();
+	while (!tools::Terminal::is_interrupt())
 	{
 		(*radio)[rad::tsk::receive].exec();
-		dumper.add(i);
+		for (auto f = 0; f < params.n_frames; f++)
+			dumper.add(n_err, f);
+		bytes += 2 * params.p_rad.N * params.n_frames * sizeof(R);
+		std::cout << "Samples size: " << (bytes / (1024 * 1024)) << " MB" << "\r";
 	}
+	std::cout << "Samples size: " << (bytes / (1024 * 1024)) << " MB       " << std::endl;
+	std::cout << rang::tag::info << "The samples are being written in the '"
+	          << params.dump_filename << "." << extension << "' file... ";
+	std::cout.flush();
 
 	dumper.dump(params.dump_filename);
 
-	terminal->final_report();
-	terminal->final_report(std::cerr);
-
-	std::cout << "#" << std::endl;
-	std::cout << "# End of the simulation" << std::endl;
+	std::cout << "Done." << std::endl;
 
 	return EXIT_SUCCESS;
 }
