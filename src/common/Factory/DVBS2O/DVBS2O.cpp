@@ -91,8 +91,8 @@ void DVBS2O
 	args.add({"sim-noise-max","M"},  cli::Real(),                                       "Max Eb/N0"                                                           );
 	args.add({"sim-noise-step","s"}, cli::Real(),                                       "Step Eb/N0"                                                          );
 	args.add({"no-sync-info"},       cli::None(),                                       "Disable sync information logging."                                   );
-	args.add({"sim-debug", "d"},     cli::None(),                                       "Display debug."                                                      );
-	args.add({"sim-debug-limit"},    cli::Integer(cli::Non_zero()),                     "Set max number of elts per frame to be displayed in debug mode."     );
+	args.add({"sim-dbg", "d"},       cli::None(),                                       "Display debug."                                                      );
+	args.add({"sim-dbg-limit"},      cli::Integer(cli::Non_zero()),                     "Set max number of elts per frame to be displayed in debug mode."     );
 	args.add({"sim-stats"},          cli::None(),                                       "Display stats."                                                      );
 	args.add({"src-type"},           src_type_format,                                   "Type of the binary source"                                           );
 	args.add({"src-path"},           cli::Text(),                                       "Path of the binary source"                                           );
@@ -148,8 +148,8 @@ void DVBS2O
 	src_type                 = vals.exist({"src-type"}           ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
 	src_path                 = vals.exist({"src-path"}           ) ? vals.at      ({"src-path"}          ) : src_path    ;
 	dump_filename            = vals.exist({"dump-filename"}      ) ? vals.at      ({"dump-filename"}     ) : "dump"      ;
-	debug                    = vals.exist({"sim-debug","d"}      ) ? true                                  : false       ;
-	debug_limit              = vals.exist({"sim-debug-limit"}    ) ? vals.to_int  ({"sim-debug-limit"})    : -1          ;
+	debug                    = vals.exist({"sim-dbg","d"}        ) ? true                                  : false       ;
+	debug_limit              = vals.exist({"sim-dbg-limit"}      ) ? vals.to_int  ({"sim-dbg-limit"}     ) : -1          ;
 	stats                    = vals.exist({"sim-stats"}          ) ? true                                  : false       ;
 	no_sync_info             = vals.exist({"no-sync-info"}       ) ? true                                  : false       ;
 	rolloff                  = vals.exist({"shp-rolloff"}        ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f        ;
@@ -165,6 +165,9 @@ void DVBS2O
 	stm_hold_size            = vals.exist({"stm-hold-size"}      ) ? vals.to_int  ({"stm-hold-size"}     ) : 1           ;
 	sfm_alpha                = vals.exist({"sfm-alpha"}          ) ? vals.to_float({"sfm-alpha"}         ) : 0.9f        ;
 	sfm_trigger              = vals.exist({"sfm-trigg"}          ) ? vals.to_float({"sfm-trigger"}       ) : 25.0f       ;
+
+	if (vals.exist({"sim-dbg-limit"}))
+		debug = true;
 
 	if (perfect_sync)
 	{
