@@ -44,6 +44,8 @@ public:
 	 */
 	virtual ~Estimator_DVBS2O() = default;
 
+	virtual Estimator_DVBS2O<R>* clone() const;
+
 	void check_noise(); // check that the noise has the expected type
 
 protected:

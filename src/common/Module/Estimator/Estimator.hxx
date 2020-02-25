@@ -69,6 +69,13 @@ Estimator(const int N, const int n_frames)
 }
 
 template <typename R>
+Estimator<R>* Estimator<R>
+::clone() const
+{
+	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+}
+
+template <typename R>
 int Estimator<R>::
 get_N() const
 {

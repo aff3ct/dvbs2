@@ -43,6 +43,8 @@ public:
 	 */
 	virtual ~Estimator_perfect() = default;
 
+	virtual Estimator_perfect<R>* clone() const;
+
 	virtual void set_noise_ref(tools::Noise<>& noise);
 
 	tools::Noise<>& get_noise_ref() const;

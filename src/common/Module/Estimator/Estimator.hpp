@@ -66,6 +66,8 @@ public:
 	 */
 	virtual ~Estimator() = default;
 
+	virtual Estimator<R>* clone() const;
+
 	virtual int get_N() const;
 
 	tools::Noise<>& get_noise() const;

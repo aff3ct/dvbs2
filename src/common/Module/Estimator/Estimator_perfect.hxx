@@ -25,6 +25,14 @@ Estimator_perfect(const int N, tools::Noise<R>* noise_ref, const int n_frames)
 	set_noise_ref(*noise_ref);
 }
 
+template <typename R>
+Estimator_perfect<R>* Estimator_perfect<R>
+::clone() const
+{
+	auto m = new Estimator_perfect(*this);
+	m->deep_copy(*this);
+	return m;
+}
 
 template<typename R>
 void Estimator_perfect<R>
