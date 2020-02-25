@@ -10,11 +10,11 @@
 using namespace aff3ct;
 using namespace aff3ct::module;
 
-// alias
-template<class T>
-using uptr = std::unique_ptr<T>;
-
+// global parameters
 const std::string extension = "bin";
+
+// aliases
+template<class T> using uptr = std::unique_ptr<T>;
 
 int main(int argc, char** argv)
 {

@@ -15,9 +15,8 @@ const bool thread_pinnig = true;
 const bool active_waiting = false;
 #endif
 
-// alias
-template<class T>
-using uptr = std::unique_ptr<T>;
+// aliases
+template<class T> using uptr = std::unique_ptr<T>;
 
 int main(int argc, char** argv)
 {
