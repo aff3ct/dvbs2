@@ -193,6 +193,7 @@ int main(int argc, char** argv)
 
 	// socket binding
 	// TX
+	(*bb_scrambler)[scr::sck::scramble     ::X_N1].bind((*source      )[src::sck::generate   ::U_K   ]);
 	(*BCH_encoder )[enc::sck::encode       ::U_K ].bind((*bb_scrambler)[scr::sck::scramble     ::X_N2]);
 	(*LDPC_encoder)[enc::sck::encode       ::U_K ].bind((*BCH_encoder )[enc::sck::encode       ::X_N ]);
 	(*itl_tx      )[itl::sck::interleave   ::nat ].bind((*LDPC_encoder)[enc::sck::encode       ::X_N ]);
@@ -206,18 +207,23 @@ int main(int argc, char** argv)
 	//(*chn_agc     )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del)[flt::sck::filter       ::Y_N2]);
 	//(*freq_shift  )[mlt::sck::imultiply    ::X_N ].bind((*chn_agc     )[mlt::sck::imultiply    ::Z_N ]);
 	(*freq_shift  )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del)[flt::sck::filter       ::Y_N2]);
+	(*channel     )[chn::sck::add_noise    ::X_N ].bind((*freq_shift  )[mlt::sck::imultiply    ::Z_N ]);
 	(*sync_fine_lr)[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2]);
 	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr)[sff::sck::synchronize  ::Y_N2]);
 	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
-	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
-	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*estimator   )[est::sck::rescale      ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::rescale      ::H_N ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*estimator   )[est::sck::rescale      ::Y_N ]);
 	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
 	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
 	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
 	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
 	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*delay       )[flt::sck::filter       ::Y_N2]);
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+	(*mult_agc    )[mlt::sck::imultiply  ::X_N   ].bind((*sync_timing )[stm::sck::extract      ::Y_N2]);
+	(*sync_frame  )[sfm::sck::synchronize::X_N1  ].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N ]);
+	(*pl_scrambler)[scr::sck::descramble ::Y_N1  ].bind((*sync_frame  )[sfm::sck::synchronize  ::Y_N2]);
+	(*delay       )[flt::sck::filter     ::X_N1  ].bind((*source      )[src::sck::generate     ::U_K ]);
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->record_callback_check([LDPC_decoder]{LDPC_decoder->reset();});
@@ -225,16 +231,19 @@ int main(int argc, char** argv)
 	// a loop over the various SNRs
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
 	{
-		(*bb_scrambler)[scr::sck::scramble   ::X_N1 ].bind((*source       )[src::sck::generate   ::U_K  ]);
-		(*channel     )[chn::sck::add_noise  ::X_N  ].bind((*freq_shift   )[mlt::sck::imultiply  ::Z_N  ]);
+		(*sync_step_mf)[smf::sck::synchronize::X_N1 ].reset();
+		(*sync_step_mf)[smf::sck::synchronize::DEL  ].reset();
+		(*sync_timing )[stm::sck::extract    ::B_N1 ].reset();
+		(*sync_timing )[stm::sck::extract    ::Y_N1 ].reset();
+		(*channel     )[chn::sck::add_noise  ::Y_N  ].reset();
+		(*sync_frame  )[sfm::sck::synchronize::DEL  ].reset();
+		(*sync_step_mf)[smf::sck::synchronize::B_N1 ].reset();
+		(*sync_step_mf)[smf::sck::synchronize::Y_N1 ].reset();
+
 		(*sync_step_mf)[smf::sck::synchronize::X_N1 ].bind((*channel      )[chn::sck::add_noise  ::Y_N  ]);
 		(*sync_step_mf)[smf::sck::synchronize::DEL  ].bind((*sync_frame   )[sfm::sck::synchronize::DEL  ]);
 		(*sync_timing )[stm::sck::extract    ::B_N1 ].bind((*sync_step_mf )[smf::sck::synchronize::B_N1 ]);
 		(*sync_timing )[stm::sck::extract    ::Y_N1 ].bind((*sync_step_mf )[smf::sck::synchronize::Y_N1 ]);
-		(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2 ]);
-		(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc     )[mlt::sck::imultiply  ::Z_N  ]);
-		(*pl_scrambler)[scr::sck::descramble ::Y_N1 ].bind((*sync_frame   )[sfm::sck::synchronize::Y_N2 ]);
-		(*delay       )[flt::sck::filter     ::X_N1 ].bind((*source       )[src::sck::generate   ::U_K  ]);
 
 		// const int high_priority = 0;
 		// (*spf_probe)[prb::sck::probe::X_N].bind((*sync_fine_pf)[sff::sck::synchronize::Y_N2], high_priority);
@@ -369,11 +378,17 @@ int main(int argc, char** argv)
 					{
 						m = 300;
 						n_phase++;
-
+						(*channel      )[chn::sck::add_noise  ::Y_N ].reset();
+						(*matched_flt  )[flt::sck::filter     ::X_N1].reset();
+						(*matched_flt  )[flt::sck::filter     ::Y_N2].reset();
+						(*sync_coarse_f)[sfc::sck::synchronize::X_N1].reset();
+						(*sync_coarse_f)[sfc::sck::synchronize::Y_N2].reset();
+						(*sync_timing  )[stm::sck::synchronize::X_N1].reset();
+						(*sync_timing  )[stm::sck::synchronize::Y_N1].reset();
+						(*sync_timing  )[stm::sck::synchronize::B_N1].reset();
 						(*sync_timing  )[stm::sck::extract    ::B_N1].reset();
 						(*sync_timing  )[stm::sck::extract    ::Y_N1].reset();
-						(*sync_timing  )[stm::sck::extract    ::Y_N2].reset();
-						(*mult_agc     )[mlt::sck::imultiply  ::X_N ].reset();
+
 						// (*sfc_probe    )[prb::sck::probe      ::X_N ].reset();
 						// (*stm_probe    )[prb::sck::probe      ::X_N ].reset();
 
@@ -382,7 +397,6 @@ int main(int argc, char** argv)
 						(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
 						(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
 						(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
-						(*mult_agc     )[mlt::sck::imultiply  ::X_N ].bind((*sync_timing  )[stm::sck::extract    ::Y_N2]);
 
 						// (*sfc_probe)[prb::sck::probe::X_N ].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2], high_priority);
 						// (*stm_probe)[prb::sck::probe::X_N ].bind((*sync_timing  )[stm::sck::synchronize::Y_N1], high_priority);
@@ -448,7 +462,7 @@ int main(int argc, char** argv)
 				(*sync_fine_pf )[sff::tsk::synchronize  ].exec();
 				// (*spf_probe    )[prb::tsk::probe        ].exec();
 				(*framer       )[frm::tsk::remove_plh   ].exec();
-				(*estimator    )[est::tsk::estimate     ].exec();
+				(*estimator    )[est::tsk::rescale      ].exec();
 				(*modem        )[mdm::tsk::demodulate_wg].exec();
 				(*itl_rx       )[itl::tsk::deinterleave ].exec();
 				(*LDPC_decoder )[dec::tsk::decode_siho  ].exec();

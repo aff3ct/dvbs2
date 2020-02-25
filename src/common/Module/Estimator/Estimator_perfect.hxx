@@ -25,14 +25,6 @@ Estimator_perfect(const int N, tools::Noise<R>* noise_ref, const int n_frames)
 	set_noise_ref(*noise_ref);
 }
 
-template <typename R>
-Estimator_perfect<R>* Estimator_perfect<R>
-::clone() const
-{
-	auto m = new Estimator_perfect(*this);
-	m->deep_copy(*this);
-	return m;
-}
 
 template<typename R>
 void Estimator_perfect<R>
@@ -92,6 +84,36 @@ _estimate(const R *X_N, R *H_N, const int frame_id)
 		H_N[2*i]   = 1.0;
 		H_N[2*i+1] = 0.0;
 	}
+	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise_ref);
+	this->ebn0_estimated = sigma->get_ebn0();
+	this->esn0_estimated = sigma->get_esn0();
+}
+
+template <typename R>
+void Estimator_perfect<R>::
+_rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
+{
+	this->check_noise();
+	this->check_noise_ref();
+
+	std::copy(X_N, X_N + this->N, Y_N);
+	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise_ref);
+	R _sigma = sigma->get_value();
+
+	for (int i = 0; i < this->N / 2; i++)
+	{
+		Y_N[2*i]   /= _sigma;
+		Y_N[2*i+1] /= _sigma;
+	}
+
+	for (int i = 0; i < this->N / 2; i++)
+	{
+		H_N[2*i]   = sigma->get_esn0();
+		H_N[2*i+1] = 0.0;
+	}
+
+	this->ebn0_estimated = sigma->get_ebn0();
+	this->esn0_estimated = sigma->get_esn0();
 }
 
 }

@@ -484,9 +484,9 @@ int main(int argc, char** argv)
 	(*sync_fine_pf )[sff::sck::synchronize::X_N1].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
 	  adp_1_to_1_4  [adp::sck::push_1     ::in1 ].bind((*sync_fine_pf )[sff::sck::synchronize::Y_N2]);
 	(*framer       )[frm::sck::remove_plh ::Y_N1].bind(  adp_1_to_1_4  [adp::sck::pull_n     ::out1]);
-	  adp_1_to_n    [adp::sck::push_1     ::in1 ].bind((*estimator    )[est::sck::estimate   ::H_N ]);
-	(*estimator    )[est::sck::estimate   ::X_N ].bind((*framer       )[frm::sck::remove_plh ::Y_N2]);
-	  adp_1_to_n    [adp::sck::push_1     ::in2 ].bind((*framer       )[frm::sck::remove_plh ::Y_N2]);
+	  adp_1_to_n    [adp::sck::push_1     ::in1 ].bind((*estimator    )[est::sck::rescale    ::H_N ]);
+	(*estimator    )[est::sck::rescale    ::X_N ].bind((*framer       )[frm::sck::remove_plh ::Y_N2]);
+	  adp_1_to_n    [adp::sck::push_1     ::in2 ].bind((*estimator    )[est::sck::rescale    ::Y_N ]);
 	// parallel chain (modem / decoder LDPC / decoder BCH)
 	(*monitor      )[mnt::sck::check_errors::U  ].bind((*source       )[src::sck::generate   ::U_K ]);
 	(*monitor      )[mnt::sck::check_errors::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
@@ -506,8 +506,8 @@ int main(int argc, char** argv)
 	(*prb_thr_thr     )[prb::sck::probe::in].bind(  adp_n_to_1[adp::sck::pull_1      ::out3  ], high_priority);
 	(*prb_thr_lat     )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
 	(*prb_thr_time    )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
-	(*prb_noise_es    )[prb::sck::probe::in].bind((*estimator)[est::sck::estimate    ::Es_N0 ], high_priority);
-	(*prb_noise_eb    )[prb::sck::probe::in].bind((*estimator)[est::sck::estimate    ::Eb_N0 ], high_priority);
+	(*prb_noise_es    )[prb::sck::probe::in].bind((*estimator)[est::sck::rescale     ::Es_N0 ], high_priority);
+	(*prb_noise_eb    )[prb::sck::probe::in].bind((*estimator)[est::sck::rescale     ::Eb_N0 ], high_priority);
 	(*prb_bfer_be     )[prb::sck::probe::in].bind((*monitor  )[mnt::sck::check_errors::BE    ], high_priority);
 	(*prb_bfer_fe     )[prb::sck::probe::in].bind((*monitor  )[mnt::sck::check_errors::FE    ], high_priority);
 	(*prb_bfer_ber    )[prb::sck::probe::in].bind((*monitor  )[mnt::sck::check_errors::BER   ], high_priority);
@@ -569,9 +569,9 @@ int main(int argc, char** argv)
 		t.join();
 #else
 	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
-	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
-	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*estimator   )[est::sck::rescale      ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::rescale      ::H_N ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*estimator   )[est::sck::rescale      ::Y_N ]));
 	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
 	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
 	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
@@ -593,8 +593,8 @@ int main(int argc, char** argv)
 	(*prb_thr_thr     )[prb::sck::probe::in].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K   ]);
 	(*prb_thr_lat     )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
 	(*prb_thr_time    )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
-	(*prb_noise_es    )[prb::sck::probe::in].bind((*estimator   )[est::sck::estimate    ::Es_N0 ]);
-	(*prb_noise_eb    )[prb::sck::probe::in].bind((*estimator   )[est::sck::estimate    ::Eb_N0 ]);
+	(*prb_noise_es    )[prb::sck::probe::in].bind((*estimator   )[est::sck::rescale     ::Es_N0 ]);
+	(*prb_noise_eb    )[prb::sck::probe::in].bind((*estimator   )[est::sck::rescale     ::Eb_N0 ]);
 	(*prb_bfer_be     )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::BE    ]);
 	(*prb_bfer_fe     )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::FE    ]);
 	(*prb_bfer_ber    )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::BER   ]);
