@@ -13,13 +13,20 @@
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
 using namespace aff3ct;
+using namespace aff3ct::module;
 
 #define MULTI_THREADED // comment this line to disable multi-threaded RX
 
+// global parameters
+constexpr bool enable_logs = true;
 #ifdef MULTI_THREADED
-const bool thread_pinnig = true;
-const bool active_waiting = false;
+constexpr bool thread_pinnig = true;
+constexpr bool active_waiting = false;
 #endif
+
+// alias
+template<class T>
+using uptr = std::unique_ptr<T>;
 
 int main(int argc, char** argv)
 {
@@ -27,7 +34,7 @@ int main(int argc, char** argv)
 	if (thread_pinnig)
 	{
 		tools::Thread_pinning::init();
-		// tools::Thread_pinning::set_logs(true);
+		// tools::Thread_pinning::set_logs(enable_logs);
 		tools::Thread_pinning::pin(0);
 	}
 #endif
@@ -41,93 +48,118 @@ int main(int argc, char** argv)
 	tools::Header::print_parameters(param_vec, true, std::cout);
 
 	// construct tools
-	std::unique_ptr<tools::Constellation<float>> cstl(new tools::Constellation_user<float>(params.constellation_file));
-	std::unique_ptr<tools::Interleaver_core<>> itl_core(factory::DVBS2O::build_itl_core<>(params));
+	uptr<tools::Constellation<float>> cstl(new tools::Constellation_user<float>(params.constellation_file));
+	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2O::build_itl_core<>(params));
 	tools::BCH_polynomial_generator<> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	std::unique_ptr<module::Source<>                   > source       (factory::DVBS2O::build_source                  <>(params              ));
-	std::unique_ptr<module::Sink<>                     > sink         (factory::DVBS2O::build_sink                    <>(params              ));
-	std::unique_ptr<module::Radio<>                    > radio        (factory::DVBS2O::build_radio                   <>(params              ));
-	std::unique_ptr<module::Scrambler<>                > bb_scrambler (factory::DVBS2O::build_bb_scrambler            <>(params              ));
-	std::unique_ptr<module::Decoder_HIHO<>             > BCH_decoder  (factory::DVBS2O::build_bch_decoder             <>(params, poly_gen    ));
-	std::unique_ptr<tools ::Codec_SIHO<>               > LDPC_cdc     (factory::DVBS2O::build_ldpc_cdc                <>(params              ));
-	std::unique_ptr<module::Interleaver<float,uint32_t>> itl_rx       (factory::DVBS2O::build_itl<float,uint32_t>       (params, *itl_core   ));
-	std::unique_ptr<module::Modem<>                    > modem        (factory::DVBS2O::build_modem                   <>(params, cstl.get()  ));
-	std::unique_ptr<module::Multiplier_sine_ccc_naive<>> freq_shift   (factory::DVBS2O::build_freq_shift              <>(params              ));
-	std::unique_ptr<module::Synchronizer_frame<>       > sync_frame   (factory::DVBS2O::build_synchronizer_frame      <>(params              ));
-	std::unique_ptr<module::Synchronizer_freq_fine<>   > sync_lr      (factory::DVBS2O::build_synchronizer_lr         <>(params              ));
-	std::unique_ptr<module::Synchronizer_freq_fine<>   > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase <>(params              ));
-	std::unique_ptr<module::Framer<>                   > framer       (factory::DVBS2O::build_framer                  <>(params              ));
-	std::unique_ptr<module::Scrambler<float>           > pl_scrambler (factory::DVBS2O::build_pl_scrambler            <>(params              ));
-	std::unique_ptr<module::Monitor_BFER<>             > monitor      (factory::DVBS2O::build_monitor                 <>(params              ));
-	std::unique_ptr<module::Filter_RRC_ccr_naive<>     > matched_flt  (factory::DVBS2O::build_matched_filter          <>(params              ));
-	std::unique_ptr<module::Synchronizer_timing <>     > sync_timing  (factory::DVBS2O::build_synchronizer_timing     <>(params              ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>  > front_agc    (factory::DVBS2O::build_channel_agc             <>(params              ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>  > mult_agc     (factory::DVBS2O::build_agc_shift               <>(params              ));
-	std::unique_ptr<module::Estimator<>                > estimator    (factory::DVBS2O::build_estimator               <>(params              ));
-	std::unique_ptr<module::Synchronizer_freq_coarse<> > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse<>(params              ));
-	std::unique_ptr<module::Synchronizer_step_mf_cc<>  > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc <>(params,
-	                                                                                                                     sync_coarse_f.get(),
-	                                                                                                                     matched_flt  .get(),
-	                                                                                                                     sync_timing  .get() ));
+	uptr<Source<>                   > source       (factory::DVBS2O::build_source                  <>(params            ));
+	uptr<Sink<>                     > sink         (factory::DVBS2O::build_sink                    <>(params            ));
+	uptr<Radio<>                    > radio        (factory::DVBS2O::build_radio                   <>(params            ));
+	uptr<Scrambler<>                > bb_scrambler (factory::DVBS2O::build_bb_scrambler            <>(params            ));
+	uptr<Decoder_HIHO<>             > BCH_decoder  (factory::DVBS2O::build_bch_decoder             <>(params, poly_gen  ));
+	uptr<tools::Codec_SIHO<>        > LDPC_cdc     (factory::DVBS2O::build_ldpc_cdc                <>(params            ));
+	uptr<Interleaver<float,uint32_t>> itl_rx       (factory::DVBS2O::build_itl<float,uint32_t>       (params, *itl_core ));
+	uptr<Modem<>                    > modem        (factory::DVBS2O::build_modem                   <>(params, cstl.get()));
+	uptr<Multiplier_sine_ccc_naive<>> freq_shift   (factory::DVBS2O::build_freq_shift              <>(params            ));
+	uptr<Synchronizer_frame<>       > sync_frame   (factory::DVBS2O::build_synchronizer_frame      <>(params            ));
+	uptr<Synchronizer_freq_fine<>   > sync_lr      (factory::DVBS2O::build_synchronizer_lr         <>(params            ));
+	uptr<Synchronizer_freq_fine<>   > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase <>(params            ));
+	uptr<Framer<>                   > framer       (factory::DVBS2O::build_framer                  <>(params            ));
+	uptr<Scrambler<float>           > pl_scrambler (factory::DVBS2O::build_pl_scrambler            <>(params            ));
+	uptr<Monitor_BFER<>             > monitor      (factory::DVBS2O::build_monitor                 <>(params            ));
+	uptr<Filter_RRC_ccr_naive<>     > matched_flt  (factory::DVBS2O::build_matched_filter          <>(params            ));
+	uptr<Synchronizer_timing <>     > sync_timing  (factory::DVBS2O::build_synchronizer_timing     <>(params            ));
+	uptr<Multiplier_AGC_cc_naive<>  > front_agc    (factory::DVBS2O::build_channel_agc             <>(params            ));
+	uptr<Multiplier_AGC_cc_naive<>  > mult_agc     (factory::DVBS2O::build_agc_shift               <>(params            ));
+	uptr<Estimator<>                > estimator    (factory::DVBS2O::build_estimator               <>(params            ));
+	uptr<Synchronizer_freq_coarse<> > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse<>(params            ));
+	uptr<Synchronizer_step_mf_cc<>  > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc <>(params,
+	                                                                                                  sync_coarse_f.get(),
+	                                                                                                  matched_flt  .get(),
+	                                                                                                  sync_timing  .get()));
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
+	// create reporters and probes for the statistics file
 	tools::Reporter_probe rep_fra_stats("Frame Counter", params.n_frames);
-	std::unique_ptr<module::Probe_occurrence<int32_t>> prb_fra_id(rep_fra_stats.create_probe_occurrence<int32_t>("ID"));
+	uptr<Probe_occurrence<int32_t>> prb_fra_id(rep_fra_stats.create_probe_occurrence<int32_t>("ID"));
 
 	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
-	std::unique_ptr<module::Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL"));
-	std::unique_ptr<module::Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG"));
-	std::unique_ptr<module::Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 1, std::ios_base::dec | std::ios_base::fixed));
+	uptr<Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL"));
+	uptr<Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG"));
+	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 1, std::ios_base::dec | std::ios_base::fixed));
 
 	tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm", params.n_frames);
-	std::unique_ptr<module::Probe<float>> prb_stm_del(rep_stm_stats.create_probe_value<float>("DEL", "FRAC"));
+	uptr<Probe<float>> prb_stm_del(rep_stm_stats.create_probe_value<float>("DEL", "FRAC"));
 
-	tools::Reporter_probe rep_frq_stats("Freq. Synchronization", params.n_frames);
-	std::unique_ptr<module::Probe<float>> prb_frq_coa(rep_frq_stats.create_probe_value<float>("COA", "CFO"));
-	std::unique_ptr<module::Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO"));
-	std::unique_ptr<module::Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO"));
+	tools::Reporter_probe rep_frq_stats("Frequency Synchronization", params.n_frames);
+	uptr<Probe<float>> prb_frq_coa(rep_frq_stats.create_probe_value<float>("COA", "CFO"));
+	uptr<Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO"));
+	uptr<Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO"));
 
-	tools::Reporter_probe_decstat rep_decstat_stats("Decoders decoding status", "('0' = success, '1' = fail)", params.n_frames);
-	std::unique_ptr<module::Probe<int32_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int32_t>("LDPC"));
-	std::unique_ptr<module::Probe<int32_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int32_t>("BCH"));
+	tools::Reporter_probe_decstat rep_decstat_stats("Decoders Decoding Status", "('0' = success, '1' = fail)", params.n_frames);
+	uptr<Probe<int32_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int32_t>("LDPC"));
+	uptr<Probe<int32_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int32_t>("BCH"));
 
 	tools::Reporter_probe rep_noise_stats("Signal Noise Ratio", "(SNR)", params.n_frames);
-	std::unique_ptr<module::Probe<float>> prb_noise_es(rep_noise_stats.create_probe_value<float>("Es/N0", "(dB)", 1, std::ios_base::dec | std::ios_base::fixed));
-	std::unique_ptr<module::Probe<float>> prb_noise_eb(rep_noise_stats.create_probe_value<float>("Eb/N0", "(dB)", 1, std::ios_base::dec | std::ios_base::fixed));
+	uptr<Probe<float>> prb_noise_es(rep_noise_stats.create_probe_value<float>("Es/N0", "(dB)", 1, std::ios_base::dec | std::ios_base::fixed));
+	uptr<Probe<float>> prb_noise_eb(rep_noise_stats.create_probe_value<float>("Eb/N0", "(dB)", 1, std::ios_base::dec | std::ios_base::fixed));
 
 	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER)", "and Frame Error Rate (FER)", params.n_frames);
-	std::unique_ptr<module::Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE"));
-	std::unique_ptr<module::Probe<int32_t>> prb_bfer_fe (rep_BFER_stats.create_probe_value<int32_t>("FE"));
-	std::unique_ptr<module::Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe_value<float  >("BER"));
-	std::unique_ptr<module::Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe_value<float  >("FER"));
+	uptr<Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE"));
+	uptr<Probe<int32_t>> prb_bfer_fe (rep_BFER_stats.create_probe_value<int32_t>("FE"));
+	uptr<Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe_value<float  >("BER"));
+	uptr<Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe_value<float  >("FER"));
 
-	tools::Reporter_probe rep_thr_stats("Throughput", "and elapsed time", params.n_frames);
-	std::unique_ptr<module::Probe<int32_t>> prb_thr_thr (rep_thr_stats.create_probe_throughput<int32_t>("THR", params.K_bch));
-	std::unique_ptr<module::Probe<int32_t>> prb_thr_lat (rep_thr_stats.create_probe_latency   <int32_t>("LAT"));
-	std::unique_ptr<module::Probe<int32_t>> prb_thr_time(rep_thr_stats.create_probe_time      <int32_t>("TIME"));
+	tools::Reporter_probe rep_thr_stats("Throughput, Latency", "and Elapsed Time", params.n_frames);
+	uptr<Probe<int32_t>> prb_thr_thr (rep_thr_stats.create_probe_throughput<int32_t>("THR", params.K_bch));
+	uptr<Probe<int32_t>> prb_thr_lat (rep_thr_stats.create_probe_latency   <int32_t>("LAT"));
+	uptr<Probe<int32_t>> prb_thr_time(rep_thr_stats.create_probe_time      <int32_t>("TIME"));
 
 	tools::Terminal_dump terminal_stats({ &rep_fra_stats,     &rep_sfm_stats,   &rep_stm_stats,  &rep_frq_stats,
 	                                      &rep_decstat_stats, &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats });
 
 #ifdef MULTI_THREADED
+	// create the adaptors to manage the pipeline in multi-threaded mode
 	const size_t buffer_size = 1;
-	module::Adaptor_1_to_n adp_1_to_1_0(params.osf * 2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
-	module::Adaptor_1_to_n adp_1_to_1_1(params.osf * 2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
-	module::Adaptor_1_to_n adp_1_to_1_2({(size_t)params.osf * 2 * params.pl_frame_size, (size_t)params.osf * 2 * params.pl_frame_size}, {typeid(float), typeid(int32_t)}, buffer_size, active_waiting, params.n_frames);
-	module::Adaptor_1_to_n adp_1_to_1_3(2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
-	module::Adaptor_1_to_n adp_1_to_1_4(2 * params.pl_frame_size, typeid(float), buffer_size, active_waiting, params.n_frames);
-	module::Adaptor_1_to_n adp_1_to_n  ({(size_t)2 * params.N_xfec_frame, (size_t)params.N_ldpc}, {typeid(float), typeid(float)}, buffer_size, active_waiting, params.n_frames);
-	module::Adaptor_n_to_1 adp_n_to_1  ({(size_t)1, (size_t)1, (size_t)params.K_bch}, {typeid(int), typeid(int), typeid(int)}, buffer_size, active_waiting, params.n_frames);
+	Adaptor_1_to_n adp_1_to_1_0(params.osf * 2 * params.pl_frame_size,
+	                            typeid(float),
+	                            buffer_size,
+	                            active_waiting,
+	                            params.n_frames);
+	Adaptor_1_to_n adp_1_to_1_1(params.osf * 2 * params.pl_frame_size,
+	                            typeid(float),
+	                            buffer_size,
+	                            active_waiting,
+	                            params.n_frames);
+	Adaptor_1_to_n adp_1_to_1_2({(size_t)params.osf * 2 * params.pl_frame_size, (size_t)params.osf * 2 * params.pl_frame_size},
+	                            {typeid(float), typeid(int32_t)},
+	                            buffer_size,
+	                            active_waiting,
+	                            params.n_frames);
+	Adaptor_1_to_n adp_1_to_1_3(2 * params.pl_frame_size,
+	                            typeid(float),
+	                            buffer_size,
+	                            active_waiting,
+	                            params.n_frames);
+	Adaptor_1_to_n adp_1_to_1_4(2 * params.pl_frame_size,
+	                            typeid(float),
+	                            buffer_size,
+	                            active_waiting,
+	                            params.n_frames);
+	Adaptor_1_to_n adp_1_to_n  ({(size_t)2 * params.N_xfec_frame, (size_t)params.N_ldpc},
+	                            {typeid(float), typeid(float)},
+	                            buffer_size,
+	                            active_waiting,
+	                            params.n_frames);
+	Adaptor_n_to_1 adp_n_to_1  ({(size_t)1, (size_t)1, (size_t)params.K_bch},
+	                            {typeid(int), typeid(int), typeid(int)},
+	                            buffer_size,
+	                            active_waiting,
+	                            params.n_frames);
 #endif /* MULTI_THREADED */
 
-	// manage noise
-	tools::Sigma<> fake_noise(1.f);
-	modem->set_noise(fake_noise);
-	tools::Sigma<> noise;
-	estimator->set_noise(noise);
-
+	// add custom name to some modules
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
 	BCH_decoder  ->set_custom_name("BCH Decoder" );
 	sync_lr      ->set_custom_name("L&R F Syn"   );
@@ -138,18 +170,25 @@ int main(int argc, char** argv)
 	sync_coarse_f->set_custom_name("Coarse_Synch");
 	sync_step_mf ->set_custom_name("MF Synch"    );
 #ifdef MULTI_THREADED
-	adp_1_to_1_0.set_custom_name("Adp_1_to_1_0");
-	adp_1_to_1_1.set_custom_name("Adp_1_to_1_1");
-	adp_1_to_1_2.set_custom_name("Adp_1_to_1_2");
-	adp_1_to_1_3.set_custom_name("Adp_1_to_1_3");
-	adp_1_to_1_4.set_custom_name("Adp_1_to_1_4");
-	adp_1_to_n  .set_custom_name("Adp_1_to_n"  );
-	adp_n_to_1  .set_custom_name("Adp_n_to_1"  );
+	adp_1_to_1_0 . set_custom_name("Adp_1_to_1_0");
+	adp_1_to_1_1 . set_custom_name("Adp_1_to_1_1");
+	adp_1_to_1_2 . set_custom_name("Adp_1_to_1_2");
+	adp_1_to_1_3 . set_custom_name("Adp_1_to_1_3");
+	adp_1_to_1_4 . set_custom_name("Adp_1_to_1_4");
+	adp_1_to_n   . set_custom_name("Adp_1_to_n"  );
+	adp_n_to_1   . set_custom_name("Adp_n_to_1"  );
 #endif /* MULTI_THREADED */
 
+	// manage noise
+	tools::Sigma<> fake_noise(1.f);
+	modem->set_noise(fake_noise);
+	tools::Sigma<> noise;
+	estimator->set_noise(noise);
+
 	// fill the list of modules
-	std::vector<const module::Module*> modules;
-	modules = { bb_scrambler.get(), BCH_decoder     .get(), source         .get(), LDPC_decoder,
+	std::vector<const Module*> modules;
+	modules = { /* standard modules */
+	            bb_scrambler.get(), BCH_decoder     .get(), source         .get(), LDPC_decoder,
 	            itl_rx      .get(), modem           .get(), framer         .get(), pl_scrambler.get(),
 	            monitor     .get(), freq_shift      .get(), sync_lr        .get(), sync_fine_pf.get(),
 	            radio       .get(), sync_frame      .get(), sync_coarse_f  .get(), matched_flt .get(),
@@ -176,13 +215,13 @@ int main(int argc, char** argv)
 		ta->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
 		ta->set_debug_precision(8                 );
 		ta->set_stats          (params.stats      ); // enable the statistics
-		ta->set_fast           (false             ); // disable the fast mode
+
+		if (!ta->is_debug() && !ta->is_stats())
+			ta->set_fast(true);
 	}
 
-	// exec the source once
-	(*source)[module::src::tsk::generate].exec();
-
-	using namespace module;
+	// execute the source once
+	(*source)[src::tsk::generate].exec();
 
 #ifdef MULTI_THREADED
 	// parallel chain
@@ -199,8 +238,8 @@ int main(int argc, char** argv)
 	auto start_clone = std::chrono::system_clock::now();
 	std::cout << "Cloning the modules of the parallel chain... ";
 	std::cout.flush();
-	tools::Chain chain_stage6_parallel(adp_1_to_n[module::adp::tsk::pull_n],
-	                                   adp_n_to_1[module::adp::tsk::push_n],
+	tools::Chain chain_stage6_parallel(adp_1_to_n[adp::tsk::pull_n],
+	                                   adp_n_to_1[adp::tsk::push_n],
 	                                   24,
 	                                   thread_pinnig,
 	                                   { 12, 24, 25, 26, 27,
@@ -212,8 +251,11 @@ int main(int argc, char** argv)
 	                                     41, 42, 43, 44, 45,
 	                                     46, 47 },
 	                                   true); // 'false' results in an error because of the clones of the adaptors...
-	std::ofstream f("chain_stage6_parallel.dot");
-	chain_stage6_parallel.export_dot(f);
+	if (enable_logs)
+	{
+		std::ofstream f("chain_stage6_parallel.dot");
+		chain_stage6_parallel.export_dot(f);
+	}
 	auto end_clone = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds_clone = end_clone - start_clone;
 	std::cout << "Done (" << elapsed_seconds_clone.count() << "s)." << std::endl;
@@ -252,8 +294,11 @@ int main(int argc, char** argv)
 	(*prb_fra_id  )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 
 	tools::Chain chain_sequential1((*radio)[rad::tsk::receive]);
-	std::ofstream fs1("chain_sequential1.dot");
-	chain_sequential1.export_dot(fs1);
+	if (enable_logs)
+	{
+		std::ofstream fs1("chain_sequential1.dot");
+		chain_sequential1.export_dot(fs1);
+	}
 
 	// display the legend in the terminal
 	std::ofstream stats_file("stats.txt");
@@ -269,7 +314,7 @@ int main(int argc, char** argv)
 		const auto m = prb_fra_id->get_occurrences();
 		if (statuses.back() != status_t::SKIPPED)
 			terminal_stats.temp_report(stats_file);
-		else
+		else if (enable_logs)
 			std::clog << rang::tag::warning << "Chain aborted! (learning phase 1&2, m = " << m << ")" << std::endl;
 
 		if (limit == 150 && m >= 150)
@@ -345,8 +390,11 @@ int main(int argc, char** argv)
 	(*prb_fra_id  )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 
 	tools::Chain chain_sequential2((*radio)[rad::tsk::receive]);
-	std::ofstream fs2("chain_sequential2.dot");
-	chain_sequential2.export_dot(fs2);
+	if (enable_logs)
+	{
+		std::ofstream fs2("chain_sequential2.dot");
+		chain_sequential2.export_dot(fs2);
+	}
 
 	stats_file << "####################" << std::endl;
 	stats_file << "# LEARNING PHASE 3 #" << std::endl;
@@ -359,7 +407,7 @@ int main(int argc, char** argv)
 		const auto m = prb_fra_id->get_occurrences();
 		if (statuses.back() != status_t::SKIPPED)
 			terminal_stats.temp_report(stats_file);
-		else
+		else if (enable_logs)
 			std::clog << rang::tag::warning << "Chain aborted! (learning phase 3, m = " << m << ")" << std::endl;
 		return m >= limit;
 	});
@@ -468,19 +516,20 @@ int main(int argc, char** argv)
 	(*prb_fra_id      )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
 
 	// create a chain per pipeline stage
-	tools::Chain chain_stage0((*radio       )[rad::tsk::receive], adp_1_to_1_0 [adp::tsk::push_1], 1, thread_pinnig, { 2 });
-	tools::Chain chain_stage1(  adp_1_to_1_0 [adp::tsk::pull_n ], adp_1_to_1_1 [adp::tsk::push_1], 1, thread_pinnig, { 3 });
-	tools::Chain chain_stage2(  adp_1_to_1_1 [adp::tsk::pull_n ], adp_1_to_1_2 [adp::tsk::push_1], 1, thread_pinnig, { 4 });
-	tools::Chain chain_stage3(  adp_1_to_1_2 [adp::tsk::pull_n ], adp_1_to_1_3 [adp::tsk::push_1], 1, thread_pinnig, { 5 });
-	tools::Chain chain_stage4(  adp_1_to_1_3 [adp::tsk::pull_n ], adp_1_to_1_4 [adp::tsk::push_1], 1, thread_pinnig, { 6 });
-	tools::Chain chain_stage5(  adp_1_to_1_4 [adp::tsk::pull_n ], adp_1_to_n   [adp::tsk::push_1], 1, thread_pinnig, { 7 });
-	tools::Chain chain_stage7(  adp_n_to_1   [adp::tsk::pull_1 ],                                  1, thread_pinnig, { 8 });
+	tools::Chain chain_stage0((*radio       )[rad::tsk::receive], adp_1_to_1_0[adp::tsk::push_1], 1, thread_pinnig, { 2 });
+	tools::Chain chain_stage1(  adp_1_to_1_0 [adp::tsk::pull_n ], adp_1_to_1_1[adp::tsk::push_1], 1, thread_pinnig, { 3 });
+	tools::Chain chain_stage2(  adp_1_to_1_1 [adp::tsk::pull_n ], adp_1_to_1_2[adp::tsk::push_1], 1, thread_pinnig, { 4 });
+	tools::Chain chain_stage3(  adp_1_to_1_2 [adp::tsk::pull_n ], adp_1_to_1_3[adp::tsk::push_1], 1, thread_pinnig, { 5 });
+	tools::Chain chain_stage4(  adp_1_to_1_3 [adp::tsk::pull_n ], adp_1_to_1_4[adp::tsk::push_1], 1, thread_pinnig, { 6 });
+	tools::Chain chain_stage5(  adp_1_to_1_4 [adp::tsk::pull_n ], adp_1_to_n  [adp::tsk::push_1], 1, thread_pinnig, { 7 });
+	tools::Chain chain_stage7(  adp_n_to_1   [adp::tsk::pull_1 ],                                 1, thread_pinnig, { 8 });
 
 	std::vector<tools::Chain*> chain_stages = { &chain_stage0,          &chain_stage1, &chain_stage2,
 	                                            &chain_stage3,          &chain_stage4, &chain_stage5,
 	                                            &chain_stage6_parallel, &chain_stage7,                };
 
-	for (size_t cs = 0; cs < chain_stages.size(); cs++)
+	// dump the chains in dot format
+	for (size_t cs = 0; cs < chain_stages.size() && enable_logs; cs++)
 	{
 		std::ofstream fs("chain_stage" + std::to_string(cs) + ".dot");
 		chain_stages[cs]->export_dot(fs);
@@ -501,20 +550,16 @@ int main(int argc, char** argv)
 	std::vector<std::thread> threads;
 	for (size_t s = 0; s < chain_stages.size(); s++)
 	{
-		const bool last_stage = s == chain_stages.size() -1;
 		auto cs = chain_stages[s];
-		threads.push_back(std::thread([&prb_fra_id, &params, s, cs, last_stage, &terminal_stats, &stats_file, &stop_threads]() {
-			cs->exec([&prb_fra_id, &params, s, last_stage, &terminal_stats, &stats_file](const std::vector<int>& statuses)
+		threads.push_back(std::thread([&prb_fra_id, s, cs, &terminal_stats, &stats_file, &stop_threads]() {
+			cs->exec([&prb_fra_id, s, &terminal_stats, &stats_file](const std::vector<int>& statuses)
 			{
-				if (s == 3 && statuses.back() == status_t::SKIPPED)
-				{
-					const auto m = prb_fra_id->get_occurrences();
+				if (s == 3 && statuses.back() == status_t::SKIPPED && enable_logs)
 					std::clog << std::endl << rang::tag::warning << "Chain aborted! (transmission phase, stage = " << s
-					                                             << ", m = " << m << ")" << std::endl;
-				}
-				if (last_stage)
+					          << ", m = " << prb_fra_id->get_occurrences() << ")" << std::endl;
+				if (s == 7)
 					terminal_stats.temp_report(stats_file);
-				return terminal_stats.is_interrupt();
+				return tools::Terminal::is_interrupt();
 			});
 			stop_threads();
 		}));
@@ -541,6 +586,8 @@ int main(int argc, char** argv)
 	(*prb_thr_time)[prb::sck::probe      ::in    ].reset();
 	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
 	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
+	(*prb_fra_id  )[prb::sck::probe      ::in    ].reset();
+	(*sync_frame  )[sfm::sck::synchronize::status].reset();
 
 	(*prb_decstat_ldpc)[prb::sck::probe::in].bind((*LDPC_decoder)[dec::sck::decode_siho ::status]);
 	(*prb_decstat_bch )[prb::sck::probe::in].bind((*BCH_decoder )[dec::sck::decode_hiho ::status]);
@@ -553,26 +600,27 @@ int main(int argc, char** argv)
 	(*prb_bfer_fe     )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::FE    ]);
 	(*prb_bfer_ber    )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::BER   ]);
 	(*prb_bfer_fer    )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::FER   ]);
+	(*prb_fra_id      )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
 
 	tools::Chain chain_sequential3((*radio)[rad::tsk::receive]);
-	std::ofstream fs3("chain_sequential3.dot");
-	chain_sequential3.export_dot(fs3);
+	if (enable_logs)
+	{
+		std::ofstream fs3("chain_sequential3.dot");
+		chain_sequential3.export_dot(fs3);
+	}
 
 	prb_thr_thr->reset();
 	prb_thr_lat->reset();
 
 	// start the transmission chain
-	chain_sequential3.exec([&prb_fra_id, &params, &monitor, &terminal_stats, &stats_file](const std::vector<int>& statuses)
+	chain_sequential3.exec([&prb_fra_id, &terminal_stats, &stats_file](const std::vector<int>& statuses)
 	{
 		if (statuses.back() != status_t::SKIPPED)
 			terminal_stats.temp_report(stats_file);
-		else
-		{
-			const auto m = prb_fra_id->get_occurrences();
-			std::clog << std::endl << rang::tag::warning << "Chain aborted! (transmission phase, m = " << m << ")"
-			          << std::endl;
-		}
-		return terminal_stats.is_interrupt();
+		else if (enable_logs)
+			std::clog << std::endl << rang::tag::warning << "Chain aborted! (transmission phase, m = "
+			          << prb_fra_id->get_occurrences() << ")" << std::endl;
+		return tools::Terminal::is_interrupt();
 	});
 
 	// stop the radio thread
@@ -580,13 +628,13 @@ int main(int argc, char** argv)
 		m->cancel_waiting();
 #endif /* MULTI_THREADED */
 
-	// display the performance (BER and FER) in the terminal
-	terminal.final_report();
+	// display the performance (BER and FER) in the terminals
+	terminal      .final_report(          );
 	terminal_stats.final_report(stats_file);
 
 	if (params.stats)
 	{
-		std::vector<const module::Module*> modules_stats(modules.size());
+		std::vector<const Module*> modules_stats(modules.size());
 		for (size_t m = 0; m < modules.size(); m++)
 			modules_stats.push_back(modules[m]);
 
@@ -595,7 +643,7 @@ int main(int argc, char** argv)
 		for (size_t cs = 0; cs < chain_stages.size(); cs++)
 		{
 			std::cout << "#" << std::endl << "# Chain stage " << cs << " (" << chain_stages[cs]->get_n_threads()
-			                 << " thread(s)): " << std::endl;
+			          << " thread(s)): " << std::endl;
 			tools::Stats::show(chain_stages[cs]->get_tasks_per_types(), ordered);
 		}
 #else
