@@ -13,8 +13,11 @@ namespace aff3ct
 {
 namespace module
 {
-	template <typename T>
-	class Probe;
+	template <typename T> class Probe_value;
+	template <typename T> class Probe_throughput;
+	template <typename T> class Probe_latency;
+	template <typename T> class Probe_time;
+	template <typename T> class Probe_occurrence;
 }
 namespace tools
 {
@@ -24,10 +27,11 @@ class Reporter_probe : public Reporter
 protected:
 	std::vector<size_t> head;
 	std::vector<size_t> tail;
-	std::vector<std::vector<int8_t>> buffer;
+	std::vector<std::vector<std::vector<int8_t>>> buffer;
 	std::vector<std::type_index> datatypes;
 	std::vector<std::ios_base::fmtflags> stream_flags;
 	std::vector<size_t> precisions;
+	std::vector<size_t> datasizes;
 	std::map<std::string, int> name_to_col;
 	std::map<int, std::string> col_to_name;
 	const int n_frames;
@@ -47,31 +51,56 @@ public:
 	virtual report_t report(bool final = false);
 
 	template <typename T>
-	module::Probe<T>* create_probe(const std::string &name,
-	                               const std::string &unit,
-	                               const std::ios_base::fmtflags ff,
-	                               const size_t precision = 3);
+	module::Probe_value<T>* create_probe_value(const std::string &name,
+	                                           const std::string &unit = "",
+	                                           const size_t socket_size = 1,
+	                                           const std::ios_base::fmtflags ff = std::ios_base::scientific,
+	                                           const size_t precision = 3);
 
 	template <typename T>
-	module::Probe<T>* create_probe(const std::string &name,
-	                               const std::string &unit,
-	                               const size_t precision = 3);
+	module::Probe_throughput<T>* create_probe_throughput(const std::string &name,
+	                                                     const size_t socket_size = 1,
+	                                                     const std::ios_base::fmtflags ff = std::ios_base::dec | std::ios_base::fixed,
+	                                                     const size_t precision = 3);
+
+	template <typename T>
+	module::Probe_latency<T>* create_probe_latency(const std::string &name,
+	                                               const size_t socket_size = 1,
+	                                               const std::ios_base::fmtflags ff = std::ios_base::scientific,
+	                                               const size_t precision = 3);
+
+	template <typename T>
+	module::Probe_time<T>* create_probe_time(const std::string &name,
+	                                         const size_t socket_size = 1,
+	                                         const std::ios_base::fmtflags ff = std::ios_base::dec | std::ios_base::fixed,
+	                                         const size_t precision = 2);
+
+	template <typename T>
+	module::Probe_occurrence<T>* create_probe_occurrence(const std::string &name,
+	                                                     const std::string &unit = "",
+	                                                     const size_t socket_size = 1,
+	                                                     const std::ios_base::fmtflags ff = std::ios_base::scientific,
+	                                                     const size_t precision = 3);
+
+
 
 	virtual void probe(const std::string &name, const void *data, const int frame_id);
 
 protected:
-	template <typename T>
-	size_t col_size(const int col, const size_t buffer_size);
+	void create_probe_checks(const std::string &name);
 
 	template <typename T>
-	bool push(const int col, const T &elt);
+	size_t col_size(const int col);
 
 	template <typename T>
-	T pull(const int col, bool &can_pull);
+	bool push(const int col, const T *data);
+
+	template <typename T>
+	bool pull(const int col, T *data);
 };
 }
 }
 
-#include "Reporter_probe.hxx"
+#include "Tools/Reporter/Reporter_probe.hxx"
 
 #endif /* REPORTER_PROBE_HPP_ */

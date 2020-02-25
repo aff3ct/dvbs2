@@ -2,9 +2,14 @@
 #include <fstream>
 #include <aff3ct.hpp>
 
+#include "Module/Probe/Probe.hpp"
+#include "Module/Probe/Value/Probe_value.hpp"
+#include "Module/Probe/Throughput/Probe_throughput.hpp"
+#include "Module/Probe/Latency/Probe_latency.hpp"
+#include "Module/Probe/Time/Probe_time.hpp"
+#include "Module/Probe/Occurrence/Probe_occurrence.hpp"
 #include "Tools/Reporter/Reporter_probe.hpp"
 #include "Tools/Reporter/Reporter_probe_decstat.hpp"
-#include "Tools/Reporter/Reporter_throughput_DVBS2O.hpp"
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
 using namespace aff3ct;
@@ -68,38 +73,43 @@ int main(int argc, char** argv)
 	                                                                                                                     sync_timing  .get() ));
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
-	tools::Reporter_throughput_DVBS2O<> rep_thr_stats(*monitor);
+	tools::Reporter_probe rep_fra_stats("Frame Counter", params.n_frames);
+	std::unique_ptr<module::Probe_occurrence<int32_t>> prb_fra_id(rep_fra_stats.create_probe_occurrence<int32_t>("ID"));
 
 	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
-	std::unique_ptr<module::Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe<int32_t>("DEL", ""));
-	std::unique_ptr<module::Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe<int32_t>("FLG", ""));
-	std::unique_ptr<module::Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe<float  >("TRI", "", std::ios_base::dec | std::ios_base::fixed));
+	std::unique_ptr<module::Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL"));
+	std::unique_ptr<module::Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG"));
+	std::unique_ptr<module::Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 1, std::ios_base::dec | std::ios_base::fixed));
 
 	tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm", params.n_frames);
-	std::unique_ptr<module::Probe<float>> prb_stm_del(rep_stm_stats.create_probe<float>("DEL", "FRAC"));
+	std::unique_ptr<module::Probe<float>> prb_stm_del(rep_stm_stats.create_probe_value<float>("DEL", "FRAC"));
 
 	tools::Reporter_probe rep_frq_stats("Freq. Synchronization", params.n_frames);
-	std::unique_ptr<module::Probe<float>> prb_frq_coa(rep_frq_stats.create_probe<float>("COA", "CFO"));
-	std::unique_ptr<module::Probe<float>> prb_frq_lr (rep_frq_stats.create_probe<float>("L&R", "CFO"));
-	std::unique_ptr<module::Probe<float>> prb_frq_fin(rep_frq_stats.create_probe<float>("FIN", "CFO"));
+	std::unique_ptr<module::Probe<float>> prb_frq_coa(rep_frq_stats.create_probe_value<float>("COA", "CFO"));
+	std::unique_ptr<module::Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO"));
+	std::unique_ptr<module::Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO"));
 
 	tools::Reporter_probe_decstat rep_decstat_stats("Decoders decoding status", "('0' = success, '1' = fail)", params.n_frames);
-	std::unique_ptr<module::Probe<int32_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe<int32_t>("LDPC", ""));
-	std::unique_ptr<module::Probe<int32_t>> prb_decstat_bch (rep_decstat_stats.create_probe<int32_t>("BCH", ""));
+	std::unique_ptr<module::Probe<int32_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int32_t>("LDPC"));
+	std::unique_ptr<module::Probe<int32_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int32_t>("BCH"));
 
 	tools::Reporter_probe rep_noise_stats("Signal Noise Ratio", "(SNR)", params.n_frames);
-	std::unique_ptr<module::Probe<float>> prb_noise_es(rep_noise_stats.create_probe<float>("Es/N0", "(dB)", std::ios_base::dec | std::ios_base::fixed, 4));
-	std::unique_ptr<module::Probe<float>> prb_noise_eb(rep_noise_stats.create_probe<float>("Eb/N0", "(dB)", std::ios_base::dec | std::ios_base::fixed, 4));
+	std::unique_ptr<module::Probe<float>> prb_noise_es(rep_noise_stats.create_probe_value<float>("Es/N0", "(dB)", 1, std::ios_base::dec | std::ios_base::fixed));
+	std::unique_ptr<module::Probe<float>> prb_noise_eb(rep_noise_stats.create_probe_value<float>("Eb/N0", "(dB)", 1, std::ios_base::dec | std::ios_base::fixed));
 
-	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER) and Frame Error Rate (FER)", params.n_frames);
-	std::unique_ptr<module::Probe<int64_t>> prb_bfer_fra(rep_BFER_stats.create_probe<int64_t>("FRA", "Total"));
-	std::unique_ptr<module::Probe<int64_t>> prb_bfer_be (rep_BFER_stats.create_probe<int64_t>("BE" , "Total"));
-	std::unique_ptr<module::Probe<int64_t>> prb_bfer_fe (rep_BFER_stats.create_probe<int64_t>("FE" , "Total"));
-	std::unique_ptr<module::Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe<float  >("BER", ""));
-	std::unique_ptr<module::Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe<float  >("FER", ""));
+	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER)", "and Frame Error Rate (FER)", params.n_frames);
+	std::unique_ptr<module::Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE"));
+	std::unique_ptr<module::Probe<int32_t>> prb_bfer_fe (rep_BFER_stats.create_probe_value<int32_t>("FE"));
+	std::unique_ptr<module::Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe_value<float  >("BER"));
+	std::unique_ptr<module::Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe_value<float  >("FER"));
 
-	tools::Terminal_dump terminal_stats({ &rep_sfm_stats,   &rep_stm_stats,  &rep_frq_stats, &rep_decstat_stats,
-	                                      &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats                      });
+	tools::Reporter_probe rep_thr_stats("Throughput", "and elapsed time", params.n_frames);
+	std::unique_ptr<module::Probe<int32_t>> prb_thr_thr (rep_thr_stats.create_probe_throughput<int32_t>("THR", params.K_bch));
+	std::unique_ptr<module::Probe<int32_t>> prb_thr_lat (rep_thr_stats.create_probe_latency   <int32_t>("LAT"));
+	std::unique_ptr<module::Probe<int32_t>> prb_thr_time(rep_thr_stats.create_probe_time      <int32_t>("TIME"));
+
+	tools::Terminal_dump terminal_stats({ &rep_fra_stats,     &rep_sfm_stats,   &rep_stm_stats,  &rep_frq_stats,
+	                                      &rep_decstat_stats, &rep_noise_stats, &rep_BFER_stats, &rep_thr_stats });
 
 #ifdef MULTI_THREADED
 	const size_t buffer_size = 1;
@@ -148,8 +158,9 @@ int main(int argc, char** argv)
 	            /* probes */
 	            prb_sfm_del .get(), prb_sfm_flg     .get(), prb_sfm_tri    .get(), prb_stm_del .get(),
 	            prb_frq_coa .get(), prb_frq_lr      .get(), prb_frq_fin    .get(), prb_noise_es.get(),
-	            prb_noise_eb.get(), prb_decstat_ldpc.get(), prb_decstat_bch.get(), prb_bfer_fra.get(),
-	            prb_bfer_be .get(), prb_bfer_fe     .get(), prb_bfer_ber   .get(), prb_bfer_fer.get(),
+	            prb_noise_eb.get(), prb_decstat_ldpc.get(), prb_decstat_bch.get(), prb_bfer_be .get(),
+	            prb_bfer_fe .get(), prb_bfer_ber    .get(), prb_bfer_fer   .get(), prb_thr_thr .get(),
+	            prb_thr_lat .get(), prb_thr_time    .get(), prb_fra_id     .get(),
 #ifdef MULTI_THREADED
 	            /* adaptors */
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
@@ -214,6 +225,10 @@ int main(int argc, char** argv)
 	// ================================================================================================================
 	// LEARNING PHASE 1 & 2 ===========================================================================================
 
+	prb_thr_thr ->reset();
+	prb_thr_lat ->reset();
+	prb_thr_time->reset();
+
 	auto start_learning = std::chrono::system_clock::now();
 	std::cout << "Learning phase... ";
 	std::cout.flush();
@@ -227,11 +242,14 @@ int main(int argc, char** argv)
 	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N  ]);
 
 	// add probes
-	(*prb_frq_coa)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::FRQ]);
-	(*prb_stm_del)[prb::sck::probe::X_N].bind((*sync_step_mf)[smf::sck::synchronize::MU ]);
-	(*prb_sfm_del)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::DEL]);
-	(*prb_sfm_tri)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::TRI]);
-	(*prb_sfm_flg)[prb::sck::probe::X_N].bind((*sync_frame  )[sfm::sck::synchronize::FLG]);
+	(*prb_frq_coa )[prb::sck::probe::in].bind((*sync_step_mf)[smf::sck::synchronize::FRQ   ]);
+	(*prb_stm_del )[prb::sck::probe::in].bind((*sync_step_mf)[smf::sck::synchronize::MU    ]);
+	(*prb_sfm_del )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::DEL   ]);
+	(*prb_sfm_tri )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::TRI   ]);
+	(*prb_sfm_flg )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::FLG   ]);
+	(*prb_thr_lat )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
+	(*prb_thr_time)[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
+	(*prb_fra_id  )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 
 	tools::Chain chain_sequential1((*radio)[rad::tsk::receive]);
 	std::ofstream fs1("chain_sequential1.dot");
@@ -244,16 +262,13 @@ int main(int argc, char** argv)
 	stats_file << "####################" << std::endl;
 	terminal_stats.legend(stats_file);
 
-	int m = 0;
 	int limit = 150;
 	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 	chain_sequential1.exec([&](const std::vector<int>& statuses)
 	{
+		const auto m = prb_fra_id->get_occurrences();
 		if (statuses.back() != status_t::SKIPPED)
-		{
 			terminal_stats.temp_report(stats_file);
-			m += params.n_frames;
-		}
 		else
 			std::clog << rang::tag::warning << "Chain aborted! (learning phase 1&2, m = " << m << ")" << std::endl;
 
@@ -301,24 +316,33 @@ int main(int argc, char** argv)
 	(*sync_fine_pf )[sff::sck::synchronize::X_N1].bind((*sync_lr      )[sff::sck::synchronize::Y_N2]);
 
 	// add probes
-	(*prb_frq_coa )[prb::sck::probe      ::X_N].reset();
-	(*prb_stm_del )[prb::sck::probe      ::X_N].reset();
-	(*prb_sfm_del )[prb::sck::probe      ::X_N].reset();
-	(*prb_sfm_tri )[prb::sck::probe      ::X_N].reset();
-	(*prb_sfm_flg )[prb::sck::probe      ::X_N].reset();
-	(*sync_step_mf)[smf::sck::synchronize::FRQ].reset();
-	(*sync_step_mf)[smf::sck::synchronize::MU ].reset();
-	(*sync_frame  )[sfm::sck::synchronize::DEL].reset();
-	(*sync_frame  )[sfm::sck::synchronize::TRI].reset();
-	(*sync_frame  )[sfm::sck::synchronize::FLG].reset();
+	(*prb_frq_coa )[prb::sck::probe      ::in    ].reset();
+	(*prb_stm_del )[prb::sck::probe      ::in    ].reset();
+	(*prb_sfm_del )[prb::sck::probe      ::in    ].reset();
+	(*prb_sfm_tri )[prb::sck::probe      ::in    ].reset();
+	(*prb_sfm_flg )[prb::sck::probe      ::in    ].reset();
+	(*sync_step_mf)[smf::sck::synchronize::FRQ   ].reset();
+	(*sync_step_mf)[smf::sck::synchronize::MU    ].reset();
+	(*sync_frame  )[sfm::sck::synchronize::DEL   ].reset();
+	(*sync_frame  )[sfm::sck::synchronize::TRI   ].reset();
+	(*sync_frame  )[sfm::sck::synchronize::FLG   ].reset();
+	(*prb_thr_lat )[prb::sck::probe      ::in    ].reset();
+	(*prb_thr_time)[prb::sck::probe      ::in    ].reset();
+	(*sync_frame  )[sfm::sck::synchronize::status].reset();
+	(*sync_frame  )[sfm::sck::synchronize::status].reset();
+	(*prb_fra_id  )[prb::sck::probe      ::in    ].reset();
+	(*sync_frame  )[sfm::sck::synchronize::status].reset();
 
-	(*prb_frq_coa)[prb::sck::probe::X_N].bind((*sync_coarse_f)[sfc::sck::synchronize::FRQ]);
-	(*prb_stm_del)[prb::sck::probe::X_N].bind((*sync_timing  )[stm::sck::synchronize::MU ]);
-	(*prb_sfm_del)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::DEL]);
-	(*prb_sfm_tri)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::TRI]);
-	(*prb_sfm_flg)[prb::sck::probe::X_N].bind((*sync_frame   )[sfm::sck::synchronize::FLG]);
-	(*prb_frq_lr )[prb::sck::probe::X_N].bind((*sync_lr      )[sff::sck::synchronize::FRQ]);
-	(*prb_frq_fin)[prb::sck::probe::X_N].bind((*sync_fine_pf )[sff::sck::synchronize::FRQ]);
+	(*prb_frq_coa )[prb::sck::probe::in].bind((*sync_coarse_f)[sfc::sck::synchronize::FRQ   ]);
+	(*prb_stm_del )[prb::sck::probe::in].bind((*sync_timing  )[stm::sck::synchronize::MU    ]);
+	(*prb_sfm_del )[prb::sck::probe::in].bind((*sync_frame   )[sfm::sck::synchronize::DEL   ]);
+	(*prb_sfm_tri )[prb::sck::probe::in].bind((*sync_frame   )[sfm::sck::synchronize::TRI   ]);
+	(*prb_sfm_flg )[prb::sck::probe::in].bind((*sync_frame   )[sfm::sck::synchronize::FLG   ]);
+	(*prb_frq_lr  )[prb::sck::probe::in].bind((*sync_lr      )[sff::sck::synchronize::FRQ   ]);
+	(*prb_frq_fin )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::FRQ   ]);
+	(*prb_thr_lat )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
+	(*prb_thr_time)[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
+	(*prb_fra_id  )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 
 	tools::Chain chain_sequential2((*radio)[rad::tsk::receive]);
 	std::ofstream fs2("chain_sequential2.dot");
@@ -329,17 +353,14 @@ int main(int argc, char** argv)
 	stats_file << "####################" << std::endl;
 	terminal_stats.legend(stats_file);
 
-	limit = m + 200;
+	limit = prb_fra_id->get_occurrences() + 200;
 	chain_sequential2.exec([&](const std::vector<int>& statuses)
 	{
+		const auto m = prb_fra_id->get_occurrences();
 		if (statuses.back() != status_t::SKIPPED)
-		{
 			terminal_stats.temp_report(stats_file);
-			m += params.n_frames;
-		}
 		else
 			std::clog << rang::tag::warning << "Chain aborted! (learning phase 3, m = " << m << ")" << std::endl;
-
 		return m >= limit;
 	});
 
@@ -425,25 +446,35 @@ int main(int argc, char** argv)
 	(*sink         )[snk::sck::send        ::V  ].bind(  adp_n_to_1    [adp::sck::pull_1     ::out3]);
 
 	// add probes
+	(*prb_thr_lat )[prb::sck::probe      ::in    ].reset();
+	(*prb_thr_time)[prb::sck::probe      ::in    ].reset();
+	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
+	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
+	(*prb_fra_id  )[prb::sck::probe      ::in    ].reset();
+	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
+
 	const int high_priority = 0;
-	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind(  adp_n_to_1[adp::sck::pull_1      ::out1 ], high_priority);
-	(*prb_decstat_bch )[prb::sck::probe::X_N].bind(  adp_n_to_1[adp::sck::pull_1      ::out2 ], high_priority);
-	(*prb_noise_es    )[prb::sck::probe::X_N].bind((*estimator)[est::sck::estimate    ::Es_N0], high_priority);
-	(*prb_noise_eb    )[prb::sck::probe::X_N].bind((*estimator)[est::sck::estimate    ::Eb_N0], high_priority);
-	(*prb_bfer_fra    )[prb::sck::probe::X_N].bind((*monitor  )[mnt::sck::check_errors::FRA  ], high_priority);
-	(*prb_bfer_be     )[prb::sck::probe::X_N].bind((*monitor  )[mnt::sck::check_errors::BE   ], high_priority);
-	(*prb_bfer_fe     )[prb::sck::probe::X_N].bind((*monitor  )[mnt::sck::check_errors::FE   ], high_priority);
-	(*prb_bfer_ber    )[prb::sck::probe::X_N].bind((*monitor  )[mnt::sck::check_errors::BER  ], high_priority);
-	(*prb_bfer_fer    )[prb::sck::probe::X_N].bind((*monitor  )[mnt::sck::check_errors::FER  ], high_priority);
+	(*prb_decstat_ldpc)[prb::sck::probe::in].bind(  adp_n_to_1[adp::sck::pull_1      ::out1  ], high_priority);
+	(*prb_decstat_bch )[prb::sck::probe::in].bind(  adp_n_to_1[adp::sck::pull_1      ::out2  ], high_priority);
+	(*prb_thr_thr     )[prb::sck::probe::in].bind(  adp_n_to_1[adp::sck::pull_1      ::out3  ], high_priority);
+	(*prb_thr_lat     )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
+	(*prb_thr_time    )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
+	(*prb_noise_es    )[prb::sck::probe::in].bind((*estimator)[est::sck::estimate    ::Es_N0 ], high_priority);
+	(*prb_noise_eb    )[prb::sck::probe::in].bind((*estimator)[est::sck::estimate    ::Eb_N0 ], high_priority);
+	(*prb_bfer_be     )[prb::sck::probe::in].bind((*monitor  )[mnt::sck::check_errors::BE    ], high_priority);
+	(*prb_bfer_fe     )[prb::sck::probe::in].bind((*monitor  )[mnt::sck::check_errors::FE    ], high_priority);
+	(*prb_bfer_ber    )[prb::sck::probe::in].bind((*monitor  )[mnt::sck::check_errors::BER   ], high_priority);
+	(*prb_bfer_fer    )[prb::sck::probe::in].bind((*monitor  )[mnt::sck::check_errors::FER   ], high_priority);
+	(*prb_fra_id      )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
 
 	// create a chain per pipeline stage
-	tools::Chain chain_stage0((*radio       )[rad::tsk::receive],   adp_1_to_1_0 [adp::tsk::push_1], 1, thread_pinnig, { 2 });
-	tools::Chain chain_stage1(  adp_1_to_1_0 [adp::tsk::pull_n ],   adp_1_to_1_1 [adp::tsk::push_1], 1, thread_pinnig, { 3 });
-	tools::Chain chain_stage2(  adp_1_to_1_1 [adp::tsk::pull_n ],   adp_1_to_1_2 [adp::tsk::push_1], 1, thread_pinnig, { 4 });
-	tools::Chain chain_stage3(  adp_1_to_1_2 [adp::tsk::pull_n ],   adp_1_to_1_3 [adp::tsk::push_1], 1, thread_pinnig, { 5 });
-	tools::Chain chain_stage4(  adp_1_to_1_3 [adp::tsk::pull_n ],   adp_1_to_1_4 [adp::tsk::push_1], 1, thread_pinnig, { 6 });
-	tools::Chain chain_stage5(  adp_1_to_1_4 [adp::tsk::pull_n ],   adp_1_to_n   [adp::tsk::push_1], 1, thread_pinnig, { 7 });
-	tools::Chain chain_stage7(  adp_n_to_1   [adp::tsk::pull_1 ], (*sink        )[snk::tsk::send  ], 1, thread_pinnig, { 8 });
+	tools::Chain chain_stage0((*radio       )[rad::tsk::receive], adp_1_to_1_0 [adp::tsk::push_1], 1, thread_pinnig, { 2 });
+	tools::Chain chain_stage1(  adp_1_to_1_0 [adp::tsk::pull_n ], adp_1_to_1_1 [adp::tsk::push_1], 1, thread_pinnig, { 3 });
+	tools::Chain chain_stage2(  adp_1_to_1_1 [adp::tsk::pull_n ], adp_1_to_1_2 [adp::tsk::push_1], 1, thread_pinnig, { 4 });
+	tools::Chain chain_stage3(  adp_1_to_1_2 [adp::tsk::pull_n ], adp_1_to_1_3 [adp::tsk::push_1], 1, thread_pinnig, { 5 });
+	tools::Chain chain_stage4(  adp_1_to_1_3 [adp::tsk::pull_n ], adp_1_to_1_4 [adp::tsk::push_1], 1, thread_pinnig, { 6 });
+	tools::Chain chain_stage5(  adp_1_to_1_4 [adp::tsk::pull_n ], adp_1_to_n   [adp::tsk::push_1], 1, thread_pinnig, { 7 });
+	tools::Chain chain_stage7(  adp_n_to_1   [adp::tsk::pull_1 ],                                  1, thread_pinnig, { 8 });
 
 	std::vector<tools::Chain*> chain_stages = { &chain_stage0,          &chain_stage1, &chain_stage2,
 	                                            &chain_stage3,          &chain_stage4, &chain_stage5,
@@ -463,31 +494,31 @@ int main(int argc, char** argv)
 				m->cancel_waiting();
 	};
 
+	prb_thr_thr->reset();
+	prb_thr_lat->reset();
+
 	// start the pipeline stages in separated threads
 	std::vector<std::thread> threads;
 	for (size_t s = 0; s < chain_stages.size(); s++)
 	{
 		const bool last_stage = s == chain_stages.size() -1;
 		auto cs = chain_stages[s];
-		threads.push_back(std::thread([&m, &params, s, cs, last_stage, &terminal_stats, &stats_file, &stop_threads]() {
-			cs->exec([&m, &params, s, last_stage, &terminal_stats, &stats_file](const std::vector<int>& statuses)
+		threads.push_back(std::thread([&prb_fra_id, &params, s, cs, last_stage, &terminal_stats, &stats_file, &stop_threads]() {
+			cs->exec([&prb_fra_id, &params, s, last_stage, &terminal_stats, &stats_file](const std::vector<int>& statuses)
 			{
 				if (s == 3 && statuses.back() == status_t::SKIPPED)
+				{
+					const auto m = prb_fra_id->get_occurrences();
 					std::clog << std::endl << rang::tag::warning << "Chain aborted! (transmission phase, stage = " << s
 					                                             << ", m = " << m << ")" << std::endl;
-				if (last_stage)
-				{
-					terminal_stats.temp_report(stats_file);
-					m += params.n_frames;
 				}
+				if (last_stage)
+					terminal_stats.temp_report(stats_file);
 				return terminal_stats.is_interrupt();
 			});
 			stop_threads();
 		}));
 	}
-
-	// std::this_thread::sleep_for(std::chrono::seconds(240));
-	// stop_threads();
 
 	// wait all the pipeline threads here
 	for (auto &t : threads)
@@ -506,31 +537,41 @@ int main(int argc, char** argv)
 	(*sink        )[snk::sck::send         ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
 	// add probes
-	(*prb_decstat_ldpc)[prb::sck::probe::X_N].bind((*LDPC_decoder)[dec::sck::decode_siho ::status]);
-	(*prb_decstat_bch )[prb::sck::probe::X_N].bind((*BCH_decoder )[dec::sck::decode_hiho ::status]);
-	(*prb_noise_es    )[prb::sck::probe::X_N].bind((*estimator   )[est::sck::estimate    ::Es_N0 ]);
-	(*prb_noise_eb    )[prb::sck::probe::X_N].bind((*estimator   )[est::sck::estimate    ::Eb_N0 ]);
-	(*prb_bfer_fra    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FRA   ]);
-	(*prb_bfer_be     )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::BE    ]);
-	(*prb_bfer_fe     )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FE    ]);
-	(*prb_bfer_ber    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::BER   ]);
-	(*prb_bfer_fer    )[prb::sck::probe::X_N].bind((*monitor     )[mnt::sck::check_errors::FER   ]);
+	(*prb_thr_lat )[prb::sck::probe      ::in    ].reset();
+	(*prb_thr_time)[prb::sck::probe      ::in    ].reset();
+	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
+	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
+
+	(*prb_decstat_ldpc)[prb::sck::probe::in].bind((*LDPC_decoder)[dec::sck::decode_siho ::status]);
+	(*prb_decstat_bch )[prb::sck::probe::in].bind((*BCH_decoder )[dec::sck::decode_hiho ::status]);
+	(*prb_thr_thr     )[prb::sck::probe::in].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K   ]);
+	(*prb_thr_lat     )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
+	(*prb_thr_time    )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
+	(*prb_noise_es    )[prb::sck::probe::in].bind((*estimator   )[est::sck::estimate    ::Es_N0 ]);
+	(*prb_noise_eb    )[prb::sck::probe::in].bind((*estimator   )[est::sck::estimate    ::Eb_N0 ]);
+	(*prb_bfer_be     )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::BE    ]);
+	(*prb_bfer_fe     )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::FE    ]);
+	(*prb_bfer_ber    )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::BER   ]);
+	(*prb_bfer_fer    )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::FER   ]);
 
 	tools::Chain chain_sequential3((*radio)[rad::tsk::receive]);
 	std::ofstream fs3("chain_sequential3.dot");
 	chain_sequential3.export_dot(fs3);
 
+	prb_thr_thr->reset();
+	prb_thr_lat->reset();
+
 	// start the transmission chain
-	chain_sequential3.exec([&params, &m, &monitor, &terminal_stats, &stats_file](const std::vector<int>& statuses)
+	chain_sequential3.exec([&prb_fra_id, &params, &monitor, &terminal_stats, &stats_file](const std::vector<int>& statuses)
 	{
 		if (statuses.back() != status_t::SKIPPED)
-		{
 			terminal_stats.temp_report(stats_file);
-			m += params.n_frames;
-		}
 		else
+		{
+			const auto m = prb_fra_id->get_occurrences();
 			std::clog << std::endl << rang::tag::warning << "Chain aborted! (transmission phase, m = " << m << ")"
 			          << std::endl;
+		}
 		return terminal_stats.is_interrupt();
 	});
 

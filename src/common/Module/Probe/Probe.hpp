@@ -1,17 +1,13 @@
-/*!
- * \file
- * \brief Performs synchronization on a signal.
- *
- * \section LICENSE
- * This file is under MIT license (https://opensource.org/licenses/MIT).
- */
 #ifndef PROBE_HPP_
 #define PROBE_HPP_
 
+#include <memory>
+#include <string>
 #include <vector>
+#include <typeindex>
 
 #include "Module/Module.hpp"
-#include "Tools/Noise/noise_utils.h"
+#include "Tools/Interface/Interface_reset.hpp"
 #include "Tools/Reporter/Reporter_probe.hpp"
 
 namespace aff3ct
@@ -24,61 +20,42 @@ namespace module
 
 		namespace sck
 		{
-			enum class probe : uint8_t { X_N, status };
+			enum class probe : uint8_t { in, status };
 		}
 	}
 
-/*!
- * \class Probe
- *
- * \brief Synchronizes a signal.
- *
- * \tparam R: type of the reals (floating-point representation) of the filtering process.
- *
- * Please use Probe for inheritance (instead of Probe)
- */
-template <typename R = float>
-class Probe : public Module
+template <typename T>
+class Probe : public Module, public Interface_reset
 {
 public:
-	inline Task&   operator[](const prb::tsk        t) { return Module::operator[]((int)t);                      }
-	inline Socket& operator[](const prb::sck::probe s) { return Module::operator[]((int)prb::tsk::probe)[(int)s];}
+	inline Task&   operator[](const prb::tsk        t);
+	inline Socket& operator[](const prb::sck::probe s);
 
 protected:
-	const int N;  /*!< Size of one frame (= number of samples in one frame) */
-	std::string col_name;
+	const int size;
+	const std::string col_name;
 	tools::Reporter_probe& reporter;
 
 public:
-	/*!
-	 * \brief Constructor.
-	 *
-	 * \param N:        size of one frame (= number of samples in one frame).
-	 * \param n_frames: number of frames to process in the Probe.
-	 */
-	Probe(const int N, const std::string &col_name, tools::Reporter_probe& reporter, const int n_frames = 1);
+	Probe(const int size, const std::string &col_name, tools::Reporter_probe& reporter, const int n_frames = 1);
 
-	void init_processes();
-
-	/*!
-	 * \brief Destructor.
-	 */
 	virtual ~Probe() = default;
 
-	/*!
-	 * \brief Probes a of Module.
-	 *
-	 * By default this method does nothing.
-	 *
-	 * \param X_N: a vector of samples.
-	 */
-	template <class AR = std::allocator<R>>
-	void probe(const std::vector<R,AR>& X_N, const int frame_id = -1);
+	template <class AT = std::allocator<T>>
+	void probe(const std::vector<T,AT>& in, const int frame_id = -1);
 
-	void probe(const R *X_N, const int frame_id = -1);
+	virtual void probe(const T *in, const int frame_id = -1);
+
+	virtual std::type_index get_datatype() const = 0;
+
+	virtual void reset();
+
+protected:
+	virtual void _probe(const T *in, const int frame_id);
 };
 }
 }
-#include "Probe.hxx"
+
+#include "Module/Probe/Probe.hxx"
 
 #endif /* PROBE_HPP_ */

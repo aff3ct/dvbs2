@@ -44,7 +44,7 @@ void Reporter_probe_decstat
 				packed_statuses >>= 1;
 			}
 			for (auto s : statuses)
-				this->push<int32_t>(col, s);
+				this->push<int32_t>(col, &s);
 		}
 	}
 	else
