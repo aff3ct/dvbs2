@@ -16,8 +16,12 @@ Radio_USRP<R>
   threaded(params.threaded),
   rx_enabled(params.rx_enabled),
   tx_enabled(params.tx_enabled),
-  fifo_send   (threaded && tx_enabled ? uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R))) : 0),
-  fifo_receive(threaded && rx_enabled ? uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R))) : 0),
+  fifo_send     (threaded && tx_enabled ? uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R))) : 0),
+  fifo_receive  (threaded && rx_enabled ? uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R))) : 0),
+  fifo_ovf_flags(threaded && rx_enabled ? uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R))) : 0),
+  fifo_seq_flags(threaded && rx_enabled ? uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R))) : 0),
+  fifo_clt_flags(threaded && rx_enabled ? uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R))) : 0),
+  fifo_tim_flags(threaded && rx_enabled ? uint64_t(1) + std::max(uint64_t(1), params.fifo_size / (2 * params.N * sizeof(R))) : 0),
   stop_threads(false),
   idx_w_send(0),
   idx_r_send(0),
@@ -33,6 +37,14 @@ Radio_USRP<R>
 		fifo_send[i] = new R[2 * params.N];
 	for (size_t i = 0; i < fifo_receive.size(); i++)
 		fifo_receive[i] = new R[2 * params.N];
+	for (size_t i = 0; i < fifo_ovf_flags.size(); i++)
+		fifo_ovf_flags[i] = new int32_t[1];
+	for (size_t i = 0; i < fifo_seq_flags.size(); i++)
+		fifo_seq_flags[i] = new int32_t[1];
+	for (size_t i = 0; i < fifo_clt_flags.size(); i++)
+		fifo_clt_flags[i] = new int32_t[1];
+	for (size_t i = 0; i < fifo_tim_flags.size(); i++)
+		fifo_tim_flags[i] = new int32_t[1];
 
 	if (typeid(R) == typeid(R_8)  ||
 	    typeid(R) == typeid(R_16) ||
@@ -104,6 +116,14 @@ Radio_USRP<R>
 		delete[] fifo_send[i];
 	for (auto i = 0u; i < fifo_receive.size(); i++)
 		delete[] fifo_receive[i];
+	for (auto i = 0u; i < fifo_ovf_flags.size(); i++)
+		delete[] fifo_ovf_flags[i];
+	for (auto i = 0u; i < fifo_seq_flags.size(); i++)
+		delete[] fifo_seq_flags[i];
+	for (auto i = 0u; i < fifo_clt_flags.size(); i++)
+		delete[] fifo_clt_flags[i];
+	for (auto i = 0u; i < fifo_tim_flags.size(); i++)
+		delete[] fifo_tim_flags[i];
 }
 
 template <typename R>
@@ -147,9 +167,17 @@ void Radio_USRP<R>
 	}
 
 	if (threaded)
-		fifo_receive_read(Y_N1);
+		fifo_receive_read(&this->ovf_flags[frame_id],
+		                  &this->seq_flags[frame_id],
+		                  &this->clt_flags[frame_id],
+		                  &this->tim_flags[frame_id],
+		                  Y_N1);
 	else
-		receive_usrp(Y_N1);
+		receive_usrp(&this->ovf_flags[frame_id],
+		             &this->seq_flags[frame_id],
+		             &this->clt_flags[frame_id],
+		             &this->tim_flags[frame_id],
+		             Y_N1);
 }
 
 template <typename R>
@@ -186,7 +214,7 @@ void Radio_USRP<R>
 
 template <typename R>
 void Radio_USRP<R>
-::fifo_receive_read(R * Y_N1)
+::fifo_receive_read(int32_t *OVF, int32_t *SEQ, int32_t *CLT, int32_t *TIM, R *Y_N1)
 {
 	bool has_read = false;
 	while (!has_read && !stop_threads)
@@ -194,6 +222,10 @@ void Radio_USRP<R>
 		if (this->idx_w_receive != this->idx_r_receive)
 		{
 			std::copy(fifo_receive[this->idx_r_receive], fifo_receive[this->idx_r_receive] + 2 * this->N, Y_N1);
+			*OVF = *(fifo_ovf_flags[this->idx_r_receive]);
+			*SEQ = *(fifo_seq_flags[this->idx_r_receive]);
+			*CLT = *(fifo_clt_flags[this->idx_r_receive]);
+			*TIM = *(fifo_tim_flags[this->idx_r_receive]);
 			this->idx_r_receive = (this->idx_r_receive +1) % fifo_receive.size();
 			has_read = true;
 		}
@@ -205,11 +237,16 @@ void Radio_USRP<R>
 ::fifo_receive_write()
 {
 	bool has_written = false;
+
 	while (!has_written && !stop_threads)
 	{
 		if (((this->idx_w_receive +1) % fifo_receive.size()) != this->idx_r_receive)
 		{
-			receive_usrp(fifo_receive[this->idx_w_receive]);
+			receive_usrp(fifo_ovf_flags[this->idx_w_receive],
+			             fifo_seq_flags[this->idx_w_receive],
+			             fifo_clt_flags[this->idx_w_receive],
+			             fifo_tim_flags[this->idx_w_receive],
+			             fifo_receive  [this->idx_w_receive]);
 			this->idx_w_receive = (this->idx_w_receive +1) % fifo_receive.size();
 			has_written = true;
 		}
@@ -260,11 +297,15 @@ void Radio_USRP<R>
 
 template <typename R>
 void Radio_USRP<R>
-::receive_usrp(R *Y_N1)
+::receive_usrp(int32_t *OVF, int32_t *SEQ, int32_t *CLT, int32_t *TIM, R *Y_N1)
 {
 	uhd::rx_metadata_t md;
 
 	auto num_rx_samps = 0;
+	*OVF = 0;
+	*SEQ = 0;
+	*CLT = 0;
+	*TIM = 0;
 	while (num_rx_samps < this->N)
 	{
 		num_rx_samps += rx_stream->recv(Y_N1 + 2 * num_rx_samps, this->N - num_rx_samps, md);
@@ -280,14 +321,17 @@ void Radio_USRP<R>
 				// count overflows ?
 				if (!md.out_of_sequence)
 				{
+					*OVF += 1;
 					UHD_LOGGER_INFO("RADIO USRP") << "Detected overflow in Radio Rx.";
 				} else
 				{
+					*SEQ += 1;
 					UHD_LOGGER_INFO("RADIO USRP") << "Detected Rx sequence error.";
 				}
 				break;
 
 			case uhd::rx_metadata_t::ERROR_CODE_LATE_COMMAND:
+				*CLT += 1;
 				UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
 				// Radio core will be in the idle state. Issue stream command to restart
 				// streaming.
@@ -296,6 +340,7 @@ void Radio_USRP<R>
 				break;
 
 			case uhd::rx_metadata_t::ERROR_CODE_TIMEOUT:
+				*TIM += 1;
 				UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
 				break;
 
