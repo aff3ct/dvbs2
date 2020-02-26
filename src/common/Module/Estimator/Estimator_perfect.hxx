@@ -114,9 +114,10 @@ _rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
 		Y_N[2*i+1] /= _sigma;
 	}
 
+	float H_ = std::sqrt(2*sigma->get_esn0());
 	for (int i = 0; i < this->N / 2; i++)
 	{
-		H_N[2*i]   = sigma->get_esn0();
+		H_N[2*i]   = H_;
 		H_N[2*i+1] = 0.0;
 	}
 

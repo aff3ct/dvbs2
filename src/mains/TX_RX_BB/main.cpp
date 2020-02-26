@@ -54,10 +54,9 @@ int main(int argc, char** argv)
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 	// set the noise
-	channel  ->set_noise(noise_ref);
-	estimator->set_noise(noise_est);
-	LDPC_cdc ->set_noise(noise_est);
-	modem    ->set_noise(noise_est);
+	channel  ->set_noise(noise_ref );
+	estimator->set_noise(noise_est );
+	modem    ->set_noise(noise_fake);
 
 	LDPC_encoder->set_custom_name("LDPC Encoder");
 	LDPC_decoder->set_custom_name("LDPC Decoder");
@@ -93,9 +92,9 @@ int main(int argc, char** argv)
 	(*channel     )[chn::sck::add_noise    ::X_N ].bind((*pl_scrambler)[scr::sck::scramble     ::X_N2]);
 	(*pl_scrambler)[scr::sck::descramble   ::Y_N1].bind((*channel     )[chn::sck::add_noise    ::Y_N ]);
 	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2]);
-	(*estimator   )[est::sck::estimate     ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::estimate     ::H_N ]);
-	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*estimator   )[est::sck::rescale      ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::rescale      ::H_N ]);
+	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*estimator   )[est::sck::rescale      ::Y_N ]);
 	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
 	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
 	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
@@ -114,8 +113,6 @@ int main(int argc, char** argv)
 	// registering to noise updates
 	for (auto &m : chain.get_modules<Channel<>>())
 		noise_ref.record_callback_update([m](){ m->notify_noise_update(); });
-	for (auto &m : chain.get_modules<Modem<>>())
-		noise_est.record_callback_update([m](){ m->notify_noise_update(); });
 
 	// set different seeds in the modules that uses PRNG
 	std::mt19937 prng;

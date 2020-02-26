@@ -94,7 +94,6 @@ void Estimator_DVBS2O<R>::
 _rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
 {
 	float moment2 = 0, moment4 = 0;
-	float pow_tot, pow_sig_util;
 
 	for (int i = 0; i < this->N / 2; i++)
 	{
@@ -109,24 +108,20 @@ _rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
 	float Ne      = std::abs( moment2 - Se );
 	float esn0_estimated = 10 * std::log10(Se / Ne);
 
-	pow_tot = moment2;
-
-	pow_sig_util = pow_tot / (1+(std::pow(10, (-1 * esn0_estimated/10))));
-
-	const auto sigma_estimated = std::sqrt((pow_tot - pow_sig_util));
-	// tools::esn0_to_sigma(esn0_estimated);
+	const auto sigma_estimated = tools::esn0_to_sigma(esn0_estimated);
 	const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, code_rate, bps);
 
 	// hack to have the SNR displayed in the terminal
 	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise);
 	sigma->set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
 
+	float H_ = std::sqrt(2*esn0_estimated);
 	for (int i = 0; i < this->N / 2; i++)
 	{
 		Y_N[2*i  ] = X_N[2*i  ] / sigma_estimated;
 		Y_N[2*i+1] = X_N[2*i+1] / sigma_estimated;
 
-		H_N[2*i  ] = std::sqrt(esn0_estimated);
+		H_N[2*i  ] = H_;
 		H_N[2*i+1] = 0;
 	}
 
