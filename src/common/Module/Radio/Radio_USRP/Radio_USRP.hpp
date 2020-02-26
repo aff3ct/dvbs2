@@ -62,6 +62,7 @@ public:
 	Radio_USRP(const factory::Radio& params, const int n_frames = 1);
 	~Radio_USRP();
 
+	void flush();
 	virtual void reset();
 	virtual void send_cancel_signal();
 	virtual void wake_up();

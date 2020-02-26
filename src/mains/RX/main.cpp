@@ -11,6 +11,9 @@
 #include "Tools/Reporter/Reporter_probe.hpp"
 #include "Tools/Reporter/Reporter_probe_decstat.hpp"
 #include "Factory/DVBS2O/DVBS2O.hpp"
+#ifdef DVBS2O_LINK_UHD
+#include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
+#endif
 
 using namespace aff3ct;
 using namespace aff3ct::module;
@@ -252,7 +255,7 @@ int main(int argc, char** argv)
 	                                   true); // 'false' results in an error because of the clones of the adaptors...
 	if (enable_logs)
 	{
-		std::ofstream f("chain_stage6_parallel.dot");
+		std::ofstream f("chain_transmission_6.dot");
 		chain_stage6_parallel.export_dot(f);
 	}
 	auto end_clone = std::chrono::system_clock::now();
@@ -264,19 +267,19 @@ int main(int argc, char** argv)
 #endif /* MULTI_THREADED */
 
 	// ================================================================================================================
-	// LEARNING PHASE 1 & 2 ===========================================================================================
-
-	auto start_learning = std::chrono::system_clock::now();
-	std::cout << "Learning phase... ";
+	// WAITING PHASE ==================================================================================================
+	// ================================================================================================================
+	auto start_waiting = std::chrono::system_clock::now();
+	std::cout << "Waiting phase... ";
 	std::cout.flush();
 
-	(*front_agc   )[mlt::sck::imultiply  ::X_N  ].bind((*radio       )[rad::sck::receive    ::Y_N1 ]);
-	(*sync_step_mf)[smf::sck::synchronize::X_N1 ].bind((*front_agc   )[mlt::sck::imultiply  ::Z_N  ]);
-	(*sync_step_mf)[smf::sck::synchronize::DEL  ].bind((*sync_frame  )[sfm::sck::synchronize::DEL  ]);
-	(*sync_timing )[stm::sck::extract    ::B_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::B_N1 ]);
-	(*sync_timing )[stm::sck::extract    ::Y_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1 ]);
-	(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_timing )[stm::sck::extract    ::Y_N2 ]);
-	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N  ]);
+	(*front_agc   )[mlt::sck::imultiply  ::X_N  ].bind((*radio       )[rad::sck::receive    ::Y_N1]);
+	(*sync_step_mf)[smf::sck::synchronize::X_N1 ].bind((*front_agc   )[mlt::sck::imultiply  ::Z_N ]);
+	(*sync_step_mf)[smf::sck::synchronize::DEL  ].bind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
+	(*sync_timing )[stm::sck::extract    ::B_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
+	(*sync_timing )[stm::sck::extract    ::Y_N1 ].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
+	(*mult_agc    )[mlt::sck::imultiply  ::X_N  ].bind((*sync_timing )[stm::sck::extract    ::Y_N2]);
+	(*sync_frame  )[sfm::sck::synchronize::X_N1 ].bind((*mult_agc    )[mlt::sck::imultiply  ::Z_N ]);
 
 	// add probes
 	(*prb_frq_coa )[prb::sck::probe::in].bind((*sync_step_mf)[smf::sck::synchronize::FRQ   ]);
@@ -288,12 +291,62 @@ int main(int argc, char** argv)
 	(*prb_thr_time)[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 	(*prb_fra_id  )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 
-	tools::Chain chain_sequential1((*radio)[rad::tsk::receive]);
+	tools::Chain chain_waiting_and_learning_1_2((*radio)[rad::tsk::receive]);
 	if (enable_logs)
 	{
-		std::ofstream fs1("chain_sequential1.dot");
-		chain_sequential1.export_dot(fs1);
+		std::ofstream fs1("chain_waiting_and_learning_1_2.dot");
+		chain_waiting_and_learning_1_2.export_dot(fs1);
 	}
+
+	// display the legend in the terminal
+	std::ofstream null_file("/dev/null");
+	null_file << "#################" << std::endl;
+	null_file << "# WAITING PHASE #" << std::endl;
+	null_file << "#################" << std::endl;
+	terminal_stats.legend(null_file);
+
+#ifdef DVBS2O_LINK_UHD
+	const int radio_flush_period = params.n_frames * 100;
+	auto radio_usrp = reinterpret_cast<Radio_USRP<>*>(radio.get());
+#endif
+	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
+	prb_thr_thr ->reset();
+	prb_thr_lat ->reset();
+	prb_thr_time->reset();
+	chain_waiting_and_learning_1_2.exec([&](const std::vector<int>& statuses)
+	{
+		const auto m = prb_fra_id->get_occurrences();
+		if (statuses.back() != status_t::SKIPPED)
+			terminal_stats.temp_report(null_file);
+		else if (enable_logs)
+			std::clog << rang::tag::warning << "Chain aborted! (waiting phase, m = " << m << ")" << std::endl;
+#ifdef DVBS2O_LINK_UHD
+		if (radio_usrp != nullptr && m % radio_flush_period == 0 && !sync_frame->get_packet_flag())
+			radio_usrp->flush();
+#endif
+		return sync_frame->get_packet_flag();
+	});
+
+#ifdef DVBS2O_LINK_UHD
+	if (radio_usrp != nullptr)
+		radio_usrp->flush();
+#endif
+	sync_step_mf->reset();
+	sync_frame  ->reset();
+	sync_timing ->reset();
+	sync_frame  ->reset();
+	prb_fra_id  ->reset();
+
+	auto end_waiting = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds_waiting = end_waiting - start_waiting;
+	std::cout << "Done (" << elapsed_seconds_waiting.count() << "s)." << std::endl;
+
+	// ================================================================================================================
+	// LEARNING PHASE 1 & 2 ===========================================================================================
+	// ================================================================================================================
+	auto start_learning = std::chrono::system_clock::now();
+	std::cout << "Learning phase... ";
+	std::cout.flush();
 
 	// display the legend in the terminal
 	std::ofstream stats_file("stats.txt");
@@ -307,7 +360,7 @@ int main(int argc, char** argv)
 	prb_thr_thr ->reset();
 	prb_thr_lat ->reset();
 	prb_thr_time->reset();
-	chain_sequential1.exec([&](const std::vector<int>& statuses)
+	chain_waiting_and_learning_1_2.exec([&](const std::vector<int>& statuses)
 	{
 		const auto m = prb_fra_id->get_occurrences();
 		if (statuses.back() != status_t::SKIPPED)
@@ -329,7 +382,7 @@ int main(int argc, char** argv)
 
 	// ================================================================================================================
 	// LEARNING PHASE 3 ===============================================================================================
-
+	// ================================================================================================================
 	(*radio       )[rad::sck::receive    ::Y_N1 ].reset();
 	(*front_agc   )[mlt::sck::imultiply  ::X_N  ].reset();
 	(*front_agc   )[mlt::sck::imultiply  ::Z_N  ].reset();
@@ -387,11 +440,11 @@ int main(int argc, char** argv)
 	(*prb_thr_time)[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 	(*prb_fra_id  )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 
-	tools::Chain chain_sequential2((*radio)[rad::tsk::receive]);
+	tools::Chain chain_learning_3((*radio)[rad::tsk::receive]);
 	if (enable_logs)
 	{
-		std::ofstream fs2("chain_sequential2.dot");
-		chain_sequential2.export_dot(fs2);
+		std::ofstream fs2("chain_learning_3.dot");
+		chain_learning_3.export_dot(fs2);
 	}
 
 	stats_file << "####################" << std::endl;
@@ -402,7 +455,7 @@ int main(int argc, char** argv)
 	limit = prb_fra_id->get_occurrences() + 200;
 	prb_thr_thr->reset();
 	prb_thr_lat->reset();
-	chain_sequential2.exec([&](const std::vector<int>& statuses)
+	chain_learning_3.exec([&](const std::vector<int>& statuses)
 	{
 		const auto m = prb_fra_id->get_occurrences();
 		if (statuses.back() != status_t::SKIPPED)
@@ -421,6 +474,9 @@ int main(int argc, char** argv)
 		for (auto& ta : m->tasks)
 			ta->reset();
 
+	// ================================================================================================================
+	// TRANSMISSION PHASE =============================================================================================
+	// ================================================================================================================
 	// allocate reporters to display results in the terminal
 	tools::Reporter_noise<>      rep_noise( noise_est);
 	tools::Reporter_BFER<>       rep_BFER (*monitor  );
@@ -531,7 +587,7 @@ int main(int argc, char** argv)
 	// dump the chains in dot format
 	for (size_t cs = 0; cs < chain_stages.size() && enable_logs; cs++)
 	{
-		std::ofstream fs("chain_stage" + std::to_string(cs) + ".dot");
+		std::ofstream fs("chain_transmission_" + std::to_string(cs) + ".dot");
 		chain_stages[cs]->export_dot(fs);
 	}
 
@@ -601,17 +657,17 @@ int main(int argc, char** argv)
 	(*prb_bfer_fer    )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::FER   ]);
 	(*prb_fra_id      )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
 
-	tools::Chain chain_sequential3((*radio)[rad::tsk::receive]);
+	tools::Chain chain_transmission((*radio)[rad::tsk::receive]);
 	if (enable_logs)
 	{
-		std::ofstream fs3("chain_sequential3.dot");
-		chain_sequential3.export_dot(fs3);
+		std::ofstream fs3("chain_transmission.dot");
+		chain_transmission.export_dot(fs3);
 	}
 
 	// start the transmission chain
 	prb_thr_thr->reset();
 	prb_thr_lat->reset();
-	chain_sequential3.exec([&prb_fra_id, &terminal_stats, &stats_file](const std::vector<int>& statuses)
+	chain_transmission.exec([&prb_fra_id, &terminal_stats, &stats_file](const std::vector<int>& statuses)
 	{
 		if (statuses.back() != status_t::SKIPPED)
 			terminal_stats.temp_report(stats_file);
@@ -622,7 +678,7 @@ int main(int argc, char** argv)
 	});
 
 	// stop the radio thread
-	for (auto &m : chain_sequential3.get_modules<tools::Interface_waiting>())
+	for (auto &m : chain_transmission.get_modules<tools::Interface_waiting>())
 		m->cancel_waiting();
 #endif /* MULTI_THREADED */
 
@@ -645,9 +701,9 @@ int main(int argc, char** argv)
 			tools::Stats::show(chain_stages[cs]->get_tasks_per_types(), ordered);
 		}
 #else
-		std::cout << "#" << std::endl << "# Chain sequential (" << chain_sequential3.get_n_threads() << " thread(s)): "
+		std::cout << "#" << std::endl << "# Chain sequential (" << chain_transmission.get_n_threads() << " thread(s)): "
 		          << std::endl;
-		tools::Stats::show(chain_sequential3.get_tasks_per_types(), ordered);
+		tools::Stats::show(chain_transmission.get_tasks_per_types(), ordered);
 #endif /* MULTI_THREADED */
 	}
 

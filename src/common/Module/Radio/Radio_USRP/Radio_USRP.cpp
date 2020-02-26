@@ -314,6 +314,16 @@ void Radio_USRP<R>
 
 template <typename R>
 void Radio_USRP<R>
+::flush()
+{
+	this->idx_w_send = 0;
+	this->idx_r_send = 0;
+	this->idx_w_receive = 0;
+	this->idx_r_receive = 0;
+}
+
+template <typename R>
+void Radio_USRP<R>
 ::reset()
 {
 	this->stop_threads = true;
@@ -322,6 +332,7 @@ void Radio_USRP<R>
 	this->stop_threads = false;
 	this->start_thread_send = false;
 	this->start_thread_receive = false;
+	this->flush();
 }
 
 template <typename R>
