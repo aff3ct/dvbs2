@@ -16,7 +16,7 @@ namespace module
 		namespace sck
 		{
 			enum class synchronize : uint8_t { X_N1, MU, Y_N1, B_N1, status };
-			enum class extract     : uint8_t { Y_N1, B_N1, Y_N2, status };
+			enum class extract     : uint8_t { Y_N1, B_N1, UFW, Y_N2, status };
 		}
 	}
 
@@ -49,8 +49,7 @@ protected:
 	R mu;
 	int is_strobe;
 
-	int overflow_cnt;
-	int underflow_cnt;
+	std::vector<B> underflow_cnt;
 
 	std::vector<R   > output_buffer;
 	int outbuf_head;
@@ -71,8 +70,6 @@ public:
 	R               get_mu           () const;
 	std::complex<R> get_last_symbol  ();
 	int             get_is_strobe    ();
-	int             get_overflow_cnt ();
-	int             get_underflow_cnt();
 	int             get_delay        ();
 	int             get_N_in         () const;
 	int             get_N_out        () const;
@@ -86,9 +83,9 @@ public:
 	 * \param X_N1: a vector of samples.
 	 */
 	template <class AB = std::allocator<B>, class AR = std::allocator<R>>
-	void extract(const std::vector<R,AR>& Y_N1, const std::vector<B,AB>& B_N1, std::vector<R,AR>& Y_N2, const int frame_id = -1);
+	void extract(const std::vector<R,AR>& Y_N1, const std::vector<B,AB>& B_N1, std::vector<B,AB>& UFW, std::vector<R,AR>& Y_N2, const int frame_id = -1);
 
-	void extract(const R *Y_N1, const B *B_N1, R *Y_N2, const int frame_id = -1);
+	void extract(const R *Y_N1, const B *B_N1, B *UFW, R *Y_N2, const int frame_id = -1);
 
 	/*!
 	 * \brief Synchronizes a vector of samples.

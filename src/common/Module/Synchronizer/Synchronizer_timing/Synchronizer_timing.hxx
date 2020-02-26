@@ -23,8 +23,7 @@ Synchronizer_timing<B, R>
   last_symbol((R)0,(R)0),
   mu((R)0),
   is_strobe(0),
-  overflow_cnt(0),
-  underflow_cnt(0),
+  underflow_cnt(n_frames, 0),
   output_buffer(N/osf*3,  (R)0),
   outbuf_head  (0),
   outbuf_max_sz(N/osf*3),
@@ -66,11 +65,13 @@ Synchronizer_timing<B, R>
 	auto &p1 = this->create_task("extract");
 	auto p1s_Y_N1 = this->template create_socket_in <R>(p1, "Y_N1", this->N_in );
 	auto p1s_B_N1 = this->template create_socket_in <B>(p1, "B_N1", this->N_in );
+	auto p1s_UFF  = this->template create_socket_out<B>(p1, "UFW" , 1          );
 	auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N_out);
-	this->create_codelet(p1, [p1s_Y_N1, p1s_B_N1, p1s_Y_N2](Module &m, Task &t) -> int
+	this->create_codelet(p1, [p1s_Y_N1, p1s_B_N1, p1s_UFF, p1s_Y_N2](Module &m, Task &t) -> int
 	{
 		static_cast<Synchronizer_timing<B,R>&>(m).extract(static_cast<R*>(t[p1s_Y_N1].get_dataptr()),
 		                                                  static_cast<B*>(t[p1s_B_N1].get_dataptr()),
+		                                                  static_cast<B*>(t[p1s_UFF ].get_dataptr()),
 		                                                  static_cast<R*>(t[p1s_Y_N2].get_dataptr()));
 		return 0;
 	});
@@ -97,8 +98,10 @@ void Synchronizer_timing<B,R>
 {
 	this->last_symbol   = std::complex<R> (R(0),R(0));
 	this->is_strobe     = 0;
-	this->overflow_cnt  = 0;
-	this->underflow_cnt = 0;
+
+	for (int f = 0; f < this->n_frames; f++)
+		this->underflow_cnt[f] = 0;
+
 	this->outbuf_head   = 0;
 	this->outbuf_tail   = 0;
 	this->outbuf_cur_sz = 0;
@@ -128,20 +131,6 @@ int Synchronizer_timing<B,R>
 ::get_is_strobe()
 {
 	return this->is_strobe;
-}
-
-template <typename B, typename R>
-int Synchronizer_timing<B,R>
-::get_overflow_cnt()
-{
-	return this->overflow_cnt;
-}
-
-template <typename B, typename R>
-int Synchronizer_timing<B,R>
-::get_underflow_cnt()
-{
-	return this->underflow_cnt;
 }
 
 template <typename B, typename R>
@@ -215,7 +204,7 @@ void Synchronizer_timing<B,R>
 template <typename B, typename R>
 template <class AB, class AR>
 void Synchronizer_timing<B,R>
-::extract(const std::vector<R,AR>& Y_N1, const std::vector<B,AB>& B_N1, std::vector<R,AR>& Y_N2, const int frame_id)
+::extract(const std::vector<R,AR>& Y_N1, const std::vector<B,AB>& B_N1, std::vector<B,AB>& UFW, std::vector<R,AR>& Y_N2, const int frame_id)
 {
 	if (this->N_in * this->n_frames != (int)Y_N1.size())
 	{
@@ -233,6 +222,14 @@ void Synchronizer_timing<B,R>
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
+	if (this->n_frames != (int)UFW.size())
+	{
+		std::stringstream message;
+		message << "'UFW.size()' has to be equal to 'n_frames' ('UFW.size()' = " << UFW.size()
+		        << ", 'n_frames' = " << this->n_frames << ").";
+		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+	}
+
 	if (this->N_out * this->n_frames != (int)Y_N2.size())
 	{
 		std::stringstream message;
@@ -241,12 +238,12 @@ void Synchronizer_timing<B,R>
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->extract(Y_N1.data(), B_N1.data(), Y_N2.data(), frame_id);
+	this->extract(Y_N1.data(), B_N1.data(), UFW.data(), Y_N2.data(), frame_id);
 }
 
 template <typename B, typename R>
 void Synchronizer_timing<B,R>
-::extract(const R *Y_N1, const B *B_N1, R *Y_N2, const int frame_id)
+::extract(const R *Y_N1, const B *B_N1, B *UFW, R *Y_N2, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
@@ -256,6 +253,12 @@ void Synchronizer_timing<B,R>
 		               B_N1 + f * this->N_in,
 		               Y_N2 + f * this->N_out,
 		               f);
+
+	for (auto f = f_start; f < f_stop; f++)
+	{
+		UFW[f] = this->underflow_cnt[f];
+		this->underflow_cnt[f] = 0;
+	}
 }
 
 template <typename B, typename R>
@@ -296,7 +299,7 @@ void Synchronizer_timing<B,R>
 		          Y_N2 + n,
 		          this->output_buffer.begin());
 		this->outbuf_head += n;
-
+		this->underflow_cnt[frame_id]++;
 		throw tools::processing_aborted(__FILE__, __LINE__, __func__);
 	}
 }

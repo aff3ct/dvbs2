@@ -44,8 +44,12 @@ private:
 	const bool rx_enabled;
 	const bool tx_enabled;
 
-	std::vector<R*> fifo_send;
-	std::vector<R*> fifo_receive;
+	std::vector<R*>       fifo_send;
+	std::vector<R*>       fifo_receive;
+	std::vector<int32_t*> fifo_ovf_flags;
+	std::vector<int32_t*> fifo_seq_flags;
+	std::vector<int32_t*> fifo_clt_flags;
+	std::vector<int32_t*> fifo_tim_flags;
 
 	std::atomic<bool> stop_threads;
 
@@ -74,8 +78,8 @@ protected:
 
 private:
 	void thread_function_receive();
-	inline void receive_usrp(R *Y_N1);
-	inline void fifo_receive_read(R* Y_N1);
+	inline void receive_usrp     (int32_t *OVF, int32_t *SEQ, int32_t *CLT, int32_t *TIM, R *Y_N1);
+	inline void fifo_receive_read(int32_t *OVF, int32_t *SEQ, int32_t *CLT, int32_t *TIM, R *Y_N1);
 	inline void fifo_receive_write();
 
 	void thread_function_send();
