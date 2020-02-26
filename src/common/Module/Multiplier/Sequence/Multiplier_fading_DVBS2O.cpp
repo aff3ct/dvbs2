@@ -14,16 +14,16 @@ Multiplier_fading_DVBS2O<R>
 : Multiplier<R>(N, n_frames), gain_sequence(), snr_idx(0)
 {
 	std::ifstream file(snr_list_filename.c_str());
-	R lin_esn0_ref = std::pow(10, esn0_ref/10 );
 	if (file.is_open())
 	{
 		R esn0 = 0.0f;
 		while(true)
 		{
 			file >> esn0;
+			esn0 = esn0 - esn0_ref;
 			if(file.eof())
 				break;
-			this->gain_sequence.push_back(std::sqrt( std::pow(10, esn0/10) / lin_esn0_ref ));
+			this->gain_sequence.push_back(std::sqrt( std::pow(10, esn0/10) ));
 		}
 		file.close();
 	}
