@@ -14,7 +14,10 @@
 #include "Tools/Reporter/Reporter_throughput_DVBS2O.hpp"
 #include "Tools/Reporter/Reporter_noise_DVBS2O.hpp"
 
+// aliases
+template<class T> using uptr = std::unique_ptr<T>;
 using namespace aff3ct;
+using namespace aff3ct::module;
 
 int main(int argc, char** argv)
 {
@@ -66,38 +69,37 @@ int main(int argc, char** argv)
 	tools::Sigma<> noise_estimated(1.0f);
 
 	// construct modules
-	std::unique_ptr<module::Source<>                    > source      (factory::DVBS2O::build_source              <>(params                   ));
-	std::unique_ptr<module::Channel<>                   > channel     (factory::DVBS2O::build_channel             <>(params, *gen             ));
-	std::unique_ptr<module::Scrambler<>                 > bb_scrambler(factory::DVBS2O::build_bb_scrambler        <>(params                   ));
-	std::unique_ptr<module::Encoder<>                   > BCH_encoder (factory::DVBS2O::build_bch_encoder         <>(params, poly_gen         ));
-	std::unique_ptr<module::Decoder_HIHO<>              > BCH_decoder (factory::DVBS2O::build_bch_decoder         <>(params, poly_gen         ));
-	std::unique_ptr<tools ::Codec_SIHO<>                > LDPC_cdc    (factory::DVBS2O::build_ldpc_cdc            <>(params                   ));
-	std::unique_ptr<module::Interleaver<>               > itl_tx      (factory::DVBS2O::build_itl                 <>(params, *itl_core        ));
-	std::unique_ptr<module::Interleaver<float,uint32_t> > itl_rx      (factory::DVBS2O::build_itl<float,uint32_t>   (params, *itl_core        ));
-	std::unique_ptr<module::Modem<>                     > modem       (factory::DVBS2O::build_modem               <>(params, cstl.get()       ));
-	std::unique_ptr<module::Filter_UPRRC_ccr_naive<>    > shaping_flt (factory::DVBS2O::build_uprrc_filter        <>(params                   ));
-	std::unique_ptr<module::Multiplier_sine_ccc_naive<> > freq_shift  (factory::DVBS2O::build_freq_shift          <>(params                   ));
-	std::unique_ptr<module::Filter_Farrow_ccr_naive<>   > chn_frac_del(factory::DVBS2O::build_channel_frac_delay  <>(params                   ));
-	std::unique_ptr<module::Variable_delay_cc_naive<>   > chn_int_del (factory::DVBS2O::build_channel_int_delay   <>(params                   ));
-	std::unique_ptr<module::Filter_buffered_delay<float>> chn_frm_del (factory::DVBS2O::build_channel_frame_delay <>(params                   ));
-	std::unique_ptr<module::Synchronizer_frame<>        > sync_frame  (factory::DVBS2O::build_synchronizer_frame  <>(params                   ));
-	std::unique_ptr<module::Framer<>                    > framer      (factory::DVBS2O::build_framer              <>(params                   ));
-	std::unique_ptr<module::Scrambler<float>            > pl_scrambler(factory::DVBS2O::build_pl_scrambler        <>(params                   ));
-	std::unique_ptr<module::Filter_buffered_delay<>     > delay       (factory::DVBS2O::build_txrx_delay          <>(params                   ));
-	std::unique_ptr<module::Monitor_BFER<>              > monitor     (factory::DVBS2O::build_monitor             <>(params                   ));
-	std::unique_ptr<module::Filter_RRC_ccr_naive<>      > matched_flt (factory::DVBS2O::build_matched_filter      <>(params                   ));
-	std::unique_ptr<module::Synchronizer_timing<>       > sync_timing (factory::DVBS2O::build_synchronizer_timing <>(params                   ));
-	std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > mult_agc    (factory::DVBS2O::build_agc_shift           <>(params                   ));
-	//std::unique_ptr<module::Multiplier_AGC_cc_naive<>   > chn_agc     (factory::DVBS2O::build_channel_agc         <>(params                   ));
-	std::unique_ptr<module::Estimator<>                 > estimator   (factory::DVBS2O::build_estimator           <>(params, &noise           ));
-
-	std::unique_ptr<module::Synchronizer_freq_coarse<>> sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse <>(params             ));
-	std::unique_ptr<module::Synchronizer_freq_fine<>  > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase  <>(params             ));
-	std::unique_ptr<module::Synchronizer_freq_fine<>  > sync_fine_lr (factory::DVBS2O::build_synchronizer_lr          <>(params             ));
-	std::unique_ptr<module::Synchronizer_step_mf_cc<> > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(params,
-	                                                                                                                       sync_coarse_f.get(),
-	                                                                                                                       matched_flt  .get(),
-	                                                                                                                       sync_timing  .get()));
+	uptr<Source<>                    > source       (factory::DVBS2O::build_source                   <>(params             ));
+	uptr<Channel<>                   > channel      (factory::DVBS2O::build_channel                  <>(params, *gen       ));
+	uptr<Scrambler<>                 > bb_scrambler (factory::DVBS2O::build_bb_scrambler             <>(params             ));
+	uptr<Encoder<>                   > BCH_encoder  (factory::DVBS2O::build_bch_encoder              <>(params, poly_gen   ));
+	uptr<Decoder_HIHO<>              > BCH_decoder  (factory::DVBS2O::build_bch_decoder              <>(params, poly_gen   ));
+	uptr<Codec_SIHO<>                > LDPC_cdc     (factory::DVBS2O::build_ldpc_cdc                 <>(params             ));
+	uptr<Interleaver<>               > itl_tx       (factory::DVBS2O::build_itl                      <>(params, *itl_core  ));
+	uptr<Interleaver<float,uint32_t> > itl_rx       (factory::DVBS2O::build_itl<float,uint32_t>        (params, *itl_core  ));
+	uptr<Modem<>                     > modem        (factory::DVBS2O::build_modem                    <>(params, cstl.get() ));
+	uptr<Filter_UPRRC_ccr_naive<>    > shaping_flt  (factory::DVBS2O::build_uprrc_filter             <>(params             ));
+	uptr<Multiplier_sine_ccc_naive<> > freq_shift   (factory::DVBS2O::build_freq_shift               <>(params             ));
+	uptr<Filter_Farrow_ccr_naive<>   > chn_frac_del (factory::DVBS2O::build_channel_frac_delay       <>(params             ));
+	uptr<Variable_delay_cc_naive<>   > chn_int_del  (factory::DVBS2O::build_channel_int_delay        <>(params             ));
+	uptr<Filter_buffered_delay<float>> chn_frm_del  (factory::DVBS2O::build_channel_frame_delay      <>(params             ));
+	uptr<Synchronizer_frame<>        > sync_frame   (factory::DVBS2O::build_synchronizer_frame       <>(params             ));
+	uptr<Framer<>                    > framer       (factory::DVBS2O::build_framer                   <>(params             ));
+	uptr<Scrambler<float>            > pl_scrambler (factory::DVBS2O::build_pl_scrambler             <>(params             ));
+	uptr<Filter_buffered_delay<>     > delay        (factory::DVBS2O::build_txrx_delay               <>(params             ));
+	uptr<Monitor_BFER<>              > monitor      (factory::DVBS2O::build_monitor                  <>(params             ));
+	uptr<Filter_RRC_ccr_naive<>      > matched_flt  (factory::DVBS2O::build_matched_filter           <>(params             ));
+	uptr<Synchronizer_timing<>       > sync_timing  (factory::DVBS2O::build_synchronizer_timing      <>(params             ));
+	uptr<Multiplier_AGC_cc_naive<>   > mult_agc     (factory::DVBS2O::build_agc_shift                <>(params             ));
+	uptr<Estimator<>                 > estimator    (factory::DVBS2O::build_estimator                <>(params, &noise     ));
+	uptr<Multiplier_fading_DVBS2O<>  > fad_mlt      (factory::DVBS2O::build_fading_mult              <>(params             ));
+	uptr<Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse <>(params             ));
+	uptr<Synchronizer_freq_fine<>    > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase  <>(params             ));
+	uptr<Synchronizer_freq_fine<>    > sync_fine_lr (factory::DVBS2O::build_synchronizer_lr          <>(params             ));
+	uptr<Synchronizer_step_mf_cc<>   > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc  <>(params,
+	                                                                                                    sync_coarse_f.get(),
+	                                                                                                    matched_flt  .get(),
+	                                                                                                    sync_timing  .get()));
 
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
@@ -172,7 +174,7 @@ int main(int argc, char** argv)
 	            sync_fine_lr.get(), sync_fine_pf.get(), shaping_flt  .get(), chn_frac_del  .get(),
 	            mult_agc    .get(), sync_frame  .get(), delay        .get(), sync_coarse_f .get(),
 	            matched_flt .get(), sync_timing .get(), sync_step_mf .get(), source        .get(),
-	            channel     .get(), chn_int_del .get(), estimator   .get(), //chn_agc     .get(),
+	            channel     .get(), chn_int_del .get(), estimator   .get(),  fad_mlt       .get(),
 	            /*
 	            stm_probe   .get(), sfm_probe   .get(), sff_probe    .get(), sfc_probe     .get(),
 	            spf_probe   .get(), */ chn_frm_del .get()};
@@ -192,8 +194,10 @@ int main(int argc, char** argv)
 	using namespace module;
 
 	// socket binding
+	// Delay line for BER/FER
+	(*delay       )[flt::sck::filter       ::X_N1].bind((*source      )[src::sck::generate     ::U_K ]);
 	// TX
-	(*bb_scrambler)[scr::sck::scramble     ::X_N1].bind((*source      )[src::sck::generate   ::U_K   ]);
+	(*bb_scrambler)[scr::sck::scramble     ::X_N1].bind((*source      )[src::sck::generate     ::U_K ]);
 	(*BCH_encoder )[enc::sck::encode       ::U_K ].bind((*bb_scrambler)[scr::sck::scramble     ::X_N2]);
 	(*LDPC_encoder)[enc::sck::encode       ::U_K ].bind((*BCH_encoder )[enc::sck::encode       ::X_N ]);
 	(*itl_tx      )[itl::sck::interleave   ::nat ].bind((*LDPC_encoder)[enc::sck::encode       ::X_N ]);
@@ -201,13 +205,20 @@ int main(int argc, char** argv)
 	(*framer      )[frm::sck::generate     ::Y_N1].bind((*modem       )[mdm::sck::modulate     ::X_N2]);
 	(*pl_scrambler)[scr::sck::scramble     ::X_N1].bind((*framer      )[frm::sck::generate     ::Y_N2]);
 	(*shaping_flt )[flt::sck::filter       ::X_N1].bind((*pl_scrambler)[scr::sck::scramble     ::X_N2]);
-	(*chn_frm_del )[flt::sck::filter       ::X_N1].bind((*shaping_flt )[flt::sck::filter       ::Y_N2]);
+
+	// Channel
+	(*fad_mlt     )[mlt::sck::imultiply    ::X_N ].bind((*shaping_flt )[flt::sck::filter       ::Y_N2]);
+	(*chn_frm_del )[flt::sck::filter       ::X_N1].bind((*fad_mlt     )[mlt::sck::imultiply    ::Z_N ]);
 	(*chn_int_del )[flt::sck::filter       ::X_N1].bind((*chn_frm_del )[flt::sck::filter       ::Y_N2]);
 	(*chn_frac_del)[flt::sck::filter       ::X_N1].bind((*chn_int_del )[flt::sck::filter       ::Y_N2]);
-	//(*chn_agc     )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del)[flt::sck::filter       ::Y_N2]);
-	//(*freq_shift  )[mlt::sck::imultiply    ::X_N ].bind((*chn_agc     )[mlt::sck::imultiply    ::Z_N ]);
 	(*freq_shift  )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del)[flt::sck::filter       ::Y_N2]);
 	(*channel     )[chn::sck::add_noise    ::X_N ].bind((*freq_shift  )[mlt::sck::imultiply    ::Z_N ]);
+
+	// RX
+	// step_mf synchronization to Timing extract is binded whithin the snr loop
+	(*mult_agc    )[mlt::sck::imultiply    ::X_N ].bind((*sync_timing )[stm::sck::extract      ::Y_N2]);
+	(*sync_frame  )[sfm::sck::synchronize  ::X_N1].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N ]);
+	(*pl_scrambler)[scr::sck::descramble   ::Y_N1].bind((*sync_frame  )[sfm::sck::synchronize  ::Y_N2]);
 	(*sync_fine_lr)[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2]);
 	(*sync_fine_pf)[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr)[sff::sck::synchronize  ::Y_N2]);
 	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf)[sff::sck::synchronize  ::Y_N2]);
@@ -220,10 +231,6 @@ int main(int argc, char** argv)
 	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
 	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*delay       )[flt::sck::filter       ::Y_N2]);
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
-	(*mult_agc    )[mlt::sck::imultiply  ::X_N   ].bind((*sync_timing )[stm::sck::extract      ::Y_N2]);
-	(*sync_frame  )[sfm::sck::synchronize::X_N1  ].bind((*mult_agc    )[mlt::sck::imultiply    ::Z_N ]);
-	(*pl_scrambler)[scr::sck::descramble ::Y_N1  ].bind((*sync_frame  )[sfm::sck::synchronize  ::Y_N2]);
-	(*delay       )[flt::sck::filter     ::X_N1  ].bind((*source      )[src::sck::generate     ::U_K ]);
 
 	// reset the memory of the decoder after the end of each communication
 	monitor->record_callback_check([LDPC_decoder]{LDPC_decoder->reset();});
@@ -296,13 +303,13 @@ int main(int argc, char** argv)
 					(*framer        )[frm::tsk::generate   ].exec();
 					(*pl_scrambler  )[scr::tsk::scramble   ].exec();
 					(*shaping_flt   )[flt::tsk::filter     ].exec();
+					(*fad_mlt       )[mlt::tsk::imultiply  ].exec();
 					(*chn_frm_del   )[flt::tsk::filter     ].exec();
 					(*chn_int_del   )[flt::tsk::filter     ].exec();
 					(*chn_frac_del  )[flt::tsk::filter     ].exec();
-					//(*chn_agc       )[mlt::tsk::imultiply  ].exec();
 					(*freq_shift    )[mlt::tsk::imultiply  ].exec();
 					(*channel       )[chn::tsk::add_noise  ].exec();
-					(*sync_step_mf )[smf::tsk::synchronize ].exec();
+					(*sync_step_mf  )[smf::tsk::synchronize].exec();
 					// (*stm_probe    )[prb::tsk::probe       ].exec();
 					// (*sfc_probe    )[prb::tsk::probe       ].exec();
 					(*sync_timing  )[stm::tsk::extract     ].exec(); // can raise the 'tools::processing_aborted' exception
@@ -329,6 +336,7 @@ int main(int argc, char** argv)
 					(*framer        )[frm::tsk::generate   ].exec();
 					(*pl_scrambler  )[scr::tsk::scramble   ].exec();
 					(*shaping_flt   )[flt::tsk::filter     ].exec();
+					(*fad_mlt       )[mlt::tsk::imultiply  ].exec();
 					(*chn_frm_del   )[flt::tsk::filter     ].exec();
 					(*chn_int_del   )[flt::tsk::filter     ].exec();
 					(*chn_frac_del  )[flt::tsk::filter     ].exec();
@@ -441,6 +449,7 @@ int main(int argc, char** argv)
 				(*framer       )[frm::tsk::generate     ].exec();
 				(*pl_scrambler )[scr::tsk::scramble     ].exec();
 				(*shaping_flt  )[flt::tsk::filter       ].exec();
+				(*fad_mlt      )[mlt::tsk::imultiply    ].exec();
 				(*chn_frm_del  )[flt::tsk::filter       ].exec();
 				(*chn_int_del  )[flt::tsk::filter       ].exec();
 				(*chn_frac_del )[flt::tsk::filter       ].exec();
