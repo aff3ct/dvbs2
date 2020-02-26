@@ -90,6 +90,8 @@ void DVBS2O
 	args.add({"sim-noise-min","m"},  cli::Real(),                                       "Min Eb/N0"                                                           );
 	args.add({"sim-noise-max","M"},  cli::Real(),                                       "Max Eb/N0"                                                           );
 	args.add({"sim-noise-step","s"}, cli::Real(),                                       "Step Eb/N0"                                                          );
+	args.add({"sim-noise-ref"},      cli::Real(),                                       "Reference value for Es/N0"                                           );
+	args.add({"sim-noise-path"},     cli::Text(),                                       "Path of the Es/N0 sequence"                                          );
 	args.add({"no-sync-info"},       cli::None(),                                       "Disable sync information logging."                                   );
 	args.add({"sim-dbg", "d"},       cli::None(),                                       "Display debug."                                                      );
 	args.add({"sim-dbg-limit"},      cli::Integer(cli::Non_zero()),                     "Set max number of elts per frame to be displayed in debug mode."     );
@@ -115,6 +117,7 @@ void DVBS2O
 	args.add({"sfm-alpha"},          cli::Real(),                                       "Damping factor for frame synchronization."                           );
 	args.add({"sfm-trigger"},        cli::Real(),                                       "Trigger value to detect signal presence."                            );
 	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),    "Inter frame level."                                                  );
+
 	p_rad.get_description(args);
 }
 
@@ -124,14 +127,15 @@ void DVBS2O
 	modcod         = vals.exist({"mod-cod"}           ) ? vals.at      ({"mod-cod"}           ) : "QPSK-S_8/9";
 
 	modcod_init(modcod); // initialize all the parameters that are dependant on modcod
-
-	ebn0_min                 = vals.exist({"sim-noise-min","m"}  ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f        ;
-	ebn0_max                 = vals.exist({"sim-noise-max","M"}  ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f         ;
-	ebn0_step                = vals.exist({"sim-noise-step","s"} ) ? vals.to_float({"sim-noise-step","s"}) : .1f         ;
-	channel_type             = vals.exist({"chn-type"}           ) ? vals.at      ({"chn-type"}          ) : "AWGN"      ;
-	channel_path             = vals.exist({"chn-path"}           ) ? vals.at      ({"chn-path"}          ) : channel_path;
-	max_freq_shift           = vals.exist({"chn-max-freq-shift"} ) ? vals.to_float({"chn-max-freq-shift"}) : 0.f         ;
-	max_delay                = vals.exist({"chn-max-delay"}      ) ? vals.to_float({"chn-max-delay"}     ) : 2.f         ;
+	esn0_ref                 = vals.exist({"sim-noise-ref"}      ) ? vals.to_float({"sim-noise-ref "}    ) : 0.f          ;
+	esn0_seq_path            = vals.exist({"sim-noise-path"}     ) ? vals.at      ({"sim-noise-path"}    ) : ""           ;
+	ebn0_min                 = vals.exist({"sim-noise-min","m"}  ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f         ;
+	ebn0_max                 = vals.exist({"sim-noise-max","M"}  ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f          ;
+	ebn0_step                = vals.exist({"sim-noise-step","s"} ) ? vals.to_float({"sim-noise-step","s"}) : .1f          ;
+	channel_type             = vals.exist({"chn-type"}           ) ? vals.at      ({"chn-type"}          ) : "AWGN"       ;
+	channel_path             = vals.exist({"chn-path"}           ) ? vals.at      ({"chn-path"}          ) : channel_path ;
+	max_freq_shift           = vals.exist({"chn-max-freq-shift"} ) ? vals.to_float({"chn-max-freq-shift"}) : 0.f          ;
+	max_delay                = vals.exist({"chn-max-delay"}      ) ? vals.to_float({"chn-max-delay"}     ) : 2.f          ;
 	if (max_delay < 2)
 	{
 		std::stringstream message;
@@ -535,6 +539,13 @@ module::Channel<R>* DVBS2O
 }
 
 template <typename R>
+module::Multiplier_fading_DVBS2O<R>* DVBS2O
+::build_fading_mult(const DVBS2O& params)
+{
+	return new module::Multiplier_fading_DVBS2O<R>(2*params.pl_frame_size * params.osf, params.esn0_seq_path, params.esn0_ref, params.n_frames);
+}
+
+template <typename R>
 module::Multiplier_sine_ccc_naive<R>* DVBS2O
 ::build_freq_shift(const DVBS2O& params)
 {
@@ -696,6 +707,7 @@ template aff3ct::module::Estimator<R>*                 DVBS2O::build_estimator<R
 template aff3ct::module::Monitor_BFER<B>*              DVBS2O::build_monitor<B>                 (const DVBS2O& params);
 template aff3ct::module::Channel<R>*                   DVBS2O::build_channel<R>                 (const DVBS2O& params, tools::Gaussian_noise_generator<R>& gen, const bool filtered);
 template aff3ct::module::Multiplier_sine_ccc_naive<R>* DVBS2O::build_freq_shift<R>              (const DVBS2O& params);
+template aff3ct::module::Multiplier_fading_DVBS2O<R>*  DVBS2O::build_fading_mult<R>             (const DVBS2O& params);
 template aff3ct::module::Synchronizer_freq_fine<R>*    DVBS2O::build_synchronizer_lr<R>         (const DVBS2O& params);
 template aff3ct::module::Synchronizer_freq_fine<R>*    DVBS2O::build_synchronizer_freq_phase<R> (const DVBS2O& params);
 template aff3ct::module::Synchronizer_timing<B,R>*     DVBS2O::build_synchronizer_timing<B,R>   (const DVBS2O& params);

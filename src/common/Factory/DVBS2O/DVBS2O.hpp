@@ -5,6 +5,7 @@
 
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
+#include "Module/Multiplier/Sequence/Multiplier_fading_DVBS2O.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
 #include "Factory/Module/Radio/Radio.hpp"
 #include "Module/Framer/Framer.hpp"
@@ -53,6 +54,7 @@ public:
 	float ebn0_min;
 	float ebn0_max;
 	float ebn0_step;
+	float esn0_ref;
 	float max_freq_shift;
 	float max_delay;
 	float sfm_alpha;
@@ -100,6 +102,7 @@ public:
 	std::string src_path;
 	std::string sink_path;
 	std::string channel_path;
+	std::string esn0_seq_path;
 	std::string est_type;
 	std::string channel_type;
 	std::string dump_filename;
@@ -160,6 +163,10 @@ public:
 	template <typename R = float>
 	static module::Multiplier_sine_ccc_naive<R>*
 	build_freq_shift(const DVBS2O& params);
+
+	template <typename R = float>
+	static module::Multiplier_fading_DVBS2O<R>*
+	build_fading_mult(const DVBS2O& params);
 
 	template <typename R = float>
 	static module::Channel<R>*
