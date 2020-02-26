@@ -115,7 +115,7 @@ _rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
 	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise);
 	sigma->set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
 
-	float H_ = std::sqrt(2*esn0_estimated);
+	float H_ =  1.0f / sigma_estimated;
 	for (int i = 0; i < this->N / 2; i++)
 	{
 		Y_N[2*i  ] = X_N[2*i  ] / sigma_estimated;
