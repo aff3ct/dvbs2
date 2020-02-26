@@ -179,10 +179,10 @@ int main(int argc, char** argv)
 #endif /* MULTI_THREADED */
 
 	// manage noise
-	tools::Sigma<> fake_noise(1.f);
-	modem->set_noise(fake_noise);
-	tools::Sigma<> noise;
-	estimator->set_noise(noise);
+	tools::Sigma<> noise_fake(1.f);
+	modem->set_noise(noise_fake);
+	tools::Sigma<> noise_est;
+	estimator->set_noise(noise_est);
 
 	// fill the list of modules
 	std::vector<const Module*> modules;
@@ -266,10 +266,6 @@ int main(int argc, char** argv)
 	// ================================================================================================================
 	// LEARNING PHASE 1 & 2 ===========================================================================================
 
-	prb_thr_thr ->reset();
-	prb_thr_lat ->reset();
-	prb_thr_time->reset();
-
 	auto start_learning = std::chrono::system_clock::now();
 	std::cout << "Learning phase... ";
 	std::cout.flush();
@@ -308,6 +304,9 @@ int main(int argc, char** argv)
 
 	int limit = 150;
 	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
+	prb_thr_thr ->reset();
+	prb_thr_lat ->reset();
+	prb_thr_time->reset();
 	chain_sequential1.exec([&](const std::vector<int>& statuses)
 	{
 		const auto m = prb_fra_id->get_occurrences();
@@ -401,6 +400,8 @@ int main(int argc, char** argv)
 	terminal_stats.legend(stats_file);
 
 	limit = prb_fra_id->get_occurrences() + 200;
+	prb_thr_thr->reset();
+	prb_thr_lat->reset();
 	chain_sequential2.exec([&](const std::vector<int>& statuses)
 	{
 		const auto m = prb_fra_id->get_occurrences();
@@ -421,9 +422,9 @@ int main(int argc, char** argv)
 			ta->reset();
 
 	// allocate reporters to display results in the terminal
-	tools::Reporter_noise<>      rep_noise( noise  );
-	tools::Reporter_BFER<>       rep_BFER (*monitor);
-	tools::Reporter_throughput<> rep_thr  (*monitor);
+	tools::Reporter_noise<>      rep_noise( noise_est);
+	tools::Reporter_BFER<>       rep_BFER (*monitor  );
+	tools::Reporter_throughput<> rep_thr  (*monitor  );
 
 	// allocate a terminal that will display the collected data from the reporters
 	tools::Terminal_std terminal({ &rep_noise, &rep_BFER, &rep_thr });
@@ -542,11 +543,10 @@ int main(int argc, char** argv)
 				m->cancel_waiting();
 	};
 
-	prb_thr_thr->reset();
-	prb_thr_lat->reset();
-
 	// start the pipeline stages in separated threads
 	std::vector<std::thread> threads;
+	prb_thr_thr->reset();
+	prb_thr_lat->reset();
 	for (size_t s = 0; s < chain_stages.size(); s++)
 	{
 		auto cs = chain_stages[s];
@@ -608,10 +608,9 @@ int main(int argc, char** argv)
 		chain_sequential3.export_dot(fs3);
 	}
 
+	// start the transmission chain
 	prb_thr_thr->reset();
 	prb_thr_lat->reset();
-
-	// start the transmission chain
 	chain_sequential3.exec([&prb_fra_id, &terminal_stats, &stats_file](const std::vector<int>& statuses)
 	{
 		if (statuses.back() != status_t::SKIPPED)
