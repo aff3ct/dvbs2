@@ -159,7 +159,7 @@ int main(int argc, char** argv)
 	                            buffer_size,
 	                            active_waiting,
 	                            params.n_frames);
-	Adaptor_1_to_n adp_1_to_n  ({(size_t)2 * params.N_xfec_frame, (size_t)params.N_ldpc},
+	Adaptor_1_to_n adp_1_to_n  ({(size_t)2 * params.N_xfec_frame, (size_t)2 * params.N_ldpc / params.bps},
 	                            {typeid(float), typeid(float)},
 	                            buffer_size,
 	                            active_waiting,
@@ -313,11 +313,11 @@ int main(int argc, char** argv)
 	}
 
 	// display the legend in the terminal
-	std::ofstream null_file("/dev/null");
-	null_file << "#################" << std::endl;
-	null_file << "# WAITING PHASE #" << std::endl;
-	null_file << "#################" << std::endl;
-	terminal_stats.legend(null_file);
+	std::ofstream waiting_stats("waiting_stats.txt");
+	waiting_stats << "#################" << std::endl;
+	waiting_stats << "# WAITING PHASE #" << std::endl;
+	waiting_stats << "#################" << std::endl;
+	terminal_stats.legend(waiting_stats);
 
 #ifdef DVBS2O_LINK_UHD
 	const int radio_flush_period = params.n_frames * 100;
@@ -331,7 +331,7 @@ int main(int argc, char** argv)
 	{
 		const auto m = prb_fra_id->get_occurrences();
 		if (statuses.back() != status_t::SKIPPED)
-			terminal_stats.temp_report(null_file);
+			terminal_stats.temp_report(waiting_stats);
 		else if (enable_logs)
 			std::clog << rang::tag::warning << "Chain aborted! (waiting phase, m = " << m << ")" << std::endl;
 #ifdef DVBS2O_LINK_UHD
