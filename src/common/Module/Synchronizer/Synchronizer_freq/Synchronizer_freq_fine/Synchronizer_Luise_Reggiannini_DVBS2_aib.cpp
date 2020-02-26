@@ -12,8 +12,8 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
-::Synchronizer_Luise_Reggiannini_DVBS2_aib(const int N, const int n_frames)
-: Synchronizer_freq_fine<R>(N, n_frames), pilot_nbr(0), pilot_start(), R_l(2,(R)0.0)
+::Synchronizer_Luise_Reggiannini_DVBS2_aib(const int N, const R alpha, const int n_frames)
+: Synchronizer_freq_fine<R>(N, n_frames), alpha(alpha), pilot_nbr(0), pilot_start(), R_l(2,(R)0.0)
 {
 	int idx = 1530;
 	while (idx < N/2)
@@ -93,6 +93,9 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 	int P = this->pilot_nbr;
 	int Lp = 36/2;
 	int Lp_2 = Lp/2;
+
+	R temp_R_l_0 = (R)0;
+	R temp_R_l_1 = (R)0;
 	for  (int p = 0 ; p<P ; p++)
 	{
 		//std::cout << this->pilot_start[p] << std::endl;
@@ -119,10 +122,12 @@ void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 				sum_xcorr_z[1] += z[2*k + 1] * z[2*(k-m)    ]
 				                - z[2*k    ] * z[2*(k-m) + 1];
 			}
-			this->R_l[0] += sum_xcorr_z[0] / (R)(2*(Lp-m));
-			this->R_l[1] += sum_xcorr_z[1] / (R)(2*(Lp-m));
+			temp_R_l_0 += sum_xcorr_z[0] / (R)(2*(Lp-m));
+			temp_R_l_1 += sum_xcorr_z[1] / (R)(2*(Lp-m));
 		}
 	}
+	this->R_l[0] = this->alpha * this->R_l[0] + (1-this->alpha) * temp_R_l_0;
+	this->R_l[1] = this->alpha * this->R_l[1] + (1-this->alpha) * temp_R_l_1;
 	this->estimated_freq = std::atan2(this->R_l[1], this->R_l[0]);
 	this->estimated_freq /= (Lp_2 + 1) * M_PI;
 	R esimated_freq_ = this->estimated_freq * M_PI;
@@ -164,9 +169,10 @@ template <typename R>
 void Synchronizer_Luise_Reggiannini_DVBS2_aib<R>
 ::_reset()
 {
-	this->R_l[0]         = (R)0.0;
-	this->R_l[1]         = (R)0.0;
-	this->estimated_freq = (R)0.0;
+	this->R_l[0]          = (R)0.0;
+	this->R_l[1]          = (R)0.0;
+	this->estimated_freq  = (R)0.0;
+	this->estimated_phase = (R)0.0;
 }
 
 // ==================================================================================== explicit template instantiation
