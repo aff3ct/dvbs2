@@ -117,8 +117,9 @@ _rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
 	// tools::esn0_to_sigma(esn0_estimated);
 	const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, code_rate, bps);
 
-	//tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise);
-	//sigma->set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
+	// hack to have the SNR displayed in the terminal
+	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise);
+	sigma->set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
 
 	for (int i = 0; i < this->N / 2; i++)
 	{
