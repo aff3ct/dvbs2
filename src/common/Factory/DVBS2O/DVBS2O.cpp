@@ -115,6 +115,7 @@ void DVBS2O
 	args.add({"stm-hold-size"},      cli::Integer(cli::Positive(), cli::Non_zero()),    "Gardner holding size."                                               );
 	args.add({"sfm-type"},           sfm_type_format,                                   "Type of frame synchronization."                                      );
 	args.add({"sfm-alpha"},          cli::Real(),                                       "Damping factor for frame synchronization."                           );
+	args.add({"sff-lr-alpha"},       cli::Real(),                                       "Damping factor for the Luise and Reggiannini algorithm."             );
 	args.add({"sfm-trigger"},        cli::Real(),                                       "Trigger value to detect signal presence."                            );
 	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),    "Inter frame level."                                                  );
 
@@ -169,6 +170,7 @@ void DVBS2O
 	stm_hold_size            = vals.exist({"stm-hold-size"}      ) ? vals.to_int  ({"stm-hold-size"}     ) : 1           ;
 	sfm_alpha                = vals.exist({"sfm-alpha"}          ) ? vals.to_float({"sfm-alpha"}         ) : 0.9f        ;
 	sfm_trigger              = vals.exist({"sfm-trigg"}          ) ? vals.to_float({"sfm-trigger"}       ) : 25.0f       ;
+	sff_lr_alpha             = vals.exist({"sff-lr-alpha"}       ) ? vals.to_float({"sff-lr-alpha"}      ) : 0.9f        ;
 
 	if (vals.exist({"sim-dbg-limit"}))
 		debug = true;
@@ -560,7 +562,7 @@ module::Synchronizer_freq_fine<R>* DVBS2O
 	if (params.perfect_lr_freq_sync)
 		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_freq_fine_perfect<R>(2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
 	else
-		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
+		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size, params.sff_lr_alpha, params.n_frames));
 
 }
 
