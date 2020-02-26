@@ -58,6 +58,7 @@ public:
 	float max_freq_shift;
 	float max_delay;
 	float sfm_alpha;
+	float sff_lr_alpha;
 	float sfm_trigger;
 	int   overall_delay;
 	bool  debug;

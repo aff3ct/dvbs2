@@ -14,6 +14,8 @@ template <typename R = float>
 class Synchronizer_Luise_Reggiannini_DVBS2_aib : public Synchronizer_freq_fine<R>
 {
 private:
+	R alpha;
+	
 	int                pilot_nbr;
 	std::vector<int>   pilot_start;
 
@@ -21,7 +23,7 @@ private:
 	R n_vals[mipp::N<R>()];
 
 public:
-	Synchronizer_Luise_Reggiannini_DVBS2_aib (const int N, const int n_frames = 1);
+	Synchronizer_Luise_Reggiannini_DVBS2_aib (const int N, const R alpha, const int n_frames = 1);
 	virtual ~Synchronizer_Luise_Reggiannini_DVBS2_aib();
 
 protected:
