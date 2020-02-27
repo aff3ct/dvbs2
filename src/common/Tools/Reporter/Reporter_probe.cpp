@@ -9,6 +9,7 @@
 #include "Module/Probe/Throughput/Probe_throughput.hpp"
 #include "Module/Probe/Latency/Probe_latency.hpp"
 #include "Module/Probe/Time/Probe_time.hpp"
+#include "Module/Probe/Timestamp/Probe_timestamp.hpp"
 #include "Module/Probe/Occurrence/Probe_occurrence.hpp"
 #include "Tools/Reporter/Reporter_probe.hpp"
 
@@ -305,6 +306,28 @@ module::Probe_time<T>* Reporter_probe
 	return probe;
 }
 
+template <typename T>
+module::Probe_timestamp<T>* Reporter_probe
+::create_probe_timestamp(const std::string &name,
+                         const size_t socket_size,
+                         const std::ios_base::fmtflags ff,
+                         const size_t precision)
+{
+	this->create_probe_checks(name);
+	auto probe = new module::Probe_timestamp<T>(socket_size, name, *this, this->n_frames);
+	this->head                 .push_back(0);
+	this->tail                 .push_back(0);
+	this->buffer               .push_back(std::vector<std::vector<int8_t>>(this->n_frames * 100,
+	                                      std::vector<int8_t>(1 * B_from_datatype(probe->get_datatype()))));
+	this->datatypes            .push_back(probe->get_datatype());
+	this->stream_flags         .push_back(ff);
+	this->precisions           .push_back(precision);
+	this->datasizes            .push_back(1);
+	this->cols_groups[0].second.push_back(std::make_pair(name, "(sec)"));
+	this->name_to_col[name] = this->buffer.size() -1;
+	this->col_to_name[this->buffer.size() -1] = name;
+	return probe;
+}
 
 template <typename T>
 module::Probe_occurrence<T>* Reporter_probe
@@ -359,6 +382,13 @@ template aff3ct::module::Probe_time<B_8 >* aff3ct::tools::Reporter_probe::create
 template aff3ct::module::Probe_time<B_16>* aff3ct::tools::Reporter_probe::create_probe_time<B_16>(const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);
 template aff3ct::module::Probe_time<B_32>* aff3ct::tools::Reporter_probe::create_probe_time<B_32>(const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);
 template aff3ct::module::Probe_time<B_64>* aff3ct::tools::Reporter_probe::create_probe_time<B_64>(const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);
+
+template aff3ct::module::Probe_timestamp<R_32>* aff3ct::tools::Reporter_probe::create_probe_timestamp<R_32>(const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);
+template aff3ct::module::Probe_timestamp<R_64>* aff3ct::tools::Reporter_probe::create_probe_timestamp<R_64>(const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);
+template aff3ct::module::Probe_timestamp<B_8 >* aff3ct::tools::Reporter_probe::create_probe_timestamp<B_8 >(const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);
+template aff3ct::module::Probe_timestamp<B_16>* aff3ct::tools::Reporter_probe::create_probe_timestamp<B_16>(const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);
+template aff3ct::module::Probe_timestamp<B_32>* aff3ct::tools::Reporter_probe::create_probe_timestamp<B_32>(const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);
+template aff3ct::module::Probe_timestamp<B_64>* aff3ct::tools::Reporter_probe::create_probe_timestamp<B_64>(const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);
 
 template aff3ct::module::Probe_occurrence<R_32>* aff3ct::tools::Reporter_probe::create_probe_occurrence<R_32>(const std::string&, const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);
 template aff3ct::module::Probe_occurrence<R_64>* aff3ct::tools::Reporter_probe::create_probe_occurrence<R_64>(const std::string&, const std::string&, const size_t, const std::ios_base::fmtflags, const size_t);

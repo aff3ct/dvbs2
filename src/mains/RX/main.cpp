@@ -7,6 +7,7 @@
 #include "Module/Probe/Throughput/Probe_throughput.hpp"
 #include "Module/Probe/Latency/Probe_latency.hpp"
 #include "Module/Probe/Time/Probe_time.hpp"
+#include "Module/Probe/Timestamp/Probe_timestamp.hpp"
 #include "Module/Probe/Occurrence/Probe_occurrence.hpp"
 #include "Tools/Reporter/Reporter_probe.hpp"
 #include "Tools/Reporter/Reporter_probe_decstat.hpp"
@@ -123,6 +124,7 @@ int main(int argc, char** argv)
 	uptr<Probe<double> > prb_thr_the (rep_thr_stats.create_probe_value     <double >("TTHR", "Theory", 1, std::ios_base::dec | std::ios_base::fixed));
 	uptr<Probe<int32_t>> prb_thr_lat (rep_thr_stats.create_probe_latency   <int32_t>("LAT"));
 	uptr<Probe<int32_t>> prb_thr_time(rep_thr_stats.create_probe_time      <int32_t>("TIME"));
+	uptr<Probe<int32_t>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp <int32_t>("TSTA"));
 
 	std::vector<double> theoretical_thr(params.n_frames, params.p_rad.rx_rate/1e6 * (double)params.K_bch / ((double)params.pl_frame_size * (double)params.osf));
 	(*prb_thr_the)[prb::sck::probe::in].bind(theoretical_thr.data());
@@ -211,8 +213,8 @@ int main(int argc, char** argv)
 	            prb_frq_coa .get(), prb_frq_lr      .get(), prb_frq_fin    .get(), prb_noise_es.get(),
 	            prb_noise_eb.get(), prb_decstat_ldpc.get(), prb_decstat_bch.get(), prb_bfer_be .get(),
 	            prb_bfer_fe .get(), prb_bfer_ber    .get(), prb_bfer_fer   .get(), prb_thr_thr .get(),
-	            prb_thr_lat .get(), prb_thr_time    .get(), prb_fra_id     .get(), prb_stm_uff .get(),
-	            prb_rad_ovf .get(), prb_rad_seq     .get(), prb_thr_thr    .get(),
+	            prb_thr_lat .get(), prb_thr_time    .get(), prb_thr_tsta   .get(), prb_fra_id  .get(),
+	            prb_stm_uff .get(), prb_rad_ovf     .get(), prb_rad_seq    .get(), prb_thr_thr .get(),
 #ifdef MULTI_THREADED
 	            /* adaptors */
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
@@ -303,6 +305,7 @@ int main(int argc, char** argv)
 	(*prb_sfm_flg )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::FLG   ]);
 	(*prb_thr_lat )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 	(*prb_thr_time)[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
+	(*prb_thr_tsta)[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 	(*prb_fra_id  )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 
 	tools::Chain chain_waiting_and_learning_1_2((*radio)[rad::tsk::receive]);
@@ -444,6 +447,7 @@ int main(int argc, char** argv)
 	(*sync_frame  )[sfm::sck::synchronize::FLG   ].reset();
 	(*prb_thr_lat )[prb::sck::probe      ::in    ].reset();
 	(*prb_thr_time)[prb::sck::probe      ::in    ].reset();
+	(*prb_thr_tsta)[prb::sck::probe      ::in    ].reset();
 	(*sync_frame  )[sfm::sck::synchronize::status].reset();
 	(*sync_frame  )[sfm::sck::synchronize::status].reset();
 	(*prb_fra_id  )[prb::sck::probe      ::in    ].reset();
@@ -461,6 +465,7 @@ int main(int argc, char** argv)
 	(*prb_frq_fin )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::FRQ   ]);
 	(*prb_thr_lat )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 	(*prb_thr_time)[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
+	(*prb_thr_tsta)[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 	(*prb_fra_id  )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 
 	tools::Chain chain_learning_3((*radio)[rad::tsk::receive]);
@@ -575,6 +580,7 @@ int main(int argc, char** argv)
 	// add probes
 	(*prb_thr_lat )[prb::sck::probe      ::in    ].reset();
 	(*prb_thr_time)[prb::sck::probe      ::in    ].reset();
+	(*prb_thr_tsta)[prb::sck::probe      ::in    ].reset();
 	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
 	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
 	(*prb_fra_id  )[prb::sck::probe      ::in    ].reset();
@@ -586,6 +592,7 @@ int main(int argc, char** argv)
 	(*prb_thr_thr     )[prb::sck::probe::in].bind(  adp_n_to_1[adp::sck::pull_1      ::out3  ], high_priority);
 	(*prb_thr_lat     )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
 	(*prb_thr_time    )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
+	(*prb_thr_tsta    )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
 	(*prb_noise_es    )[prb::sck::probe::in].bind((*estimator)[est::sck::rescale     ::Es_N0 ], high_priority);
 	(*prb_noise_eb    )[prb::sck::probe::in].bind((*estimator)[est::sck::rescale     ::Eb_N0 ], high_priority);
 	(*prb_bfer_be     )[prb::sck::probe::in].bind((*monitor  )[mnt::sck::check_errors::BE    ], high_priority);
@@ -666,6 +673,7 @@ int main(int argc, char** argv)
 	// add probes
 	(*prb_thr_lat )[prb::sck::probe      ::in    ].reset();
 	(*prb_thr_time)[prb::sck::probe      ::in    ].reset();
+	(*prb_thr_tsta)[prb::sck::probe      ::in    ].reset();
 	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
 	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
 	(*prb_fra_id  )[prb::sck::probe      ::in    ].reset();
@@ -676,6 +684,7 @@ int main(int argc, char** argv)
 	(*prb_thr_thr     )[prb::sck::probe::in].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K   ]);
 	(*prb_thr_lat     )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
 	(*prb_thr_time    )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
+	(*prb_thr_tsta    )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
 	(*prb_noise_es    )[prb::sck::probe::in].bind((*estimator   )[est::sck::rescale     ::Es_N0 ]);
 	(*prb_noise_eb    )[prb::sck::probe::in].bind((*estimator   )[est::sck::rescale     ::Eb_N0 ]);
 	(*prb_bfer_be     )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::BE    ]);

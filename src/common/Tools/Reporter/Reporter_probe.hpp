@@ -17,6 +17,7 @@ namespace module
 	template <typename T> class Probe_throughput;
 	template <typename T> class Probe_latency;
 	template <typename T> class Probe_time;
+	template <typename T> class Probe_timestamp;
 	template <typename T> class Probe_occurrence;
 }
 namespace tools
@@ -74,6 +75,12 @@ public:
 	                                         const size_t socket_size = 1,
 	                                         const std::ios_base::fmtflags ff = std::ios_base::dec | std::ios_base::fixed,
 	                                         const size_t precision = 2);
+
+	template <typename T>
+	module::Probe_timestamp<T>* create_probe_timestamp(const std::string &name,
+	                                                   const size_t socket_size = 1,
+	                                                   const std::ios_base::fmtflags ff = std::ios_base::scientific,
+	                                                   const size_t precision = 2);
 
 	template <typename T>
 	module::Probe_occurrence<T>* create_probe_occurrence(const std::string &name,
