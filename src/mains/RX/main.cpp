@@ -628,26 +628,6 @@ int main(int argc, char** argv)
 	prb_thr_lat->reset();
 	for (size_t s = 0; s < chain_stages.size(); s++)
 	{
-		// auto cs = chain_stages[s];
-		// threads.push_back(std::thread([&prb_fra_id, &prb_thr_the, &params, s, cs, last_stage, &terminal_stats, &stats_file, &stop_threads]() {
-		// 	cs->exec([&prb_fra_id, &prb_thr_the, &params, s, last_stage, &terminal_stats, &stats_file](const std::vector<int>& statuses)
-		// 	{
-		// 		if (s == 3 && statuses.back() == status_t::SKIPPED && enable_logs)
-		// 			std::clog << std::endl << rang::tag::warning << "Chain aborted! (transmission phase, stage = " << s
-		// 			                                             << ", m = " << m << ")" << std::endl;
-		// 		}
-		// 		if (last_stage)
-		// 		{
-		// 			(*prb_thr_the)[prb::tsk::probe].exec();
-		// 			terminal_stats.temp_report(stats_file);
-		// 		}
-
-		// 		return terminal_stats.is_interrupt();
-		// 	});
-		// 	stop_threads();
-		// }));
-
-
 		auto cs = chain_stages[s];
 		threads.push_back(std::thread([&prb_fra_id, &prb_thr_the, s, cs, &terminal_stats, &stats_file, &stop_threads]() {
 			cs->exec([&prb_fra_id, &prb_thr_the, s, &terminal_stats, &stats_file](const std::vector<int>& statuses)
