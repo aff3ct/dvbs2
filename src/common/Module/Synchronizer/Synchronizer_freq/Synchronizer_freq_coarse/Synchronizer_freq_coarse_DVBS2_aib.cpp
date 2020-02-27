@@ -58,40 +58,37 @@ template <typename R>
 void Synchronizer_freq_coarse_DVBS2_aib<R>
 ::update_phase(const std::complex<R> spl)
 {
-	if (this->is_active)
+	//std::cerr << std::endl << this->curr_idx << std::endl;
+	int rem_pos = this->curr_idx % 1476;
+	if (rem_pos >= 54 && rem_pos < 90 && this->curr_idx >= 1530)//1530 54
 	{
-		//std::cerr << std::endl << this->curr_idx << std::endl;
-		int rem_pos = this->curr_idx % 1476;
-		if (rem_pos >= 54 && rem_pos < 90 && this->curr_idx >= 1530)//1530 54
-		{
-			int prev_prev_idx = (this->curr_idx - 2	)% this->length_max;
+		int prev_prev_idx = (this->curr_idx - 2	)% this->length_max;
 
-			R phase_error = std::imag( spl                              * this->scrambled_pilots[prev_prev_idx ]
-			                           * std::conj( this->prev_prev_spl * this->scrambled_pilots[this->curr_idx] )
-			                         );
-			//std::cerr << std::endl << "idx " << this->curr_idx << " | spl " << spl << " | scrambled_pilots[this->curr_idx] " << this->scrambled_pilots[this->curr_idx] << " | scrambled_pilots[prev_prev_idx ] where prev_prev_idx = " << prev_prev_idx << " is " << this->scrambled_pilots[prev_prev_idx ] << " | prev_prev_spl " << this->prev_prev_spl << std::endl;
-			// std::cerr << std::endl << "Phase error : "<< phase_error << std::endl;
-			this->loop_filter_state += phase_error * this->integrator_gain;
+		R phase_error = std::imag( spl                              * this->scrambled_pilots[prev_prev_idx ]
+									* std::conj( this->prev_prev_spl * this->scrambled_pilots[this->curr_idx] )
+									);
+		//std::cerr << std::endl << "idx " << this->curr_idx << " | spl " << spl << " | scrambled_pilots[this->curr_idx] " << this->scrambled_pilots[this->curr_idx] << " | scrambled_pilots[prev_prev_idx ] where prev_prev_idx = " << prev_prev_idx << " is " << this->scrambled_pilots[prev_prev_idx ] << " | prev_prev_spl " << this->prev_prev_spl << std::endl;
+		// std::cerr << std::endl << "Phase error : "<< phase_error << std::endl;
+		this->loop_filter_state += phase_error * this->integrator_gain;
 
-			this->integ_filter_state += this->DDS_prev_in ;
+		this->integ_filter_state += this->DDS_prev_in ;
 
-			this->DDS_prev_in = phase_error * this->proportional_gain + this->loop_filter_state;
+		this->DDS_prev_in = phase_error * this->proportional_gain + this->loop_filter_state;
 
-			this->estimated_freq = this->digital_synthesizer_gain * this->integ_filter_state / (R)this->samples_per_symbol;
-			this->mult.set_nu(-this->estimated_freq);//
+		this->estimated_freq = this->digital_synthesizer_gain * this->integ_filter_state / (R)this->samples_per_symbol;
+		this->mult.set_nu(-this->estimated_freq);//
 
-			this->prev_prev_spl = this->prev_spl;
-			this->prev_spl = spl;
+		this->prev_prev_spl = this->prev_spl;
+		this->prev_spl = spl;
 
-			//std::cerr << "curr_idx = " << this->curr_idx << " | phase_error = " << phase_error << " | loop_filter_state = " << this->loop_filter_state << " | integ_filter_state = " << this->integ_filter_state << " | nu = "<< -this->digital_synthesizer_gain * this->integ_filter_state / this->samples_per_symbol << std::endl;
-		}
-		else if (rem_pos == 90 && this->curr_idx >= 1530) // 1530
-		{
-			this->prev_prev_spl = std::complex<R>((R)0.0, (R)0.0);
-			this->prev_spl      = std::complex<R>((R)0.0, (R)0.0);
-		}
-		this->curr_idx = (this->curr_idx + 1)% this->length_max;
+		//std::cerr << "curr_idx = " << this->curr_idx << " | phase_error = " << phase_error << " | loop_filter_state = " << this->loop_filter_state << " | integ_filter_state = " << this->integ_filter_state << " | nu = "<< -this->digital_synthesizer_gain * this->integ_filter_state / this->samples_per_symbol << std::endl;
 	}
+	else if (rem_pos == 90 && this->curr_idx >= 1530) // 1530
+	{
+		this->prev_prev_spl = std::complex<R>((R)0.0, (R)0.0);
+		this->prev_spl      = std::complex<R>((R)0.0, (R)0.0);
+	}
+	this->curr_idx = (this->curr_idx + 1)% this->length_max;
 }
 
 template <typename R>
@@ -126,7 +123,6 @@ void Synchronizer_freq_coarse_DVBS2_aib<R>
 	this->loop_filter_state  = (R)0.0;
 	this->integ_filter_state = (R)0.0;
 	this->DDS_prev_in        = (R)0.0;
-	this->is_active          = false;
 
 	this->mult.reset();
 	this->mult.set_nu((R)0.0);

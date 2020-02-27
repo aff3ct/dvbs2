@@ -17,6 +17,15 @@ Encoder_BCH_DVBS2O<B>
 }
 
 template <typename B>
+Encoder_BCH_DVBS2O<B>* Encoder_BCH_DVBS2O<B>
+::clone() const
+{
+	auto m = new Encoder_BCH_DVBS2O(*this);
+	m->deep_copy(*this);
+	return m;
+}
+
+template <typename B>
 void Encoder_BCH_DVBS2O<B>
 ::_encode(const B *U_K, B *X_N, const int frame_id)
 {

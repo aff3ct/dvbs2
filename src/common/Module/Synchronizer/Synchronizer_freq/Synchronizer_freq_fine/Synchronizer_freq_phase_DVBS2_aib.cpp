@@ -13,10 +13,10 @@ using namespace aff3ct::module;
 template <typename R>
 Synchronizer_freq_phase_DVBS2_aib<R>
 ::Synchronizer_freq_phase_DVBS2_aib(const int N, const int n_frames)
-: Synchronizer_freq<R>(N, n_frames), pilot_start()
+: Synchronizer_freq_fine<R>(N, n_frames), pilot_start()
 {
 	int idx = 1530;
-	while(idx < N/2)
+	while (idx < N/2)
 	{
 		pilot_start.push_back(idx);
 		idx += 1476;
@@ -27,6 +27,15 @@ template <typename R>
 Synchronizer_freq_phase_DVBS2_aib<R>
 ::~Synchronizer_freq_phase_DVBS2_aib()
 {}
+
+template <typename R>
+Synchronizer_freq_phase_DVBS2_aib<R>* Synchronizer_freq_phase_DVBS2_aib<R>
+::clone() const
+{
+	auto m = new Synchronizer_freq_phase_DVBS2_aib(*this);
+	m->deep_copy(*this);
+	return m;
+}
 
 template <typename R>
 void Synchronizer_freq_phase_DVBS2_aib<R>
@@ -88,7 +97,7 @@ void Synchronizer_freq_phase_DVBS2_aib<R>
 	this->estimated_freq  = (P * sum_ty - sum_t * sum_y) / (P * sum_tt - sum_t * sum_t);
 	this->estimated_phase = (sum_y - this->estimated_freq * sum_t) / P;
 
-	for (int n = 0 ; n < this->N_in/2 ; n++)
+	for (int n = 0 ; n < this->N/2 ; n++)
 	{
 		R theta = 2 * M_PI *(this->estimated_freq * (R)n + this->estimated_phase);
 

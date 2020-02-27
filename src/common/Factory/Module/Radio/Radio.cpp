@@ -51,26 +51,26 @@ void Radio
 ::store(const cli::Argument_map_value &vals)
 {
 	auto p = this->get_prefix();
-	if(vals.exist({p+"-fra-size",  "N"})) this->N              = vals.to_int   ({p+"-fra-size",  "N"});
-	if(vals.exist({p+"-type"          })) this->type           = vals.at       ({p+"-type"          });
-	if(vals.exist({p+"-threaded"      })) this->threaded       = true                                ;
-	if(vals.exist({p+"-fifo-size"     })) this->fifo_size      = vals.to_uint64({p+"-fifo-size"     });
-	if(vals.exist({p+"-fra",       "F"})) this->n_frames       = vals.to_int   ({p+"-fra",       "F"});
-	if(vals.exist({p+"-clk-rate"      })) this->clk_rate       = vals.to_float ({p+"-clk-rate"      });
-	if(vals.exist({p+"-rx-subdev-spec"})) this->rx_subdev_spec = vals.at       ({p+"-rx-subdev-spec"});
-	if(vals.exist({p+"-rx-ant"        })) this->rx_antenna     = vals.at       ({p+"-rx-ant"        });
-	if(vals.exist({p+"-rx-rate"       })) this->rx_enabled     = true                                ;
-	if(vals.exist({p+"-rx-rate"       })) this->rx_rate        = vals.to_float ({p+"-rx-rate"       });
-	if(vals.exist({p+"-rx-freq"       })) this->rx_freq        = vals.to_float ({p+"-rx-freq"       });
-	if(vals.exist({p+"-rx-gain"       })) this->rx_gain        = vals.to_float ({p+"-rx-gain"       });
-	if(vals.exist({p+"-rx-file-path"  })) this->rx_filepath    = vals.at       ({p+"-rx-file-path"  });
-	if(vals.exist({p+"-tx-subdev-spec"})) this->tx_subdev_spec = vals.at       ({p+"-tx-subdev-spec"});
-	if(vals.exist({p+"-Tx-ant"        })) this->tx_antenna     = vals.at       ({p+"-tx-ant"        });
-	if(vals.exist({p+"-tx-rate"       })) this->tx_enabled     = true                                 ;
-	if(vals.exist({p+"-tx-rate"       })) this->tx_rate        = vals.to_float ({p+"-tx-rate"       });
-	if(vals.exist({p+"-tx-freq"       })) this->tx_freq        = vals.to_float ({p+"-tx-freq"       });
-	if(vals.exist({p+"-tx-gain"       })) this->tx_gain        = vals.to_float ({p+"-tx-gain"       });
-	if(vals.exist({p+"-ip-addr"       })) this->usrp_addr      = vals.at       ({p+"-ip-addr"       });
+	if (vals.exist({p+"-fra-size",  "N"})) this->N              = vals.to_int   ({p+"-fra-size",  "N"});
+	if (vals.exist({p+"-type"          })) this->type           = vals.at       ({p+"-type"          });
+	if (vals.exist({p+"-threaded"      })) this->threaded       = true                                ;
+	if (vals.exist({p+"-fifo-size"     })) this->fifo_size      = vals.to_uint64({p+"-fifo-size"     });
+	if (vals.exist({p+"-fra",       "F"})) this->n_frames       = vals.to_int   ({p+"-fra",       "F"});
+	if (vals.exist({p+"-clk-rate"      })) this->clk_rate       = vals.to_float ({p+"-clk-rate"      });
+	if (vals.exist({p+"-rx-subdev-spec"})) this->rx_subdev_spec = vals.at       ({p+"-rx-subdev-spec"});
+	if (vals.exist({p+"-rx-ant"        })) this->rx_antenna     = vals.at       ({p+"-rx-ant"        });
+	if (vals.exist({p+"-rx-rate"       })) this->rx_enabled     = true                                ;
+	if (vals.exist({p+"-rx-rate"       })) this->rx_rate        = vals.to_float ({p+"-rx-rate"       });
+	if (vals.exist({p+"-rx-freq"       })) this->rx_freq        = vals.to_float ({p+"-rx-freq"       });
+	if (vals.exist({p+"-rx-gain"       })) this->rx_gain        = vals.to_float ({p+"-rx-gain"       });
+	if (vals.exist({p+"-rx-file-path"  })) this->rx_filepath    = vals.at       ({p+"-rx-file-path"  });
+	if (vals.exist({p+"-tx-subdev-spec"})) this->tx_subdev_spec = vals.at       ({p+"-tx-subdev-spec"});
+	if (vals.exist({p+"-Tx-ant"        })) this->tx_antenna     = vals.at       ({p+"-tx-ant"        });
+	if (vals.exist({p+"-tx-rate"       })) this->tx_enabled     = true                                 ;
+	if (vals.exist({p+"-tx-rate"       })) this->tx_rate        = vals.to_float ({p+"-tx-rate"       });
+	if (vals.exist({p+"-tx-freq"       })) this->tx_freq        = vals.to_float ({p+"-tx-freq"       });
+	if (vals.exist({p+"-tx-gain"       })) this->tx_gain        = vals.to_float ({p+"-tx-gain"       });
+	if (vals.exist({p+"-ip-addr"       })) this->usrp_addr      = vals.at       ({p+"-ip-addr"       });
 }
 
 void Radio
@@ -102,11 +102,11 @@ template <typename R>
 module::Radio<R>* Radio
 ::build() const
 {
-	if      (this->type == "NO"      ) return new module::Radio_NO<R>         (this->N, this->n_frames);
+	if      (this->type == "NO"      ) return new module::Radio_NO         <R>(this->N,                    this->n_frames);
 	else if (this->type == "USER_BIN") return new module::Radio_user_binary<R>(this->N, this->rx_filepath, this->n_frames);
 	#ifdef DVBS2O_LINK_UHD
 	else if (this->type == "USRP")
-		return new module::Radio_USRP<R> (*this);
+		return new module::Radio_USRP<R>(*this);
 	#endif
 
 	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);

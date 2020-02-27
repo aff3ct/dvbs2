@@ -12,8 +12,18 @@ using namespace aff3ct::module;
 
 template <typename R>
 Synchronizer_frame_DVBS2_aib<R>
-::Synchronizer_frame_DVBS2_aib(const int N, const int n_frames)
-: Synchronizer_frame<R>(N, n_frames), reg_channel(std::complex<R>((R)1,(R)0)), sec_SOF_sz(25), sec_PLSC_sz(64), corr_buff(89*2, std::complex<R>((R)0,(R)0)), corr_vec(N/2, (R)0), head(0), SOF_PLSC_sz(89), output_delay(N, N/2, N/2)
+::Synchronizer_frame_DVBS2_aib(const int N, const R alpha, const R trigger, const int n_frames)
+: Synchronizer_frame<R>(N, n_frames),
+  reg_channel(std::complex<R>((R)1,(R)0)),
+  sec_SOF_sz(25), sec_PLSC_sz(64),
+  corr_buff(89*2, std::complex<R>((R)0,(R)0)),
+  corr_vec(N/2, (R)0),
+  head(0),
+  SOF_PLSC_sz(89),
+  output_delay(N, N/2, N/2),
+  max_corr((R)0.0f),
+  alpha(alpha),
+  trigger(trigger)
 {
 }
 
@@ -24,36 +34,23 @@ Synchronizer_frame_DVBS2_aib<R>
 
 template <typename R>
 void Synchronizer_frame_DVBS2_aib<R>
-::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
+::_synchronize(const R *X_N1, int* delay, R *Y_N2, const int frame_id)
 {
 	int cplx_in_sz = this->N_in/2;
-	R y_corr = 0;
 	const std::complex<R>* cX_N1 = reinterpret_cast<const std::complex<R>* > (X_N1);
 	std::complex<R>  symb_diff = this->reg_channel * std::conj(cX_N1[0]);
-
-	this->step(&symb_diff, &y_corr);
-
-	/*if((*this)[syn::tsk::synchronize].is_debug())
-		std::cout << "# {INTERNAL} CORR = [ " << y_corr << " ";*/
-	corr_vec[0] = y_corr;
-	R max_corr = corr_vec[0];
+	R new_corr_vec = 0.0f;
+	this->step(&symb_diff, &new_corr_vec);
+	corr_vec[0] = corr_vec[0]*this->alpha + (1-this->alpha)*new_corr_vec;
+	max_corr = corr_vec[0];
 	int max_idx  = 0;
 
 	for (auto i = 1; i<cplx_in_sz; i++)
 	{
 		symb_diff = cX_N1[i-1] * std::conj(cX_N1[i]);
 
-		this->step(&symb_diff, &y_corr);
-		//corr_vec[i] += y_corr;
-		corr_vec[i] = y_corr;
-		/*if((*this)[syn::tsk::synchronize].is_debug())
-		{
-			if (i < cplx_in_sz -1)
-				std::cout << y_corr << " ";
-			else
-				std::cout << y_corr << "]"<< std::endl;
-		}
-		*/
+		this->step(&symb_diff, &new_corr_vec);
+		corr_vec[i] = corr_vec[i]*this->alpha + (1-this->alpha)*new_corr_vec;
 
 		if (corr_vec[i] > max_corr)
 		{
@@ -61,12 +58,23 @@ void Synchronizer_frame_DVBS2_aib<R>
 			max_idx  = i;
 		}
 	}
+
+	if ((*this)[sfm::tsk::synchronize].is_debug())
+	{
+		std::cout << "# {INTERNAL} CORR = [ ";
+		for (auto i = 0; i<cplx_in_sz; i++)
+		{
+			std::cout << corr_vec[i] << " ";
+		}
+		std::cout << "]"<< std::endl;
+	}
+
 	this->reg_channel = cX_N1[cplx_in_sz - 1];
 		//std::cout << "Hi befor delay" << std::endl;
-	this->delay = (cplx_in_sz + max_idx - this->SOF_PLSC_sz)%cplx_in_sz;
-
+	*delay = (cplx_in_sz + max_idx - this->SOF_PLSC_sz)%cplx_in_sz;
+	this->delay = *delay;
 	//std::cout << "delay : " << delay<< std::endl;
-	this->output_delay.set_delay((cplx_in_sz - this->delay)%cplx_in_sz);
+	this->output_delay.set_delay((cplx_in_sz - *delay)%cplx_in_sz);
 	//std::cout << "Delay set" <<std::endl;
 	this->output_delay.filter(X_N1,Y_N2);
 	//std::cout << "Compute output"<< std::endl;
@@ -109,7 +117,6 @@ void Synchronizer_frame_DVBS2_aib<R>
 		this->corr_vec[i] = (R)0;
 
 	this->head = 0;
-	this->delay = 0;
 }
 
 // ==================================================================================== explicit template instantiation

@@ -32,6 +32,15 @@ Scrambler_PL(const int N, const int start_ix, const int n_frames)
 }
 
 template <typename D>
+Scrambler_PL<D>* Scrambler_PL<D>
+::clone() const
+{
+	auto m = new Scrambler_PL(*this);
+	m->deep_copy(*this);
+	return m;
+}
+
+template <typename D>
 void Scrambler_PL<D>::
 _scramble(D *X_N1, D *X_N2, const int frame_id)
 {

@@ -51,6 +51,4 @@ protected:
 }
 }
 
-#include "Radio_user_binary.hxx"
-
 #endif /* RADIO_USER_BINARY_HPP */

@@ -37,16 +37,32 @@ void Filter_UPFIR_ccr_naive<R>
 		this->flt_bank[f].reset();
 }
 
+// template <typename R>
+// void Filter_UPFIR_ccr_naive<R>
+// ::_filter(const R *X_N1, R *Y_N2, const int frame_id)
+// {
+// 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
+// 	auto cY_N2 = reinterpret_cast<std::complex<R>* >(Y_N2);
+
+// 	for (auto f = 0; f<this->F; f++)
+// 		for (auto i = 0; i < this->N/2; i++)
+// 			this->flt_bank[f].step(cX_N1 + i, cY_N2 + i*this->F + f);
+// }
+
 template <typename R>
 void Filter_UPFIR_ccr_naive<R>
 ::_filter(const R *X_N1, R *Y_N2, const int frame_id)
 {
-	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-	auto cY_N2 = reinterpret_cast<std::complex<R>* >(Y_N2);
+    auto cY_N2 = reinterpret_cast<std::complex<R>* >(Y_N2);
+    std::vector<R> Y_N1 (this->get_N(), (R)0);
+    auto cY_N1 = reinterpret_cast<std::complex<R>* >(Y_N1.data());
+    for (int f = 0; f<this->F; f++)
+    {
+        this->flt_bank[f].filter(X_N1, Y_N1.data());
 
-	for (auto f = 0; f<this->F; f++)
-		for (auto i = 0; i < this->N/2; i++)
-			this->flt_bank[f].step(cX_N1 + i, cY_N2 + i*this->F + f);
+        for (auto i = 0; i < this->N/2; i++)
+            cY_N2[i*this->F + f] = cY_N1[i];
+    }
 }
 
 // ==================================================================================== explicit template instantiation

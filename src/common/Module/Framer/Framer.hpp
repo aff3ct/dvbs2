@@ -24,8 +24,8 @@ namespace module
 
 		namespace sck
 		{
-			enum class generate   : uint8_t { Y_N1, Y_N2, SIZE };
-			enum class remove_plh : uint8_t { Y_N1, Y_N2, SIZE };
+			enum class generate   : uint8_t { Y_N1, Y_N2, status };
+			enum class remove_plh : uint8_t { Y_N1, Y_N2, status };
 		}
 	}
 
@@ -51,7 +51,6 @@ protected:
 	const int pl_frame_size; /*!< Number of complex symbols x2 in one payload frame */
 
 private:
-
 	std::vector<B > plh; /*!< Payload header */
 	void generate_plh( void ); /*!< Payload header generation */
 	int M;
@@ -74,6 +73,8 @@ public:
 	 * \brief Destructor.
 	 */
 	virtual ~Framer() = default;
+
+	virtual Framer<B>* clone() const;
 
 	//virtual int get_K() const;
 

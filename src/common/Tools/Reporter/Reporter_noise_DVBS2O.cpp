@@ -1,0 +1,102 @@
+#include <utility>
+#include <iomanip>
+#include <sstream>
+#include <cassert>
+#include <ios>
+#include <iostream>
+
+#include "Tools/Noise/Sigma.hpp"
+#include "Reporter_noise_DVBS2O.hpp"
+
+using namespace aff3ct;
+using namespace aff3ct::tools;
+
+template <typename R>
+Reporter_noise_DVBS2O<R>
+::Reporter_noise_DVBS2O(const Noise<R>& noise_estimated, const Noise<R>& noise, const bool show_ground_truth, R alpha)
+: Reporter(),
+  noise_estimated(noise_estimated),
+  noise(noise),
+  show_ground_truth(show_ground_truth),
+  Eb_N0_avg ((R)0),
+  alpha(alpha)
+{
+	auto& Noise_title = noise_group.first;
+	auto& Noise_cols  = noise_group.second;
+
+	Noise_title = {"Signal Noise Ratio", "(SNR)"};
+	Noise_cols.push_back(std::make_pair("Es/N0", "(dB)"));
+	Noise_cols.push_back(std::make_pair("Eb/N0", "(dB)"));
+	Noise_cols.push_back(std::make_pair("AVG Eb/N0", "(dB)"));
+	if (show_ground_truth)
+	{
+		Noise_cols.push_back(std::make_pair("GT Es/N0", "(dB)"));
+		Noise_cols.push_back(std::make_pair("GT Eb/N0", "(dB)"));
+	}
+
+
+	this->cols_groups.push_back(noise_group);
+}
+
+template <typename R>
+Reporter::report_t Reporter_noise_DVBS2O<R>
+::report(bool final)
+{
+	assert(this->cols_groups.size() == 1);
+
+	report_t the_report(this->cols_groups.size());
+
+	auto& noise_report = the_report[0];
+
+	std::stringstream stream;
+
+	auto sig = dynamic_cast<const tools::Sigma<R>*>(&noise_estimated);
+	try
+	{
+		stream << std::setprecision(2) << std::fixed << sig->get_esn0();
+		noise_report.push_back(stream.str());
+
+		stream.str("");
+		stream << std::setprecision(2) << std::fixed << sig->get_ebn0();
+		noise_report.push_back(stream.str());
+
+		R Eb_N0_cur = sig->get_ebn0();
+
+		this->Eb_N0_avg = this->Eb_N0_avg * this->alpha + Eb_N0_cur * (1-this->alpha);
+
+		stream.str("");
+		stream << std::setprecision(2) << std::fixed << this->Eb_N0_avg;
+		noise_report.push_back(stream.str());
+	}
+	catch(tools::runtime_error const& e)
+	{
+		stream.str("-");
+
+		noise_report.push_back(stream.str());
+		noise_report.push_back(stream.str());
+		noise_report.push_back(stream.str());
+	}
+
+	if (this->show_ground_truth)
+	{
+		stream.str("");
+		auto sig_gt = dynamic_cast<const tools::Sigma<R>*>(&noise);
+		stream << std::setprecision(2) << std::fixed << sig_gt->get_esn0();
+		noise_report.push_back(stream.str());
+
+		stream.str("");
+		stream << std::setprecision(2) << std::fixed << sig_gt->get_ebn0();
+		noise_report.push_back(stream.str());
+	}
+	return the_report;
+}
+
+// ==================================================================================== explicit template instantiation
+#include "Tools/types.h"
+#ifdef AFF3CT_MULTI_PREC
+template class aff3ct::tools::Reporter_noise_DVBS2O<R_32>;
+template class aff3ct::tools::Reporter_noise_DVBS2O<R_64>;
+#else
+template class aff3ct::tools::Reporter_noise_DVBS2O<R>;
+#endif
+// ==================================================================================== explicit template instantiation

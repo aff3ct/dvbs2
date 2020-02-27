@@ -25,8 +25,8 @@ namespace module
 
 		namespace sck
 		{
-			enum class imultiply      : uint8_t { X_N, Z_N, SIZE };
-			enum class multiply       : uint8_t { X_N, Y_N, Z_N, SIZE };
+			enum class imultiply : uint8_t { X_N, Z_N, status };
+			enum class multiply  : uint8_t { X_N, Y_N, Z_N, status };
 		}
 	}
 

@@ -16,8 +16,11 @@ class Variable_delay_cc_naive : public Filter<R>
 private:
 	int delay;
 	std::vector<std::complex<R> > buff;
+	std::vector<R> buff2;
 	int head;
+	int head2;
 	int size;
+	bool first_time;
 
 public:
 	Variable_delay_cc_naive (const int N, const int delay, const int max_delay, const int n_frames = 1);
@@ -28,24 +31,13 @@ public:
 
 protected:
 	void _filter(const R *X_N1,  R *Y_N2, const int frame_id);
+	void _filter_old(const R *X_N1,  R *Y_N2, const int frame_id);
 
 };
 
-// Adrien: I put this function here because you wanted to be inlined
-template <typename R>
-void Variable_delay_cc_naive<R>
-::step(const std::complex<R>* x_elt, std::complex<R>* y_elt)
-{
-	this->buff[this->head] = *x_elt;
-	this->buff[this->head + this->size] = *x_elt;
-
-	*y_elt = this->buff[this->head+this->size-this->delay];
-
-	this->head++;
-	this->head %= this->size;
-}
-
 }
 }
+
+#include "Module/Filter/Variable_delay/Variable_delay_cc_naive.hxx"
 
 #endif //VARIABLE_DELAY_CC_NAIVE_HPP

@@ -16,6 +16,7 @@ template <typename R = float>
 class Synchronizer_frame_perfect : public Synchronizer_frame<R>
 {
 private:
+	const int frame_delay;
 	Variable_delay_cc_naive<R> output_delay;
 
 public:
@@ -23,9 +24,11 @@ public:
 	virtual ~Synchronizer_frame_perfect();
 	void step(const std::complex<R>* x_elt, R* y_elt);
 	void reset();
+	R    _get_metric() const;
+	bool _get_packet_flag() const;
 
 protected:
-	void _synchronize(const R *X_N1,  R *Y_N2, const int frame_id);
+	void _synchronize(const R *X_N1, int* delay, R *Y_N2, const int frame_id);
 };
 
 }
