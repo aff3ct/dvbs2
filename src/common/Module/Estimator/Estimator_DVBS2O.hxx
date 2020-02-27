@@ -27,6 +27,14 @@ Estimator_DVBS2O(const int N, const float code_rate, const int bps, const int n_
 {
 }
 
+template <typename R>
+Estimator_DVBS2O<R>* Estimator_DVBS2O<R>
+::clone() const
+{
+	auto m = new Estimator_DVBS2O(*this);
+	m->deep_copy(*this);
+	return m;
+}
 
 template<typename R>
 void Estimator_DVBS2O<R>
@@ -39,7 +47,7 @@ void Estimator_DVBS2O<R>
 
 template <typename R>
 void Estimator_DVBS2O<R>::
-_estimate(R *X_N, R *H_N, const int frame_id)
+_estimate(const R *X_N, R *H_N, const int frame_id)
 {
 	this->check_noise();
 
@@ -76,9 +84,50 @@ _estimate(R *X_N, R *H_N, const int frame_id)
 		H_N[2*i] = H;
 		H_N[2*i+1] = 0;
 	}
+
+	this->ebn0_estimated = ebn0_estimated;
+	this->esn0_estimated = esn0_estimated;
 }
 
-}
-}
+template <typename R>
+void Estimator_DVBS2O<R>::
+_rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
+{
+	float moment2 = 0, moment4 = 0;
 
+	for (int i = 0; i < this->N / 2; i++)
+	{
+		float tmp = X_N[2 * i]*X_N[2 * i] + X_N[2 * i + 1]*X_N[2 * i + 1];
+		moment2 += tmp;
+		moment4 += tmp*tmp;
+	}
+	moment2 /= this->N / 2;
+	moment4 /= this->N / 2;
+
+	float Se      = std::sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
+	float Ne      = std::abs( moment2 - Se );
+	float esn0_estimated = 10 * std::log10(Se / Ne);
+
+	const auto sigma_estimated = tools::esn0_to_sigma(esn0_estimated);
+	const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, code_rate, bps);
+
+	// hack to have the SNR displayed in the terminal
+	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise);
+	sigma->set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
+
+	float H_ =  1.0f / sigma_estimated;
+	for (int i = 0; i < this->N / 2; i++)
+	{
+		Y_N[2*i  ] = X_N[2*i  ] / sigma_estimated;
+		Y_N[2*i+1] = X_N[2*i+1] / sigma_estimated;
+
+		H_N[2*i  ] = H_;
+		H_N[2*i+1] = 0;
+	}
+
+	this->ebn0_estimated = ebn0_estimated;
+	this->esn0_estimated = esn0_estimated;
+}
+}
+}
 #endif

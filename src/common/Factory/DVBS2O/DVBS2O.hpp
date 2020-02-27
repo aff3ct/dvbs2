@@ -5,13 +5,14 @@
 
 #include "Factory/DVBS2O/DVBS2O.hpp"
 
+#include "Module/Multiplier/Sequence/Multiplier_fading_DVBS2O.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
 #include "Factory/Module/Radio/Radio.hpp"
 #include "Module/Framer/Framer.hpp"
 #include "Module/Scrambler/Scrambler_BB/Scrambler_BB.hpp"
 #include "Module/Scrambler/Scrambler_PL/Scrambler_PL.hpp"
 #include "Module/Filter/Filter_UPFIR/Filter_UPRRC/Filter_UPRRC_ccr_naive.hpp"
-#include "Module/Filter/Filter_unit_delay/Filter_unit_delay.hpp"
+#include "Module/Filter/Filter_unit_delay/Filter_buffered_delay.hpp"
 #include "Module/Filter/Filter_FIR/Filter_RRC/Filter_RRC_ccr_naive.hpp"
 #include "Module/Filter/Filter_FIR/Farrow/Filter_Farrow_ccr_naive.hpp"
 #include "Module/Filter/Variable_delay/Variable_delay_cc_naive.hpp"
@@ -24,7 +25,7 @@
 #include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "Module/Estimator/Estimator.hpp"
 #include "Module/Radio/Radio.hpp"
-#include "Module/Sink/Sink_binary/Sink_binary.hpp"
+#include "Module/Sink/Sink.hpp"
 
 namespace aff3ct
 {
@@ -53,14 +54,17 @@ public:
 	float ebn0_min;
 	float ebn0_max;
 	float ebn0_step;
+	float esn0_ref;
 	float max_freq_shift;
 	float max_delay;
+	float sfm_alpha;
+	float sff_lr_alpha;
+	float sfm_trigger;
+	int   overall_delay;
 	bool  debug;
 	bool  stats;
 	bool  no_sync_info;
-	bool  frame_sync_fast;
 	bool  perfect_sync;
-	bool  perfect_timing_sync;
 	bool  perfect_coarse_freq_sync;
 	bool  perfect_lr_freq_sync;
 	bool  perfect_pf_freq_sync;
@@ -81,6 +85,7 @@ public:
 	int   grp_delay;
 	int   n_frames;
 	int   debug_limit;
+	int   stm_hold_size;
 
 	std::chrono::milliseconds ter_freq;
 
@@ -93,9 +98,12 @@ public:
 	std::string constellation_file;
 	std::string section;
 	std::string src_type;
+	std::string stm_type;
+	std::string sfm_type;
 	std::string src_path;
 	std::string sink_path;
 	std::string channel_path;
+	std::string esn0_seq_path;
 	std::string est_type;
 	std::string channel_type;
 	std::string dump_filename;
@@ -148,13 +156,18 @@ public:
 	static module::Interleaver<D,T>*
 	build_itl(const DVBS2O& params, tools::Interleaver_core<T>& itl_core);
 
-	template <typename B = int, typename R = float, typename Q = R, tools::proto_max<Q> MAX = tools::max_star>
+	template <typename B = int, typename R = float, typename Q = R, tools::proto_max  <Q> MAX  = tools::max_star,
+	                                                                tools::proto_max_i<Q> MAXI = tools::max_star_i>
 	static module::Modem_generic<B,R,Q,MAX>*
 	build_modem(const DVBS2O& params, tools::Constellation<R>* cstl);
 
 	template <typename R = float>
 	static module::Multiplier_sine_ccc_naive<R>*
 	build_freq_shift(const DVBS2O& params);
+
+	template <typename R = float>
+	static module::Multiplier_fading_DVBS2O<R>*
+	build_fading_mult(const DVBS2O& params);
 
 	template <typename R = float>
 	static module::Channel<R>*
@@ -185,6 +198,10 @@ public:
 	build_channel_int_delay(const DVBS2O& params);
 
 	template <typename R = float>
+	static module::Filter_buffered_delay<R>*
+	build_channel_frame_delay(const DVBS2O& params);
+
+	template <typename R = float>
 	static module::Filter_RRC_ccr_naive<R>*
 	build_matched_filter(const DVBS2O& params);
 
@@ -200,8 +217,8 @@ public:
 	static module::Synchronizer_freq_fine<R>*
 	build_synchronizer_freq_phase(const DVBS2O& params);
 
-	template <typename R = float>
-	static module::Synchronizer_timing<R>*
+	template <typename B = int, typename R = float>
+	static module::Synchronizer_timing<B, R>*
 	build_synchronizer_timing (const DVBS2O& params);
 
 	template <typename R = float>
@@ -220,17 +237,17 @@ public:
 	static module::Synchronizer_freq_coarse<R>*
 	build_synchronizer_freq_coarse (const DVBS2O& params);
 
-	template <typename R = float>
-	static module::Synchronizer_step_mf_cc<R>*
+	template <typename B = int, typename R = float>
+	static module::Synchronizer_step_mf_cc<B,R>*
 	build_synchronizer_step_mf_cc(const DVBS2O& params,
 	                              aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                              aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
-	                              aff3ct::module::Synchronizer_timing<R>      *sync_timing  );
+	                              aff3ct::module::Synchronizer_timing<B,R>    *sync_timing  );
 
 
 	template <typename B = int>
-	static module::Filter_unit_delay<B>*
-	build_unit_delay(const DVBS2O& params);
+	static module::Filter_buffered_delay<B>*
+	build_txrx_delay(const DVBS2O& params);
 
 	template <typename B = int>
 	static module::Monitor_BFER<B>*

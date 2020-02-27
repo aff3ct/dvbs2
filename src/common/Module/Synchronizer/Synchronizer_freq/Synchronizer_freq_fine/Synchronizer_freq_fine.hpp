@@ -16,7 +16,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class synchronize : uint8_t { X_N1, Y_N2, SIZE };
+			enum class synchronize : uint8_t { X_N1, FRQ, PHS, Y_N2, status };
 		}
 	}
 
@@ -34,8 +34,10 @@ public:
 	Synchronizer_freq_fine(const int N, const int n_frames = 1);
 	virtual ~Synchronizer_freq_fine() = default;
 
-	R get_estimated_freq () {return this->estimated_freq; };
-	R get_estimated_phase() {return this->estimated_phase;};
+	virtual Synchronizer_freq_fine<R>* clone() const;
+
+	R get_estimated_freq () const {return this->estimated_freq; };
+	R get_estimated_phase() const {return this->estimated_phase;};
 
 	int get_N() const;
 
@@ -49,9 +51,9 @@ public:
 	 * \param Y_N2: a synchronized vector.
 	 */
 	template <class AR = std::allocator<R>>
-	void synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_id = -1);
+	void synchronize(const std::vector<R,AR>& X_N1, std::vector<R,AR>& FRQ, std::vector<R,AR>& PHS, std::vector<R,AR>& Y_N2, const int frame_id = -1);
 
-	virtual void synchronize(const R *X_N1, R *Y_N2, const int frame_id = -1);
+	virtual void synchronize(const R *X_N1, R * FRQ, R* PHS, R *Y_N2, const int frame_id = -1);
 
 protected:
 	R estimated_freq;

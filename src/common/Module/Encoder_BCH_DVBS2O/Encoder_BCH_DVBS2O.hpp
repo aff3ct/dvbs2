@@ -17,6 +17,8 @@ public:
 
 	virtual ~Encoder_BCH_DVBS2O() = default;
 
+	virtual Encoder_BCH_DVBS2O<B>* clone() const;
+
 protected:
 	virtual void  _encode(const B *U_K, B *X_N, const int frame_id);
 };

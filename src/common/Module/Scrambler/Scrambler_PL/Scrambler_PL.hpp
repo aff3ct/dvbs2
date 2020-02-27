@@ -44,6 +44,8 @@ public:
 	 */
 	Scrambler_PL(const int N, const int start_ix, const int n_frames = 1);
 
+	virtual Scrambler_PL<D>* clone() const;
+
 protected:
 	virtual void _scramble  (D *X_N1, D *X_N2,                const int frame_id);
 	virtual void _descramble(D *Y_N1, D *Y_N2,                const int frame_id);

@@ -26,15 +26,19 @@ private:
 	int head;
 	int SOF_PLSC_sz;
 	Variable_delay_cc_naive<R> output_delay;
-
+	R max_corr;
+	R alpha;
+	R trigger;
 public:
-	Synchronizer_frame_DVBS2_aib (const int N, const int n_frames = 1);
+	Synchronizer_frame_DVBS2_aib (const int N, const R alpha = 0, const R trigger = 25, const int n_frames = 1);
 	virtual ~Synchronizer_frame_DVBS2_aib();
 	void step(const std::complex<R>* x_elt, R* y_elt);
 	void reset();
+	R _get_metric() const {return this->max_corr;};
+	bool _get_packet_flag() const {return(this->max_corr > this->trigger);};
 
 protected:
-	void _synchronize(const R *X_N1,  R *Y_N2, int* delay, const int frame_id);
+	void _synchronize(const R *X_N1, int* delay, R *Y_N2, const int frame_id);
 
 };
 

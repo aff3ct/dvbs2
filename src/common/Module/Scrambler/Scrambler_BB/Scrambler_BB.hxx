@@ -28,6 +28,15 @@ Scrambler_BB(const int N, const int n_frames)
 }
 
 template <typename D>
+Scrambler_BB<D>* Scrambler_BB<D>
+::clone() const
+{
+	auto m = new Scrambler_BB(*this);
+	m->deep_copy(*this);
+	return m;
+}
+
+template <typename D>
 void Scrambler_BB<D>::
 init_lfsr()
 {

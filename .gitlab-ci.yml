@@ -40,7 +40,7 @@ build-linux-gcc:
       - ./build_linux_gcc/
   script:
     - export CXX="g++"
-    - export CFLAGS="-Wall -funroll-loops -msse4.2"
+    - export CFLAGS="-Wall -funroll-loops -mavx2"
     - export BUILD="build_linux_gcc"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
@@ -84,25 +84,25 @@ build-linux-gcc-4.8:
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
 
-build-linux-icpc:
-  stage: build
-  tags:
-    - linux
-    - icpc
-    - cmake
-    - x86
-    - uhd
-  artifacts:
-    name: build-linux-icpc
-    when: always
-    paths:
-      - ./build_linux_icpc/
-  script:
-    - export CXX="icpc"
-    - export CFLAGS="-Wall -funroll-loops -msse4.2 -std=c++11"
-    - export BUILD="build_linux_icpc"
-    - source ./ci/tools/threads.sh
-    - ./ci/build-linux-macos.sh
+# build-linux-icpc:
+#   stage: build
+#   tags:
+#     - linux
+#     - icpc
+#     - cmake
+#     - x86
+#     - uhd
+#   artifacts:
+#     name: build-linux-icpc
+#     when: always
+#     paths:
+#       - ./build_linux_icpc/
+#   script:
+#     - export CXX="icpc"
+#     - export CFLAGS="-Wall -funroll-loops -msse4.2 -std=c++11"
+#     - export BUILD="build_linux_icpc"
+#     - source ./ci/tools/threads.sh
+#     - ./ci/build-linux-macos.sh
 
 build-windows-gcc:
   stage: build
@@ -160,7 +160,6 @@ build-macos-clang:
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
 
-
 test-regression-tx-rx-bb:
   stage: test
   variables:
@@ -172,7 +171,7 @@ test-regression-tx-rx-bb:
     - linux
     - x86
     - 64-bit
-    - sse4.2
+    - avx2
     - python3.4
     - powerful
   artifacts:

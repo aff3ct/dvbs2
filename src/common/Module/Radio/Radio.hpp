@@ -21,8 +21,8 @@ namespace module
 
 		namespace sck
 		{
-			enum class send    : uint8_t { X_N1, SIZE };
-			enum class receive : uint8_t { Y_N1, SIZE };
+			enum class send    : uint8_t { X_N1, status };
+			enum class receive : uint8_t { OVF, SEQ, CLT, TIM, Y_N1, status };
 		}
 	}
 
@@ -44,7 +44,11 @@ public:
 	inline Socket& operator[](const rad::sck::receive s) { return Module::operator[]((int)rad::tsk::receive)[(int)s]; }
 
 protected:
-	const int N;     /*!< Size of one frame (= number of samples in one frame) */
+	const int N; /*!< Size of one frame (= number of samples in one frame) */
+	std::vector<int32_t> ovf_flags;
+	std::vector<int32_t> seq_flags;
+	std::vector<int32_t> clt_flags;
+	std::vector<int32_t> tim_flags;
 
 public:
 	/*!
@@ -76,11 +80,20 @@ public:
 	 *
 	 * \param Y_N1 : a vector of complex samples to receive.
 	 */
-
 	template <class A = std::allocator<R>>
-	void receive(std::vector<R,A>& Y_N1, const int frame_id = -1);
+	void receive(std::vector<int32_t>& OVF,
+	             std::vector<int32_t>& SEQ,
+	             std::vector<int32_t>& CLT,
+	             std::vector<int32_t>& TIM,
+	             std::vector<R,A>& Y_N1,
+	             const int frame_id = -1);
 
-	virtual void receive(R *Y_N1, const int frame_id = -1);
+	virtual void receive(int32_t *OVF,
+	                     int32_t *SEQ,
+	                     int32_t *CLT,
+	                     int32_t *TIM,
+	                     R *Y_N1,
+	                     const int frame_id = -1);
 
 
 protected:

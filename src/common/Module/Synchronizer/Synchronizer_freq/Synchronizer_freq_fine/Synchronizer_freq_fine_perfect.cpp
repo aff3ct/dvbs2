@@ -25,6 +25,15 @@ Synchronizer_freq_fine_perfect<R>
 {}
 
 template <typename R>
+Synchronizer_freq_fine_perfect<R>* Synchronizer_freq_fine_perfect<R>
+::clone() const
+{
+	auto m = new Synchronizer_freq_fine_perfect(*this);
+	m->deep_copy(*this);
+	return m;
+}
+
+template <typename R>
 void Synchronizer_freq_fine_perfect<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {

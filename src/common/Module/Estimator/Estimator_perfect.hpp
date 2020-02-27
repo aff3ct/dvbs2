@@ -43,6 +43,8 @@ public:
 	 */
 	virtual ~Estimator_perfect() = default;
 
+	virtual Estimator_perfect<R>* clone() const;
+
 	virtual void set_noise_ref(tools::Noise<>& noise);
 
 	tools::Noise<>& get_noise_ref() const;
@@ -53,7 +55,8 @@ public:
 	void check_noise_ref(); // check that the reference noise has the expected type
 
 protected:
-	virtual void _estimate  (R *X_N, R *H_N, const int frame_id);
+	virtual void _estimate  (const R *X_N, R *H_N,         const int frame_id);
+	virtual void _rescale   (const R *X_N, R *H_N, R *Y_N, const int frame_id);
 };
 }
 }

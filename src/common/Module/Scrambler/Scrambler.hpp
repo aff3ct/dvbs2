@@ -24,8 +24,8 @@ namespace module
 
 		namespace sck
 		{
-			enum class scramble   : uint8_t { X_N1, X_N2, SIZE };
-			enum class descramble : uint8_t { Y_N1, Y_N2, SIZE };
+			enum class scramble   : uint8_t { X_N1, X_N2, status };
+			enum class descramble : uint8_t { Y_N1, Y_N2, status };
 		}
 	}
 
@@ -60,6 +60,8 @@ public:
 	 * \brief Destructor.
 	 */
 	virtual ~Scrambler() = default;
+
+	virtual Scrambler<D>* clone() const;
 
 	virtual int get_N() const;
 

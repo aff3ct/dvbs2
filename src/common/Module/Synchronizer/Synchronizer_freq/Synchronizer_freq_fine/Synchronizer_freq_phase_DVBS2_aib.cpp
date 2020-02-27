@@ -29,6 +29,15 @@ Synchronizer_freq_phase_DVBS2_aib<R>
 {}
 
 template <typename R>
+Synchronizer_freq_phase_DVBS2_aib<R>* Synchronizer_freq_phase_DVBS2_aib<R>
+::clone() const
+{
+	auto m = new Synchronizer_freq_phase_DVBS2_aib(*this);
+	m->deep_copy(*this);
+	return m;
+}
+
+template <typename R>
 void Synchronizer_freq_phase_DVBS2_aib<R>
 ::_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 {
