@@ -1,7 +1,7 @@
 #include "Factory/Module/Radio/Radio.hpp"
 #include "Module/Radio/Radio_NO/Radio_NO.hpp"
 #include "Module/Radio/Radio_user/Radio_user_binary.hpp"
-#ifdef DVBS2O_LINK_UHD
+#ifdef DVBS2_LINK_UHD
 	#include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
 #endif
 
@@ -104,7 +104,7 @@ module::Radio<R>* Radio
 {
 	if      (this->type == "NO"      ) return new module::Radio_NO         <R>(this->N,                    this->n_frames);
 	else if (this->type == "USER_BIN") return new module::Radio_user_binary<R>(this->N, this->rx_filepath, this->n_frames);
-	#ifdef DVBS2O_LINK_UHD
+	#ifdef DVBS2_LINK_UHD
 	else if (this->type == "USRP")
 		return new module::Radio_USRP<R>(*this);
 	#endif

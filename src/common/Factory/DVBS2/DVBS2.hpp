@@ -1,11 +1,11 @@
-#ifndef FACTORY_DVBS2O_HPP
-#define FACTORY_DVBS2O_HPP
+#ifndef FACTORY_DVBS2_HPP
+#define FACTORY_DVBS2_HPP
 
 #include <aff3ct.hpp>
 
-#include "Factory/DVBS2O/DVBS2O.hpp"
+#include "Factory/DVBS2/DVBS2.hpp"
 
-#include "Module/Multiplier/Sequence/Multiplier_fading_DVBS2O.hpp"
+#include "Module/Multiplier/Sequence/Multiplier_fading_DVBS2.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
 #include "Factory/Module/Radio/Radio.hpp"
 #include "Module/Framer/Framer.hpp"
@@ -32,10 +32,10 @@ namespace aff3ct
 namespace factory
 {
 
-extern const std::string DVBS2O_name;
-extern const std::string DVBS2O_prefix;
+extern const std::string DVBS2_name;
+extern const std::string DVBS2_prefix;
 
-struct DVBS2O : Factory
+struct DVBS2 : Factory
 {
 public:
 	// const
@@ -115,8 +115,8 @@ private:
 	void modcod_init(std::string modcod);
 
 public:
-	DVBS2O(int argc, char** argv, const std::string &p = DVBS2O_prefix);
-	DVBS2O* clone() const;
+	DVBS2(int argc, char** argv, const std::string &p = DVBS2_prefix);
+	DVBS2* clone() const;
 
 	virtual std::vector<std::string> get_names      () const;
 	virtual std::vector<std::string> get_short_names() const;
@@ -130,117 +130,117 @@ public:
 public:
 	template <typename B = int>
 	static module::Source<B>*
-	build_source(const DVBS2O& params, const int seed = 0);
+	build_source(const DVBS2& params, const int seed = 0);
 
 	template <typename B = int>
 	static module::Sink<B>*
-	build_sink(const DVBS2O& params);
+	build_sink(const DVBS2& params);
 
 	template <typename B = int>
 	static module::Encoder_BCH<B>*
-	build_bch_encoder(const DVBS2O& params,
+	build_bch_encoder(const DVBS2& params,
 	                  tools::BCH_polynomial_generator<B>& poly_gen);
 
 	template <typename B = int, typename Q = float>
 	static module::Decoder_BCH_std<B,Q>*
-	build_bch_decoder(const DVBS2O& params,tools::BCH_polynomial_generator<B>& poly_gen);
+	build_bch_decoder(const DVBS2& params,tools::BCH_polynomial_generator<B>& poly_gen);
 
 	template <typename B = int, typename Q = float>
 	static tools::Codec_LDPC<B,Q>*
-	build_ldpc_cdc(const DVBS2O& params);
+	build_ldpc_cdc(const DVBS2& params);
 
 	template <typename D = uint32_t>
 	static tools::Interleaver_core<D>*
-	build_itl_core(const DVBS2O& params);
+	build_itl_core(const DVBS2& params);
 
 	template <typename D = int32_t, typename T = uint32_t>
 	static module::Interleaver<D,T>*
-	build_itl(const DVBS2O& params, tools::Interleaver_core<T>& itl_core);
+	build_itl(const DVBS2& params, tools::Interleaver_core<T>& itl_core);
 
 	template <typename B = int, typename R = float, typename Q = R, tools::proto_max  <Q> MAX  = tools::max_star,
 	                                                                tools::proto_max_i<Q> MAXI = tools::max_star_i>
 	static module::Modem_generic<B,R,Q,MAX>*
-	build_modem(const DVBS2O& params, tools::Constellation<R>* cstl);
+	build_modem(const DVBS2& params, tools::Constellation<R>* cstl);
 
 	template <typename R = float>
 	static module::Multiplier_sine_ccc_naive<R>*
-	build_freq_shift(const DVBS2O& params);
+	build_freq_shift(const DVBS2& params);
 
 	template <typename R = float>
-	static module::Multiplier_fading_DVBS2O<R>*
-	build_fading_mult(const DVBS2O& params);
+	static module::Multiplier_fading_DVBS2<R>*
+	build_fading_mult(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Channel<R>*
-	build_channel(const DVBS2O& params, tools::Gaussian_noise_generator<R>& gen, const bool filtered = true);
+	build_channel(const DVBS2& params, tools::Gaussian_noise_generator<R>& gen, const bool filtered = true);
 
 	template <typename R = float>
 	static module::Framer<R>*
-	build_framer(const DVBS2O& params);
+	build_framer(const DVBS2& params);
 
 	template <typename B = int>
 	static module::Scrambler_BB<B>*
-	build_bb_scrambler(const DVBS2O& params);
+	build_bb_scrambler(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Scrambler_PL<R>*
-	build_pl_scrambler(const DVBS2O& params);
+	build_pl_scrambler(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Filter_UPRRC_ccr_naive<R>*
-	build_uprrc_filter(const DVBS2O& params);
+	build_uprrc_filter(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Filter_Farrow_ccr_naive<R>*
-	build_channel_frac_delay(const DVBS2O& params);
+	build_channel_frac_delay(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Variable_delay_cc_naive<R>*
-	build_channel_int_delay(const DVBS2O& params);
+	build_channel_int_delay(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Filter_buffered_delay<R>*
-	build_channel_frame_delay(const DVBS2O& params);
+	build_channel_frame_delay(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Filter_RRC_ccr_naive<R>*
-	build_matched_filter(const DVBS2O& params);
+	build_matched_filter(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Estimator<R>*
-	build_estimator(const DVBS2O& params, tools::Noise<R>* noise_ref = nullptr);
+	build_estimator(const DVBS2& params, tools::Noise<R>* noise_ref = nullptr);
 
 	template <typename R = float>
 	static module::Synchronizer_freq_fine<R>*
-	build_synchronizer_lr(const DVBS2O& params);
+	build_synchronizer_lr(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Synchronizer_freq_fine<R>*
-	build_synchronizer_freq_phase(const DVBS2O& params);
+	build_synchronizer_freq_phase(const DVBS2& params);
 
 	template <typename B = int, typename R = float>
 	static module::Synchronizer_timing<B, R>*
-	build_synchronizer_timing (const DVBS2O& params);
+	build_synchronizer_timing (const DVBS2& params);
 
 	template <typename R = float>
 	static module::Multiplier_AGC_cc_naive<R>*
-	build_agc_shift(const DVBS2O& params);
+	build_agc_shift(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Multiplier_AGC_cc_naive<R>*
-	build_channel_agc(const DVBS2O& params);
+	build_channel_agc(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Synchronizer_frame<R>*
-	build_synchronizer_frame (const DVBS2O& params);
+	build_synchronizer_frame (const DVBS2& params);
 
 	template <typename R = float>
 	static module::Synchronizer_freq_coarse<R>*
-	build_synchronizer_freq_coarse (const DVBS2O& params);
+	build_synchronizer_freq_coarse (const DVBS2& params);
 
 	template <typename B = int, typename R = float>
 	static module::Synchronizer_step_mf_cc<B,R>*
-	build_synchronizer_step_mf_cc(const DVBS2O& params,
+	build_synchronizer_step_mf_cc(const DVBS2& params,
 	                              aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
 	                              aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
 	                              aff3ct::module::Synchronizer_timing<B,R>    *sync_timing  );
@@ -248,16 +248,16 @@ public:
 
 	template <typename B = int>
 	static module::Filter_buffered_delay<B>*
-	build_txrx_delay(const DVBS2O& params);
+	build_txrx_delay(const DVBS2& params);
 
 	template <typename B = int>
 	static module::Monitor_BFER<B>*
-	build_monitor(const DVBS2O& params);
+	build_monitor(const DVBS2& params);
 
 	template <typename R = float>
 	static module::Radio<R>*
-	build_radio (const DVBS2O& params);
+	build_radio (const DVBS2& params);
 };
 }
 }
-#endif /* FACTORY_DVBS2O_HPP */
+#endif /* FACTORY_DVBS2_HPP */

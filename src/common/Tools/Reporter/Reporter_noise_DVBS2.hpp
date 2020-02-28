@@ -1,9 +1,9 @@
 /*!
  * \file
- * \brief Class tools::Reporter_noise_DVBS2O.
+ * \brief Class tools::Reporter_noise_DVBS2.
  */
-#ifndef REPORTER_NOISE_DVBS2O_HPP_
-#define REPORTER_NOISE_DVBS2O_HPP_
+#ifndef REPORTER_NOISE_DVBS2_HPP_
+#define REPORTER_NOISE_DVBS2_HPP_
 
 #include "Tools/Noise/Noise.hpp"
 #include "Tools/Display/Reporter/Reporter.hpp"
@@ -13,7 +13,7 @@ namespace aff3ct
 namespace tools
 {
 template <typename R = float>
-class Reporter_noise_DVBS2O : public Reporter
+class Reporter_noise_DVBS2 : public Reporter
 {
 protected:
 	const Noise<R>& noise_estimated;
@@ -26,12 +26,12 @@ protected:
 	R alpha;
 
 public:
-	explicit Reporter_noise_DVBS2O(const Noise<R>& noise_estimated, const Noise<R>& noise, const bool show_ground_truth = false, R alpha = 0.9);
-	virtual ~Reporter_noise_DVBS2O() = default;
+	explicit Reporter_noise_DVBS2(const Noise<R>& noise_estimated, const Noise<R>& noise, const bool show_ground_truth = false, R alpha = 0.9);
+	virtual ~Reporter_noise_DVBS2() = default;
 
 	report_t report(bool final = false);
 };
 }
 }
 
-#endif /* REPORTER_NOISE_DVBS2O_HPP_ */
+#endif /* REPORTER_NOISE_DVBS2_HPP_ */

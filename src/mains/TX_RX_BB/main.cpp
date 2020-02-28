@@ -5,7 +5,7 @@
 
 #include <aff3ct.hpp>
 
-#include "Factory/DVBS2O/DVBS2O.hpp"
+#include "Factory/DVBS2/DVBS2.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::module;
@@ -20,7 +20,7 @@ template<class T> using uptr = std::unique_ptr<T>;
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
-	auto params = factory::DVBS2O(argc, argv);
+	auto params = factory::DVBS2(argc, argv);
 
 	std::cout << "[trace]" << std::endl;
 	std::map<std::string,tools::header_list> headers;
@@ -33,22 +33,22 @@ int main(int argc, char** argv)
 	tools::Constellation_user<float> cstl(params.constellation_file);
 	tools::BCH_polynomial_generator<> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 	tools::Gaussian_noise_generator_fast<R> gen;
-	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2O::build_itl_core<>(params));
+	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2::build_itl_core<>(params));
 
 	// construct modules
-	uptr<Source<>                   > source      (factory::DVBS2O::build_source           <>(params             ));
-	uptr<Scrambler<>                > bb_scrambler(factory::DVBS2O::build_bb_scrambler     <>(params             ));
-	uptr<Encoder<>                  > BCH_encoder (factory::DVBS2O::build_bch_encoder      <>(params, poly_gen   ));
-	uptr<Decoder_HIHO<>             > BCH_decoder (factory::DVBS2O::build_bch_decoder      <>(params, poly_gen   ));
-	uptr<tools::Codec_SIHO<>        > LDPC_cdc    (factory::DVBS2O::build_ldpc_cdc         <>(params             ));
-	uptr<Interleaver<>              > itl_tx      (factory::DVBS2O::build_itl              <>(params, *itl_core  ));
-	uptr<Interleaver<float,uint32_t>> itl_rx      (factory::DVBS2O::build_itl<float,uint32_t>(params, *itl_core  ));
-	uptr<Modem<>                    > modem       (factory::DVBS2O::build_modem            <>(params, &cstl      ));
-	uptr<Channel<>                  > channel     (factory::DVBS2O::build_channel          <>(params, gen, false ));
-	uptr<Framer<>                   > framer      (factory::DVBS2O::build_framer           <>(params             ));
-	uptr<Scrambler<float>           > pl_scrambler(factory::DVBS2O::build_pl_scrambler     <>(params             ));
-	uptr<Estimator<>                > estimator   (factory::DVBS2O::build_estimator        <>(params, &noise_ref ));
-	uptr<Monitor_BFER<>             > monitor     (factory::DVBS2O::build_monitor          <>(params             ));
+	uptr<Source<>                   > source      (factory::DVBS2::build_source           <>(params             ));
+	uptr<Scrambler<>                > bb_scrambler(factory::DVBS2::build_bb_scrambler     <>(params             ));
+	uptr<Encoder<>                  > BCH_encoder (factory::DVBS2::build_bch_encoder      <>(params, poly_gen   ));
+	uptr<Decoder_HIHO<>             > BCH_decoder (factory::DVBS2::build_bch_decoder      <>(params, poly_gen   ));
+	uptr<tools::Codec_SIHO<>        > LDPC_cdc    (factory::DVBS2::build_ldpc_cdc         <>(params             ));
+	uptr<Interleaver<>              > itl_tx      (factory::DVBS2::build_itl              <>(params, *itl_core  ));
+	uptr<Interleaver<float,uint32_t>> itl_rx      (factory::DVBS2::build_itl<float,uint32_t>(params, *itl_core  ));
+	uptr<Modem<>                    > modem       (factory::DVBS2::build_modem            <>(params, &cstl      ));
+	uptr<Channel<>                  > channel     (factory::DVBS2::build_channel          <>(params, gen, false ));
+	uptr<Framer<>                   > framer      (factory::DVBS2::build_framer           <>(params             ));
+	uptr<Scrambler<float>           > pl_scrambler(factory::DVBS2::build_pl_scrambler     <>(params             ));
+	uptr<Estimator<>                > estimator   (factory::DVBS2::build_estimator        <>(params, &noise_ref ));
+	uptr<Monitor_BFER<>             > monitor     (factory::DVBS2::build_monitor          <>(params             ));
 
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();

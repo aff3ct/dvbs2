@@ -6,14 +6,14 @@
 #include <iostream>
 
 #include "Tools/Noise/Sigma.hpp"
-#include "Reporter_noise_DVBS2O.hpp"
+#include "Reporter_noise_DVBS2.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::tools;
 
 template <typename R>
-Reporter_noise_DVBS2O<R>
-::Reporter_noise_DVBS2O(const Noise<R>& noise_estimated, const Noise<R>& noise, const bool show_ground_truth, R alpha)
+Reporter_noise_DVBS2<R>
+::Reporter_noise_DVBS2(const Noise<R>& noise_estimated, const Noise<R>& noise, const bool show_ground_truth, R alpha)
 : Reporter(),
   noise_estimated(noise_estimated),
   noise(noise),
@@ -39,7 +39,7 @@ Reporter_noise_DVBS2O<R>
 }
 
 template <typename R>
-Reporter::report_t Reporter_noise_DVBS2O<R>
+Reporter::report_t Reporter_noise_DVBS2<R>
 ::report(bool final)
 {
 	assert(this->cols_groups.size() == 1);
@@ -94,9 +94,9 @@ Reporter::report_t Reporter_noise_DVBS2O<R>
 // ==================================================================================== explicit template instantiation
 #include "Tools/types.h"
 #ifdef AFF3CT_MULTI_PREC
-template class aff3ct::tools::Reporter_noise_DVBS2O<R_32>;
-template class aff3ct::tools::Reporter_noise_DVBS2O<R_64>;
+template class aff3ct::tools::Reporter_noise_DVBS2<R_32>;
+template class aff3ct::tools::Reporter_noise_DVBS2<R_64>;
 #else
-template class aff3ct::tools::Reporter_noise_DVBS2O<R>;
+template class aff3ct::tools::Reporter_noise_DVBS2<R>;
 #endif
 // ==================================================================================== explicit template instantiation
