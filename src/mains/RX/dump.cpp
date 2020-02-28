@@ -5,7 +5,7 @@
 
 #include <aff3ct.hpp>
 
-#include "Factory/DVBS2O/DVBS2O.hpp"
+#include "Factory/DVBS2/DVBS2.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::module;
@@ -19,10 +19,10 @@ template<class T> using uptr = std::unique_ptr<T>;
 int main(int argc, char** argv)
 {
 	// get the parameter to configure the tools and modules
-	const auto params = factory::DVBS2O(argc, argv);
+	const auto params = factory::DVBS2(argc, argv);
 
 	// construct modules
-	uptr<Radio<>> radio(factory::DVBS2O::build_radio<>(params));
+	uptr<Radio<>> radio(factory::DVBS2::build_radio<>(params));
 
 	tools::Dumper dumper;
 	dumper.register_data(static_cast<R*>((*radio)[rad::sck::receive::Y_N1].get_dataptr()),

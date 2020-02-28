@@ -5,15 +5,15 @@
  * \section LICENSE
  * This file is under MIT license (https://opensource.org/licenses/MIT).
  */
-#ifndef ESTIMATOR_DVBS2O_HXX
-#define ESTIMATOR_DVBS2O_HXX
+#ifndef ESTIMATOR_DVBS2_HXX
+#define ESTIMATOR_DVBS2_HXX
 
 #include <sstream>
 #include <complex>
 
 #include "Tools/Exception/exception.hpp"
 
-#include "Module/Estimator/Estimator_DVBS2O.hpp"
+#include "Module/Estimator/Estimator_DVBS2.hpp"
 
 namespace aff3ct
 {
@@ -21,23 +21,23 @@ namespace module
 {
 
 template <typename R>
-Estimator_DVBS2O<R>::
-Estimator_DVBS2O(const int N, const float code_rate, const int bps, const int n_frames)
+Estimator_DVBS2<R>::
+Estimator_DVBS2(const int N, const float code_rate, const int bps, const int n_frames)
 : Estimator<R>(N, n_frames), bps(bps), code_rate(code_rate)
 {
 }
 
 template <typename R>
-Estimator_DVBS2O<R>* Estimator_DVBS2O<R>
+Estimator_DVBS2<R>* Estimator_DVBS2<R>
 ::clone() const
 {
-	auto m = new Estimator_DVBS2O(*this);
+	auto m = new Estimator_DVBS2(*this);
 	m->deep_copy(*this);
 	return m;
 }
 
 template<typename R>
-void Estimator_DVBS2O<R>
+void Estimator_DVBS2<R>
 ::check_noise()
 {
 	Estimator<R>::check_noise();
@@ -46,7 +46,7 @@ void Estimator_DVBS2O<R>
 
 
 template <typename R>
-void Estimator_DVBS2O<R>::
+void Estimator_DVBS2<R>::
 _estimate(const R *X_N, R *H_N, const int frame_id)
 {
 	this->check_noise();
@@ -90,7 +90,7 @@ _estimate(const R *X_N, R *H_N, const int frame_id)
 }
 
 template <typename R>
-void Estimator_DVBS2O<R>::
+void Estimator_DVBS2<R>::
 _rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
 {
 	float moment2 = 0, moment4 = 0;

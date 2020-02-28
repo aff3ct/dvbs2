@@ -1,4 +1,4 @@
-#ifdef DVBS2O_LINK_UHD
+#ifdef DVBS2_LINK_UHD
 
 /*!
  * \file

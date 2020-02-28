@@ -1,8 +1,8 @@
 [metadata]
-command=dvbs2_optique_tx_rx_bb -m 7.1 -M 7.51 --mod-cod 16APSK-S_8/9 --est-type PERFECT
+command=dvbs2_tx_rx_bb -m 7.1 -M 7.51 --mod-cod 16APSK-S_8/9 --est-type PERFECT
 
 [trace]
-# * DVBS2O ----------------------------------------
+# * DVB-S2 ----------------------------------------
 #    ** Modulation and coding = 16APSK-S_8/9
 #    ** Min  Eb/N0            = 6.000000
 #    ** Max  Eb/N0            = 10.000000

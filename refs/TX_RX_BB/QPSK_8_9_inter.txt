@@ -1,8 +1,8 @@
 [metadata]
-command=dvbs2_optique_tx_rx_bb -m 3.60 -M 3.81 --src-fra 2
+command=dvbs2_tx_rx_bb -m 3.60 -M 3.81 --src-fra 2
 
 [trace]
-# * DVBS2O ----------------------------------------
+# * DVB-S2 ----------------------------------------
 #    ** Modulation and coding = QPSK-S_8/9
 #    ** Min  Eb/N0            = 3.600000
 #    ** Max  Eb/N0            = 3.810000

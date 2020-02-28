@@ -1,8 +1,8 @@
 [metadata]
-command=dvbs2_optique_tx_rx_bb -m 1.3 -M 1.51 --mod-cod QPSK-S_3/5
+command=dvbs2_tx_rx_bb -m 1.3 -M 1.51 --mod-cod QPSK-S_3/5
 
 [trace]
-# * DVBS2O ----------------------------------------
+# * DVB-S2 ----------------------------------------
 #    ** Modulation and coding = QPSK-S_3/5
 #    ** Min  Eb/N0            = 0.000000
 #    ** Max  Eb/N0            = 6.000000

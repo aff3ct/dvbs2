@@ -79,7 +79,7 @@ build-linux-gcc-4.8:
   script:
     - export CXX="g++-4.8"
     - export CFLAGS="-Wall -funroll-loops -msse4.2"
-    - export CMAKE_OPT="-DDVBS2O_LINK_UHD=OFF"
+    - export CMAKE_OPT="-DDVBS2_LINK_UHD=OFF"
     - export BUILD="build_linux_gcc-4.8"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
@@ -118,7 +118,7 @@ build-windows-gcc:
   script:
     - set "CFLAGS=-Wall -funroll-loops -mavx"
     - set "BUILD=build_windows_gcc"
-    - set "CMAKE_OPT=-DDVBS2O_LINK_UHD=OFF"
+    - set "CMAKE_OPT=-DDVBS2_LINK_UHD=OFF"
     - call ./ci/tools/threads.bat
     - ./ci/build-windows-gcc.bat
 
@@ -136,7 +136,7 @@ build-windows-msvc:
   script:
     - set "CFLAGS=-D_CRT_SECURE_NO_DEPRECATE /EHsc /arch:AVX"
     - set "BUILD=build_windows_msvc"
-    - set "CMAKE_OPT=-DDVBS2O_LINK_UHD=OFF"
+    - set "CMAKE_OPT=-DDVBS2_LINK_UHD=OFF"
     - call ./ci/tools/threads.bat
     - ./ci/build-windows-msvc.bat
 
@@ -183,7 +183,7 @@ test-regression-tx-rx-bb:
     - source ./ci/tools/threads.sh
     - export OMP_NUM_THREADS=$THREADS
     - export TIME_SEC="5"
-    - ./lib/aff3ct/ci/test-regression.py --refs-path refs/TX_RX_BB/ --results-path test-regression-results-tx-rx-bb --build-path build_linux_gcc --binary-path bin/dvbs2_optique_tx_rx_bb --max-snr-time $TIME_SEC --sensibility 2.5 --weak-rate 0.9 --verbose 1
+    - ./lib/aff3ct/ci/test-regression.py --refs-path refs/TX_RX_BB/ --results-path test-regression-results-tx-rx-bb --build-path build_linux_gcc --binary-path bin/dvbs2_tx_rx_bb --max-snr-time $TIME_SEC --sensibility 2.5 --weak-rate 0.9 --verbose 1
 
 # test-regression-tx-rx:
 #   stage: test
@@ -208,4 +208,4 @@ test-regression-tx-rx-bb:
 #     - source ./ci/tools/threads.sh
 #     - export OMP_NUM_THREADS=$THREADS
 #     - export TIME_SEC="5"
-#     - ./lib/aff3ct/ci/test-regression.py --refs-path refs/TX_RX/ --results-path test-regression-results-tx-rx --build-path build_linux_gcc --binary-path bin/dvbs2_optique_tx_rx --max-snr-time $TIME_SEC --sensibility 2.5 --weak-rate 0.9 --verbose 1
+#     - ./lib/aff3ct/ci/test-regression.py --refs-path refs/TX_RX/ --results-path test-regression-results-tx-rx --build-path build_linux_gcc --binary-path bin/dvbs2_tx_rx --max-snr-time $TIME_SEC --sensibility 2.5 --weak-rate 0.9 --verbose 1

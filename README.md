@@ -1,4 +1,4 @@
-# DVBS2 Optique
+# DVB-S2
 
 ## Machines installation
 
@@ -112,55 +112,59 @@ Create the Visual Studio project and compile the code:
 mkdir build
 cd build
 cmake .. -G"Visual Studio 15 2017 Win64" -DCMAKE_CXX_FLAGS="-D_SCL_SECURE_NO_WARNINGS /EHsc"
-devenv /build Release dvbs2_optique.sln
+devenv /build Release dvbs2.sln
 ```
 
 ## Binaries
 
 The source code of this project is in the `src/` directory:
-- `src/TX`: source code of the transmitter,
-- `src/RX`: source code of the receiver,
-- `src/TX_RX`: source code of the Monte-Carlo simulation with the transmitter
-and the receiver,
-- `src/TX_RX_BB`: source code of the Monte-Carlo simulation without filters and
-synchro,
-- `src/matlab`: source code of the rx, tx and bridge chain to communicate with
-matlab,
+- `src/mains/TX`: source code of the transmitter,
+- `src/mains/RX`: source code of the receiver,
+- `src/mains/TX_RX`: source code of the Monte-Carlo simulation with the
+transmitter and the receiver,
+- `src/mains/TX_RX_BB`: source code of the Monte-Carlo simulation without
+filters and synchro,
+- `src/mains/MATLAB`: source code of the rx, tx and bridge chain to communicate
+with MATLAB,
 - `src/common`: source code common to the transmitter and the receiver.
 
 The compiled binaries are:
-- `build/bin/dvbs2_optique_tx`: the transmitter,
-- `build/bin/dvbs2_optique_rx`: the receiver,
-- `build/bin/dvbs2_optique_tx_rx`: the Monte-Carlo simulation of the transmitter
+- `build/bin/dvbs2_tx`: the transmitter,
+- `build/bin/dvbs2_rx`: the receiver,
+- `build/bin/dvbs2_rx_dump`: dumps the symbols received by the RX in the
+`dump.bin` file,
+- `build/bin/dvbs2_tx_rx`: the Monte-Carlo simulation of the transmitter
 and the receiver,
-- `build/bin/dvbs2_optique_tx_rx_bb`: the Monte-Carlo simulation of the
+- `build/bin/dvbs2_tx_rx_bb`: the Monte-Carlo simulation of the
 transmitter and the receiver without filters and synchro,
-- `build/bin/dvbs2_optique_matlab_tx`: bridge to matlab,
-- `build/bin/dvbs2_optique_matlab_tx`: the transmitter to be launched from
-matlab,
-- `build/bin/dvbs2_optique_matlab_tx`: the receiver to be launched from matlab.
+- `build/bin/dvbs2_matlab_bridge`: bridge to MATLAB,
+- `build/bin/dvbs2_matlab_tx`: the transmitter to be launched from
+MATLAB,
+- `build/bin/dvbs2_matlab_rx`: the receiver to be launched from MATLAB.
 
 ## Run
 
-### Offline
+### Simulation
 
 Some refs with according command line instructions can be found in the `refs/`
-directory for  `build/bin/dvbs2_optique_tx_rx` and
-`build/bin/dvbs2_optique_tx_rx_bb`.
+directory for `build/bin/dvbs2_tx_rx` and
+`build/bin/dvbs2_tx_rx_bb`.
 
-### With Radio, BER / FER
+### Radio
+
+#### BER / FER
 
 Here are example command lines for TX and RX, considering `8PSK-S8_9`:
 
 ```bash
-./bin/dvbs2_optique_tx --rad-tx-rate 1.953125e6 --rad-tx-freq 2360e6 --rad-tx-gain 60 --src-type USER  --sim-stats --mod-cod QPSK-S_8/9
+./bin/dvbs2_tx --rad-tx-rate 1.953125e6 --rad-tx-freq 2360e6 --rad-tx-gain 60 --src-type USER  --sim-stats --mod-cod QPSK-S_8/9
 ```
 
 ```bash
-./bin/dvbs2_optique_rx --rad-rx-rate 1.953125e6 --snk-path "dummy.ts" --rad-rx-freq 2360e6 --rad-rx-gain 60 --src-type USER --dec-implem MS --dec-ite 10 --sim-stats --frame-sync-fast --sim-threaded  --mod-cod QPSK-S_8/9
+./bin/dvbs2_rx --rad-rx-rate 1.953125e6 --snk-path "dummy.ts" --rad-rx-freq 2360e6 --rad-rx-gain 60 --src-type USER --dec-implem MS --dec-ite 10 --sim-stats --frame-sync-fast --sim-threaded  --mod-cod QPSK-S_8/9
 ```
 
-### With Radio, Video Streaming
+#### Video Streaming
 
 An convenient setup is to use a first computer for TX, a second computer for RX,
 and a third for displaying the video.
@@ -169,14 +173,14 @@ and a third for displaying the video.
 - Stream that video from TX computer:
 
 ```bash
-./bin/dvbs2_optique_tx --rad-tx-rate 1.953125e6 --rad-tx-freq 2360e6 --rad-tx-gain 60 --src-type USER_BIN --sim-stats --shp-osf 4 --mod-cod QPSK-S_8/9 --src-path airbus.ts
+./bin/dvbs2_tx --rad-tx-rate 1.953125e6 --rad-tx-freq 2360e6 --rad-tx-gain 60 --src-type USER_BIN --sim-stats --shp-osf 4 --mod-cod QPSK-S_8/9 --src-path airbus.ts
 ```
 
 - Create a fifo on RX computer `mkfifo stream.fifo`
 - Receive the video and write into this fifo
 
 ```bash
-./bin/dvbs2_optique_rx --rad-rx-rate 1.953125e6 --snk-path "dump.bin" --rad-rx-freq 2360e6 --rad-rx-gain 40 --src-type USER --dec-implem MS --dec-ite 10 --mod-c
+./bin/dvbs2_rx --rad-rx-rate 1.953125e6 --snk-path "dump.bin" --rad-rx-freq 2360e6 --rad-rx-gain 40 --src-type USER --dec-implem MS --dec-ite 10 --mod-c
 od QPSK-S_8/9 --rad-rx-subdev-spec "A:0" --rad-threaded --snk-path stream.fifo
 ```
 
@@ -185,15 +189,4 @@ the video via ssh:
 
 ```bash
  ssh <rx ip address>  "cat /path/to/fifo/stream.fifo" | cvlc -
-```
-
-## OpenMP
-
-To avoid OpenMP linking, add the following cmake option:
-`-DDVBS2O_LINK_OPENMP=OFF`.
-To select the number of threads used by openmp in `dvbs2_optique_tx_rx_bb`, run
-the binary while setting the `OMP_NUM_THREADS` variable:
-
-```bash
-OMP_NUM_THREADS=8 ./bin/dvbs2_optique_tx_rx_bb
 ```

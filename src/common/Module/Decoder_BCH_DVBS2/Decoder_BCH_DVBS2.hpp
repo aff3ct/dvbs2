@@ -1,5 +1,5 @@
-#ifndef DECODER_BCH_DVBS2O_HPP_
-#define DECODER_BCH_DVBS2O_HPP_
+#ifndef DECODER_BCH_DVBS2_HPP_
+#define DECODER_BCH_DVBS2_HPP_
 
 #include <aff3ct.hpp>
 
@@ -8,14 +8,14 @@ namespace aff3ct
 namespace module
 {
 template <typename B = int, typename R = float>
-class Decoder_BCH_DVBS2O : public Decoder_BCH_std<B, R>
+class Decoder_BCH_DVBS2 : public Decoder_BCH_std<B, R>
 {
 public:
-	Decoder_BCH_DVBS2O(const int& K, const int& N, const tools::BCH_polynomial_generator<B>& GF, const int n_frames = 1);
+	Decoder_BCH_DVBS2(const int& K, const int& N, const tools::BCH_polynomial_generator<B>& GF, const int n_frames = 1);
 
-	virtual ~Decoder_BCH_DVBS2O() = default;
+	virtual ~Decoder_BCH_DVBS2() = default;
 
-	virtual Decoder_BCH_DVBS2O<B,R>* clone() const;
+	virtual Decoder_BCH_DVBS2<B,R>* clone() const;
 
 protected:
 	virtual int _decode_hiho   (const B *Y_N, B *V_K, const int frame_id);
@@ -26,4 +26,4 @@ protected:
 }
 }
 
-#endif // DECODER_BCH_DVBS2O_HPP_
+#endif // DECODER_BCH_DVBS2_HPP_

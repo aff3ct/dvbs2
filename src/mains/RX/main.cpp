@@ -2,8 +2,8 @@
 #include <fstream>
 #include <aff3ct.hpp>
 
-#include "Factory/DVBS2O/DVBS2O.hpp"
-#ifdef DVBS2O_LINK_UHD
+#include "Factory/DVBS2/DVBS2.hpp"
+#ifdef DVBS2_LINK_UHD
 #include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
 #endif
 
@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 #endif
 
 	// get the parameter to configure the tools and modules
-	auto params = factory::DVBS2O(argc, argv);
+	auto params = factory::DVBS2(argc, argv);
 
 	std::map<std::string,tools::header_list> headers;
 	std::vector<factory::Factory*> param_vec;
@@ -43,35 +43,35 @@ int main(int argc, char** argv)
 
 	// construct tools
 	uptr<tools::Constellation<float>> cstl(new tools::Constellation_user<float>(params.constellation_file));
-	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2O::build_itl_core<>(params));
+	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2::build_itl_core<>(params));
 	tools::BCH_polynomial_generator<> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	uptr<Source<>                   > source       (factory::DVBS2O::build_source                  <>(params            ));
-	uptr<Sink<>                     > sink         (factory::DVBS2O::build_sink                    <>(params            ));
-	uptr<Radio<>                    > radio        (factory::DVBS2O::build_radio                   <>(params            ));
-	uptr<Scrambler<>                > bb_scrambler (factory::DVBS2O::build_bb_scrambler            <>(params            ));
-	uptr<Decoder_HIHO<>             > BCH_decoder  (factory::DVBS2O::build_bch_decoder             <>(params, poly_gen  ));
-	uptr<tools::Codec_SIHO<>        > LDPC_cdc     (factory::DVBS2O::build_ldpc_cdc                <>(params            ));
-	uptr<Interleaver<float,uint32_t>> itl_rx       (factory::DVBS2O::build_itl<float,uint32_t>       (params, *itl_core ));
-	uptr<Modem<>                    > modem        (factory::DVBS2O::build_modem                   <>(params, cstl.get()));
-	uptr<Multiplier_sine_ccc_naive<>> freq_shift   (factory::DVBS2O::build_freq_shift              <>(params            ));
-	uptr<Synchronizer_frame<>       > sync_frame   (factory::DVBS2O::build_synchronizer_frame      <>(params            ));
-	uptr<Synchronizer_freq_fine<>   > sync_lr      (factory::DVBS2O::build_synchronizer_lr         <>(params            ));
-	uptr<Synchronizer_freq_fine<>   > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase <>(params            ));
-	uptr<Framer<>                   > framer       (factory::DVBS2O::build_framer                  <>(params            ));
-	uptr<Scrambler<float>           > pl_scrambler (factory::DVBS2O::build_pl_scrambler            <>(params            ));
-	uptr<Monitor_BFER<>             > monitor      (factory::DVBS2O::build_monitor                 <>(params            ));
-	uptr<Filter_RRC_ccr_naive<>     > matched_flt  (factory::DVBS2O::build_matched_filter          <>(params            ));
-	uptr<Synchronizer_timing <>     > sync_timing  (factory::DVBS2O::build_synchronizer_timing     <>(params            ));
-	uptr<Multiplier_AGC_cc_naive<>  > front_agc    (factory::DVBS2O::build_channel_agc             <>(params            ));
-	uptr<Multiplier_AGC_cc_naive<>  > mult_agc     (factory::DVBS2O::build_agc_shift               <>(params            ));
-	uptr<Estimator<>                > estimator    (factory::DVBS2O::build_estimator               <>(params            ));
-	uptr<Synchronizer_freq_coarse<> > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse<>(params            ));
-	uptr<Synchronizer_step_mf_cc<>  > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc <>(params,
-	                                                                                                  sync_coarse_f.get(),
-	                                                                                                  matched_flt  .get(),
-	                                                                                                  sync_timing  .get()));
+	uptr<Source<>                   > source       (factory::DVBS2::build_source                  <>(params            ));
+	uptr<Sink<>                     > sink         (factory::DVBS2::build_sink                    <>(params            ));
+	uptr<Radio<>                    > radio        (factory::DVBS2::build_radio                   <>(params            ));
+	uptr<Scrambler<>                > bb_scrambler (factory::DVBS2::build_bb_scrambler            <>(params            ));
+	uptr<Decoder_HIHO<>             > BCH_decoder  (factory::DVBS2::build_bch_decoder             <>(params, poly_gen  ));
+	uptr<tools::Codec_SIHO<>        > LDPC_cdc     (factory::DVBS2::build_ldpc_cdc                <>(params            ));
+	uptr<Interleaver<float,uint32_t>> itl_rx       (factory::DVBS2::build_itl<float,uint32_t>       (params, *itl_core ));
+	uptr<Modem<>                    > modem        (factory::DVBS2::build_modem                   <>(params, cstl.get()));
+	uptr<Multiplier_sine_ccc_naive<>> freq_shift   (factory::DVBS2::build_freq_shift              <>(params            ));
+	uptr<Synchronizer_frame<>       > sync_frame   (factory::DVBS2::build_synchronizer_frame      <>(params            ));
+	uptr<Synchronizer_freq_fine<>   > sync_lr      (factory::DVBS2::build_synchronizer_lr         <>(params            ));
+	uptr<Synchronizer_freq_fine<>   > sync_fine_pf (factory::DVBS2::build_synchronizer_freq_phase <>(params            ));
+	uptr<Framer<>                   > framer       (factory::DVBS2::build_framer                  <>(params            ));
+	uptr<Scrambler<float>           > pl_scrambler (factory::DVBS2::build_pl_scrambler            <>(params            ));
+	uptr<Monitor_BFER<>             > monitor      (factory::DVBS2::build_monitor                 <>(params            ));
+	uptr<Filter_RRC_ccr_naive<>     > matched_flt  (factory::DVBS2::build_matched_filter          <>(params            ));
+	uptr<Synchronizer_timing <>     > sync_timing  (factory::DVBS2::build_synchronizer_timing     <>(params            ));
+	uptr<Multiplier_AGC_cc_naive<>  > front_agc    (factory::DVBS2::build_channel_agc             <>(params            ));
+	uptr<Multiplier_AGC_cc_naive<>  > mult_agc     (factory::DVBS2::build_agc_shift               <>(params            ));
+	uptr<Estimator<>                > estimator    (factory::DVBS2::build_estimator               <>(params            ));
+	uptr<Synchronizer_freq_coarse<> > sync_coarse_f(factory::DVBS2::build_synchronizer_freq_coarse<>(params            ));
+	uptr<Synchronizer_step_mf_cc<>  > sync_step_mf (factory::DVBS2::build_synchronizer_step_mf_cc <>(params,
+	                                                                                                 sync_coarse_f.get(),
+	                                                                                                 matched_flt  .get(),
+	                                                                                                 sync_timing  .get()));
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 	// create reporters and probes for the statistics file
@@ -313,7 +313,7 @@ int main(int argc, char** argv)
 	waiting_stats << "#################" << std::endl;
 	terminal_stats.legend(waiting_stats);
 
-#ifdef DVBS2O_LINK_UHD
+#ifdef DVBS2_LINK_UHD
 	const int radio_flush_period = params.n_frames * 100;
 	auto radio_usrp = reinterpret_cast<Radio_USRP<>*>(radio.get());
 #endif
@@ -328,14 +328,14 @@ int main(int argc, char** argv)
 			terminal_stats.temp_report(waiting_stats);
 		else if (enable_logs)
 			std::clog << rang::tag::warning << "Chain aborted! (waiting phase, m = " << m << ")" << std::endl;
-#ifdef DVBS2O_LINK_UHD
+#ifdef DVBS2_LINK_UHD
 		if (radio_usrp != nullptr && m % radio_flush_period == 0 && !sync_frame->get_packet_flag())
 			radio_usrp->flush();
 #endif
 		return sync_frame->get_packet_flag();
 	});
 
-#ifdef DVBS2O_LINK_UHD
+#ifdef DVBS2_LINK_UHD
 	if (radio_usrp != nullptr)
 		radio_usrp->flush();
 #endif
