@@ -118,6 +118,7 @@ void DVBS2O
 	args.add({"sff-lr-alpha"},       cli::Real(),                                       "Damping factor for the Luise and Reggiannini algorithm."             );
 	args.add({"sfm-trigger"},        cli::Real(),                                       "Trigger value to detect signal presence."                            );
 	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),    "Inter frame level."                                                  );
+	args.add({"src-fifo"},           cli::None(),                                       "Enable FIFO mode."                                                   );
 
 	p_rad.get_description(args);
 }
@@ -152,6 +153,7 @@ void DVBS2O
 	section                  = vals.exist({"section"}            ) ? vals.at      ({"section"}           ) : ""          ;
 	src_type                 = vals.exist({"src-type"}           ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
 	src_path                 = vals.exist({"src-path"}           ) ? vals.at      ({"src-path"}          ) : src_path    ;
+	src_fifo                 = vals.exist({"src-fifo"}           ) ? true                                  : false       ;
 	dump_filename            = vals.exist({"dump-filename"}      ) ? vals.at      ({"dump-filename"}     ) : "dump"      ;
 	debug                    = vals.exist({"sim-dbg","d"}        ) ? true                                  : false       ;
 	debug_limit              = vals.exist({"sim-dbg-limit"}      ) ? vals.to_int  ({"sim-dbg-limit"}     ) : -1          ;
@@ -337,7 +339,7 @@ module::Source<B>* DVBS2O
 	else if (params.src_type == "USER")
 		return new module::Source_user<B>(params.K_bch, params.src_path, params.n_frames);
 	else if (params.src_type == "USER_BIN")
-		return new module::Source_user_binary<B>(params.K_bch, params.src_path, true, params.n_frames);
+		return new module::Source_user_binary<B>(params.K_bch, params.src_path, true, params.src_fifo, params.n_frames);
 	else if (params.src_type == "AZCW")
 		return new module::Source_AZCW<B>(params.K_bch, params.n_frames);
 	else

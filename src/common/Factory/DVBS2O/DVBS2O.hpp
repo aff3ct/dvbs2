@@ -68,6 +68,7 @@ public:
 	bool  perfect_coarse_freq_sync;
 	bool  perfect_lr_freq_sync;
 	bool  perfect_pf_freq_sync;
+	bool  src_fifo;
 	int   max_fe;       // max number of frame errors per SNR point
 	int   max_n_frames; // max number of simulated frames per SNR point
 	int   K_bch;
