@@ -104,6 +104,10 @@ protected:
 
 	template <typename T>
 	bool pull(const int col, T *data);
+
+private:
+	template <typename T>
+	bool format_values(const int col, std::stringstream &temp_stream);
 };
 }
 }

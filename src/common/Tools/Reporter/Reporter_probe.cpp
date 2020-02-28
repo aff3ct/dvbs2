@@ -65,6 +65,22 @@ void Reporter_probe
 	}
 }
 
+template <typename T>
+bool Reporter_probe
+::format_values(const int col, std::stringstream &temp_stream)
+{
+	std::vector<T> buff(this->datasizes[col]);
+	const auto can_pull = this->pull<T>(col, buff.data());
+	if (this->datasizes[col] > 1 && can_pull) temp_stream << "[";
+	for (size_t v = 0; v < this->datasizes[col] && can_pull; v++)
+	{
+		const std::string s = std::string((v != 0) ? ", " : "") + std::string((buff[v] >= 0) ? " " : "");
+		temp_stream << std::setprecision(this->precisions[col]) << s << buff[v];
+	}
+	if (this->datasizes[col]> 1 && can_pull) temp_stream << "]";
+	return can_pull;
+}
+
 Reporter::report_t Reporter_probe
 ::report(bool final)
 {
@@ -82,85 +98,19 @@ Reporter::report_t Reporter_probe
 	Reporter::report_t the_report(this->cols_groups.size());
 	auto& probe_report = the_report[0];
 
-	bool can_pull = false;
+	// bool can_pull = false;
 	for (auto f = 0; f < this->n_frames; f++)
 	{
 		for (size_t col = 0; col < this->buffer.size(); col++)
 		{
 			std::stringstream stream, temp_stream;
 			temp_stream.flags(this->stream_flags[col]);
-			if (this->datatypes[col] == typeid(double))
-			{
-				std::vector<double> buff(this->datasizes[col]);
-				can_pull = this->pull<double>(col, buff.data());
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "[";
-				for (size_t v = 0; v < this->datasizes[col] && can_pull; v++)
-				{
-					const std::string s = std::string((v != 0) ? ", " : "") + std::string((buff[v] >= 0) ? " " : "");
-					temp_stream << std::setprecision(this->precisions[col]) << s << buff[v];
-				}
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "]";
-			}
-			else if (this->datatypes[col] == typeid(float))
-			{
-				std::vector<float> buff(this->datasizes[col]);
-				can_pull = this->pull<float>(col, buff.data());
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "[";
-				for (size_t v = 0; v < this->datasizes[col] && can_pull; v++)
-				{
-					const std::string s = std::string((v != 0) ? ", " : "") + std::string((buff[v] >= 0) ? " " : "");
-					temp_stream << std::setprecision(this->precisions[col]) << s << buff[v];
-				}
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "]";
-			}
-			else if (this->datatypes[col] == typeid(int64_t))
-			{
-				std::vector<int64_t> buff(this->datasizes[col]);
-				can_pull = this->pull<int64_t>(col, buff.data());
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "[";
-				for (size_t v = 0; v < this->datasizes[col] && can_pull; v++)
-				{
-					const std::string s = std::string((v != 0) ? ", " : "") + std::string((buff[v] >= 0) ? " " : "");
-					temp_stream << std::setprecision(this->precisions[col]) << s << buff[v];
-				}
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "]";
-			}
-			else if (this->datatypes[col] == typeid(int32_t))
-			{
-				std::vector<int32_t> buff(this->datasizes[col]);
-				can_pull = this->pull<int32_t>(col, buff.data());
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "[";
-				for (size_t v = 0; v < this->datasizes[col] && can_pull; v++)
-				{
-					const std::string s = std::string((v != 0) ? ", " : "") + std::string((buff[v] >= 0) ? " " : "");
-					temp_stream << std::setprecision(this->precisions[col]) << s << buff[v];
-				}
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "]";
-			}
-			else if (this->datatypes[col] == typeid(int16_t))
-			{
-				std::vector<int16_t> buff(this->datasizes[col]);
-				can_pull = this->pull<int16_t>(col, buff.data());
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "[";
-				for (size_t v = 0; v < this->datasizes[col] && can_pull; v++)
-				{
-					const std::string s = std::string((v != 0) ? ", " : "") + std::string((buff[v] >= 0) ? " " : "");
-					temp_stream << std::setprecision(this->precisions[col]) << s << buff[v];
-				}
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "]";
-			}
-			else if (this->datatypes[col] == typeid(int8_t))
-			{
-				std::vector<int8_t> buff(this->datasizes[col]);
-				can_pull = this->pull<int8_t>(col, buff.data());
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "[";
-				for (size_t v = 0; v < this->datasizes[col] && can_pull; v++)
-				{
-					const std::string s = std::string((v != 0) ? ", " : "") + std::string((buff[v] >= 0) ? " " : "");
-					temp_stream << std::setprecision(this->precisions[col]) << s << buff[v];
-				}
-				if (this->datasizes[col] > 1 && can_pull) temp_stream << "]";
-			}
+			     if (this->datatypes[col] == typeid(double )) /* can_pull = */ format_values<double >(col, temp_stream);
+			else if (this->datatypes[col] == typeid(float  )) /* can_pull = */ format_values<float  >(col, temp_stream);
+			else if (this->datatypes[col] == typeid(int64_t)) /* can_pull = */ format_values<int64_t>(col, temp_stream);
+			else if (this->datatypes[col] == typeid(int32_t)) /* can_pull = */ format_values<int32_t>(col, temp_stream);
+			else if (this->datatypes[col] == typeid(int16_t)) /* can_pull = */ format_values<int16_t>(col, temp_stream);
+			else if (this->datatypes[col] == typeid(int8_t )) /* can_pull = */ format_values<int8_t >(col, temp_stream);
 			else
 			{
 				std::stringstream message;
