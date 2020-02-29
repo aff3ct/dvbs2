@@ -1,6 +1,3 @@
-#ifndef SYNCHRONIZER_TIMING_HXX_
-#define SYNCHRONIZER_TIMING_HXX_
-
 #include <string>
 #include <memory>
 #include <stdexcept>
@@ -24,7 +21,7 @@ Synchronizer_timing<B, R>
   mu((R)0),
   is_strobe(0),
   underflow_cnt(n_frames, 0),
-  output_buffer(N/osf*3,  (R)0),
+  output_buffer((N/osf*3)*n_frames, (R)0),
   outbuf_head  (0),
   outbuf_max_sz(N/osf*3),
   outbuf_cur_sz(0),
@@ -91,26 +88,23 @@ int Synchronizer_timing<B,R>
 	return this->N_out;
 }
 
-
 template <typename B, typename R>
 void Synchronizer_timing<B,R>
 ::reset()
 {
-	this->last_symbol   = std::complex<R> (R(0),R(0));
-	this->is_strobe     = 0;
+	this->last_symbol = std::complex<R> (R(0),R(0));
+	this->is_strobe   = 0;
 
-	for (int f = 0; f < this->n_frames; f++)
+	for (auto f = 0; f < this->n_frames; f++)
 		this->underflow_cnt[f] = 0;
 
-	this->outbuf_head   = 0;
-	this->outbuf_tail   = 0;
+	this->outbuf_head = 0;
 	this->outbuf_cur_sz = 0;
+	std::fill(this->output_buffer.begin(), this->output_buffer.end(), (R)0);
 
-	for (auto i = 0; i<this->outbuf_max_sz ; i++)
-		this->output_buffer[i] = (R)0;
 	this->act = false;
 	this->_reset();
-};
+}
 
 template <typename B, typename R>
 R Synchronizer_timing<B,R>
@@ -146,6 +140,7 @@ bool Synchronizer_timing<B,R>
 {
 	return this->outbuf_cur_sz >= this->N_out;
 }
+
 
 template <typename B, typename R>
 template <class AB, class AR>
@@ -248,11 +243,10 @@ void Synchronizer_timing<B,R>
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
-	for (auto f = f_start; f < f_stop; f++)
-		this->_extract(Y_N1 + f * this->N_in,
-		               B_N1 + f * this->N_in,
-		               Y_N2 + f * this->N_out,
-		               f);
+	this->_extract(Y_N1 + f_start * this->N_in,
+	               B_N1 + f_start * this->N_in,
+	               Y_N2 + f_start * this->N_out,
+	               f_start, f_stop - f_start);
 
 	for (auto f = f_start; f < f_stop; f++)
 	{
@@ -263,9 +257,9 @@ void Synchronizer_timing<B,R>
 
 template <typename B, typename R>
 void Synchronizer_timing<B,R>
-::_extract(const R *Y_N1, const B *B_N1, R *Y_N2, const int frame_id)
+::_extract(const R *Y_N1, const B *B_N1, R *Y_N2, const int start_frame_id, const int n_frames)
 {
-	size_t outbuf_head_tmp = std::min(this->outbuf_head, this->N_out);
+	size_t outbuf_head_tmp = std::min(this->outbuf_head, this->N_out * n_frames);
 
 	std::copy(this->output_buffer.begin(),
 	          this->output_buffer.begin() + outbuf_head_tmp,
@@ -278,27 +272,28 @@ void Synchronizer_timing<B,R>
 	this->outbuf_head -= outbuf_head_tmp;
 
 	// we do that in case of the 'output_buffer' is not big enough
-	if ((this->output_buffer.size() - (size_t)this->outbuf_head) < (size_t)this->N_in)
+	if ((this->output_buffer.size() - (size_t)this->outbuf_head) < (size_t)this->N_in * (size_t)n_frames)
 		this->output_buffer.resize(this->output_buffer.size() * 2);
 
 	size_t n = outbuf_head_tmp;
-	for (auto i = 0; i < this->N_in; i++)
+	for (auto i = 0; i < this->N_in * n_frames; i++)
 	{
 		if (B_N1[i])
 		{
-			if (n < (size_t)this->N_out)
+			if (n < (size_t)this->N_out * (size_t)n_frames)
 				Y_N2[n++] = Y_N1[i];
 			else
 				this->output_buffer[this->outbuf_head++] = Y_N1[i];
 		}
 	}
 
-	if (n < (size_t)this->N_out)
+	if (n < (size_t)this->N_out * (size_t)n_frames)
 	{
 		std::copy(Y_N2,
 		          Y_N2 + n,
 		          this->output_buffer.begin());
 		this->outbuf_head += n;
+		const int frame_id = start_frame_id + ((int)n / this->N_out);
 		this->underflow_cnt[frame_id]++;
 		throw tools::processing_aborted(__FILE__, __LINE__, __func__);
 	}
@@ -306,5 +301,3 @@ void Synchronizer_timing<B,R>
 
 }
 }
-
-#endif
