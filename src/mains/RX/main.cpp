@@ -230,7 +230,7 @@ int main(int argc, char** argv)
 	(*source)[src::tsk::generate].exec();
 
 #ifdef MULTI_THREADED
-	// parallel chain
+	// parallel chain (pre-created because it takes some time to clone the modules when the chain is created)
 	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind(  adp_1_to_n   [adp::sck::pull_n       ::out1  ]);
 	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind(  adp_1_to_n   [adp::sck::pull_n       ::out2  ]);
 	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2  ]);

@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 	uptr<Synchronizer_timing<>       > sync_timing  (factory::DVBS2::build_synchronizer_timing      <>(params             ));
 	uptr<Multiplier_AGC_cc_naive<>   > mult_agc     (factory::DVBS2::build_agc_shift                <>(params             ));
 	uptr<Estimator<>                 > estimator    (factory::DVBS2::build_estimator                <>(params, &noise_ref ));
-	uptr<Multiplier_fading_DVBS2<>  > fad_mlt      (factory::DVBS2::build_fading_mult              <>(params             ));
+	uptr<Multiplier_fading_DVBS2<>   > fad_mlt      (factory::DVBS2::build_fading_mult              <>(params             ));
 	uptr<Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2::build_synchronizer_freq_coarse <>(params             ));
 	uptr<Synchronizer_freq_fine<>    > sync_fine_pf (factory::DVBS2::build_synchronizer_freq_phase  <>(params             ));
 	uptr<Synchronizer_freq_fine<>    > sync_fine_lr (factory::DVBS2::build_synchronizer_lr          <>(params             ));

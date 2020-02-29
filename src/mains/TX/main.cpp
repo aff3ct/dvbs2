@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 	tools::BCH_polynomial_generator<B> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	uptr<Source<>        > source        (factory::DVBS2::build_source <>     (params, 0         ));
+	uptr<Source<>        > source        (factory::DVBS2::build_source      <>(params, 0         ));
 	uptr<Scrambler<>     > bb_scrambler  (factory::DVBS2::build_bb_scrambler<>(params            ));
 	uptr<Encoder<>       > BCH_encoder   (factory::DVBS2::build_bch_encoder <>(params, poly_gen  ));
 	uptr<tools::Codec<>  > LDPC_cdc      (factory::DVBS2::build_ldpc_cdc    <>(params            ));
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
 	uptr<Framer<>        > framer        (factory::DVBS2::build_framer      <>(params            ));
 	uptr<Scrambler<float>> pl_scrambler  (factory::DVBS2::build_pl_scrambler<>(params            ));
 	uptr<Filter<>        > shaping_filter(factory::DVBS2::build_uprrc_filter<>(params            ));
-	uptr<Radio<>         > radio         (factory::DVBS2::build_radio<>       (params            ));
+	uptr<Radio<>         > radio         (factory::DVBS2::build_radio       <>(params            ));
 
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 
