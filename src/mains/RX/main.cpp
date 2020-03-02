@@ -2,16 +2,8 @@
 #include <fstream>
 #include <aff3ct.hpp>
 
-#include "Module/Probe/Probe.hpp"
-#include "Module/Probe/Value/Probe_value.hpp"
-#include "Module/Probe/Throughput/Probe_throughput.hpp"
-#include "Module/Probe/Latency/Probe_latency.hpp"
-#include "Module/Probe/Time/Probe_time.hpp"
-#include "Module/Probe/Occurrence/Probe_occurrence.hpp"
-#include "Tools/Reporter/Reporter_probe.hpp"
-#include "Tools/Reporter/Reporter_probe_decstat.hpp"
-#include "Factory/DVBS2O/DVBS2O.hpp"
-#ifdef DVBS2O_LINK_UHD
+#include "Factory/DVBS2/DVBS2.hpp"
+#ifdef DVBS2_LINK_UHD
 #include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
 #endif
 
@@ -42,7 +34,7 @@ int main(int argc, char** argv)
 #endif
 
 	// get the parameter to configure the tools and modules
-	auto params = factory::DVBS2O(argc, argv);
+	auto params = factory::DVBS2(argc, argv);
 
 	std::map<std::string,tools::header_list> headers;
 	std::vector<factory::Factory*> param_vec;
@@ -51,35 +43,35 @@ int main(int argc, char** argv)
 
 	// construct tools
 	uptr<tools::Constellation<float>> cstl(new tools::Constellation_user<float>(params.constellation_file));
-	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2O::build_itl_core<>(params));
+	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2::build_itl_core<>(params));
 	tools::BCH_polynomial_generator<> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	uptr<Source<>                   > source       (factory::DVBS2O::build_source                  <>(params            ));
-	uptr<Sink<>                     > sink         (factory::DVBS2O::build_sink                    <>(params            ));
-	uptr<Radio<>                    > radio        (factory::DVBS2O::build_radio                   <>(params            ));
-	uptr<Scrambler<>                > bb_scrambler (factory::DVBS2O::build_bb_scrambler            <>(params            ));
-	uptr<Decoder_HIHO<>             > BCH_decoder  (factory::DVBS2O::build_bch_decoder             <>(params, poly_gen  ));
-	uptr<tools::Codec_SIHO<>        > LDPC_cdc     (factory::DVBS2O::build_ldpc_cdc                <>(params            ));
-	uptr<Interleaver<float,uint32_t>> itl_rx       (factory::DVBS2O::build_itl<float,uint32_t>       (params, *itl_core ));
-	uptr<Modem<>                    > modem        (factory::DVBS2O::build_modem                   <>(params, cstl.get()));
-	uptr<Multiplier_sine_ccc_naive<>> freq_shift   (factory::DVBS2O::build_freq_shift              <>(params            ));
-	uptr<Synchronizer_frame<>       > sync_frame   (factory::DVBS2O::build_synchronizer_frame      <>(params            ));
-	uptr<Synchronizer_freq_fine<>   > sync_lr      (factory::DVBS2O::build_synchronizer_lr         <>(params            ));
-	uptr<Synchronizer_freq_fine<>   > sync_fine_pf (factory::DVBS2O::build_synchronizer_freq_phase <>(params            ));
-	uptr<Framer<>                   > framer       (factory::DVBS2O::build_framer                  <>(params            ));
-	uptr<Scrambler<float>           > pl_scrambler (factory::DVBS2O::build_pl_scrambler            <>(params            ));
-	uptr<Monitor_BFER<>             > monitor      (factory::DVBS2O::build_monitor                 <>(params            ));
-	uptr<Filter_RRC_ccr_naive<>     > matched_flt  (factory::DVBS2O::build_matched_filter          <>(params            ));
-	uptr<Synchronizer_timing <>     > sync_timing  (factory::DVBS2O::build_synchronizer_timing     <>(params            ));
-	uptr<Multiplier_AGC_cc_naive<>  > front_agc    (factory::DVBS2O::build_channel_agc             <>(params            ));
-	uptr<Multiplier_AGC_cc_naive<>  > mult_agc     (factory::DVBS2O::build_agc_shift               <>(params            ));
-	uptr<Estimator<>                > estimator    (factory::DVBS2O::build_estimator               <>(params            ));
-	uptr<Synchronizer_freq_coarse<> > sync_coarse_f(factory::DVBS2O::build_synchronizer_freq_coarse<>(params            ));
-	uptr<Synchronizer_step_mf_cc<>  > sync_step_mf (factory::DVBS2O::build_synchronizer_step_mf_cc <>(params,
-	                                                                                                  sync_coarse_f.get(),
-	                                                                                                  matched_flt  .get(),
-	                                                                                                  sync_timing  .get()));
+	uptr<Source<>                   > source       (factory::DVBS2::build_source                  <>(params            ));
+	uptr<Sink<>                     > sink         (factory::DVBS2::build_sink                    <>(params            ));
+	uptr<Radio<>                    > radio        (factory::DVBS2::build_radio                   <>(params            ));
+	uptr<Scrambler<>                > bb_scrambler (factory::DVBS2::build_bb_scrambler            <>(params            ));
+	uptr<Decoder_HIHO<>             > BCH_decoder  (factory::DVBS2::build_bch_decoder             <>(params, poly_gen  ));
+	uptr<tools::Codec_SIHO<>        > LDPC_cdc     (factory::DVBS2::build_ldpc_cdc                <>(params            ));
+	uptr<Interleaver<float,uint32_t>> itl_rx       (factory::DVBS2::build_itl<float,uint32_t>       (params, *itl_core ));
+	uptr<Modem<>                    > modem        (factory::DVBS2::build_modem                   <>(params, cstl.get()));
+	uptr<Multiplier_sine_ccc_naive<>> freq_shift   (factory::DVBS2::build_freq_shift              <>(params            ));
+	uptr<Synchronizer_frame<>       > sync_frame   (factory::DVBS2::build_synchronizer_frame      <>(params            ));
+	uptr<Synchronizer_freq_fine<>   > sync_lr      (factory::DVBS2::build_synchronizer_lr         <>(params            ));
+	uptr<Synchronizer_freq_fine<>   > sync_fine_pf (factory::DVBS2::build_synchronizer_freq_phase <>(params            ));
+	uptr<Framer<>                   > framer       (factory::DVBS2::build_framer                  <>(params            ));
+	uptr<Scrambler<float>           > pl_scrambler (factory::DVBS2::build_pl_scrambler            <>(params            ));
+	uptr<Monitor_BFER<>             > monitor      (factory::DVBS2::build_monitor                 <>(params            ));
+	uptr<Filter_RRC_ccr_naive<>     > matched_flt  (factory::DVBS2::build_matched_filter          <>(params            ));
+	uptr<Synchronizer_timing <>     > sync_timing  (factory::DVBS2::build_synchronizer_timing     <>(params            ));
+	uptr<Multiplier_AGC_cc_naive<>  > front_agc    (factory::DVBS2::build_channel_agc             <>(params            ));
+	uptr<Multiplier_AGC_cc_naive<>  > mult_agc     (factory::DVBS2::build_agc_shift               <>(params            ));
+	uptr<Estimator<>                > estimator    (factory::DVBS2::build_estimator               <>(params            ));
+	uptr<Synchronizer_freq_coarse<> > sync_coarse_f(factory::DVBS2::build_synchronizer_freq_coarse<>(params            ));
+	uptr<Synchronizer_step_mf_cc<>  > sync_step_mf (factory::DVBS2::build_synchronizer_step_mf_cc <>(params,
+	                                                                                                 sync_coarse_f.get(),
+	                                                                                                 matched_flt  .get(),
+	                                                                                                 sync_timing  .get()));
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
 	// create reporters and probes for the statistics file
@@ -123,6 +115,7 @@ int main(int argc, char** argv)
 	uptr<Probe<double> > prb_thr_the (rep_thr_stats.create_probe_value     <double >("TTHR", "Theory", 1, std::ios_base::dec | std::ios_base::fixed));
 	uptr<Probe<int32_t>> prb_thr_lat (rep_thr_stats.create_probe_latency   <int32_t>("LAT"));
 	uptr<Probe<int32_t>> prb_thr_time(rep_thr_stats.create_probe_time      <int32_t>("TIME"));
+	uptr<Probe<int32_t>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp <int32_t>("TSTA"));
 
 	std::vector<double> theoretical_thr(params.n_frames, params.p_rad.rx_rate/1e6 * (double)params.K_bch / ((double)params.pl_frame_size * (double)params.osf));
 	(*prb_thr_the)[prb::sck::probe::in].bind(theoretical_thr.data());
@@ -211,8 +204,8 @@ int main(int argc, char** argv)
 	            prb_frq_coa .get(), prb_frq_lr      .get(), prb_frq_fin    .get(), prb_noise_es.get(),
 	            prb_noise_eb.get(), prb_decstat_ldpc.get(), prb_decstat_bch.get(), prb_bfer_be .get(),
 	            prb_bfer_fe .get(), prb_bfer_ber    .get(), prb_bfer_fer   .get(), prb_thr_thr .get(),
-	            prb_thr_lat .get(), prb_thr_time    .get(), prb_fra_id     .get(), prb_stm_uff .get(),
-	            prb_rad_ovf .get(), prb_rad_seq     .get(), prb_thr_thr    .get(),
+	            prb_thr_lat .get(), prb_thr_time    .get(), prb_thr_tsta   .get(), prb_fra_id  .get(),
+	            prb_stm_uff .get(), prb_rad_ovf     .get(), prb_rad_seq    .get(), prb_thr_thr .get(),
 #ifdef MULTI_THREADED
 	            /* adaptors */
 	            &adp_1_to_1_0, &adp_1_to_1_1, &adp_1_to_1_2, &adp_1_to_1_3,
@@ -237,7 +230,7 @@ int main(int argc, char** argv)
 	(*source)[src::tsk::generate].exec();
 
 #ifdef MULTI_THREADED
-	// parallel chain
+	// parallel chain (pre-created because it takes some time to clone the modules when the chain is created)
 	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind(  adp_1_to_n   [adp::sck::pull_n       ::out1  ]);
 	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind(  adp_1_to_n   [adp::sck::pull_n       ::out2  ]);
 	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2  ]);
@@ -303,6 +296,7 @@ int main(int argc, char** argv)
 	(*prb_sfm_flg )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::FLG   ]);
 	(*prb_thr_lat )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 	(*prb_thr_time)[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
+	(*prb_thr_tsta)[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 	(*prb_fra_id  )[prb::sck::probe::in].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 
 	tools::Chain chain_waiting_and_learning_1_2((*radio)[rad::tsk::receive]);
@@ -319,7 +313,7 @@ int main(int argc, char** argv)
 	waiting_stats << "#################" << std::endl;
 	terminal_stats.legend(waiting_stats);
 
-#ifdef DVBS2O_LINK_UHD
+#ifdef DVBS2_LINK_UHD
 	const int radio_flush_period = params.n_frames * 100;
 	auto radio_usrp = reinterpret_cast<Radio_USRP<>*>(radio.get());
 #endif
@@ -334,14 +328,14 @@ int main(int argc, char** argv)
 			terminal_stats.temp_report(waiting_stats);
 		else if (enable_logs)
 			std::clog << rang::tag::warning << "Chain aborted! (waiting phase, m = " << m << ")" << std::endl;
-#ifdef DVBS2O_LINK_UHD
+#ifdef DVBS2_LINK_UHD
 		if (radio_usrp != nullptr && m % radio_flush_period == 0 && !sync_frame->get_packet_flag())
 			radio_usrp->flush();
 #endif
 		return sync_frame->get_packet_flag();
 	});
 
-#ifdef DVBS2O_LINK_UHD
+#ifdef DVBS2_LINK_UHD
 	if (radio_usrp != nullptr)
 		radio_usrp->flush();
 #endif
@@ -444,6 +438,7 @@ int main(int argc, char** argv)
 	(*sync_frame  )[sfm::sck::synchronize::FLG   ].reset();
 	(*prb_thr_lat )[prb::sck::probe      ::in    ].reset();
 	(*prb_thr_time)[prb::sck::probe      ::in    ].reset();
+	(*prb_thr_tsta)[prb::sck::probe      ::in    ].reset();
 	(*sync_frame  )[sfm::sck::synchronize::status].reset();
 	(*sync_frame  )[sfm::sck::synchronize::status].reset();
 	(*prb_fra_id  )[prb::sck::probe      ::in    ].reset();
@@ -461,6 +456,7 @@ int main(int argc, char** argv)
 	(*prb_frq_fin )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::FRQ   ]);
 	(*prb_thr_lat )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 	(*prb_thr_time)[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
+	(*prb_thr_tsta)[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 	(*prb_fra_id  )[prb::sck::probe::in].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 
 	tools::Chain chain_learning_3((*radio)[rad::tsk::receive]);
@@ -575,6 +571,7 @@ int main(int argc, char** argv)
 	// add probes
 	(*prb_thr_lat )[prb::sck::probe      ::in    ].reset();
 	(*prb_thr_time)[prb::sck::probe      ::in    ].reset();
+	(*prb_thr_tsta)[prb::sck::probe      ::in    ].reset();
 	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
 	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
 	(*prb_fra_id  )[prb::sck::probe      ::in    ].reset();
@@ -586,6 +583,7 @@ int main(int argc, char** argv)
 	(*prb_thr_thr     )[prb::sck::probe::in].bind(  adp_n_to_1[adp::sck::pull_1      ::out3  ], high_priority);
 	(*prb_thr_lat     )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
 	(*prb_thr_time    )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
+	(*prb_thr_tsta    )[prb::sck::probe::in].bind((*sink     )[snk::sck::send        ::status], high_priority);
 	(*prb_noise_es    )[prb::sck::probe::in].bind((*estimator)[est::sck::rescale     ::Es_N0 ], high_priority);
 	(*prb_noise_eb    )[prb::sck::probe::in].bind((*estimator)[est::sck::rescale     ::Eb_N0 ], high_priority);
 	(*prb_bfer_be     )[prb::sck::probe::in].bind((*monitor  )[mnt::sck::check_errors::BE    ], high_priority);
@@ -628,26 +626,6 @@ int main(int argc, char** argv)
 	prb_thr_lat->reset();
 	for (size_t s = 0; s < chain_stages.size(); s++)
 	{
-		// auto cs = chain_stages[s];
-		// threads.push_back(std::thread([&prb_fra_id, &prb_thr_the, &params, s, cs, last_stage, &terminal_stats, &stats_file, &stop_threads]() {
-		// 	cs->exec([&prb_fra_id, &prb_thr_the, &params, s, last_stage, &terminal_stats, &stats_file](const std::vector<int>& statuses)
-		// 	{
-		// 		if (s == 3 && statuses.back() == status_t::SKIPPED && enable_logs)
-		// 			std::clog << std::endl << rang::tag::warning << "Chain aborted! (transmission phase, stage = " << s
-		// 			                                             << ", m = " << m << ")" << std::endl;
-		// 		}
-		// 		if (last_stage)
-		// 		{
-		// 			(*prb_thr_the)[prb::tsk::probe].exec();
-		// 			terminal_stats.temp_report(stats_file);
-		// 		}
-
-		// 		return terminal_stats.is_interrupt();
-		// 	});
-		// 	stop_threads();
-		// }));
-
-
 		auto cs = chain_stages[s];
 		threads.push_back(std::thread([&prb_fra_id, &prb_thr_the, s, cs, &terminal_stats, &stats_file, &stop_threads]() {
 			cs->exec([&prb_fra_id, &prb_thr_the, s, &terminal_stats, &stats_file](const std::vector<int>& statuses)
@@ -686,6 +664,7 @@ int main(int argc, char** argv)
 	// add probes
 	(*prb_thr_lat )[prb::sck::probe      ::in    ].reset();
 	(*prb_thr_time)[prb::sck::probe      ::in    ].reset();
+	(*prb_thr_tsta)[prb::sck::probe      ::in    ].reset();
 	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
 	(*sync_fine_pf)[sff::sck::synchronize::status].reset();
 	(*prb_fra_id  )[prb::sck::probe      ::in    ].reset();
@@ -696,6 +675,7 @@ int main(int argc, char** argv)
 	(*prb_thr_thr     )[prb::sck::probe::in].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K   ]);
 	(*prb_thr_lat     )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
 	(*prb_thr_time    )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
+	(*prb_thr_tsta    )[prb::sck::probe::in].bind((*sink        )[snk::sck::send        ::status]);
 	(*prb_noise_es    )[prb::sck::probe::in].bind((*estimator   )[est::sck::rescale     ::Es_N0 ]);
 	(*prb_noise_eb    )[prb::sck::probe::in].bind((*estimator   )[est::sck::rescale     ::Eb_N0 ]);
 	(*prb_bfer_be     )[prb::sck::probe::in].bind((*monitor     )[mnt::sck::check_errors::BE    ]);

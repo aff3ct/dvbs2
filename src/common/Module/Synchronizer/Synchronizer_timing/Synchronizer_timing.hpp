@@ -51,9 +51,8 @@ protected:
 
 	std::vector<B> underflow_cnt;
 
-	std::vector<R   > output_buffer;
+	std::vector<R> output_buffer;
 	int outbuf_head;
-	int outbuf_tail;
 	int outbuf_max_sz;
 	int outbuf_cur_sz;
 
@@ -104,9 +103,9 @@ public:
 	void synchronize(const R *X_N1, R *MU, R *Y_N1, B* B_N1, const int frame_id = -1);
 
 protected:
-	virtual void _reset      (                                                           ) = 0;
+	virtual void _reset      () = 0;
 	virtual void _synchronize(const R *X_N1, R* Y_N1, B * B_N1, const int frame_id) = 0;
-	virtual void _extract    (const R* Y_N1, const B * B_N1, R* Y_N2,  const int frame_id);
+	virtual void _extract    (const R* Y_N1, const B * B_N1, R* Y_N2, const int start_frame_id, const int n_frames);
 };
 
 }

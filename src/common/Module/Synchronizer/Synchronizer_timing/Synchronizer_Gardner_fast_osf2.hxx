@@ -40,45 +40,48 @@ void Synchronizer_Gardner_fast_osf2<B,R>
 {
 	// Interpolation Control
 	R W = this->lf_output + (R)0.5;
+	this->prev_is_strobe = this->is_strobe;
 	this->is_strobe = (this->NCO_counter < W) ? 1:0; // Check if a strobe
 	if (this->is_strobe == 1) // Update mu if a strobe
 	{
 		this->mu = this->NCO_counter / W;
 		this->farrow_flt.set_mu(this->mu);
+		this->NCO_counter += (R)1.0f;
 	}
 
-	this->NCO_counter = (this->NCO_counter - W) - std::floor(this->NCO_counter - W); // Update counter*/
+	this->NCO_counter = (this->NCO_counter - W); // Update counter*/
 }
 
 template <typename B, typename R>
 void Synchronizer_Gardner_fast_osf2<B,R>
 ::TED_update(std::complex<R> sample)
 {
-	this->strobe_history = (this->strobe_history << 1) % this->POW_osf + this->is_strobe;
-	if (this->strobe_history == 1)
-	{
-		this->TED_error = std::real(this->TED_buffer[this->TED_mid_pos]) * (std::real(this->TED_buffer[this->TED_head_pos]) - std::real(sample)) +
-		                  std::imag(this->TED_buffer[this->TED_mid_pos]) * (std::imag(this->TED_buffer[this->TED_head_pos]) - std::imag(sample));
-	}
+	R* TED_buffer_iq    = reinterpret_cast<R* >(this->TED_buffer.data());
+	R* sample_iq        = reinterpret_cast<R* >(&sample);
+
+	int strobe_history = this->is_strobe + this->prev_is_strobe * 2;
+	if (strobe_history == 1)
+		this->TED_error = TED_buffer_iq[2] * (TED_buffer_iq[0] - sample_iq[0]) +
+			              TED_buffer_iq[3] * (TED_buffer_iq[1] - sample_iq[1]);
 	else
 		this->TED_error = 0.0f;
 
 	// Stuffing / skipping
-	switch (this->set_bits_nbr[this->strobe_history])
+	switch (strobe_history)
 	{
+		case 1:
+			this->TED_buffer[0].real((R)0.0f);
+			this->TED_buffer[0].imag((R)0.0f);
+
+			this->TED_buffer[1] = sample;
+		break;
+
 		case 0:
 		break;
 
-		case 1:
-			this->TED_buffer[this->TED_head_pos] = sample;
-
-			this->TED_head_pos = this->TED_mid_pos;
-			this->TED_mid_pos  = 1-this->TED_mid_pos;
-		break;
-
 		default:
-			this->TED_buffer[ this->TED_head_pos ] = std::complex<R>(0.0f, 0.0f);
-			this->TED_buffer[1-this->TED_head_pos] = sample;
+			this->TED_buffer[0] = this->TED_buffer[1];
+			this->TED_buffer[1] = sample;
 		break;
 	}
 }

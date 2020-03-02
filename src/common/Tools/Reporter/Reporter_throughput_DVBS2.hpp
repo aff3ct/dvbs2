@@ -1,9 +1,9 @@
 /*!
  * \file
- * \brief Class tools::Reporter_throughput_DVBS2O.
+ * \brief Class tools::Reporter_throughput_DVBS2.
  */
-#ifndef Reporter_throughput_DVBS2O_HPP_
-#define Reporter_throughput_DVBS2O_HPP_
+#ifndef Reporter_throughput_DVBS2_HPP_
+#define Reporter_throughput_DVBS2_HPP_
 
 #include <chrono>
 #include <cstdint>
@@ -20,7 +20,7 @@ namespace aff3ct
 namespace tools
 {
 template <typename T = uint64_t>
-class Reporter_throughput_DVBS2O : public Reporter
+class Reporter_throughput_DVBS2 : public Reporter
 {
 	static_assert(std::is_convertible<T, double>::value, "T type must be convertible to a double.");
 
@@ -41,19 +41,19 @@ protected:
 
 
 public:
-	explicit Reporter_throughput_DVBS2O(std::function<T(void)> progress_function, const T progress_limit = 0,
+	explicit Reporter_throughput_DVBS2(std::function<T(void)> progress_function, const T progress_limit = 0,
 	                             std::function<T(void)> get_nbits_function = nullptr, const T nbits_factor = 1, T n_frames = 1, double alpha = 0.9);
 
 	template<typename B>
-	explicit Reporter_throughput_DVBS2O(const module::Monitor_BFER<B>& m, double alpha = 0.9);
+	explicit Reporter_throughput_DVBS2(const module::Monitor_BFER<B>& m, double alpha = 0.9);
 
 	template<typename B, typename R>
-	explicit Reporter_throughput_DVBS2O(const module::Monitor_MI<B,R>& m, double alpha = 0.9);
+	explicit Reporter_throughput_DVBS2(const module::Monitor_MI<B,R>& m, double alpha = 0.9);
 
 	template<typename B, typename R>
-	explicit Reporter_throughput_DVBS2O(const module::Monitor_EXIT<B,R>& m, double alpha = 0.9);
+	explicit Reporter_throughput_DVBS2(const module::Monitor_EXIT<B,R>& m, double alpha = 0.9);
 
-	virtual ~Reporter_throughput_DVBS2O() = default;
+	virtual ~Reporter_throughput_DVBS2() = default;
 
 	report_t report(bool final = false);
 
@@ -63,7 +63,7 @@ public:
 }
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-#include "Reporter_throughput_DVBS2O.hxx"
+#include "Reporter_throughput_DVBS2.hxx"
 #endif
 
-#endif /* Reporter_throughput_DVBS2O_HPP_ */
+#endif /* Reporter_throughput_DVBS2_HPP_ */

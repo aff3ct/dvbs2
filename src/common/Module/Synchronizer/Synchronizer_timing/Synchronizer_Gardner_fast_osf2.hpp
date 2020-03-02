@@ -21,7 +21,7 @@ private:
 	Filter_Farrow_ccr_naive <R>   farrow_flt;
 
 	// TED parameters
-	int strobe_history;
+	int prev_is_strobe;
 	R TED_error;
 	std::vector<std::complex<R> > TED_buffer;
 	int TED_head_pos;
@@ -49,7 +49,7 @@ public:
 
 protected:
 	void _reset();
-	void _synchronize(const R *X_N1, R *Y_N1, B *B_N1, const int frame_id);
+	void _synchronize(const R *X_N1,  R *Y_N1, B *B_N1, const int frame_id);
 
 
 	inline void TED_update(std::complex<R> strobe);

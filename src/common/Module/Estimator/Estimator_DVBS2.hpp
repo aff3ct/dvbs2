@@ -5,8 +5,8 @@
  * \section LICENSE
  * This file is under MIT license (https://opensource.org/licenses/MIT).
  */
-#ifndef ESTIMATOR_DVBS2O_HPP
-#define ESTIMATOR_DVBS2O_HPP
+#ifndef ESTIMATOR_DVBS2_HPP
+#define ESTIMATOR_DVBS2_HPP
 
 #include "Module/Estimator/Estimator.hpp"
 
@@ -15,14 +15,14 @@ namespace aff3ct
 namespace module
 {
 /*!
- * \class Estimator_DVBS2O
+ * \class Estimator_DVBS2
  *
  * \brief Estimator with moments method for sigma estimation.
  *
  * \tparam R: type of the data in the Estimator.
  */
 template <typename R = float>
-class Estimator_DVBS2O : public Estimator<R>
+class Estimator_DVBS2 : public Estimator<R>
 {
 protected:
 	const int bps;               // bits per symbol for eb_n0 computation
@@ -37,14 +37,14 @@ public:
 	 * \param bps:       number of bits per symbol.
 	 * \param n_frames:  number of frames to process in the Estimator.
 	 */
-	Estimator_DVBS2O(const int N, const float code_rate, const int bps, const int n_frames = 1);
+	Estimator_DVBS2(const int N, const float code_rate, const int bps, const int n_frames = 1);
 
 	/*!
 	 * \brief Destructor.
 	 */
-	virtual ~Estimator_DVBS2O() = default;
+	virtual ~Estimator_DVBS2() = default;
 
-	virtual Estimator_DVBS2O<R>* clone() const;
+	virtual Estimator_DVBS2<R>* clone() const;
 
 	void check_noise(); // check that the noise has the expected type
 
@@ -54,6 +54,6 @@ protected:
 };
 }
 }
-#include "Estimator_DVBS2O.hxx"
+#include "Estimator_DVBS2.hxx"
 
-#endif /* ESTIMATOR_DVBS2O_HPP */
+#endif /* ESTIMATOR_DVBS2_HPP */

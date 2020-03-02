@@ -10,7 +10,7 @@ Synchronizer_Gardner_fast_osf2<B,R>
 ::Synchronizer_Gardner_fast_osf2(const int N, const R damping_factor, const R normalized_bandwidth, const R detector_gain, const int n_frames)
 : Synchronizer_timing<B,R>(N, 2, n_frames),
 farrow_flt(N,(R)0),
-strobe_history(0),
+prev_is_strobe(0),
 TED_error((R)0),
 TED_buffer(2, std::complex<R>((R)0,(R)0)),
 TED_head_pos(1),
@@ -33,89 +33,136 @@ Synchronizer_Gardner_fast_osf2<B,R>
 
 template <typename B, typename R>
 void Synchronizer_Gardner_fast_osf2<B,R>
-::_synchronize(const R *X_N1, R *Y_N1, B *B_N1, const int frame_id)
+::_synchronize(const R *X_N1,  R *Y_N1, B *B_N1, const int frame_id)
 {
 	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
 	auto cY_N1 = reinterpret_cast<      std::complex<R>* >(Y_N1);
 
 	R* TED_buffer_iq    = reinterpret_cast<R* >(this->TED_buffer.data());
 
+	R W = this->lf_output + (R)0.5;
+	int strobe_history = this->is_strobe + this->prev_is_strobe * 2;
 	for (auto i = 0; i < this->N_in/2 ; i++)
 	{
-		R W = this->lf_output + (R)0.5;
-		this->is_strobe = (this->NCO_counter < W);
-		this->strobe_history = this->strobe_history % 2;
-		this->strobe_history = this->strobe_history + this->strobe_history;
-		this->strobe_history = this->strobe_history + this->is_strobe;
-
-		if (this->strobe_history == 1)// Update mu if a strobe
+		if (strobe_history == 1)// Update mu if a strobe
 		{
-			B_N1[2*i    ] = this->is_strobe;
-			B_N1[2*i + 1] = this->is_strobe;
-
-			this->mu = this->NCO_counter / W;
-			this->farrow_flt.set_mu(this->mu);
-			this->NCO_counter += 1.0f - W;
+			B_N1[2*i    ] = 1;
+			B_N1[2*i + 1] = 1;
 
 			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
+			this->last_symbol = cY_N1[i];
 
-			auto idx_mid  = this->TED_mid_pos  + this->TED_mid_pos;
-			auto idx_head = this->TED_head_pos + this->TED_head_pos;
-			auto idx_curr = i + i;
-
-			this->TED_error = TED_buffer_iq[idx_mid    ] * (TED_buffer_iq[idx_head    ] - Y_N1[idx_curr    ]) +
-			                  TED_buffer_iq[idx_mid + 1] * (TED_buffer_iq[idx_head + 1] - Y_N1[idx_curr + 1]);
-
-			this->TED_buffer[this->TED_head_pos] = cY_N1[i];
-			this->TED_head_pos = !this->TED_head_pos;
-			this->TED_mid_pos  = !this->TED_mid_pos;
+			this->TED_error = TED_buffer_iq[2] * (TED_buffer_iq[0] - Y_N1[2*i + 0]) +
+			                  TED_buffer_iq[3] * (TED_buffer_iq[1] - Y_N1[2*i + 1]);
 
 			this->lf_prev_in +=                    this->TED_error * this->lf_integrator_gain;
 			this->lf_output   = this->lf_prev_in + this->TED_error * this->lf_proportional_gain;
+
+			this->TED_buffer[0] = this->TED_buffer[1];
+			this->TED_buffer[1].real(Y_N1[2*i + 0]);
+			this->TED_buffer[1].imag(Y_N1[2*i + 1]);
+
+			W = this->lf_output + (R)0.5;
+			this->prev_is_strobe = this->is_strobe;
+			this->is_strobe = (this->NCO_counter < W);
+			strobe_history = this->is_strobe + this->prev_is_strobe * 2;
+
+			if (this->is_strobe)
+			{
+				this->mu = this->NCO_counter / W;
+				this->farrow_flt.set_mu(this->mu);
+				this->NCO_counter += 1.0f - W;
+			}
+			else
+			{
+				this->NCO_counter -= W;
+			}
 		}
-		else if (this->strobe_history == 3)// Update mu if a strobe
+		else if (strobe_history == 2)// Update mu if a strobe
 		{
-			B_N1[2*i    ] = this->is_strobe;
-			B_N1[2*i + 1] = this->is_strobe;
-			this->mu = this->NCO_counter / W;
+			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
+
+			B_N1[2*i    ] = 0;
+			B_N1[2*i + 1] = 0;
+
+			this->TED_buffer[0] = this->TED_buffer[1];
+			this->TED_buffer[1].real(Y_N1[2*i + 0]);
+			this->TED_buffer[1].imag(Y_N1[2*i + 1]);
+
+			this->lf_output = this->lf_prev_in;
+			W = this->lf_output + (R)0.5;
+
+			this->prev_is_strobe = this->is_strobe;
+
+			this->is_strobe = (this->NCO_counter < W);
+			strobe_history = this->is_strobe + this->prev_is_strobe * 2;
+
+			if (this->is_strobe)
+			{
+				this->mu = this->NCO_counter / W;
+				this->farrow_flt.set_mu(this->mu);
+				this->NCO_counter += 1.0f - W;
+			}
+			else
+			{
+				this->NCO_counter -= W;
+			}
+		}
+		else if (strobe_history == 3)// Update mu if a strobe
+		{
+			B_N1[2*i    ] = 1;
+			B_N1[2*i + 1] = 1;
+
 			this->farrow_flt.set_mu(this->mu);
-			this->NCO_counter += 1.0f - W;
 
 			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
+			this->last_symbol = cY_N1[i];
+			this->TED_buffer[0].real((R)0.);
+			this->TED_buffer[0].imag((R)0.);
+			this->TED_buffer[1].real(Y_N1[2*i + 0]);
+			this->TED_buffer[1].imag(Y_N1[2*i + 1]);
 
-			this->TED_buffer[this->TED_head_pos].real(0.);
-			this->TED_buffer[this->TED_head_pos].imag(0.);
-			this->TED_buffer[this->TED_mid_pos ] = cY_N1[i];
-
-			this->TED_error = 0.0f;
 			this->lf_output = this->lf_prev_in;
+			W = this->lf_output + (R)0.5;
+
+			this->prev_is_strobe = this->is_strobe;
+			this->is_strobe = (this->NCO_counter < W);
+			strobe_history = this->is_strobe + this->prev_is_strobe * 2;
+
+			if (this->is_strobe)
+			{
+				this->mu = this->NCO_counter / W;
+				this->farrow_flt.set_mu(this->mu);
+				this->NCO_counter += 1.0f - W;
+			}
+			else
+			{
+				this->NCO_counter -= W;
+			}
 		}
-		else if (this->strobe_history == 2)// Update mu if a strobe
+		else
 		{
-			B_N1[2*i    ] = this->is_strobe;
-			B_N1[2*i + 1] = this->is_strobe;
-			this->NCO_counter -= W; // Update counter*/
+			B_N1[2*i    ] = 0;
+			B_N1[2*i + 1] = 0;
+
 			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
 
-			this->TED_buffer[this->TED_head_pos] = cY_N1[i];
-			this->TED_head_pos = !this->TED_head_pos;
-			this->TED_mid_pos  = !this->TED_mid_pos;
-
-			this->TED_error = 0.0f;
 			this->lf_output = this->lf_prev_in;
-		}
-		else if (this->strobe_history == 0)// Update mu if a strobe
-		{
-			B_N1[2*i    ] = this->is_strobe;
-			B_N1[2*i + 1] = this->is_strobe;
-			this->NCO_counter -= W; // Update counter*/
-			farrow_flt.step( &cX_N1[i], &cY_N1[i]);
 
-			this->TED_error = 0.0f;
-			this->lf_output = this->lf_prev_in;
+			W = this->lf_output + (R)0.5;
+			this->prev_is_strobe = this->is_strobe;
+			this->is_strobe = (this->NCO_counter < W);
+			strobe_history = this->is_strobe + this->prev_is_strobe * 2;
+			if (this->is_strobe)
+			{
+				this->mu = this->NCO_counter / W;
+				this->farrow_flt.set_mu(this->mu);
+				this->NCO_counter += 1.0f - W;
+			}
+			else
+				this->NCO_counter -= W;
 		}
 	}
-
 }
 
 template <typename B, typename R>
@@ -128,8 +175,7 @@ void Synchronizer_Gardner_fast_osf2<B,R>
 
 	for (auto i = 0; i<2 ; i++)
 		this->TED_buffer[i] = std::complex<R>(R(0),R(0));
-
-	this->strobe_history   = 0;
+	this->prev_is_strobe   = 0;
 	this->TED_error        = (R)0;
 	this->TED_head_pos     = 0;
 	this->TED_mid_pos      = 1;

@@ -2,31 +2,31 @@
 #include <cmath>
 #include <iostream>
 
-#include "Module/Decoder_BCH_DVBS2O/Decoder_BCH_DVBS2O.hpp"
+#include "Module/Decoder_BCH_DVBS2/Decoder_BCH_DVBS2.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::module;
 
 template <typename B, typename R>
-Decoder_BCH_DVBS2O<B, R>
-::Decoder_BCH_DVBS2O(const int& K, const int& N, const tools::BCH_polynomial_generator<B>& GF_poly, const int n_frames)
+Decoder_BCH_DVBS2<B, R>
+::Decoder_BCH_DVBS2(const int& K, const int& N, const tools::BCH_polynomial_generator<B>& GF_poly, const int n_frames)
 : Decoder_BCH_std<B, R>(K, N, GF_poly, n_frames)
 {
-	const std::string name = "Decoder_BCH_DVBS2O";
+	const std::string name = "Decoder_BCH_DVBS2";
 	this->set_name(name);
 }
 
 template <typename B, typename R>
-Decoder_BCH_DVBS2O<B,R>* Decoder_BCH_DVBS2O<B,R>
+Decoder_BCH_DVBS2<B,R>* Decoder_BCH_DVBS2<B,R>
 ::clone() const
 {
-	auto m = new Decoder_BCH_DVBS2O(*this);
+	auto m = new Decoder_BCH_DVBS2(*this);
 	m->deep_copy(*this);
 	return m;
 }
 
 template <typename B, typename R>
-int Decoder_BCH_DVBS2O<B, R>
+int Decoder_BCH_DVBS2<B, R>
 ::_decode_hiho(const B *Y_N, B *V_K, const int frame_id)
 {
 	std::reverse_copy(Y_N, Y_N + this->N, this->YH_N.begin());
@@ -39,21 +39,21 @@ int Decoder_BCH_DVBS2O<B, R>
 }
 
 template <typename B, typename R>
-int Decoder_BCH_DVBS2O<B, R>
+int Decoder_BCH_DVBS2<B, R>
 ::_decode_hiho_cw(const B *Y_N, B *V_N, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename B, typename R>
-int Decoder_BCH_DVBS2O<B, R>
+int Decoder_BCH_DVBS2<B, R>
 ::_decode_siho(const R *Y_N, B *V_K, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename B, typename R>
-int Decoder_BCH_DVBS2O<B, R>
+int Decoder_BCH_DVBS2<B, R>
 ::_decode_siho_cw(const R *Y_N, B *V_N, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
@@ -63,11 +63,11 @@ int Decoder_BCH_DVBS2O<B, R>
 // ==================================================================================== explicit template instantiation
 #include "Tools/types.h"
 #ifdef AFF3CT_MULTI_PREC
-template class aff3ct::module::Decoder_BCH_DVBS2O<B_8,Q_8>;
-template class aff3ct::module::Decoder_BCH_DVBS2O<B_16,Q_16>;
-template class aff3ct::module::Decoder_BCH_DVBS2O<B_32,Q_32>;
-template class aff3ct::module::Decoder_BCH_DVBS2O<B_64,Q_64>;
+template class aff3ct::module::Decoder_BCH_DVBS2<B_8,Q_8>;
+template class aff3ct::module::Decoder_BCH_DVBS2<B_16,Q_16>;
+template class aff3ct::module::Decoder_BCH_DVBS2<B_32,Q_32>;
+template class aff3ct::module::Decoder_BCH_DVBS2<B_64,Q_64>;
 #else
-template class aff3ct::module::Decoder_BCH_DVBS2O<B,Q>;
+template class aff3ct::module::Decoder_BCH_DVBS2<B,Q>;
 #endif
 // ==================================================================================== explicit template instantiation

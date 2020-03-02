@@ -1,7 +1,7 @@
 #include <aff3ct.hpp>
 
 #include "version.h"
-#include "Factory/DVBS2O/DVBS2O.hpp"
+#include "Factory/DVBS2/DVBS2.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::module;
@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 	tools::Terminal::init();
 
 	// get the parameter to configure the tools and modules
-	auto params = factory::DVBS2O(argc, argv);
+	auto params = factory::DVBS2(argc, argv);
 
 	std::map<std::string,tools::header_list> headers;
 	std::vector<factory::Factory*> param_vec;
@@ -41,21 +41,21 @@ int main(int argc, char** argv)
 
 	// construct tools
 	uptr<tools::Constellation<R>> cstl(new tools::Constellation_user<R>(params.constellation_file));
-	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2O::build_itl_core<>(params));
+	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2::build_itl_core<>(params));
 	tools::BCH_polynomial_generator<B> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	uptr<Source<>                  > source        (factory::DVBS2O::build_source      <>(params, 0         ));
-	uptr<Scrambler<>               > bb_scrambler  (factory::DVBS2O::build_bb_scrambler<>(params            ));
-	uptr<Encoder<>                 > BCH_encoder   (factory::DVBS2O::build_bch_encoder <>(params, poly_gen  ));
-	uptr<tools::Codec<>            > LDPC_cdc      (factory::DVBS2O::build_ldpc_cdc    <>(params            ));
-	uptr<Interleaver<>             > itl           (factory::DVBS2O::build_itl         <>(params, *itl_core ));
-	uptr<Modem<>                   > modem         (factory::DVBS2O::build_modem       <>(params, cstl.get()));
-	uptr<Framer<>                  > framer        (factory::DVBS2O::build_framer      <>(params            ));
-	uptr<Scrambler<float>          > pl_scrambler  (factory::DVBS2O::build_pl_scrambler<>(params            ));
-	uptr<Filter<>                  > shaping_filter(factory::DVBS2O::build_uprrc_filter<>(params            ));
-	uptr<Multiplier_fading_DVBS2O<>> fad_mlt       (factory::DVBS2O::build_fading_mult <>(params            ));
-	uptr<Radio<>                   > radio         (factory::DVBS2O::build_radio       <>(params            ));
+	uptr<Source<>                 > source        (factory::DVBS2::build_source      <>(params, 0         ));
+	uptr<Scrambler<>              > bb_scrambler  (factory::DVBS2::build_bb_scrambler<>(params            ));
+	uptr<Encoder<>                > BCH_encoder   (factory::DVBS2::build_bch_encoder <>(params, poly_gen  ));
+	uptr<tools::Codec<>           > LDPC_cdc      (factory::DVBS2::build_ldpc_cdc    <>(params            ));
+	uptr<Interleaver<>            > itl           (factory::DVBS2::build_itl         <>(params, *itl_core ));
+	uptr<Modem<>                  > modem         (factory::DVBS2::build_modem       <>(params, cstl.get()));
+	uptr<Framer<>                 > framer        (factory::DVBS2::build_framer      <>(params            ));
+	uptr<Scrambler<float>         > pl_scrambler  (factory::DVBS2::build_pl_scrambler<>(params            ));
+	uptr<Filter<>                 > shaping_filter(factory::DVBS2::build_uprrc_filter<>(params            ));
+	uptr<Multiplier_fading_DVBS2<>> fad_mlt       (factory::DVBS2::build_fading_mult <>(params            ));
+	uptr<Radio<>                  > radio         (factory::DVBS2::build_radio       <>(params            ));
 
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 

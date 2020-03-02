@@ -4,15 +4,15 @@
 #include <ios>
 
 #include "Tools/general_utils.h"
-#include "Reporter_throughput_DVBS2O.hpp"
+#include "Reporter_throughput_DVBS2.hpp"
 
 namespace aff3ct
 {
 namespace tools
 {
 template <typename T>
-Reporter_throughput_DVBS2O<T>
-::Reporter_throughput_DVBS2O(std::function<T(void)>  progress_function, const T progress_limit,
+Reporter_throughput_DVBS2<T>
+::Reporter_throughput_DVBS2(std::function<T(void)>  progress_function, const T progress_limit,
                       std::function<T(void)> get_nbits_function, const T nbits_factor, const T n_frames, double alpha)
 : Reporter(),
   progress_function(progress_function),
@@ -39,9 +39,9 @@ Reporter_throughput_DVBS2O<T>
 
 template <typename T>
 template <typename B>
-Reporter_throughput_DVBS2O<T>
-::Reporter_throughput_DVBS2O(const module::Monitor_BFER<B>& m, double alpha)
-: Reporter_throughput_DVBS2O(std::bind(&module::Monitor_BFER<B>::get_n_fe, &m),
+Reporter_throughput_DVBS2<T>
+::Reporter_throughput_DVBS2(const module::Monitor_BFER<B>& m, double alpha)
+: Reporter_throughput_DVBS2(std::bind(&module::Monitor_BFER<B>::get_n_fe, &m),
 	                  (T)m.get_max_fe(),
 	                  std::bind(&module::Monitor_BFER<B>::get_n_analyzed_fra, &m),
 	                  (T)m.get_K(),
@@ -52,9 +52,9 @@ Reporter_throughput_DVBS2O<T>
 
 template <typename T>
 template <typename B, typename R>
-Reporter_throughput_DVBS2O<T>
-::Reporter_throughput_DVBS2O(const module::Monitor_MI<B,R>& m, double alpha)
-: Reporter_throughput_DVBS2O(std::bind(&module::Monitor_MI<B,R>::get_n_trials, &m),
+Reporter_throughput_DVBS2<T>
+::Reporter_throughput_DVBS2(const module::Monitor_MI<B,R>& m, double alpha)
+: Reporter_throughput_DVBS2(std::bind(&module::Monitor_MI<B,R>::get_n_trials, &m),
 	                  (T)m.get_max_n_trials(),
 	                  std::bind(&module::Monitor_MI<B,R>::get_n_trials, &m),
 	                  (T)m.get_N(), (T)m.get_n_frames(), alpha)
@@ -63,9 +63,9 @@ Reporter_throughput_DVBS2O<T>
 
 template <typename T>
 template <typename B, typename R>
-Reporter_throughput_DVBS2O<T>
-::Reporter_throughput_DVBS2O(const module::Monitor_EXIT<B,R>& m, double alpha)
-: Reporter_throughput_DVBS2O(std::bind(&module::Monitor_EXIT<B,R>::get_n_trials, &m),
+Reporter_throughput_DVBS2<T>
+::Reporter_throughput_DVBS2(const module::Monitor_EXIT<B,R>& m, double alpha)
+: Reporter_throughput_DVBS2(std::bind(&module::Monitor_EXIT<B,R>::get_n_trials, &m),
 	                  (T)m.get_max_n_trials(),
 	                  std::bind(&module::Monitor_EXIT<B,R>::get_n_trials, &m),
 	                  (T)m.get_N(), (T)m.get_n_frames(), alpha)
@@ -73,7 +73,7 @@ Reporter_throughput_DVBS2O<T>
 }
 
 template <typename T>
-Reporter::report_t Reporter_throughput_DVBS2O<T>
+Reporter::report_t Reporter_throughput_DVBS2<T>
 ::report(bool final)
 {
 	if (final)
@@ -133,7 +133,7 @@ Reporter::report_t Reporter_throughput_DVBS2O<T>
 }
 
 template <typename T>
-void Reporter_throughput_DVBS2O<T>
+void Reporter_throughput_DVBS2<T>
 ::init()
 {
 	Reporter::init();

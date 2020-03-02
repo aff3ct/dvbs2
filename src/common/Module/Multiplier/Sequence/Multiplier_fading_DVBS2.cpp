@@ -5,12 +5,12 @@
 #include <cmath>
 #include <fstream>      // std::ifstream
 
-#include "Module/Multiplier/Sequence/Multiplier_fading_DVBS2O.hpp"
+#include "Module/Multiplier/Sequence/Multiplier_fading_DVBS2.hpp"
 using namespace aff3ct::module;
 
 template <typename R>
-Multiplier_fading_DVBS2O<R>
-::Multiplier_fading_DVBS2O(const int N, const std::string& snr_list_filename, R esn0_ref, const int n_frames)
+Multiplier_fading_DVBS2<R>
+::Multiplier_fading_DVBS2(const int N, const std::string& snr_list_filename, R esn0_ref, const int n_frames)
 : Multiplier<R>(N, n_frames), gain_sequence(), snr_idx(0)
 {
 	std::ifstream file(snr_list_filename.c_str());
@@ -34,12 +34,12 @@ Multiplier_fading_DVBS2O<R>
 
 }
 template <typename R>
-Multiplier_fading_DVBS2O<R>
-::~Multiplier_fading_DVBS2O()
+Multiplier_fading_DVBS2<R>
+::~Multiplier_fading_DVBS2()
 {}
 
 template <typename R>
-void Multiplier_fading_DVBS2O<R>
+void Multiplier_fading_DVBS2<R>
 ::_imultiply(const R *X_N,  R *Z_N, const int frame_id)
 {
 	for (auto i = 0 ; i < this->N ; i++)
@@ -47,5 +47,5 @@ void Multiplier_fading_DVBS2O<R>
 	this->snr_idx++;
 	this->snr_idx %= this->gain_sequence.size();
 }
-template class aff3ct::module::Multiplier_fading_DVBS2O<float>;
-template class aff3ct::module::Multiplier_fading_DVBS2O<double>;
+template class aff3ct::module::Multiplier_fading_DVBS2<float>;
+template class aff3ct::module::Multiplier_fading_DVBS2<double>;

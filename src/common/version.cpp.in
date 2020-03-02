@@ -3,13 +3,13 @@
 #define GIT_SHA1    "@GIT_SHA1@"
 #define GIT_VERSION "@GIT_VERSION@"
 
-std::string dvbs2o_sha1()
+std::string dvbs2_sha1()
 {
 	std::string sha1(GIT_SHA1);
 	return sha1;
 }
 
-std::string dvbs2o_version()
+std::string dvbs2_version()
 {
 	std::string version(GIT_VERSION);
 	return version;

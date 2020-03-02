@@ -1,8 +1,8 @@
 [metadata]
-command=dvbs2_optique_tx_rx_bb -m 2.7 -M 3.01 --mod-cod 8PSK-S_3/5
+command=dvbs2_tx_rx_bb -m 2.7 -M 3.01 --mod-cod 8PSK-S_3/5
 
 [trace]
-# * DVBS2O ----------------------------------------
+# * DVB-S2 ----------------------------------------
 #    ** Modulation and coding = 8PSK-S_3/5
 #    ** Min  Eb/N0            = 0.000000
 #    ** Max  Eb/N0            = 6.000000
