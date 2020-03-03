@@ -7,7 +7,10 @@
 
 #include "Module/Multiplier/Sequence/Multiplier_fading_DVBS2.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
+
 #include "Factory/Module/Radio/Radio.hpp"
+#include "Factory/Module/Synchronizer_freq_fine/Synchronizer_freq_fine.hpp"
+
 #include "Module/Framer/Framer.hpp"
 #include "Module/Scrambler/Scrambler_BB/Scrambler_BB.hpp"
 #include "Module/Scrambler/Scrambler_PL/Scrambler_PL.hpp"
@@ -69,6 +72,7 @@ public:
 	bool  perfect_lr_freq_sync;
 	bool  perfect_pf_freq_sync;
 	bool  src_fifo;
+	bool  display_help;
 	int   max_fe;       // max number of frame errors per SNR point
 	int   max_n_frames; // max number of simulated frames per SNR point
 	int   K_bch;
@@ -109,7 +113,8 @@ public:
 	std::string channel_type;
 	std::string dump_filename;
 
-	factory::Radio p_rad;
+	factory::Radio                  p_rad;
+	factory::Synchronizer_freq_fine p_sff;
 
 private:
 	void modcod_init(std::string modcod);

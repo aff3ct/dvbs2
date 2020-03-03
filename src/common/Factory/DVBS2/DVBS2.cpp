@@ -61,6 +61,12 @@ DVBS2
 			std::cerr << rang::tag::warning << cmd_warn[w] << std::endl;
 		exit(EXIT_FAILURE);
 	}
+
+	if (this->display_help)
+	{
+		ah.print_help(args);
+		exit(EXIT_FAILURE);
+	}
 }
 
 DVBS2* DVBS2
@@ -78,6 +84,7 @@ void DVBS2
 	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                                                   ));
 	auto stm_type_format = cli::Text(cli::Including_set("NORMAL", "PERFECT", "FAST", "ULTRA"                                                                 ));
 	auto sfm_type_format = cli::Text(cli::Including_set("NORMAL", "FAST"                                                                                     ));
+	args.add({"help","h"},           cli::None(),                                       "Displays help."                                                      );
 	args.add({"mod-cod"},            modcod_format,                                     "Modulation and coding scheme."                                       );
 	args.add({"chn-type"},           cli::Text(cli::Including_set("AWGN", "USER_ADD")), "Type of noise in the channel."                                       );
 	args.add({"chn-path"},           cli::Text(),                                       "Path of the channel noise."                                          );
@@ -103,24 +110,23 @@ void DVBS2
 	args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),    "LDPC number of iterations"                                           );
 	args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")), "LDPC Implem "                                                        );
 	args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),   "Display stats."                                                      );
-	args.add({"est-type"},           cli::Text(cli::Including_set("DVBS2", "PERFECT")),"Type of estimator."                                                  );
+	args.add({"est-type"},           cli::Text(cli::Including_set("DVBS2", "PERFECT")), "Type of estimator."                                                  );
 	args.add({"section"},            cli::Text(),                                       "Section to be used in bridge binary."                                );
 	args.add({"ter-freq"},           cli::Integer(cli::Positive()),                     "Terminal frequency."                                                 );
-	args.add({"frame-sync-fast"},    cli::None(),                                       "Enable fast frame synchronization."                                  );
 	args.add({"perfect-sync"},       cli::None(),                                       "Enable genie aided synchronization."                                 );
 	args.add({"perfect-cf-sync"},    cli::None(),                                       "Enable genie aided coarse frequency synchronization."                );
-	args.add({"perfect-lr-sync"},    cli::None(),                                       "Enable genie aided Luise and Reggiannini frequency synchronization." );
-	args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
+	//args.add({"perfect-lr-sync"},    cli::None(),                                       "Enable genie aided Luise and Reggiannini frequency synchronization." );
+	//args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
 	args.add({"stm-type"},           stm_type_format,                                   "Type of timing synchronization."                                     );
 	args.add({"stm-hold-size"},      cli::Integer(cli::Positive(), cli::Non_zero()),    "Gardner holding size."                                               );
 	args.add({"sfm-type"},           sfm_type_format,                                   "Type of frame synchronization."                                      );
 	args.add({"sfm-alpha"},          cli::Real(),                                       "Damping factor for frame synchronization."                           );
-	args.add({"sff-lr-alpha"},       cli::Real(),                                       "Damping factor for the Luise and Reggiannini algorithm."             );
 	args.add({"sfm-trigger"},        cli::Real(),                                       "Trigger value to detect signal presence."                            );
 	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),    "Inter frame level."                                                  );
 	args.add({"src-fifo"},           cli::None(),                                       "Enable FIFO mode."                                                   );
 
 	p_rad.get_description(args);
+	p_sff.get_description(args);
 }
 
 void DVBS2
@@ -166,13 +172,16 @@ void DVBS2
 	sfm_type                 = vals.exist({"sfm-type"}           ) ? vals.at      ({"sfm-type"}          ) : "NORMAL"    ;
 	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
 	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false       ;
-	perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false       ;
-	perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false       ;
+	//perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false       ;
+	//perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false       ;
 	n_frames                 = vals.exist({"src-fra","f"}        ) ? vals.to_int  ({"src-fra","f"}       ) : 1           ;
 	stm_hold_size            = vals.exist({"stm-hold-size"}      ) ? vals.to_int  ({"stm-hold-size"}     ) : 1           ;
 	sfm_alpha                = vals.exist({"sfm-alpha"}          ) ? vals.to_float({"sfm-alpha"}         ) : 0.9f        ;
 	sfm_trigger              = vals.exist({"sfm-trigg"}          ) ? vals.to_float({"sfm-trigger"}       ) : 25.0f       ;
-	sff_lr_alpha             = vals.exist({"sff-lr-alpha"}       ) ? vals.to_float({"sff-lr-alpha"}      ) : 0.9f        ;
+
+	display_help = false;
+	if(vals.exist({"help","h"}))
+		display_help = true;
 
 	if (vals.exist({"sim-dbg-limit"}))
 		debug = true;
@@ -194,6 +203,10 @@ void DVBS2
 	p_rad.n_frames = n_frames;
 	p_rad.store(vals);
 
+	p_sff.N = this->pl_frame_size; // 2 * N_fil
+	p_sff.n_frames = n_frames;
+	p_sff.store(vals);
+
 	int int_delay = (int)max_delay - 2;
 	int N_cplx = pl_frame_size * osf;
 	overall_delay = int_delay/ N_cplx + 1;
@@ -205,6 +218,7 @@ std::vector<std::string> DVBS2
 	std::vector<std::string> n;
 	n.push_back(this->get_name());
 	n.push_back(this->p_rad.get_name());
+	n.push_back(this->p_sff.get_name());
 	return n;
 }
 
@@ -214,6 +228,7 @@ std::vector<std::string> DVBS2
 	std::vector<std::string> sn;
 	sn.push_back(this->get_short_name());
 	sn.push_back(this->p_rad.get_short_name());
+	sn.push_back(this->p_sff.get_short_name());
 	return sn;
 }
 
@@ -223,6 +238,7 @@ std::vector<std::string> DVBS2
 	std::vector<std::string> p;
 	p.push_back(this->get_prefix());
 	p.push_back(this->p_rad.get_prefix());
+	p.push_back(this->p_sff.get_prefix());
 	return p;
 }
 
@@ -254,6 +270,9 @@ void DVBS2
 		headers[p].push_back(std::make_pair("Path to source file"  , this->src_path                      ));
 	headers[p].push_back(std::make_pair("Perfect synchronization"         , this->perfect_sync ? "YES" : "NO"         ));
 	headers[p].push_back(std::make_pair("Estimator type"       , this->est_type                          ));
+
+	this->p_sff.get_headers(headers);
+
 	if (full)
 		p_rad.get_headers(headers);
 }
@@ -561,10 +580,7 @@ template <typename R>
 module::Synchronizer_freq_fine<R>* DVBS2
 ::build_synchronizer_lr(const DVBS2& params)
 {
-	if (params.perfect_lr_freq_sync)
-		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_freq_fine_perfect<R>(2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
-	else
-		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size, params.sff_lr_alpha, params.n_frames));
+	return params.p_sff.build_lr();
 
 }
 
@@ -572,10 +588,7 @@ template <typename R>
 module::Synchronizer_freq_fine<R>* DVBS2
 ::build_synchronizer_freq_phase(const DVBS2& params)
 {
-	if (params.perfect_pf_freq_sync)
-		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_freq_fine_perfect<R>(2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
-	else
-		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
+	return params.p_sff.build_freq_phase();
 }
 
 template <typename B, typename R>
