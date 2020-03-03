@@ -40,7 +40,7 @@ void Synchronizer_freq_fine
 	if (vals.exist({p+"-fra-size"})) this->N        = vals.to_int   ({p+"-fra-size"});
 	if (vals.exist({p+"-fra"     })) this->n_frames = vals.to_int   ({p+"-fra"     });
 	if (vals.exist({p+"-lr-alpha"})) this->lr_alpha = vals.to_float ({p+"-lr-alpha"});
-	if (vals.exist({p+"-type"    })) this->type     = vals.at       ({p+"-type"   });
+	if (vals.exist({p+"-type"    })) this->type     = vals.at       ({p+"-type"    });
 }
 
 void Synchronizer_freq_fine

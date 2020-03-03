@@ -10,6 +10,7 @@
 
 #include "Factory/Module/Radio/Radio.hpp"
 #include "Factory/Module/Synchronizer_freq_fine/Synchronizer_freq_fine.hpp"
+#include "Factory/Module/Synchronizer_timing/Synchronizer_timing.hpp"
 
 #include "Module/Framer/Framer.hpp"
 #include "Module/Scrambler/Scrambler_BB/Scrambler_BB.hpp"
@@ -90,7 +91,7 @@ public:
 	int   grp_delay;
 	int   n_frames;
 	int   debug_limit;
-	int   stm_hold_size;
+	//int   stm_hold_size;
 
 	std::chrono::milliseconds ter_freq;
 
@@ -103,7 +104,7 @@ public:
 	std::string constellation_file;
 	std::string section;
 	std::string src_type;
-	std::string stm_type;
+	//std::string stm_type;
 	std::string sfm_type;
 	std::string src_path;
 	std::string sink_path;
@@ -115,6 +116,7 @@ public:
 
 	factory::Radio                  p_rad;
 	factory::Synchronizer_freq_fine p_sff;
+	factory::Synchronizer_timing    p_stm;
 
 private:
 	void modcod_init(std::string modcod);
@@ -125,7 +127,7 @@ public:
 
 	virtual std::vector<std::string> get_names      () const;
 	virtual std::vector<std::string> get_short_names() const;
-	virtual std::vector<std::string> get_prefixes()    const;
+	virtual std::vector<std::string> get_prefixes   () const;
 
 	// parameters construction
 	void get_description(cli::Argument_map_info &args) const;

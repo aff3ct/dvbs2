@@ -117,8 +117,8 @@ void DVBS2
 	args.add({"perfect-cf-sync"},    cli::None(),                                       "Enable genie aided coarse frequency synchronization."                );
 	//args.add({"perfect-lr-sync"},    cli::None(),                                       "Enable genie aided Luise and Reggiannini frequency synchronization." );
 	//args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
-	args.add({"stm-type"},           stm_type_format,                                   "Type of timing synchronization."                                     );
-	args.add({"stm-hold-size"},      cli::Integer(cli::Positive(), cli::Non_zero()),    "Gardner holding size."                                               );
+	//args.add({"stm-type"},           stm_type_format,                                   "Type of timing synchronization."                                     );
+	//args.add({"stm-hold-size"},      cli::Integer(cli::Positive(), cli::Non_zero()),    "Gardner holding size."                                               );
 	args.add({"sfm-type"},           sfm_type_format,                                   "Type of frame synchronization."                                      );
 	args.add({"sfm-alpha"},          cli::Real(),                                       "Damping factor for frame synchronization."                           );
 	args.add({"sfm-trigger"},        cli::Real(),                                       "Trigger value to detect signal presence."                            );
@@ -127,6 +127,7 @@ void DVBS2
 
 	p_rad.get_description(args);
 	p_sff.get_description(args);
+	p_stm.get_description(args);
 }
 
 void DVBS2
@@ -168,14 +169,14 @@ void DVBS2
 	rolloff                  = vals.exist({"shp-rolloff"}        ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f        ;
 	osf                      = vals.exist({"shp-osf"}            ) ? vals.to_int  ({"shp-osf"}           ) : 4           ;
 	grp_delay                = vals.exist({"shp-grp-delay"}      ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15          ;
-	stm_type                 = vals.exist({"stm-type"}           ) ? vals.at      ({"stm-type"}          ) : "NORMAL"    ;
+	//stm_type                 = vals.exist({"stm-type"}           ) ? vals.at      ({"stm-type"}          ) : "NORMAL"    ;
 	sfm_type                 = vals.exist({"sfm-type"}           ) ? vals.at      ({"sfm-type"}          ) : "NORMAL"    ;
 	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
 	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false       ;
 	//perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false       ;
 	//perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false       ;
 	n_frames                 = vals.exist({"src-fra","f"}        ) ? vals.to_int  ({"src-fra","f"}       ) : 1           ;
-	stm_hold_size            = vals.exist({"stm-hold-size"}      ) ? vals.to_int  ({"stm-hold-size"}     ) : 1           ;
+	//stm_hold_size            = vals.exist({"stm-hold-size"}      ) ? vals.to_int  ({"stm-hold-size"}     ) : 1           ;
 	sfm_alpha                = vals.exist({"sfm-alpha"}          ) ? vals.to_float({"sfm-alpha"}         ) : 0.9f        ;
 	sfm_trigger              = vals.exist({"sfm-trigg"}          ) ? vals.to_float({"sfm-trigger"}       ) : 25.0f       ;
 
@@ -189,9 +190,9 @@ void DVBS2
 	if (perfect_sync)
 	{
 		perfect_coarse_freq_sync = true;
-		stm_type                 = "PERFECT";
-		perfect_pf_freq_sync     = true;
-		perfect_lr_freq_sync     = true;
+		//stm_type                 = "PERFECT";
+		//perfect_pf_freq_sync     = true;
+		//perfect_lr_freq_sync     = true;
 	}
 
 	if (vals.exist({"ter-freq"}))
@@ -203,9 +204,15 @@ void DVBS2
 	p_rad.n_frames = n_frames;
 	p_rad.store(vals);
 
-	p_sff.N = this->pl_frame_size; // 2 * N_fil
+	p_sff.N        = this->pl_frame_size; // 2 * N_fil
 	p_sff.n_frames = n_frames;
 	p_sff.store(vals);
+
+	p_stm.N         = osf*this->pl_frame_size; // 2 * N_fil
+	p_stm.osf       = osf;
+	p_stm.n_frames  = n_frames;
+	p_stm.ref_delay = max_delay;
+	p_stm.store(vals);
 
 	int int_delay = (int)max_delay - 2;
 	int N_cplx = pl_frame_size * osf;
@@ -219,6 +226,7 @@ std::vector<std::string> DVBS2
 	n.push_back(this->get_name());
 	n.push_back(this->p_rad.get_name());
 	n.push_back(this->p_sff.get_name());
+	n.push_back(this->p_stm.get_name());
 	return n;
 }
 
@@ -229,6 +237,7 @@ std::vector<std::string> DVBS2
 	sn.push_back(this->get_short_name());
 	sn.push_back(this->p_rad.get_short_name());
 	sn.push_back(this->p_sff.get_short_name());
+	sn.push_back(this->p_stm.get_short_name());
 	return sn;
 }
 
@@ -239,6 +248,7 @@ std::vector<std::string> DVBS2
 	p.push_back(this->get_prefix());
 	p.push_back(this->p_rad.get_prefix());
 	p.push_back(this->p_sff.get_prefix());
+	p.push_back(this->p_stm.get_prefix());
 	return p;
 }
 
@@ -272,6 +282,7 @@ void DVBS2
 	headers[p].push_back(std::make_pair("Estimator type"       , this->est_type                          ));
 
 	this->p_sff.get_headers(headers);
+	this->p_stm.get_headers(headers);
 
 	if (full)
 		p_rad.get_headers(headers);
@@ -595,35 +606,7 @@ template <typename B, typename R>
 module::Synchronizer_timing<B,R>* DVBS2
 ::build_synchronizer_timing(const DVBS2& params)
 {
-	module::Synchronizer_timing<B,R>* sync_timing;
-	if (params.stm_type == "NORMAL")
-	{
-		sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_aib<B,R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
-	}
-	else if (params.stm_type == "PERFECT")
-	{
-		sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_timing_perfect<B,R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay, params.n_frames));
-	}
-	else if(params.stm_type == "FAST")
-	{
-		if (params.osf == 2)
-			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast_osf2<B,R>(2 * params.pl_frame_size * params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
-		else
-			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast<B,R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
-	}
-	else if(params.stm_type == "ULTRA")
-	{
-		if (params.osf == 2)
-			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_ultra_osf2<B,R>(2 * params.pl_frame_size * 2, params.stm_hold_size, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
-		else
-			throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
-	}
-	else
-	{
-		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
-	}
-
-	return sync_timing;
+	return params.p_stm.build();
 }
 
 
