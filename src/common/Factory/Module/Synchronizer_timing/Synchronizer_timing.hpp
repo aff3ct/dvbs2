@@ -23,6 +23,7 @@ public:
 	int   N                    = 0;
 	int   n_frames             = 1;
 	int   osf                  = 2;
+	int   hold_size            = 101;
 	float ref_delay            = 0;
 	float damping_factor       = std::sqrt(0.5);
 	float normalized_bandwidth = (float)5e-5;

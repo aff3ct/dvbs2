@@ -28,26 +28,26 @@ void Synchronizer_timing
 ::get_description(cli::Argument_map_info &args) const
 {
 	auto p = this->get_prefix();
-	auto sff_type_format = cli::Text(cli::Including_set("NORMAL", "PERFECT" ));
+	auto stm_type_format = cli::Text(cli::Including_set("NORMAL", "PERFECT", "FAST", "ULTRA"             ));
 
-	args.add({p+"-fra-size"}, cli::Integer(cli::Positive(), cli::Non_zero())     , "");
-	args.add({p+"-type"},     sff_type_format, "Type of timing synchronization."     );
-	args.add({p+"-fra"},      cli::Integer(cli::Positive(), cli::Non_zero())     , "");
-	args.add({p+"-df"},       cli::Real()                                        , "");
-	args.add({p+"-nbw"},      cli::Real()                                        , "");
-	args.add({p+"-dg"},       cli::Real()                                        , "");
+	args.add({p+"-type"},      stm_type_format, "Type of timing synchronization."                         );
+	args.add({p+"-df"},        cli::Real(), "Damping factor of loop filter in Gardner's algorithm."       );
+	args.add({p+"-nbw"},       cli::Real(), "Normalized Bandwidth of loop filter in Gardner's algorithm." );
+	args.add({p+"-dg"},        cli::Real(), "Detector gain of loop filter in Gardner's algorithm."        );
+	args.add({p+"-hold-size"}, cli::Integer(cli::Positive(), cli::Non_zero()),    "Gardner holding size." );
+
+
 }
 
 void Synchronizer_timing
 ::store(const cli::Argument_map_value &vals)
 {
 	auto p = this->get_prefix();
-	if (vals.exist({p+"-fra-size"})) this->N                    = vals.to_int   ({p+"-fra-size"});
-	if (vals.exist({p+"-fra"     })) this->n_frames             = vals.to_int   ({p+"-fra"     });
-	if (vals.exist({p+"-type"    })) this->type                 = vals.at       ({p+"-type"    });
-	if (vals.exist({p+"-df"      })) this->damping_factor       = vals.to_float ({p+"-df"      });
-	if (vals.exist({p+"-nbw"     })) this->normalized_bandwidth = vals.to_float ({p+"-nbw"     });
-	if (vals.exist({p+"-dg"      })) this->detector_gain        = vals.to_float ({p+"-dg"      });
+	if (vals.exist({p+"-type"     })) this->type                 = vals.at       ({p+"-type"      });
+	if (vals.exist({p+"-df"       })) this->damping_factor       = vals.to_float ({p+"-df"        });
+	if (vals.exist({p+"-nbw"      })) this->normalized_bandwidth = vals.to_float ({p+"-nbw"       });
+	if (vals.exist({p+"-dg"       })) this->detector_gain        = vals.to_float ({p+"-dg"        });
+	if (vals.exist({p+"-hold-size"})) this->hold_size            = vals.to_int   ({p+"-hold-size" });
 }
 
 void Synchronizer_timing
@@ -60,6 +60,8 @@ void Synchronizer_timing
 	headers[p].push_back(std::make_pair("Damping Factor      ", std::to_string(this->damping_factor      )));
 	headers[p].push_back(std::make_pair("Normalized Bandwidth", std::to_string(this->normalized_bandwidth)));
 	headers[p].push_back(std::make_pair("Detector Gain       ", std::to_string(this->detector_gain       )));
+	if (this->type == "ULTRA")
+		headers[p].push_back(std::make_pair("Hold size       ", std::to_string(this->hold_size           )));
 }
 
 template <typename B, typename R>
@@ -103,6 +105,7 @@ module::Synchronizer_timing<B,R>* Synchronizer_timing
 	{
 		if (this->osf == 2)
 			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_ultra_osf2<B,R>(2*this->N,
+		                                                                                                                   this->hold_size,
 		                                                                                                                   this->damping_factor,
 		                                                                                                                   this->normalized_bandwidth,
 		                                                                                                                   this->detector_gain,
