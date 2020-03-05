@@ -11,6 +11,7 @@
 #include "Factory/Module/Radio/Radio.hpp"
 #include "Factory/Module/Synchronizer_freq_fine/Synchronizer_freq_fine.hpp"
 #include "Factory/Module/Synchronizer_timing/Synchronizer_timing.hpp"
+#include "Factory/Module/Shaping_filter/Shaping_filter.hpp"
 
 #include "Module/Framer/Framer.hpp"
 #include "Module/Scrambler/Scrambler_BB/Scrambler_BB.hpp"
@@ -24,7 +25,6 @@
 #include "Module/Multiplier/Sequence/Multiplier_AGC_cc_naive.hpp"
 #include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_coarse/Synchronizer_freq_coarse.hpp"
 #include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_freq_fine.hpp"
-#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing.hpp"
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame.hpp"
 #include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "Module/Estimator/Estimator.hpp"
@@ -62,7 +62,7 @@ public:
 	float max_freq_shift;
 	float max_delay;
 	float sfm_alpha;
-	float sff_lr_alpha;
+	//float sff_lr_alpha;
 	float sfm_trigger;
 	int   overall_delay;
 	bool  debug;
@@ -86,12 +86,8 @@ public:
 	int   S;                         // number of slots
 	int   pl_frame_size;
 	int   itl_n_cols;
-	float rolloff;   //  DVBS2 0.05; // DVBS2-X
-	int   osf;
-	int   grp_delay;
 	int   n_frames;
 	int   debug_limit;
-	//int   stm_hold_size;
 
 	std::chrono::milliseconds ter_freq;
 
@@ -117,6 +113,7 @@ public:
 	factory::Radio                  p_rad;
 	factory::Synchronizer_freq_fine p_sff;
 	factory::Synchronizer_timing    p_stm;
+	factory::Shaping_filter         p_shp;
 
 private:
 	void modcod_init(std::string modcod);

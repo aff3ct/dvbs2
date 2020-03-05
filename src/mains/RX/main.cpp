@@ -117,7 +117,7 @@ int main(int argc, char** argv)
 	uptr<Probe<int32_t>> prb_thr_time(rep_thr_stats.create_probe_time      <int32_t>("TIME"));
 	uptr<Probe<int32_t>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp <int32_t>("TSTA"));
 
-	std::vector<double> theoretical_thr(params.n_frames, params.p_rad.rx_rate/1e6 * (double)params.K_bch / ((double)params.pl_frame_size * (double)params.osf));
+	std::vector<double> theoretical_thr(params.n_frames, params.p_rad.rx_rate/1e6 * (double)params.K_bch / ((double)params.pl_frame_size * (double)params.p_shp.osf));
 	(*prb_thr_the)[prb::sck::probe::in].bind(theoretical_thr.data());
 
 	tools::Terminal_dump terminal_stats({ &rep_fra_stats, &rep_rad_stats,     &rep_sfm_stats,   &rep_stm_stats,
@@ -127,17 +127,17 @@ int main(int argc, char** argv)
 #ifdef MULTI_THREADED
 	// create the adaptors to manage the pipeline in multi-threaded mode
 	const size_t buffer_size = 1;
-	Adaptor_1_to_n adp_1_to_1_0(params.osf * 2 * params.pl_frame_size,
+	Adaptor_1_to_n adp_1_to_1_0(params.p_shp.osf * 2 * params.pl_frame_size,
 	                            typeid(float),
 	                            buffer_size,
 	                            active_waiting,
 	                            params.n_frames);
-	Adaptor_1_to_n adp_1_to_1_1(params.osf * 2 * params.pl_frame_size,
+	Adaptor_1_to_n adp_1_to_1_1(params.p_shp.osf * 2 * params.pl_frame_size,
 	                            typeid(float),
 	                            buffer_size,
 	                            active_waiting,
 	                            params.n_frames);
-	Adaptor_1_to_n adp_1_to_1_2({(size_t)params.osf * 2 * params.pl_frame_size, (size_t)params.osf * 2 * params.pl_frame_size},
+	Adaptor_1_to_n adp_1_to_1_2({(size_t)params.p_shp.osf * 2 * params.pl_frame_size, (size_t)params.p_shp.osf * 2 * params.pl_frame_size},
 	                            {typeid(float), typeid(int32_t)},
 	                            buffer_size,
 	                            active_waiting,
