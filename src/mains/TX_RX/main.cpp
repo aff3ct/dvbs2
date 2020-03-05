@@ -191,6 +191,7 @@ int main(int argc, char** argv)
 		sync_fine_lr ->reset(); sync_fine_pf->reset(); delay      ->reset(); chn_frm_del->reset();
 
 		int delay_tx_rx = params.overall_delay;
+		delay->set_delay(delay_tx_rx);
 		tpt_reporter.init();
 		if (!params.perfect_sync)
 		{
@@ -220,6 +221,7 @@ int main(int argc, char** argv)
 			}
 
 			int m = 0;
+			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 			chain_waiting.exec([&](const std::vector<int>& statuses)
 			{
 				if (statuses.back() != status_t::SKIPPED)
@@ -229,7 +231,7 @@ int main(int argc, char** argv)
 				}
 				else
 				{
-					delay_tx_rx++;
+					delay_tx_rx+=params.n_frames;
 					if (enable_logs)
 						std::clog << rang::tag::warning << "Chain aborted! (waiting phase, m = " << m << ")"
 						          << std::endl;
@@ -261,7 +263,7 @@ int main(int argc, char** argv)
 				}
 				else
 				{
-					delay_tx_rx++;
+					delay_tx_rx+=params.n_frames;
 					if (enable_logs)
 						std::clog << rang::tag::warning << "Chain aborted! (learning phase 1&2, m = " << m << ")"
 						          << std::endl;
@@ -313,7 +315,7 @@ int main(int argc, char** argv)
 				}
 				else
 				{
-					delay_tx_rx++;
+					delay_tx_rx+=params.n_frames;
 					if (enable_logs)
 						std::clog << rang::tag::warning << "Chain aborted! (learning phase 3, m = " << m << ")"
 						          << std::endl;
@@ -346,9 +348,9 @@ int main(int argc, char** argv)
 				terminal.temp_report(std::cerr);
 			}
 			else if (enable_logs)
-				std::clog << rang::tag::warning << "Chain aborted! (learning phase 3, m = " << m << ")" << std::endl;
+				std::clog << rang::tag::warning << "Chain aborted! (Transmisison phase, m = " << m << ")" << std::endl;
 
-			if (m < delay_tx_rx) // first frame is delayed
+			if (m < delay_tx_rx + params.n_frames) // first frame is delayed
 				monitor->reset();
 
 			return monitor->is_done() || tools::Terminal::is_interrupt();
