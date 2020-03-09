@@ -23,7 +23,7 @@ Multiplier_fading_DVBS2<R>
 			esn0 = esn0 - esn0_ref;
 			if(file.eof())
 				break;
-			this->gain_sequence.push_back(std::sqrt( std::pow(10, -esn0/10) ));
+			this->gain_sequence.push_back(std::sqrt( std::pow(10, esn0/10) ));
 		}
 		file.close();
 	}
