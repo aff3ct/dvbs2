@@ -35,8 +35,7 @@ void Synchronizer_timing
 	args.add({p+"-nbw"},       cli::Real(), "Normalized Bandwidth of loop filter in Gardner's algorithm." );
 	args.add({p+"-dg"},        cli::Real(), "Detector gain of loop filter in Gardner's algorithm."        );
 	args.add({p+"-hold-size"}, cli::Integer(cli::Positive(), cli::Non_zero()),    "Gardner holding size." );
-
-
+	args.add({"perfect-sync"}, cli::None(), "Enable genie aided synchronization."                         );
 }
 
 void Synchronizer_timing
@@ -48,6 +47,7 @@ void Synchronizer_timing
 	if (vals.exist({p+"-nbw"      })) this->normalized_bandwidth = vals.to_float ({p+"-nbw"       });
 	if (vals.exist({p+"-dg"       })) this->detector_gain        = vals.to_float ({p+"-dg"        });
 	if (vals.exist({p+"-hold-size"})) this->hold_size            = vals.to_int   ({p+"-hold-size" });
+	if (vals.exist({"perfect-sync" })) this->type                = "PERFECT";
 }
 
 void Synchronizer_timing
@@ -57,9 +57,11 @@ void Synchronizer_timing
 
 	headers[p].push_back(std::make_pair("N. complex samples  ", std::to_string(this->N                   )));
 	headers[p].push_back(std::make_pair("Type                ", this->type                                ));
-	headers[p].push_back(std::make_pair("Damping Factor      ", std::to_string(this->damping_factor      )));
-	headers[p].push_back(std::make_pair("Normalized Bandwidth", std::to_string(this->normalized_bandwidth)));
-	headers[p].push_back(std::make_pair("Detector Gain       ", std::to_string(this->detector_gain       )));
+	if (this->type != "PERFECT")
+	{
+		headers[p].push_back(std::make_pair("Damping Factor      ", std::to_string(this->damping_factor      )));
+		headers[p].push_back(std::make_pair("Normalized Bandwidth", std::to_string(this->normalized_bandwidth)));
+	}
 	if (this->type == "ULTRA")
 		headers[p].push_back(std::make_pair("Hold size       ", std::to_string(this->hold_size           )));
 }
@@ -80,9 +82,10 @@ module::Synchronizer_timing<B,R>* Synchronizer_timing
 	}
 	else if (this->type == "PERFECT")
 	{
+		float delay_frac_part = this->ref_delay - std::floor(this->ref_delay);
 		sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_timing_perfect<B,R>(2*this->N,
 		                                                                                                           this->osf,
-		                                                                                                           this->ref_delay,
+		                                                                                                           delay_frac_part,
 		                                                                                                           this->n_frames));
 	}
 	else if(this->type == "FAST")

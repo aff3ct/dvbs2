@@ -28,19 +28,21 @@ void Synchronizer_freq_fine
 	auto sff_type_format = cli::Text(cli::Including_set("NORMAL", "PERFECT" ));
 
 	args.add({p+"-fra-size"},    cli::Integer(cli::Positive(), cli::Non_zero())          , "");
-	args.add({p+"-lr-alpha"},     cli::Real()    , "Damping factor for the Luise and Reggiannini algorithm.");
-	args.add({p+"-type"},         sff_type_format, "Type of timing synchronization."                        );
+	args.add({p+"-lr-alpha"},    cli::Real()    , "Damping factor for the Luise and Reggiannini algorithm.");
+	args.add({p+"-type"},        sff_type_format, "Type of timing synchronization."                        );
 	args.add({p+"-fra"},         cli::Integer(cli::Positive(), cli::Non_zero())          , "");
+	args.add({"perfect-sync"},   cli::None(),   "Enable genie aided synchronization."      );
 }
 
 void Synchronizer_freq_fine
 ::store(const cli::Argument_map_value &vals)
 {
 	auto p = this->get_prefix();
-	if (vals.exist({p+"-fra-size"})) this->N        = vals.to_int   ({p+"-fra-size"});
-	if (vals.exist({p+"-fra"     })) this->n_frames = vals.to_int   ({p+"-fra"     });
-	if (vals.exist({p+"-lr-alpha"})) this->lr_alpha = vals.to_float ({p+"-lr-alpha"});
-	if (vals.exist({p+"-type"    })) this->type     = vals.at       ({p+"-type"    });
+	if (vals.exist({p+"-fra-size" })) this->N        = vals.to_int   ({p+"-fra-size"});
+	if (vals.exist({p+"-fra"      })) this->n_frames = vals.to_int   ({p+"-fra"     });
+	if (vals.exist({p+"-lr-alpha" })) this->lr_alpha = vals.to_float ({p+"-lr-alpha"});
+	if (vals.exist({p+"-type"     })) this->type     = vals.at       ({p+"-type"    });
+	if (vals.exist({"perfect-sync"})) this->type     = "PERFECT";
 }
 
 void Synchronizer_freq_fine
@@ -50,7 +52,8 @@ void Synchronizer_freq_fine
 
 	headers[p].push_back(std::make_pair("N. samples", std::to_string(this->N       )));
 	headers[p].push_back(std::make_pair("Type      ", this->type                    ));
-	headers[p].push_back(std::make_pair("L&R Alpha ", std::to_string(this->lr_alpha)));
+	if (this->type != "PERFECT")
+		headers[p].push_back(std::make_pair("L&R Alpha ", std::to_string(this->lr_alpha)));
 }
 
 template <typename R>
