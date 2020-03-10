@@ -110,7 +110,7 @@ void DVBS2
 	modcod         = vals.exist({"mod-cod"}           ) ? vals.at      ({"mod-cod"}           ) : "QPSK-S_8/9";
 
 	modcod_init(modcod); // initialize all the parameters that are dependant on modcod
-	esn0_ref                 = vals.exist({"sim-noise-ref"}      ) ? vals.to_float({"sim-noise-ref "}    ) : 0.f          ;
+	esn0_ref                 = vals.exist({"sim-noise-ref"}      ) ? vals.to_float({"sim-noise-ref"}     ) : 0.f          ;
 	esn0_seq_path            = vals.exist({"sim-noise-path"}     ) ? vals.at      ({"sim-noise-path"}    ) : ""           ;
 	ebn0_min                 = vals.exist({"sim-noise-min","m"}  ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f         ;
 	ebn0_max                 = vals.exist({"sim-noise-max","M"}  ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f          ;
