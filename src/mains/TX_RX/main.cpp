@@ -15,7 +15,7 @@ using namespace aff3ct;
 using namespace aff3ct::module;
 
 // global parameters
-constexpr bool enable_logs = true;
+constexpr bool enable_logs = false;
 
 // aliases
 template<class T> using uptr = std::unique_ptr<T>;
