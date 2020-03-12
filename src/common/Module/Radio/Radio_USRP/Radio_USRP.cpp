@@ -288,10 +288,10 @@ void Radio_USRP<R>
 ::send_usrp(const R *X_N1)
 {
 	uhd::tx_metadata_t md;
-	md.start_of_burst = true;
-	md.end_of_burst   = false;
-	md.has_time_spec  = true;
-	md.time_spec      = usrp->get_time_now() + uhd::time_spec_t(0.1);
+	//md.start_of_burst = true;
+	//md.end_of_burst   = false;
+	//md.has_time_spec  = true;
+	//md.time_spec      = usrp->get_time_now() + uhd::time_spec_t(0.1);
 	tx_stream->send(X_N1, this->N, md);
 }
 
@@ -372,7 +372,7 @@ void Radio_USRP<R>
 ::reset()
 {
 	this->stop_threads = true;
-	this->send_thread.join();
+	this->_thread.join();
 	this->receive_thread.join();
 	this->stop_threads = false;
 	this->start_thread_send = false;
