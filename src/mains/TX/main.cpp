@@ -119,9 +119,9 @@ int main(int argc, char** argv)
 	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
 
 	// create a sequence per pipeline stage
-	tools::Sequence sequence_stage0         ((*source        )[src::tsk::generate], 1, thread_pinnig, { 4          });
-	tools::Sequence sequence_stage1_parallel(  adaptor_1_to_n [adp::tsk::pull_n  ], 4, thread_pinnig, { 0, 1, 2, 5 });
-	tools::Sequence sequence_stage2         (  adaptor_n_to_1 [adp::tsk::pull_1  ], 1, thread_pinnig, { 6          });
+	tools::Sequence sequence_stage0         ((*source        )[src::tsk::generate], 1, thread_pinnig, { 4                });
+	tools::Sequence sequence_stage1_parallel(  adaptor_1_to_n [adp::tsk::pull_n  ], 6, thread_pinnig, { 0, 1, 2, 5, 7, 8 });
+	tools::Sequence sequence_stage2         (  adaptor_n_to_1 [adp::tsk::pull_1  ], 1, thread_pinnig, { 6                });
 
 	std::vector<tools::Sequence*> sequence_stages = { &sequence_stage0, &sequence_stage1_parallel, &sequence_stage2 };
 

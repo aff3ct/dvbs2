@@ -6,23 +6,6 @@
 #include "Module/Encoder_BCH_DVBS2/Encoder_BCH_DVBS2.hpp"
 #include "Module/Decoder_BCH_DVBS2/Decoder_BCH_DVBS2.hpp"
 
-#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_coarse/Synchronizer_freq_coarse_DVBS2_aib.hpp"
-#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_coarse/Synchronizer_freq_coarse_perfect.hpp"
-
-#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_freq_phase_DVBS2_aib.hpp"
-#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_Luise_Reggiannini_DVBS2_aib.hpp"
-#include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_freq_fine_perfect.hpp"
-
-#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_aib.hpp"
-#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_fast.hpp"
-#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_ultra_osf2.hpp"
-#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_Gardner_fast_osf2.hpp"
-#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing_perfect.hpp"
-
-#include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_aib.hpp"
-#include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_DVBS2_fast.hpp"
-#include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame_perfect.hpp"
-
 #include "Module/Estimator/Estimator_DVBS2.hpp"
 #include "Module/Estimator/Estimator_perfect.hpp"
 
@@ -61,6 +44,12 @@ DVBS2
 			std::cerr << rang::tag::warning << cmd_warn[w] << std::endl;
 		exit(EXIT_FAILURE);
 	}
+
+	if (this->display_help)
+	{
+		ah.print_help(args);
+		exit(EXIT_FAILURE);
+	}
 }
 
 DVBS2* DVBS2
@@ -76,50 +65,42 @@ void DVBS2
 
 	auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"                               ));
 	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                                                   ));
-	auto stm_type_format = cli::Text(cli::Including_set("NORMAL", "PERFECT", "FAST", "ULTRA"                                                                 ));
-	auto sfm_type_format = cli::Text(cli::Including_set("NORMAL", "FAST"                                                                                     ));
+
+	args.add({"help","h"},           cli::None(),                                       "Displays help."                                                      );
 	args.add({"mod-cod"},            modcod_format,                                     "Modulation and coding scheme."                                       );
 	args.add({"chn-type"},           cli::Text(cli::Including_set("AWGN", "USER_ADD")), "Type of noise in the channel."                                       );
 	args.add({"chn-path"},           cli::Text(),                                       "Path of the channel noise."                                          );
 	args.add({"chn-max-freq-shift"}, cli::Real(),                                       "Maximum Doppler shift."                                              );
 	args.add({"chn-max-delay"},      cli::Real(),                                       "Maximum Channel Delay."                                              );
-	args.add({"shp-grp-delay"},      cli::Real(),                                       "RRC Group delay."                                                    );
-	args.add({"shp-rolloff"},        cli::Real(),                                       "RRC rolloff."                                                        );
-	args.add({"shp-osf"},            cli::Real(),                                       "RRC oversampling factor."                                            );
 	args.add({"max-fe","e"},         cli::Integer(cli::Positive(), cli::Non_zero()),    "Max number of frame errors."                                         );
 	args.add({"sim-noise-min","m"},  cli::Real(),                                       "Min Eb/N0"                                                           );
 	args.add({"sim-noise-max","M"},  cli::Real(),                                       "Max Eb/N0"                                                           );
 	args.add({"sim-noise-step","s"}, cli::Real(),                                       "Step Eb/N0"                                                          );
 	args.add({"sim-noise-ref"},      cli::Real(),                                       "Reference value for Es/N0"                                           );
 	args.add({"sim-noise-path"},     cli::Text(),                                       "Path of the Es/N0 sequence"                                          );
-	args.add({"no-sync-info"},       cli::None(),                                       "Disable sync information logging."                                   );
 	args.add({"sim-dbg", "d"},       cli::None(),                                       "Display debug."                                                      );
 	args.add({"sim-dbg-limit"},      cli::Integer(cli::Non_zero()),                     "Set max number of elts per frame to be displayed in debug mode."     );
 	args.add({"sim-stats"},          cli::None(),                                       "Display stats."                                                      );
-	args.add({"src-type"},           src_type_format,                                   "Type of the binary source"                                           );
-	args.add({"src-path"},           cli::Text(),                                       "Path of the binary source"                                           );
+	args.add({"no-sync-info"},       cli::None(),                                       "Disable sync information logging."                                   );
 	args.add({"snk-path"},           cli::Text(),                                       "Path of the binary sink"                                             );
 	args.add({"dump-filename"},      cli::Text(),                                       "Name of the dump file generated by dvbs2_optique_rx_dump"            );
 	args.add({"dec-ite"},            cli::Integer(cli::Positive(), cli::Non_zero()),    "LDPC number of iterations"                                           );
 	args.add({"dec-implem"},         cli::Text(cli::Including_set("SPA", "MS", "NMS")), "LDPC Implem "                                                        );
 	args.add({"dec-simd"},           cli::Text(cli::Including_set("INTER", "INTRA")),   "Display stats."                                                      );
-	args.add({"est-type"},           cli::Text(cli::Including_set("DVBS2", "PERFECT")),"Type of estimator."                                                  );
+	args.add({"est-type"},           cli::Text(cli::Including_set("DVBS2", "PERFECT")), "Type of estimator."                                                  );
 	args.add({"section"},            cli::Text(),                                       "Section to be used in bridge binary."                                );
 	args.add({"ter-freq"},           cli::Integer(cli::Positive()),                     "Terminal frequency."                                                 );
-	args.add({"frame-sync-fast"},    cli::None(),                                       "Enable fast frame synchronization."                                  );
-	args.add({"perfect-sync"},       cli::None(),                                       "Enable genie aided synchronization."                                 );
-	args.add({"perfect-cf-sync"},    cli::None(),                                       "Enable genie aided coarse frequency synchronization."                );
-	args.add({"perfect-lr-sync"},    cli::None(),                                       "Enable genie aided Luise and Reggiannini frequency synchronization." );
-	args.add({"perfect-pf-sync"},    cli::None(),                                       "Enable genie aided fine phase and frequency synchronization."        );
-	args.add({"stm-type"},           stm_type_format,                                   "Type of timing synchronization."                                     );
-	args.add({"stm-hold-size"},      cli::Integer(cli::Positive(), cli::Non_zero()),    "Gardner holding size."                                               );
-	args.add({"sfm-type"},           sfm_type_format,                                   "Type of frame synchronization."                                      );
-	args.add({"sfm-alpha"},          cli::Real(),                                       "Damping factor for frame synchronization."                           );
-	args.add({"sff-lr-alpha"},       cli::Real(),                                       "Damping factor for the Luise and Reggiannini algorithm."             );
-	args.add({"sfm-trigger"},        cli::Real(),                                       "Trigger value to detect signal presence."                            );
+	args.add({"src-type"},           src_type_format,                                   "Type of the binary source"                                           );
+	args.add({"src-path"},           cli::Text(),                                       "Path of the binary source"                                           );
 	args.add({"src-fra","f"},        cli::Integer(cli::Positive(), cli::Non_zero()),    "Inter frame level."                                                  );
 	args.add({"src-fifo"},           cli::None(),                                       "Enable FIFO mode."                                                   );
+	args.add({"perfect-sync"},       cli::None(),                                       "Enable genie aided synchronization."                                 );
 
+	p_shp.get_description(args);
+	p_sfc.get_description(args);
+	p_stm.get_description(args);
+	p_sfm.get_description(args);
+	p_sff.get_description(args);
 	p_rad.get_description(args);
 }
 
@@ -129,7 +110,7 @@ void DVBS2
 	modcod         = vals.exist({"mod-cod"}           ) ? vals.at      ({"mod-cod"}           ) : "QPSK-S_8/9";
 
 	modcod_init(modcod); // initialize all the parameters that are dependant on modcod
-	esn0_ref                 = vals.exist({"sim-noise-ref"}      ) ? vals.to_float({"sim-noise-ref "}    ) : 0.f          ;
+	esn0_ref                 = vals.exist({"sim-noise-ref"}      ) ? vals.to_float({"sim-noise-ref"}     ) : 0.f          ;
 	esn0_seq_path            = vals.exist({"sim-noise-path"}     ) ? vals.at      ({"sim-noise-path"}    ) : ""           ;
 	ebn0_min                 = vals.exist({"sim-noise-min","m"}  ) ? vals.to_float({"sim-noise-min","m"} ) : 3.2f         ;
 	ebn0_max                 = vals.exist({"sim-noise-max","M"}  ) ? vals.to_float({"sim-noise-max","M"} ) : 6.f          ;
@@ -159,43 +140,53 @@ void DVBS2
 	debug_limit              = vals.exist({"sim-dbg-limit"}      ) ? vals.to_int  ({"sim-dbg-limit"}     ) : -1          ;
 	stats                    = vals.exist({"sim-stats"}          ) ? true                                  : false       ;
 	no_sync_info             = vals.exist({"no-sync-info"}       ) ? true                                  : false       ;
-	rolloff                  = vals.exist({"shp-rolloff"}        ) ? vals.to_float({"shp-rolloff"}       ) : 0.2f        ;
-	osf                      = vals.exist({"shp-osf"}            ) ? vals.to_int  ({"shp-osf"}           ) : 4           ;
-	grp_delay                = vals.exist({"shp-grp-delay"}      ) ? vals.to_int  ({"shp-grp-delay"}     ) : 15          ;
-	stm_type                 = vals.exist({"stm-type"}           ) ? vals.at      ({"stm-type"}          ) : "NORMAL"    ;
-	sfm_type                 = vals.exist({"sfm-type"}           ) ? vals.at      ({"sfm-type"}          ) : "NORMAL"    ;
-	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
-	perfect_coarse_freq_sync = vals.exist({"perfect-cf-sync"}    ) ? true                                  : false       ;
-	perfect_pf_freq_sync     = vals.exist({"perfect-pf-sync"}    ) ? true                                  : false       ;
-	perfect_lr_freq_sync     = vals.exist({"perfect-lr-sync"}    ) ? true                                  : false       ;
 	n_frames                 = vals.exist({"src-fra","f"}        ) ? vals.to_int  ({"src-fra","f"}       ) : 1           ;
-	stm_hold_size            = vals.exist({"stm-hold-size"}      ) ? vals.to_int  ({"stm-hold-size"}     ) : 1           ;
-	sfm_alpha                = vals.exist({"sfm-alpha"}          ) ? vals.to_float({"sfm-alpha"}         ) : 0.9f        ;
-	sfm_trigger              = vals.exist({"sfm-trigg"}          ) ? vals.to_float({"sfm-trigger"}       ) : 25.0f       ;
-	sff_lr_alpha             = vals.exist({"sff-lr-alpha"}       ) ? vals.to_float({"sff-lr-alpha"}      ) : 0.9f        ;
+	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
+	display_help = false;
+	if(vals.exist({"help","h"}))
+		display_help = true;
 
 	if (vals.exist({"sim-dbg-limit"}))
 		debug = true;
-
-	if (perfect_sync)
-	{
-		perfect_coarse_freq_sync = true;
-		stm_type                 = "PERFECT";
-		perfect_pf_freq_sync     = true;
-		perfect_lr_freq_sync     = true;
-	}
 
 	if (vals.exist({"ter-freq"}))
 		ter_freq = std::chrono::milliseconds(vals.to_int  ({"ter-freq"}));
 	else
 		ter_freq = std::chrono::milliseconds(500L);
 
-	p_rad.N = (this->pl_frame_size) * osf; // 2 * N_fil
+
+	p_shp.N_symbols = this->pl_frame_size;
+	p_shp.n_frames  = n_frames;
+	p_shp.store(vals);
+
+	p_rad.N = (this->pl_frame_size) * p_shp.osf;
 	p_rad.n_frames = n_frames;
 	p_rad.store(vals);
 
+	p_sff.N        = this->pl_frame_size;
+	p_sff.n_frames = n_frames;
+	p_sff.store(vals);
+
+
+	p_sfc.N        = this->pl_frame_size*p_shp.osf;
+	p_sfc.n_frames = n_frames;
+	p_sfc.osf      = p_shp.osf;
+	p_sfc.ref_freq_shift = max_freq_shift;
+	p_sfc.store(vals);
+
+	p_stm.N         = p_shp.osf*this->pl_frame_size;
+	p_stm.osf       = p_shp.osf;
+	p_stm.n_frames  = n_frames;
+	p_stm.ref_delay = max_delay;
+	p_stm.store(vals);
+
+	p_sfm.N         = this->pl_frame_size;
+	p_sfm.n_frames  = n_frames;
+	p_sfm.ref_delay = 2 * this->p_shp.grp_delay + ((int)std::floor(this->max_delay) + 1)/this->p_shp.osf;
+	p_sfm.store(vals);
+
 	int int_delay = (int)max_delay - 2;
-	int N_cplx = pl_frame_size * osf;
+	int N_cplx = pl_frame_size * p_shp.osf;
 	overall_delay = int_delay/ N_cplx + 1;
 }
 
@@ -204,6 +195,11 @@ std::vector<std::string> DVBS2
 {
 	std::vector<std::string> n;
 	n.push_back(this->get_name());
+	n.push_back(this->p_shp.get_name());
+	n.push_back(this->p_sfc.get_name());
+	n.push_back(this->p_stm.get_name());
+	n.push_back(this->p_sfm.get_name());
+	n.push_back(this->p_sff.get_name());
 	n.push_back(this->p_rad.get_name());
 	return n;
 }
@@ -213,6 +209,11 @@ std::vector<std::string> DVBS2
 {
 	std::vector<std::string> sn;
 	sn.push_back(this->get_short_name());
+	sn.push_back(this->p_shp.get_short_name());
+	sn.push_back(this->p_sfc.get_short_name());
+	sn.push_back(this->p_stm.get_short_name());
+	sn.push_back(this->p_sfm.get_short_name());
+	sn.push_back(this->p_sff.get_short_name());
 	sn.push_back(this->p_rad.get_short_name());
 	return sn;
 }
@@ -222,6 +223,11 @@ std::vector<std::string> DVBS2
 {
 	std::vector<std::string> p;
 	p.push_back(this->get_prefix());
+	p.push_back(this->p_shp.get_prefix());
+	p.push_back(this->p_sfc.get_prefix());
+	p.push_back(this->p_stm.get_prefix());
+	p.push_back(this->p_sfm.get_prefix());
+	p.push_back(this->p_sff.get_prefix());
 	p.push_back(this->p_rad.get_prefix());
 	return p;
 }
@@ -252,8 +258,15 @@ void DVBS2
 	headers[p].push_back(std::make_pair("Type of source"       , this->src_type                          ));
 	if (this->src_path != "")
 		headers[p].push_back(std::make_pair("Path to source file"  , this->src_path                      ));
-	headers[p].push_back(std::make_pair("Perfect synchronization"         , this->perfect_sync ? "YES" : "NO"         ));
+	headers[p].push_back(std::make_pair("Perfect synchronization"  , this->perfect_sync ? "YES" : "NO"         ));
 	headers[p].push_back(std::make_pair("Estimator type"       , this->est_type                          ));
+
+	this->p_shp.get_headers(headers);
+	this->p_sfc.get_headers(headers);
+	this->p_stm.get_headers(headers);
+	this->p_sfm.get_headers(headers);
+	this->p_sff.get_headers(headers);
+
 	if (full)
 		p_rad.get_headers(headers);
 }
@@ -450,11 +463,7 @@ template <typename R>
 module::Filter_UPRRC_ccr_naive<R>* DVBS2
 ::build_uprrc_filter(const DVBS2& params)
 {
-	return new module::Filter_UPRRC_ccr_naive<R>(params.pl_frame_size * 2,
-	                                             params.rolloff,
-	                                             params.osf,
-	                                             params.grp_delay,
-	                                             params.n_frames);
+	return params.p_shp.build_shaping_flt();
 }
 
 template <typename R>
@@ -462,7 +471,7 @@ module::Filter_Farrow_ccr_naive<R>* DVBS2
 ::build_channel_frac_delay(const DVBS2& params)
 {
 	R frac_delay = params.max_delay - std::floor(params.max_delay);
-	return new module::Filter_Farrow_ccr_naive <R>(params.pl_frame_size * 2 * params.osf,
+	return new module::Filter_Farrow_ccr_naive <R>(params.pl_frame_size * 2 * params.p_shp.osf,
 	                                               frac_delay, params.n_frames);
 }
 
@@ -470,7 +479,7 @@ template <typename R>
 module::Variable_delay_cc_naive<R>* DVBS2
 ::build_channel_int_delay(const DVBS2& params)
 {
-	int N_cplx = params.pl_frame_size * params.osf;
+	int N_cplx = params.pl_frame_size * params.p_shp.osf;
 	int int_delay = ((int)std::floor(params.max_delay) - 2 + N_cplx) % N_cplx;
 	return new module::Variable_delay_cc_naive <R>(N_cplx * 2, int_delay, int_delay, params.n_frames);
 }
@@ -480,7 +489,7 @@ module::Filter_buffered_delay<R>* DVBS2
 ::build_channel_frame_delay(const DVBS2& params)
 {
 	int int_delay = (int)std::floor(params.max_delay) - 2;
-	int N_cplx = params.pl_frame_size * params.osf;
+	int N_cplx = params.pl_frame_size * params.p_shp.osf;
 	int frame_delay = int_delay / N_cplx;
 	return new module::Filter_buffered_delay<R>(N_cplx*2, frame_delay, frame_delay, params.n_frames);
 }
@@ -489,11 +498,7 @@ template <typename R>
 module::Filter_RRC_ccr_naive<R>* DVBS2
 ::build_matched_filter(const DVBS2& params)
 {
-	return new module::Filter_RRC_ccr_naive<float>(params.osf * params.pl_frame_size * 2,
-	                                               params.rolloff,
-	                                               params.osf,
-	                                               params.grp_delay,
-	                                               params.n_frames);
+	return params.p_shp.build_matched_flt();
 }
 
 template <typename R>
@@ -529,12 +534,12 @@ module::Channel<R>* DVBS2
 {
 	if (params.channel_type == "AWGN")
 		if (filtered)
-			return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size * params.osf, gen, false, params.n_frames);
+			return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size * params.p_shp.osf, gen, false, params.n_frames);
 		else
 			return new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size             , gen, false, params.n_frames);
 	else if(params.channel_type == "USER_ADD")
 		if (filtered)
-			return new module::Channel_user_add<R>(2 * params.pl_frame_size * params.osf, params.channel_path, true, params.n_frames);
+			return new module::Channel_user_add<R>(2 * params.pl_frame_size * params.p_shp.osf, params.channel_path, true, params.n_frames);
 		else
 			return new module::Channel_user_add<R>(2 * params.pl_frame_size             , params.channel_path, true, params.n_frames);
 	else
@@ -546,14 +551,14 @@ template <typename R>
 module::Multiplier_fading_DVBS2<R>* DVBS2
 ::build_fading_mult(const DVBS2& params)
 {
-	return new module::Multiplier_fading_DVBS2<R>(2*params.pl_frame_size * params.osf, params.esn0_seq_path, params.esn0_ref, params.n_frames);
+	return new module::Multiplier_fading_DVBS2<R>(2*params.pl_frame_size * params.p_shp.osf, params.esn0_seq_path, params.esn0_ref, params.n_frames);
 }
 
 template <typename R>
 module::Multiplier_sine_ccc_naive<R>* DVBS2
 ::build_freq_shift(const DVBS2& params)
 {
-	return new module::Multiplier_sine_ccc_naive<R>(2*params.pl_frame_size * params.osf, params.max_freq_shift, 1.0,
+	return new module::Multiplier_sine_ccc_naive<R>(2*params.pl_frame_size * params.p_shp.osf, params.max_freq_shift, 1.0,
 	                                                params.n_frames);
 }
 
@@ -561,10 +566,7 @@ template <typename R>
 module::Synchronizer_freq_fine<R>* DVBS2
 ::build_synchronizer_lr(const DVBS2& params)
 {
-	if (params.perfect_lr_freq_sync)
-		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_freq_fine_perfect<R>(2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
-	else
-		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * params.pl_frame_size, params.sff_lr_alpha, params.n_frames));
+	return params.p_sff.build_lr();
 
 }
 
@@ -572,45 +574,14 @@ template <typename R>
 module::Synchronizer_freq_fine<R>* DVBS2
 ::build_synchronizer_freq_phase(const DVBS2& params)
 {
-	if (params.perfect_pf_freq_sync)
-		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_freq_fine_perfect<R>(2 * params.pl_frame_size, (R)0, (R)0, params.n_frames));
-	else
-		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * params.pl_frame_size, params.n_frames));
+	return params.p_sff.build_freq_phase();
 }
 
 template <typename B, typename R>
 module::Synchronizer_timing<B,R>* DVBS2
 ::build_synchronizer_timing(const DVBS2& params)
 {
-	module::Synchronizer_timing<B,R>* sync_timing;
-	if (params.stm_type == "NORMAL")
-	{
-		sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_aib<B,R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
-	}
-	else if (params.stm_type == "PERFECT")
-	{
-		sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_timing_perfect<B,R>(2 * params.pl_frame_size * params.osf, params.osf, params.max_delay, params.n_frames));
-	}
-	else if(params.stm_type == "FAST")
-	{
-		if (params.osf == 2)
-			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast_osf2<B,R>(2 * params.pl_frame_size * params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
-		else
-			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_fast<B,R>(2 * params.pl_frame_size * params.osf, params.osf, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
-	}
-	else if(params.stm_type == "ULTRA")
-	{
-		if (params.osf == 2)
-			sync_timing = dynamic_cast<module::Synchronizer_timing<B,R>*>(new module::Synchronizer_Gardner_ultra_osf2<B,R>(2 * params.pl_frame_size * 2, params.stm_hold_size, std::sqrt(0.5), (R)5e-5, (R)2, params.n_frames));
-		else
-			throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
-	}
-	else
-	{
-		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
-	}
-
-	return sync_timing;
+	return params.p_stm.build();
 }
 
 
@@ -625,45 +596,21 @@ template <typename R>
 module::Multiplier_AGC_cc_naive<R>* DVBS2
 ::build_channel_agc(const DVBS2& params)
 {
-	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size * params.osf, 1.0/(R)params.osf, params.n_frames);
+	return new module::Multiplier_AGC_cc_naive<R>(2 * params.pl_frame_size * params.p_shp.osf, 1.0/(R)params.p_shp.osf, params.n_frames);
 }
 
 template <typename R>
 module::Synchronizer_frame<R>* DVBS2
 ::build_synchronizer_frame(const DVBS2& params)
 {
-	if (params.sfm_type == "PERFECT")
-	{
-		int delay = (R)2 * (R)params.grp_delay + ((int)std::floor(params.max_delay) + 1)/params.osf;
-		return dynamic_cast<module::Synchronizer_frame<R>*>(new module::Synchronizer_frame_perfect<R>(2 * params.pl_frame_size, delay, params.n_frames));
-	}
-	else if (params.sfm_type == "FAST")
-	{
-		return dynamic_cast<module::Synchronizer_frame<R>*>(new module::Synchronizer_frame_DVBS2_fast<R>(2 * params.pl_frame_size, params.sfm_alpha, params.sfm_trigger, params.n_frames));
-	}
-	else if (params.sfm_type == "NORMAL")
-	{
-		return dynamic_cast<module::Synchronizer_frame<R>*>(new module::Synchronizer_frame_DVBS2_aib <R>(2 * params.pl_frame_size, params.sfm_alpha, params.sfm_trigger, params.n_frames));
-
-	}
-	else
-	{
-		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_frame type.");
-	}
-
+	return params.p_sfm.build<R>();
 }
 
 template <typename R>
 module::Synchronizer_freq_coarse<R>* DVBS2
 ::build_synchronizer_freq_coarse(const DVBS2& params)
 {
-	module::Synchronizer_freq_coarse<R> * sync_freq_coarse;
-	if (params.perfect_coarse_freq_sync)
-		sync_freq_coarse =  dynamic_cast<module::Synchronizer_freq_coarse<R>*>(new module::Synchronizer_freq_coarse_perfect<R>(2 * params.pl_frame_size * params.osf, params.max_freq_shift, params.n_frames));
-	else
-		sync_freq_coarse =  dynamic_cast<module::Synchronizer_freq_coarse<R>*>(new module::Synchronizer_freq_coarse_DVBS2_aib<R>(2 * params.pl_frame_size * params.osf, params.osf, 0.707, 1e-4, params.n_frames));
-
-	return sync_freq_coarse;
+	return params.p_sfc.build<R>();
 }
 
 template <typename B>

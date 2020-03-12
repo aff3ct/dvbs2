@@ -148,7 +148,7 @@ int main(int argc, char** argv)
 	estimator->set_noise(noise_est);
 
 	std::vector<double> theoretical_thr(params.n_frames, params.p_rad.rx_rate/1e6 * (double)params.K_bch /
-	                                                     ((double)params.pl_frame_size * (double)params.osf));
+	                                                     ((double)params.pl_frame_size * (double)params.p_shp.osf));
 
 	// the full transmission chain binding
 	(*front_agc       )[mlt::sck::imultiply    ::X_N ].bind((*radio        )[rad::sck::receive      ::Y_N1  ]);
@@ -258,7 +258,7 @@ int main(int argc, char** argv)
 	    { /* no exceptions in this stage */ } ),
 	};
 	// number of threads per stages
-	const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 24, 1 };
+	const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 28, 1 };
 	// synchronization buffer size between stages
 	const std::vector<size_t> buffer_sizes(sep_stages.size() -1, 1);
 	// type of waiting between stages (true = active, false = passive)

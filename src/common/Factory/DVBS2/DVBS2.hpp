@@ -7,7 +7,14 @@
 
 #include "Module/Multiplier/Sequence/Multiplier_fading_DVBS2.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
+
 #include "Factory/Module/Radio/Radio.hpp"
+#include "Factory/Module/Synchronizer_freq_fine/Synchronizer_freq_fine.hpp"
+#include "Factory/Module/Synchronizer_freq_coarse/Synchronizer_freq_coarse.hpp"
+#include "Factory/Module/Synchronizer_timing/Synchronizer_timing.hpp"
+#include "Factory/Module/Shaping_filter/Shaping_filter.hpp"
+#include "Factory/Module/Synchronizer_frame/Synchronizer_frame.hpp"
+
 #include "Module/Framer/Framer.hpp"
 #include "Module/Scrambler/Scrambler_BB/Scrambler_BB.hpp"
 #include "Module/Scrambler/Scrambler_PL/Scrambler_PL.hpp"
@@ -20,7 +27,6 @@
 #include "Module/Multiplier/Sequence/Multiplier_AGC_cc_naive.hpp"
 #include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_coarse/Synchronizer_freq_coarse.hpp"
 #include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_freq_fine.hpp"
-#include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing.hpp"
 #include "Module/Synchronizer/Synchronizer_frame/Synchronizer_frame.hpp"
 #include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "Module/Estimator/Estimator.hpp"
@@ -55,20 +61,17 @@ public:
 	float ebn0_max;
 	float ebn0_step;
 	float esn0_ref;
+
 	float max_freq_shift;
 	float max_delay;
-	float sfm_alpha;
-	float sff_lr_alpha;
-	float sfm_trigger;
 	int   overall_delay;
 	bool  debug;
 	bool  stats;
 	bool  no_sync_info;
-	bool  perfect_sync;
-	bool  perfect_coarse_freq_sync;
-	bool  perfect_lr_freq_sync;
-	bool  perfect_pf_freq_sync;
 	bool  src_fifo;
+	bool  display_help;
+	bool  perfect_sync;
+
 	int   max_fe;       // max number of frame errors per SNR point
 	int   max_n_frames; // max number of simulated frames per SNR point
 	int   K_bch;
@@ -81,12 +84,8 @@ public:
 	int   S;                         // number of slots
 	int   pl_frame_size;
 	int   itl_n_cols;
-	float rolloff;   //  DVBS2 0.05; // DVBS2-X
-	int   osf;
-	int   grp_delay;
 	int   n_frames;
 	int   debug_limit;
-	int   stm_hold_size;
 
 	std::chrono::milliseconds ter_freq;
 
@@ -99,8 +98,6 @@ public:
 	std::string constellation_file;
 	std::string section;
 	std::string src_type;
-	std::string stm_type;
-	std::string sfm_type;
 	std::string src_path;
 	std::string sink_path;
 	std::string channel_path;
@@ -109,7 +106,12 @@ public:
 	std::string channel_type;
 	std::string dump_filename;
 
-	factory::Radio p_rad;
+	factory::Radio                    p_rad;
+	factory::Synchronizer_freq_fine   p_sff;
+	factory::Synchronizer_freq_coarse p_sfc;
+	factory::Synchronizer_timing      p_stm;
+	factory::Synchronizer_frame       p_sfm;
+	factory::Shaping_filter           p_shp;
 
 private:
 	void modcod_init(std::string modcod);
@@ -120,7 +122,7 @@ public:
 
 	virtual std::vector<std::string> get_names      () const;
 	virtual std::vector<std::string> get_short_names() const;
-	virtual std::vector<std::string> get_prefixes()    const;
+	virtual std::vector<std::string> get_prefixes   () const;
 
 	// parameters construction
 	void get_description(cli::Argument_map_info &args) const;
