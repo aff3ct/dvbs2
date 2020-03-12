@@ -246,7 +246,7 @@ int main(int argc, char** argv)
 	std::cout.flush();
 	tools::Chain chain_stage6_parallel(adp_1_to_n[adp::tsk::pull_n],
 	                                   adp_n_to_1[adp::tsk::push_n],
-	                                   24,
+	                                   28,
 	                                   thread_pinnig,
 	                                   { 12, 24, 25, 26, 27,
 	                                     28, 29, 13, 30, 14,
