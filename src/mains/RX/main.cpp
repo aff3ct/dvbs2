@@ -85,7 +85,9 @@ int main(int argc, char** argv)
 	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
 	uptr<Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL"));
 	uptr<Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG"));
-	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 1, std::ios_base::dec | std::ios_base::fixed));
+	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 1,
+	                                                                           std::ios_base::dec |
+	                                                                           std::ios_base::fixed));
 
 	tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm", params.n_frames);
 	uptr<Probe<int32_t>> prb_stm_uff(rep_stm_stats.create_probe_value<int32_t>("UFW", "FLAG"));
@@ -96,13 +98,18 @@ int main(int argc, char** argv)
 	uptr<Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO"));
 	uptr<Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO"));
 
-	tools::Reporter_probe_decstat rep_decstat_stats("Decoders Decoding Status", "('0' = success, '1' = fail)", params.n_frames);
+	tools::Reporter_probe_decstat rep_decstat_stats("Decoders Decoding Status", "('0' = success, '1' = fail)",
+	                                                params.n_frames);
 	uptr<Probe<int32_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int32_t>("LDPC"));
 	uptr<Probe<int32_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int32_t>("BCH"));
 
 	tools::Reporter_probe rep_noise_stats("Signal Noise Ratio", "(SNR)", params.n_frames);
-	uptr<Probe<float>> prb_noise_es(rep_noise_stats.create_probe_value<float>("Es/N0", "(dB)", 1, std::ios_base::dec | std::ios_base::fixed));
-	uptr<Probe<float>> prb_noise_eb(rep_noise_stats.create_probe_value<float>("Eb/N0", "(dB)", 1, std::ios_base::dec | std::ios_base::fixed));
+	uptr<Probe<float>> prb_noise_es(rep_noise_stats.create_probe_value<float>("Es/N0", "(dB)", 1,
+	                                                                          std::ios_base::dec |
+	                                                                          std::ios_base::fixed));
+	uptr<Probe<float>> prb_noise_eb(rep_noise_stats.create_probe_value<float>("Eb/N0", "(dB)", 1,
+	                                                                          std::ios_base::dec |
+	                                                                          std::ios_base::fixed));
 
 	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER)", "and Frame Error Rate (FER)", params.n_frames);
 	uptr<Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE"));
@@ -112,7 +119,9 @@ int main(int argc, char** argv)
 
 	tools::Reporter_probe rep_thr_stats("Throughput", "and elapsed time", params.n_frames);
 	uptr<Probe<int32_t>> prb_thr_thr (rep_thr_stats.create_probe_throughput<int32_t>("THR", params.K_bch));
-	uptr<Probe<double> > prb_thr_the (rep_thr_stats.create_probe_value     <double >("TTHR", "Theory", 1, std::ios_base::dec | std::ios_base::fixed));
+	uptr<Probe<double> > prb_thr_the (rep_thr_stats.create_probe_value     <double >("TTHR", "Theory", 1,
+	                                                                                 std::ios_base::dec |
+	                                                                                 std::ios_base::fixed));
 	uptr<Probe<int32_t>> prb_thr_lat (rep_thr_stats.create_probe_latency   <int32_t>("LAT"));
 	uptr<Probe<int32_t>> prb_thr_time(rep_thr_stats.create_probe_time      <int32_t>("TIME"));
 	uptr<Probe<int32_t>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp <int32_t>("TSTA"));
@@ -279,20 +288,7 @@ int main(int argc, char** argv)
 		pipeline_transmission.export_dot(f);
 	}
 
-	// configuration of the pipeline tasks
-	for (auto& type : pipeline_transmission.get_tasks_per_types()) for (auto& tsk : type)
-	{
-		tsk->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
-		tsk->set_debug          (params.debug      ); // disable the debug mode
-		tsk->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
-		tsk->set_debug_precision(8                 );
-		tsk->set_stats          (params.stats      ); // enable the statistics
-
-		// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
-		if (!tsk->is_debug() && !tsk->is_stats())
-			tsk->set_fast(true);
-	}
-
+	auto tasks_per_types = pipeline_transmission.get_tasks_per_types();
 	pipeline_transmission.unbind_adaptors();
 	auto end_clone = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds_clone = end_clone - start_clone;
@@ -307,9 +303,11 @@ int main(int argc, char** argv)
 		std::ofstream f("sequence_transmission.dot");
 		sequence_transmission.export_dot(f);
 	}
+	auto tasks_per_types = sequence_transmission.get_tasks_per_types();
+#endif /* MULTI_THREADED */
 
 	// configuration of the sequence tasks
-	for (auto& type : sequence_transmission.get_tasks_per_types()) for (auto& tsk : type)
+	for (auto& type : tasks_per_types) for (auto& tsk : type)
 	{
 		tsk->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
 		tsk->set_debug          (params.debug      ); // disable the debug mode
@@ -321,7 +319,6 @@ int main(int argc, char** argv)
 		if (!tsk->is_debug() && !tsk->is_stats())
 			tsk->set_fast(true);
 	}
-#endif /* MULTI_THREADED */
 
 	// ================================================================================================================
 	// WAITING PHASE ==================================================================================================
@@ -330,18 +327,18 @@ int main(int argc, char** argv)
 	std::cout << "Waiting phase... ";
 	std::cout.flush();
 
-	// local unbinding
-	(*sync_coarse_f   )[sfc::sck::synchronize::X_N1].unbind((*front_agc    )[mlt::sck::imultiply  ::Z_N   ]);
-	(*sync_timing     )[stm::sck::extract    ::B_N1].unbind((*sync_timing  )[stm::sck::synchronize::B_N1  ]);
-	(*sync_timing     )[stm::sck::extract    ::Y_N1].unbind((*sync_timing  )[stm::sck::synchronize::Y_N1  ]);
-	(*prb_frq_coa     )[prb::sck::probe      ::in  ].unbind((*sync_coarse_f)[sfc::sck::synchronize::FRQ   ]);
-	(*prb_stm_del     )[prb::sck::probe      ::in  ].unbind((*sync_timing  )[stm::sck::synchronize::MU    ]);
-	(*prb_thr_lat     )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
-	(*prb_thr_time    )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
-	(*prb_thr_tsta    )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
-	(*prb_fra_id      )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
+	// partial unbinding
+	(*sync_coarse_f)[sfc::sck::synchronize::X_N1].unbind((*front_agc    )[mlt::sck::imultiply  ::Z_N   ]);
+	(*sync_timing  )[stm::sck::extract    ::B_N1].unbind((*sync_timing  )[stm::sck::synchronize::B_N1  ]);
+	(*sync_timing  )[stm::sck::extract    ::Y_N1].unbind((*sync_timing  )[stm::sck::synchronize::Y_N1  ]);
+	(*prb_frq_coa  )[prb::sck::probe      ::in  ].unbind((*sync_coarse_f)[sfc::sck::synchronize::FRQ   ]);
+	(*prb_stm_del  )[prb::sck::probe      ::in  ].unbind((*sync_timing  )[stm::sck::synchronize::MU    ]);
+	(*prb_thr_lat  )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
+	(*prb_thr_time )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
+	(*prb_thr_tsta )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
+	(*prb_fra_id   )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
 
-	// local binding
+	// partial binding
 	(*sync_step_mf)[smf::sck::synchronize::X_N1].bind((*front_agc   )[mlt::sck::imultiply  ::Z_N   ]);
 	(*sync_step_mf)[smf::sck::synchronize::DEL ].bind((*sync_frame  )[sfm::sck::synchronize::DEL   ]);
 	(*sync_timing )[stm::sck::extract    ::B_N1].bind((*sync_step_mf)[smf::sck::synchronize::B_N1  ]);
@@ -453,7 +450,7 @@ int main(int argc, char** argv)
 	// ================================================================================================================
 	// LEARNING PHASE 3 ===============================================================================================
 	// ================================================================================================================
-	// local unbinding
+	// partial unbinding
 	(*sync_step_mf)[smf::sck::synchronize::X_N1].unbind((*front_agc   )[mlt::sck::imultiply  ::Z_N   ]);
 	(*sync_step_mf)[smf::sck::synchronize::DEL ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL   ]);
 	(*sync_timing )[stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize::B_N1  ]);
@@ -465,7 +462,7 @@ int main(int argc, char** argv)
 	(*prb_thr_tsta)[prb::sck::probe      ::in  ].unbind((*sync_frame  )[sfm::sck::synchronize::status]);
 	(*prb_fra_id  )[prb::sck::probe      ::in  ].unbind((*sync_frame  )[sfm::sck::synchronize::status]);
 
-	// local binding
+	// partial binding
 	(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N   ]);
 	(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1  ]);
 	(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1  ]);
@@ -536,25 +533,26 @@ int main(int argc, char** argv)
 	stats_file << "######################" << std::endl;
 	terminal_stats.legend(stats_file);
 
-	// local unbinding
+	// partial unbinding
 	(*prb_thr_lat )[prb::sck::probe::in].unbind((*sync_fine_pf)[sff::sck::synchronize::status]);
 	(*prb_thr_time)[prb::sck::probe::in].unbind((*sync_fine_pf)[sff::sck::synchronize::status]);
 	(*prb_thr_tsta)[prb::sck::probe::in].unbind((*sync_fine_pf)[sff::sck::synchronize::status]);
 	(*prb_fra_id  )[prb::sck::probe::in].unbind((*sync_fine_pf)[sff::sck::synchronize::status]);
 
-	// local binding
+	// partial binding
 	(*prb_thr_lat )[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
 	(*prb_thr_time)[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
 	(*prb_thr_tsta)[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
 	(*prb_fra_id  )[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
 
-	prb_thr_thr->reset();
-	prb_thr_lat->reset();
-#ifdef MULTI_THREADED
-	for (auto& type : pipeline_transmission.get_tasks_per_types())
+	// reset the statistics of the tasks before the transmission phase
+	for (auto& type : tasks_per_types)
 		for (auto& tsk : type)
 			tsk->reset();
 
+	prb_thr_thr->reset();
+	prb_thr_lat->reset();
+#ifdef MULTI_THREADED
 	pipeline_transmission.bind_adaptors();
 	pipeline_transmission.exec({
 		[] (const std::vector<int>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 0
@@ -575,15 +573,8 @@ int main(int argc, char** argv)
 			terminal_stats.temp_report(stats_file);
 			return tools::Terminal::is_interrupt();
 		}});
-
-	// stop the radio thread
-	for (auto &m : pipeline_transmission.get_modules<tools::Interface_waiting>())
-		m->cancel_waiting();
+	// no need to stop the radio thread here, it is automatically done by the pipeline
 #else
-	for (auto& type : sequence_transmission.get_tasks_per_types())
-		for (auto& tsk : type)
-			tsk->reset();
-
 	// start the transmission sequence
 	sequence_transmission.exec([&prb_fra_id, &terminal_stats, &stats_file]
 		(const std::vector<int>& statuses)
