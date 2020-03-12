@@ -15,7 +15,7 @@ using namespace aff3ct;
 using namespace aff3ct::module;
 
 // global parameters
-constexpr bool enable_logs = true;
+constexpr bool enable_logs = false;
 
 // aliases
 template<class T> using uptr = std::unique_ptr<T>;
@@ -101,12 +101,13 @@ int main(int argc, char** argv)
 	chn_int_del  ->set_custom_name("Chn int del ");
 	chn_frac_del ->set_custom_name("Chn frac del");
 
-	// allocate reporters to display results in the terminal
-	tools::Reporter_noise_DVBS2<>      noise_reporter(noise_est, noise_ref, true);
-	tools::Reporter_BFER<>             bfer_reporter (*monitor);
-	tools::Reporter_throughput_DVBS2<> tpt_reporter  (*monitor);
+	// allocate reporters to display results in the terminal_stats
+	tools::Reporter_noise<>      rep_noise( noise_ref);
+	tools::Reporter_BFER<>       rep_BFER (*monitor  );
+	tools::Reporter_throughput<> rep_thr  (*monitor  );
 
-	tools::Terminal_std terminal({ &noise_reporter, &bfer_reporter, &tpt_reporter });
+	// allocate a terminal that will display the collected data from the reporters
+	tools::Terminal_std terminal({ &rep_noise, &rep_BFER, &rep_thr });
 
 	// display the legend in the terminal
 	terminal.legend();
@@ -118,7 +119,8 @@ int main(int argc, char** argv)
 	            monitor     .get(), freq_shift  .get(), sync_fine_lr.get(), sync_fine_pf.get(), shaping_flt  .get(),
 	            chn_frac_del.get(), mult_agc    .get(), sync_frame  .get(), delay       .get(), sync_coarse_f.get(),
 	            matched_flt .get(), sync_timing .get(), sync_step_mf.get(), source      .get(), channel      .get(),
-	            chn_int_del .get(), estimator   .get(), fad_mlt     .get(), chn_frm_del .get()                       };
+	            chn_int_del .get(), estimator   .get(), fad_mlt     .get(), chn_frm_del .get()
+	         };
 
 	// configuration of the module tasks
 	for (auto& m : modules)
@@ -191,7 +193,8 @@ int main(int argc, char** argv)
 		sync_fine_lr ->reset(); sync_fine_pf->reset(); delay      ->reset(); chn_frm_del->reset();
 
 		int delay_tx_rx = params.overall_delay;
-		tpt_reporter.init();
+		delay->set_delay(delay_tx_rx);
+
 		if (!params.perfect_sync)
 		{
 			// ========================================================================================================
@@ -220,16 +223,17 @@ int main(int argc, char** argv)
 			}
 
 			int m = 0;
+			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 			chain_waiting.exec([&](const std::vector<int>& statuses)
 			{
 				if (statuses.back() != status_t::SKIPPED)
 				{
-					terminal.temp_report(std::cerr);
+					terminal.temp_report();
 					m += params.n_frames;
 				}
 				else
 				{
-					delay_tx_rx++;
+					delay_tx_rx+=params.n_frames;
 					if (enable_logs)
 						std::clog << rang::tag::warning << "Chain aborted! (waiting phase, m = " << m << ")"
 						          << std::endl;
@@ -256,12 +260,12 @@ int main(int argc, char** argv)
 			{
 				if (statuses.back() != status_t::SKIPPED)
 				{
-					terminal.temp_report(std::cerr);
+					terminal.temp_report();
 					m += params.n_frames;
 				}
 				else
 				{
-					delay_tx_rx++;
+					delay_tx_rx+=params.n_frames;
 					if (enable_logs)
 						std::clog << rang::tag::warning << "Chain aborted! (learning phase 1&2, m = " << m << ")"
 						          << std::endl;
@@ -309,11 +313,11 @@ int main(int argc, char** argv)
 				if (statuses.back() != status_t::SKIPPED)
 				{
 					m += params.n_frames;
-					terminal.temp_report(std::cerr);
+					terminal.temp_report();
 				}
 				else
 				{
-					delay_tx_rx++;
+					delay_tx_rx+=params.n_frames;
 					if (enable_logs)
 						std::clog << rang::tag::warning << "Chain aborted! (learning phase 3, m = " << m << ")"
 						          << std::endl;
@@ -343,12 +347,12 @@ int main(int argc, char** argv)
 			if (statuses.back() != status_t::SKIPPED)
 			{
 				m += params.n_frames;
-				terminal.temp_report(std::cerr);
+				terminal.temp_report();
 			}
 			else if (enable_logs)
-				std::clog << rang::tag::warning << "Chain aborted! (learning phase 3, m = " << m << ")" << std::endl;
+				std::clog << rang::tag::warning << "Chain aborted! (Transmisison phase, m = " << m << ")" << std::endl;
 
-			if (m < delay_tx_rx) // first frame is delayed
+			if (m < delay_tx_rx + params.n_frames) // first frame is delayed
 				monitor->reset();
 
 			return monitor->is_done() || tools::Terminal::is_interrupt();
