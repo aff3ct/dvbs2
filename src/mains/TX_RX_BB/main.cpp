@@ -102,25 +102,25 @@ int main(int argc, char** argv)
 	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
-	tools::Chain chain((*source)[src::tsk::generate], std::thread::hardware_concurrency());
+	tools::Sequence sequence((*source)[src::tsk::generate], std::thread::hardware_concurrency());
 
 	if (enable_logs)
 	{
-		std::ofstream f("chain.dot");
-		chain.export_dot(f);
+		std::ofstream f("sequence.dot");
+		sequence.export_dot(f);
 	}
 
 	// registering to noise updates
-	for (auto &m : chain.get_modules<Channel<>>())
+	for (auto &m : sequence.get_modules<Channel<>>())
 		noise_ref.record_callback_update([m](){ m->notify_noise_update(); });
 
 	// set different seeds in the modules that uses PRNG
 	std::mt19937 prng;
-	for (auto &m : chain.get_modules<tools::Interface_set_seed>())
+	for (auto &m : sequence.get_modules<tools::Interface_set_seed>())
 		m->set_seed(prng());
 
 	// allocate a common monitor module to reduce all the monitors
-	Monitor_BFER_reduction monitor_red(chain.get_modules<Monitor_BFER<>>());
+	Monitor_BFER_reduction monitor_red(sequence.get_modules<Monitor_BFER<>>());
 	monitor_red.set_reduce_frequency(std::chrono::milliseconds(500));
 	monitor_red.check_reducible();
 
@@ -151,8 +151,8 @@ int main(int argc, char** argv)
 		if (params.ter_freq != std::chrono::nanoseconds(0))
 			terminal.start_temp_report(params.ter_freq);
 
-		// execute the simulation chain
-		chain.exec([&monitor_red]() { return monitor_red.is_done_all() || tools::Terminal::is_interrupt(); });
+		// execute the simulation sequence
+		sequence.exec([&monitor_red]() { return monitor_red.is_done_all() || tools::Terminal::is_interrupt(); });
 
 		// final reduction
 		const bool fully = true;
@@ -170,9 +170,9 @@ int main(int argc, char** argv)
 		{
 			std::cout << "#" << std::endl;
 			const auto ordered = true;
-			tools::Stats::show(chain.get_tasks_per_types(), ordered);
+			tools::Stats::show(sequence.get_tasks_per_types(), ordered);
 
-			for (auto &tt : chain.get_tasks_per_types())
+			for (auto &tt : sequence.get_tasks_per_types())
 				for (auto &t : tt)
 					t->reset();
 
