@@ -204,41 +204,49 @@ int main(int argc, char** argv)
 	                             std::vector<module::Task*>,
 	                             std::vector<module::Task*>>> sep_stages =
 	{ // pipeline stage 0
-	  { { &(*radio)[rad::tsk::receive], &(*source)[src::tsk::generate], &(*prb_rad_ovf)[prb::tsk::probe],
-	  	  &(*prb_rad_seq)[prb::tsk::probe], &(*prb_thr_the)[prb::tsk::probe] },
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*radio)[rad::tsk::receive], &(*source)[src::tsk::generate], &(*prb_rad_ovf)[prb::tsk::probe],
+	      &(*prb_rad_seq)[prb::tsk::probe], &(*prb_thr_the)[prb::tsk::probe] },
 	    { &(*radio)[rad::tsk::receive], &(*source)[src::tsk::generate] },
-	    { /* no exceptions in this stage */ } },
+	    { /* no exceptions in this stage */ } ),
 	  // pipeline stage 1
-	  { { &(*front_agc)[mlt::tsk::imultiply] },
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*front_agc)[mlt::tsk::imultiply] },
 	    { &(*matched_flt)[flt::tsk::filter], &(*prb_frq_coa)[prb::tsk::probe] },
-	    { /* no exceptions in this stage */ } },
+	    { /* no exceptions in this stage */ } ),
 	  // pipeline stage 2
-	  { { &(*sync_timing)[stm::tsk::synchronize], &(*prb_stm_del)[prb::tsk::probe] },
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*sync_timing)[stm::tsk::synchronize], &(*prb_stm_del)[prb::tsk::probe] },
 	    { &(*sync_timing)[stm::tsk::synchronize] },
-	    { /* no exceptions in this stage */ } },
+	    { /* no exceptions in this stage */ } ),
 	  // pipeline stage 3
-	  { { &(*sync_timing)[stm::tsk::extract], &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe],
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*sync_timing)[stm::tsk::extract], &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe],
 	      &(*prb_sfm_flg)[prb::tsk::probe] },
 	    { &(*sync_frame)[sfm::tsk::synchronize] },
-	    { /* no exceptions in this stage */ } },
+	    { /* no exceptions in this stage */ } ),
 	  // pipeline stage 4
-	  { { &(*pl_scrambler)[scr::tsk::descramble], &(*prb_frq_fin)[prb::tsk::probe] },
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*pl_scrambler)[scr::tsk::descramble], &(*prb_frq_fin)[prb::tsk::probe] },
 	    { &(*sync_fine_pf)[sff::tsk::synchronize], &(*prb_frq_lr)[prb::tsk::probe] },
-	    { /* no exceptions in this stage */ } },
+	    { /* no exceptions in this stage */ } ),
 	  // pipeline stage 5
-	  { { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_es)[prb::tsk::probe], &(*prb_noise_eb)[prb::tsk::probe] },
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_es)[prb::tsk::probe], &(*prb_noise_eb)[prb::tsk::probe] },
 	    { &(*estimator)[est::tsk::rescale] },
-	    { /* no exceptions in this stage */ } },
+	    { /* no exceptions in this stage */ } ),
 	  // pipeline stage 6
-	  { { &(*modem)[mdm::tsk::demodulate_wg] },
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*modem)[mdm::tsk::demodulate_wg] },
 	    { &(*bb_scrambler)[scr::tsk::descramble] },
 	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
-	      &(*prb_thr_thr)[prb::tsk::probe] } },
+	      &(*prb_thr_thr)[prb::tsk::probe] } ),
 	  // pipeline stage 7
-	  { { &(*monitor)[mnt::tsk::check_errors2], &(*sink)[snk::tsk::send], &(*prb_decstat_ldpc)[prb::tsk::probe],
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*monitor)[mnt::tsk::check_errors2], &(*sink)[snk::tsk::send], &(*prb_decstat_ldpc)[prb::tsk::probe],
 	      &(*prb_decstat_bch)[prb::tsk::probe], &(*prb_thr_thr)[prb::tsk::probe] },
 	    { /* end of the sequence */ },
-	    { /* no exceptions in this stage */ } },
+	    { /* no exceptions in this stage */ } ),
 	};
 	// number of threads per stages
 	const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 24, 1 };
