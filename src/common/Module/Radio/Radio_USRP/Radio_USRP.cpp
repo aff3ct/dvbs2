@@ -372,7 +372,7 @@ void Radio_USRP<R>
 ::reset()
 {
 	this->stop_threads = true;
-	this->_thread.join();
+	this->send_thread.join();
 	this->receive_thread.join();
 	this->stop_threads = false;
 	this->start_thread_send = false;
