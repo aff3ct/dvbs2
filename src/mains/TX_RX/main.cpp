@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 			ta->set_fast           (false             ); // disable the fast mode
 		}
 
-	// socket binding of the full transmission chain
+	// socket binding of the full transmission sequence
 	// delay line for BER/FER
 	(*delay        )[flt::sck::filter       ::X_N1].bind((*source      )[src::sck::generate      ::U_K ]);
 	// TX
@@ -214,17 +214,17 @@ int main(int argc, char** argv)
 			(*sync_timing )[stm::sck::extract    ::B_N1].bind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
 			(*sync_timing )[stm::sck::extract    ::Y_N1].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
 
-			tools::Chain chain_waiting((*source)[src::tsk::generate], (*sync_frame)[sfm::tsk::synchronize]);
+			tools::Sequence sequence_waiting((*source)[src::tsk::generate], (*sync_frame)[sfm::tsk::synchronize]);
 
 			if (enable_logs && ebn0 == params.ebn0_min)
 			{
-				std::ofstream f("chain_waiting.dot");
-				chain_waiting.export_dot(f);
+				std::ofstream f("sequence_waiting.dot");
+				sequence_waiting.export_dot(f);
 			}
 
 			int m = 0;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
-			chain_waiting.exec([&](const std::vector<int>& statuses)
+			sequence_waiting.exec([&](const std::vector<int>& statuses)
 			{
 				if (statuses.back() != status_t::SKIPPED)
 				{
@@ -235,7 +235,7 @@ int main(int argc, char** argv)
 				{
 					delay_tx_rx+=params.n_frames;
 					if (enable_logs)
-						std::clog << rang::tag::warning << "Chain aborted! (waiting phase, m = " << m << ")"
+						std::clog << rang::tag::warning << "Sequence aborted! (waiting phase, m = " << m << ")"
 						          << std::endl;
 				}
 
@@ -245,18 +245,18 @@ int main(int argc, char** argv)
 			// ========================================================================================================
 			// LEARNING PHASE 1 & 2 ===================================================================================
 			// ========================================================================================================
-			tools::Chain chain_learning_1_2((*source)[src::tsk::generate], (*pl_scrambler)[scr::tsk::descramble]);
+			tools::Sequence sequence_learning_1_2((*source)[src::tsk::generate], (*pl_scrambler)[scr::tsk::descramble]);
 
 			if (enable_logs && ebn0 == params.ebn0_min)
 			{
-				std::ofstream f("chain_learning_1_2.dot");
-				chain_learning_1_2.export_dot(f);
+				std::ofstream f("sequence_learning_1_2.dot");
+				sequence_learning_1_2.export_dot(f);
 			}
 
 			m = 0;
 			int limit = 150;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
-			chain_learning_1_2.exec([&](const std::vector<int>& statuses)
+			sequence_learning_1_2.exec([&](const std::vector<int>& statuses)
 			{
 				if (statuses.back() != status_t::SKIPPED)
 				{
@@ -267,7 +267,7 @@ int main(int argc, char** argv)
 				{
 					delay_tx_rx+=params.n_frames;
 					if (enable_logs)
-						std::clog << rang::tag::warning << "Chain aborted! (learning phase 1&2, m = " << m << ")"
+						std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")"
 						          << std::endl;
 				}
 
@@ -299,16 +299,16 @@ int main(int argc, char** argv)
 			(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
 			(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
 
-			tools::Chain chain_learning_3((*source)[src::tsk::generate], (*sync_fine_pf)[sff::tsk::synchronize]);
+			tools::Sequence sequence_learning_3((*source)[src::tsk::generate], (*sync_fine_pf)[sff::tsk::synchronize]);
 
 			if (enable_logs && ebn0 == params.ebn0_min)
 			{
-				std::ofstream f("chain_learning_3.dot");
-				chain_learning_3.export_dot(f);
+				std::ofstream f("sequence_learning_3.dot");
+				sequence_learning_3.export_dot(f);
 			}
 
 			limit = m + 200;
-			chain_learning_3.exec([&](const std::vector<int>& statuses)
+			sequence_learning_3.exec([&](const std::vector<int>& statuses)
 			{
 				if (statuses.back() != status_t::SKIPPED)
 				{
@@ -319,7 +319,7 @@ int main(int argc, char** argv)
 				{
 					delay_tx_rx+=params.n_frames;
 					if (enable_logs)
-						std::clog << rang::tag::warning << "Chain aborted! (learning phase 3, m = " << m << ")"
+						std::clog << rang::tag::warning << "Sequence aborted! (learning phase 3, m = " << m << ")"
 						          << std::endl;
 				}
 				return m >= limit;
@@ -334,15 +334,15 @@ int main(int argc, char** argv)
 		delay->set_delay(delay_tx_rx);
 		sync_timing->set_act(true);
 
-		tools::Chain chain_transmission((*source)[src::tsk::generate]);
+		tools::Sequence sequence_transmission((*source)[src::tsk::generate]);
 
 		if (enable_logs && ebn0 == params.ebn0_min)
 		{
-			std::ofstream f("chain_transmission.dot");
-			chain_transmission.export_dot(f);
+			std::ofstream f("sequence_transmission.dot");
+			sequence_transmission.export_dot(f);
 		}
 
-		chain_transmission.exec([&](const std::vector<int>& statuses)
+		sequence_transmission.exec([&](const std::vector<int>& statuses)
 		{
 			if (statuses.back() != status_t::SKIPPED)
 			{
@@ -350,7 +350,8 @@ int main(int argc, char** argv)
 				terminal.temp_report();
 			}
 			else if (enable_logs)
-				std::clog << rang::tag::warning << "Chain aborted! (Transmisison phase, m = " << m << ")" << std::endl;
+				std::clog << rang::tag::warning << "Sequence aborted! (Transmisison phase, m = " << m << ")"
+				                                << std::endl;
 
 			if (m < delay_tx_rx + params.n_frames) // first frame is delayed
 				monitor->reset();
@@ -369,7 +370,7 @@ int main(int argc, char** argv)
 		{
 			std::cout << "#" << std::endl;
 			const auto ordered = true;
-			tools::Stats::show(chain_transmission.get_tasks_per_types(), ordered);
+			tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
 
 			for (auto& m : modules)
 				for (auto& ta : m->tasks)

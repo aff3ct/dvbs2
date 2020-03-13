@@ -121,33 +121,33 @@ int main(int argc, char** argv)
 	(*fad_mlt       )[mlt::sck::imultiply ::X_N ].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
 	(*radio         )[rad::sck::send      ::X_N1].bind((*fad_mlt       )[mlt::sck::imultiply ::Z_N ]);
 
-	// create a chain per pipeline stage
-	tools::Chain chain_stage0         ((*source        )[src::tsk::generate], 1, thread_pinnig, { 4          });
-	tools::Chain chain_stage1_parallel(  adaptor_1_to_n [adp::tsk::pull_n  ], 4, thread_pinnig, { 0, 1, 2, 5 });
-	tools::Chain chain_stage2         (  adaptor_n_to_1 [adp::tsk::pull_1  ], 1, thread_pinnig, { 6          });
+	// create a sequence per pipeline stage
+	tools::Sequence sequence_stage0         ((*source        )[src::tsk::generate], 1, thread_pinnig, { 4          });
+	tools::Sequence sequence_stage1_parallel(  adaptor_1_to_n [adp::tsk::pull_n  ], 4, thread_pinnig, { 0, 1, 2, 5 });
+	tools::Sequence sequence_stage2         (  adaptor_n_to_1 [adp::tsk::pull_1  ], 1, thread_pinnig, { 6          });
 
-	std::vector<tools::Chain*> chain_stages = { &chain_stage0, &chain_stage1_parallel, &chain_stage2 };
+	std::vector<tools::Sequence*> sequence_stages = { &sequence_stage0, &sequence_stage1_parallel, &sequence_stage2 };
 
-	// dump the chains in dot format
-	for (size_t cs = 0; cs < chain_stages.size() && enable_logs; cs++)
+	// dump the sequences in dot format
+	for (size_t ss = 0; ss < sequence_stages.size() && enable_logs; ss++)
 	{
-		std::ofstream fs("chain_stage" + std::to_string(cs) + ".dot");
-		chain_stages[cs]->export_dot(fs);
+		std::ofstream fs("sequence_stage" + std::to_string(ss) + ".dot");
+		sequence_stages[ss]->export_dot(fs);
 	}
 
 	// function to wake up and stop all the threads
-	auto stop_threads = [&chain_stages]()
+	auto stop_threads = [&sequence_stages]()
 	{
-		for (auto &cs : chain_stages)
-			for (auto &m : cs->get_modules<tools::Interface_waiting>())
+		for (auto &ss : sequence_stages)
+			for (auto &m : ss->get_modules<tools::Interface_waiting>())
 				m->cancel_waiting();
 	};
 
 	// start the pipeline threads
 	std::vector<std::thread> threads;
-	for (auto &cs : chain_stages)
-		threads.push_back(std::thread([cs, &stop_threads]() {
-			cs->exec([]() { return tools::Terminal::is_interrupt(); } );
+	for (auto &ss : sequence_stages)
+		threads.push_back(std::thread([ss, &stop_threads]() {
+			ss->exec([]() { return tools::Terminal::is_interrupt(); } );
 			stop_threads();
 		}));
 
@@ -165,18 +165,18 @@ int main(int argc, char** argv)
 	(*shaping_filter)[flt::sck::filter    ::X_N1].bind((*pl_scrambler  )[scr::sck::scramble  ::X_N2]);
 	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
 
-	tools::Chain chain_sequential((*source)[src::tsk::generate]);
+	tools::Sequence sequence_sequential((*source)[src::tsk::generate]);
 	if (enable_logs)
 	{
-		std::ofstream f("chain_sequential.dot");
-		chain_sequential.export_dot(f);
+		std::ofstream f("sequence_sequential.dot");
+		sequence_sequential.export_dot(f);
 	}
 
-	// start the sequential chain
-	chain_sequential.exec([]() { return tools::Terminal::is_interrupt(); });
+	// start the sequential sequence
+	sequence_sequential.exec([]() { return tools::Terminal::is_interrupt(); });
 
 	// stop the radio thread
-	for (auto &m : chain_sequential.get_modules<tools::Interface_waiting>())
+	for (auto &m : sequence_sequential.get_modules<tools::Interface_waiting>())
 		m->cancel_waiting();
 #endif
 
@@ -188,16 +188,16 @@ int main(int argc, char** argv)
 
 		const auto ordered = true;
 #ifdef MULTI_THREADED
-		for (size_t cs = 0; cs < chain_stages.size(); cs++)
+		for (size_t ss = 0; ss < sequence_stages.size(); ss++)
 		{
-			std::cout << "#" << std::endl << "# Chain stage " << cs << " (" << chain_stages[cs]->get_n_threads()
+			std::cout << "#" << std::endl << "# Sequence stage " << ss << " (" << sequence_stages[ss]->get_n_threads()
 			                 << " thread(s)): " << std::endl;
-			tools::Stats::show(chain_stages[cs]->get_tasks_per_types(), ordered);
+			tools::Stats::show(sequence_stages[ss]->get_tasks_per_types(), ordered);
 		}
 #else
-		std::cout << "#" << std::endl << "# Chain sequential (" << chain_sequential.get_n_threads() << " thread(s)): "
-		          << std::endl;
-		tools::Stats::show(chain_sequential.get_tasks_per_types(), ordered);
+		std::cout << "#" << std::endl << "# Sequence sequential (" << sequence_sequential.get_n_threads()
+		          << " thread(s)): " << std::endl;
+		tools::Stats::show(sequence_sequential.get_tasks_per_types(), ordered);
 #endif
 	}
 
