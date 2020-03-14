@@ -3,10 +3,10 @@
 ## Machines installation
 
 - Ubuntu 16.04 Desktop and 18.04 Server have been tested
-- Needs Git and CMake:
+- Needs `Git`, `CMake` and `hwloc`:
 
 ```bash
-sudo apt install git cmake
+sudo apt install git cmake hwloc libhwloc-dev
 ```
 
 ### UHD Installation
@@ -95,30 +95,20 @@ git submodule update --init --recursive
 
 ### Linux/MacOS/MinGW
 
-Generate the Makefile and compile the code:
+Generate the Makefile and compile the DVB-S2 project:
 
 ```bash
 mkdir build
 cd build
-cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native"
-make
-```
-
-### Windows (Visual Studio project)
-
-Create the Visual Studio project and compile the code:
-
-```bash
-mkdir build
-cd build
-cmake .. -G"Visual Studio 15 2017 Win64" -DCMAKE_CXX_FLAGS="-D_SCL_SECURE_NO_WARNINGS /EHsc"
-devenv /build Release dvbs2.sln
+cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native" -DAFF3CT_LINK_HWLOC=ON
+make -j20
 ```
 
 ## Binaries
 
 The source code of this project is in the `src/` directory:
 - `src/mains/TX`: source code of the transmitter,
+- `src/mains/TX_VAR`: source code of the transmitter with variable SNRs,
 - `src/mains/RX`: source code of the receiver,
 - `src/mains/TX_RX`: source code of the Monte-Carlo simulation with the
 transmitter and the receiver,
@@ -130,6 +120,7 @@ with MATLAB,
 
 The compiled binaries are:
 - `build/bin/dvbs2_tx`: the transmitter,
+- `build/bin/dvbs2_tx_var`: the transmitter with variable SNRs,
 - `build/bin/dvbs2_rx`: the receiver,
 - `build/bin/dvbs2_rx_dump`: dumps the symbols received by the RX in the
 `dump.bin` file,
@@ -154,14 +145,14 @@ directory for `build/bin/dvbs2_tx_rx` and
 
 #### BER / FER
 
-Here are example command lines for TX and RX, considering `8PSK-S8_9`:
+Here are example command lines for RX and TX, considering `QPSK-S_8/9`:
 
 ```bash
-./bin/dvbs2_tx --rad-tx-rate 1.953125e6 --rad-tx-freq 2360e6 --rad-tx-gain 60 --src-type USER  --sim-stats --mod-cod QPSK-S_8/9
+./bin/dvbs2_rx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-rx-rate 30e6 --rad-rx-freq 2360e6 --rad-rx-gain 20 --src-fra 16 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9 --dec-implem NMS --dec-ite 10 --dec-simd INTER
 ```
 
 ```bash
-./bin/dvbs2_rx --rad-rx-rate 1.953125e6 --snk-path "dummy.ts" --rad-rx-freq 2360e6 --rad-rx-gain 60 --src-type USER --dec-implem MS --dec-ite 10 --sim-stats --frame-sync-fast --sim-threaded  --mod-cod QPSK-S_8/9
+./bin/dvbs2_tx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 --src-fra  8 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9
 ```
 
 #### Video Streaming
@@ -169,24 +160,23 @@ Here are example command lines for TX and RX, considering `8PSK-S8_9`:
 An convenient setup is to use a first computer for TX, a second computer for RX,
 and a third for displaying the video.
 
-- Convert a video to TS format (transport stream) using vlc for example
+- Convert a video to TS format (transport stream) using `VLC` for example
 - Stream that video from TX computer:
 
 ```bash
-./bin/dvbs2_tx --rad-tx-rate 1.953125e6 --rad-tx-freq 2360e6 --rad-tx-gain 60 --src-type USER_BIN --sim-stats --shp-osf 4 --mod-cod QPSK-S_8/9 --src-path airbus.ts
+./bin/dvbs2_tx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 --src-fra  8 --src-type USER_BIN --src-path /path/to/input/ts/video.ts --mod-cod QPSK-S_8/9
 ```
 
-- Create a fifo on RX computer `mkfifo stream.fifo`
+- Create a fifo on RX computer `mkfifo output_stream_fifo.ts`
 - Receive the video and write into this fifo
 
 ```bash
-./bin/dvbs2_rx --rad-rx-rate 1.953125e6 --snk-path "dump.bin" --rad-rx-freq 2360e6 --rad-rx-gain 40 --src-type USER --dec-implem MS --dec-ite 10 --mod-c
-od QPSK-S_8/9 --rad-rx-subdev-spec "A:0" --rad-threaded --snk-path stream.fifo
+./bin/dvbs2_rx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-rx-rate 30e6 --rad-rx-freq 2360e6 --rad-rx-gain 20 --src-fra 16 --mod-cod QPSK-S_8/9 --dec-implem NMS --dec-ite 10 --dec-simd INTER --snk-path output_stream_fifo.ts
 ```
 
 - On the third computer, connected by ssh to the RX computer, stream and display
 the video via ssh:
 
 ```bash
- ssh <rx ip address>  "cat /path/to/fifo/stream.fifo" | cvlc -
+ ssh <rx ip address>  "cat /path/to/fifo/output_stream_fifo.ts" | cvlc -
 ```
