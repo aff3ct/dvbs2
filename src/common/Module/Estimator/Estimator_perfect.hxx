@@ -1,13 +1,3 @@
-/*!
- * \file
- * \brief Generates a message.
- *
- * \section LICENSE
- * This file is under MIT license (https://opensource.org/licenses/MIT).
- */
-#ifndef ESTIMATOR_PERFECT_HXX
-#define ESTIMATOR_PERFECT_HXX
-
 #include "Tools/Exception/exception.hpp"
 
 #include "Module/Estimator/Estimator_perfect.hpp"
@@ -93,6 +83,7 @@ _estimate(const R *X_N, R *H_N, const int frame_id)
 		H_N[2*i+1] = 0.0;
 	}
 	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise_ref);
+	this->sigma_estimated = sigma->get_value();
 	this->ebn0_estimated = sigma->get_ebn0();
 	this->esn0_estimated = sigma->get_esn0();
 }
@@ -121,11 +112,10 @@ _rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
 		H_N[2*i+1] = 0.0;
 	}
 
+	this->sigma_estimated = sigma->get_value();
 	this->ebn0_estimated = sigma->get_ebn0();
 	this->esn0_estimated = sigma->get_esn0();
 }
 
 }
 }
-
-#endif

@@ -1,10 +1,3 @@
-/*!
- * \file
- * \brief Generates a message.
- *
- * \section LICENSE
- * This file is under MIT license (https://opensource.org/licenses/MIT).
- */
 #ifndef ESTIMATOR_HPP
 #define ESTIMATOR_HPP
 
@@ -25,8 +18,8 @@ namespace module
 
 		namespace sck
 		{
-			enum class estimate   : uint8_t { X_N, Eb_N0, Es_N0, H_N, status };
-			enum class rescale   : uint8_t  { X_N, Eb_N0, Es_N0, H_N, Y_N, status };
+			enum class estimate : uint8_t { X_N, SIG, Eb_N0, Es_N0, H_N, status };
+			enum class rescale  : uint8_t { X_N, SIG, Eb_N0, Es_N0, H_N, Y_N, status };
 		}
 	}
 
@@ -48,8 +41,9 @@ public:
 
 
 protected:
-	const int N;                 // Size of one frame (= number of datas in one frame)
+	const int N;           // Size of one frame (= number of datas in one frame)
 	tools::Noise<> *noise; // the estimated noise
+	R sigma_estimated;
 	R ebn0_estimated;
 	R esn0_estimated;
 public:
@@ -81,9 +75,14 @@ public:
 	 *
 	 */
 	template <class A = std::allocator<R>>
-	void estimate(const std::vector<R,A>& X_N, std::vector<R,A>& Eb_N0, std::vector<R,A>& Es_N0, std::vector<R,A>& H_N, const int frame_id = -1);
+	void estimate(const std::vector<R,A>& X_N,
+	                    std::vector<R,A>& SIG,
+	                    std::vector<R,A>& Eb_N0,
+	                    std::vector<R,A>& Es_N0,
+	                    std::vector<R,A>& H_N,
+	              const int frame_id = -1);
 
-	virtual void estimate(const R *X_N, R *Eb_N0, R *Es_N0, R *H_N, const int frame_id = -1);
+	virtual void estimate(const R *X_N, R *SIG, R *Eb_N0, R *Es_N0, R *H_N, const int frame_id = -1);
 
 
 	/*!
@@ -91,9 +90,15 @@ public:
 	 *
 	 */
 	template <class A = std::allocator<R>>
-	void rescale(const std::vector<R,A>& X_N, std::vector<R,A>& Eb_N0, std::vector<R,A>& Es_N0, std::vector<R,A>& H_N, std::vector<R,A>& Y_N, const int frame_id = -1);
+	void rescale(const std::vector<R,A>& X_N,
+	                   std::vector<R,A>& SIG,
+	                   std::vector<R,A>& Eb_N0,
+	                   std::vector<R,A>& Es_N0,
+	                   std::vector<R,A>& H_N,
+	                   std::vector<R,A>& Y_N,
+	             const int frame_id = -1);
 
-	virtual void rescale(const R *X_N, R *Eb_N0, R *Es_N0, R *H_N, R *Y_N, const int frame_id = -1);
+	virtual void rescale(const R *X_N, R *SIG, R *Eb_N0, R *Es_N0, R *H_N, R *Y_N, const int frame_id = -1);
 
 	void reset();
 

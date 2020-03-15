@@ -25,6 +25,7 @@ int main(int argc, char** argv)
 	uptr<Radio<>> radio(factory::DVBS2::build_radio<>(params));
 
 	tools::Dumper dumper;
+	dumper.set_write_headers(false);
 	dumper.register_data(static_cast<R*>((*radio)[rad::sck::receive::Y_N1].get_dataptr()),
 	                     2 * params.p_rad.N,
 	                     0,

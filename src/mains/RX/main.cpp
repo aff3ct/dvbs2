@@ -104,6 +104,10 @@ int main(int argc, char** argv)
 	uptr<Probe<int32_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int32_t>("BCH"));
 
 	tools::Reporter_probe rep_noise_stats("Signal Noise Ratio", "(SNR)", params.n_frames);
+	uptr<Probe<float>> prb_noise_sig(rep_noise_stats.create_probe_value<float>("SIGMA", "", 1,
+	                                                                           std::ios_base::dec |
+	                                                                           std::ios_base::fixed,
+	                                                                           4));
 	uptr<Probe<float>> prb_noise_es(rep_noise_stats.create_probe_value<float>("Es/N0", "(dB)", 1,
 	                                                                          std::ios_base::dec |
 	                                                                          std::ios_base::fixed));
@@ -187,6 +191,7 @@ int main(int argc, char** argv)
 	(*prb_frq_fin     )[prb::sck::probe        ::in  ].bind((*sync_fine_pf )[sff::sck::synchronize  ::FRQ   ]);
 	(*prb_noise_es    )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::Es_N0 ]);
 	(*prb_noise_eb    )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::Eb_N0 ]);
+	(*prb_noise_sig   )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::SIG   ]);
 	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::status]);
 	(*prb_decstat_bch )[prb::sck::probe        ::in  ].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::status]);
 	(*prb_thr_thr     )[prb::sck::probe        ::in  ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
@@ -241,7 +246,8 @@ int main(int argc, char** argv)
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 5
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
-	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_es)[prb::tsk::probe], &(*prb_noise_eb)[prb::tsk::probe] },
+	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_sig)[prb::tsk::probe], &(*prb_noise_es)[prb::tsk::probe],
+	      &(*prb_noise_eb)[prb::tsk::probe] },
 	    { &(*estimator)[est::tsk::rescale] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 6
