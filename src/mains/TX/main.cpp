@@ -26,7 +26,7 @@ int main(int argc, char** argv)
 		tools::Thread_pinning::init();
 		// tools::Thread_pinning::set_logs(enable_logs);
 	}
-#endif
+#endif /* MULTI_THREADED */
 
 	// install signal handlers
 	tools::Terminal::init();
@@ -58,100 +58,11 @@ int main(int argc, char** argv)
 
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 
-#ifdef MULTI_THREADED
-	// create the adaptors to manage the pipeline in multi-threaded mode
-	Adaptor_1_to_n adaptor_1_to_n(params.K_bch,
-	                              typeid(int),
-	                              1,
-	                              active_waiting,
-	                              params.n_frames);
-	Adaptor_n_to_1 adaptor_n_to_1(2 * params.pl_frame_size,
-	                              typeid(float),
-	                              1,
-	                              active_waiting,
-	                              params.n_frames);
-#endif
-
 	// add custom name to some modules
 	BCH_encoder   ->set_custom_name("Encoder BCH" );
 	LDPC_encoder  ->set_custom_name("Encoder LDPC");
-#ifdef MULTI_THREADED
-	adaptor_1_to_n. set_custom_name("Adp_1_to_n"  );
-	adaptor_n_to_1. set_custom_name("Adp_n_to_1"  );
-#endif
 
-	// the list of the allocated modules for the simulation
-	std::vector<const Module*> modules;
-	modules = { /* standard modules */
-	            radio.get(), source.get(), bb_scrambler.get(), BCH_encoder .get(), LDPC_encoder,
-	            itl  .get(), modem .get(), framer      .get(), pl_scrambler.get(), shaping_filter.get(),
-#ifdef MULTI_THREADED
-	            /* adaptors */
-	            &adaptor_1_to_n, &adaptor_n_to_1
-#endif
-	          };
-
-	// configuration of the module tasks
-	for (auto& m : modules)
-		for (auto& ta : m->tasks)
-		{
-			ta->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
-			ta->set_debug          (params.debug      ); // disable the debug mode
-			ta->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
-			ta->set_debug_precision(8                 );
-			ta->set_stats          (params.stats      ); // enable the statistics
-
-			if (!ta->is_debug() && !ta->is_stats())
-				ta->set_fast(true);
-		}
-
-#ifdef MULTI_THREADED
-	  adaptor_1_to_n [adp::sck::push_1    ::in1 ].bind((*source        )[src::sck::generate  ::U_K ]);
-	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind(  adaptor_1_to_n [adp::sck::pull_n    ::out1]);
-	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble  ::X_N2]);
-	(*LDPC_encoder  )[enc::sck::encode    ::U_K ].bind((*BCH_encoder   )[enc::sck::encode    ::X_N ]);
-	(*itl           )[itl::sck::interleave::nat ].bind((*LDPC_encoder  )[enc::sck::encode    ::X_N ]);
-	(*modem         )[mdm::sck::modulate  ::X_N1].bind((*itl           )[itl::sck::interleave::itl ]);
-	(*framer        )[frm::sck::generate  ::Y_N1].bind((*modem         )[mdm::sck::modulate  ::X_N2]);
-	(*pl_scrambler  )[scr::sck::scramble  ::X_N1].bind((*framer        )[frm::sck::generate  ::Y_N2]);
-	  adaptor_n_to_1 [adp::sck::push_n    ::in1 ].bind((*pl_scrambler  )[scr::sck::scramble  ::X_N2]);
-	(*shaping_filter)[flt::sck::filter    ::X_N1].bind(  adaptor_n_to_1 [adp::sck::pull_1    ::out1]);
-	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
-
-	// create a sequence per pipeline stage
-	tools::Sequence sequence_stage0         ((*source        )[src::tsk::generate], 1, thread_pinnig, { 4                });
-	tools::Sequence sequence_stage1_parallel(  adaptor_1_to_n [adp::tsk::pull_n  ], 6, thread_pinnig, { 0, 1, 2, 5, 7, 8 });
-	tools::Sequence sequence_stage2         (  adaptor_n_to_1 [adp::tsk::pull_1  ], 1, thread_pinnig, { 6                });
-
-	std::vector<tools::Sequence*> sequence_stages = { &sequence_stage0, &sequence_stage1_parallel, &sequence_stage2 };
-
-	// dump the sequences in dot format
-	for (size_t ss = 0; ss < sequence_stages.size() && enable_logs; ss++)
-	{
-		std::ofstream fs("sequence_stage" + std::to_string(ss) + ".dot");
-		sequence_stages[ss]->export_dot(fs);
-	}
-
-	// function to wake up and stop all the threads
-	auto stop_threads = [&sequence_stages]()
-	{
-		for (auto &ss : sequence_stages)
-			for (auto &m : ss->get_modules<tools::Interface_waiting>())
-				m->cancel_waiting();
-	};
-
-	// start the pipeline threads
-	std::vector<std::thread> threads;
-	for (auto &ss : sequence_stages)
-		threads.push_back(std::thread([ss, &stop_threads]() {
-			ss->exec([]() { return tools::Terminal::is_interrupt(); } );
-			stop_threads();
-		}));
-
-	// wait all the pipeline threads here
-	for (auto &t : threads)
-		t.join();
-#else
+	// the full transmission chain binding
 	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*source        )[src::sck::generate  ::U_K ]);
 	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble  ::X_N2]);
 	(*LDPC_encoder  )[enc::sck::encode    ::U_K ].bind((*BCH_encoder   )[enc::sck::encode    ::X_N ]);
@@ -162,46 +73,102 @@ int main(int argc, char** argv)
 	(*shaping_filter)[flt::sck::filter    ::X_N1].bind((*pl_scrambler  )[scr::sck::scramble  ::X_N2]);
 	(*radio         )[rad::sck::send      ::X_N1].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
 
-	tools::Sequence sequence_sequential((*source)[src::tsk::generate]);
+	// first stages of the whole transmission sequence
+	const std::vector<module::Task*> firsts_t = { &(*source)[src::tsk::generate] };
+
+#ifdef MULTI_THREADED
+	// pipeline definition with separation stages
+	const std::vector<std::pair<std::vector<module::Task*>, std::vector<module::Task*>>> sep_stages =
+	{ // pipeline stage 0
+	  std::make_pair<std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*source)[src::tsk::generate] },
+	    { &(*source)[src::tsk::generate] }),
+	  // pipeline stage 1
+	  std::make_pair<std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*bb_scrambler)[scr::tsk::scramble] },
+	    { &(*pl_scrambler)[scr::tsk::scramble] }),
+	  // pipeline stage 2
+	  std::make_pair<std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*shaping_filter)[flt::tsk::filter] },
+	    { }),
+	};
+	// number of threads per stages
+	const std::vector<size_t> n_threads_per_stages = { 1, 6, 1 };
+	// synchronization buffer size between stages
+	const std::vector<size_t> buffer_sizes(sep_stages.size() -1, 1);
+	// type of waiting between stages (true = active, false = passive)
+	const std::vector<bool> active_waitings(sep_stages.size() -1, active_waiting);
+	// enable thread pinning
+	const std::vector<bool> thread_pinnigs(sep_stages.size(), thread_pinnig);
+	// process unit (pu) ids per stage for thread pinning
+	const std::vector<std::vector<size_t>> puids = { { 4 },                // for stage 0
+	                                                 { 0, 1, 2, 5, 7, 8 }, // for stage 1
+	                                                 { 6 } };              // for stage 2
+
+	tools::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
+	                                      thread_pinnigs, puids);
 	if (enable_logs)
 	{
-		std::ofstream f("sequence_sequential.dot");
-		sequence_sequential.export_dot(f);
+		std::ofstream f("tx_pipeline_transmission.dot");
+		pipeline_transmission.export_dot(f);
+	}
+	auto tasks_per_types = pipeline_transmission.get_tasks_per_types();
+#else
+	tools::Sequence sequence_transmission(firsts_t);
+	if (enable_logs)
+	{
+		std::ofstream f("tx_sequence_transmission.dot");
+		sequence_transmission.export_dot(f);
+	}
+	auto tasks_per_types = sequence_transmission.get_tasks_per_types();
+#endif /* MULTI_THREADED */
+
+	// configuration of the sequence tasks
+	for (auto& type : tasks_per_types) for (auto& tsk : type)
+	{
+		tsk->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
+		tsk->set_debug          (params.debug      ); // disable the debug mode
+		tsk->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
+		tsk->set_debug_precision(8                 );
+		tsk->set_stats          (params.stats      ); // enable the statistics
+
+		// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
+		if (!tsk->is_debug() && !tsk->is_stats())
+			tsk->set_fast(true);
 	}
 
-	// start the sequential sequence
-	sequence_sequential.exec([]() { return tools::Terminal::is_interrupt(); });
-
+#ifdef MULTI_THREADED
+	pipeline_transmission.exec([]() { return tools::Terminal::is_interrupt(); });
+	// no need to stop the radio thread here, it is automatically done by the pipeline
+#else
+	sequence_transmission.exec([]() { return tools::Terminal::is_interrupt(); });
 	// stop the radio thread
-	for (auto &m : sequence_sequential.get_modules<tools::Interface_waiting>())
+	for (auto &m : sequence_transmission.get_modules<tools::Interface_waiting>())
 		m->cancel_waiting();
-#endif
+#endif /* MULTI_THREADED */
 
 	if (params.stats)
 	{
-		std::vector<const Module*> modules_stats(modules.size());
-		for (size_t m = 0; m < modules.size(); m++)
-			modules_stats.push_back(modules[m]);
-
 		const auto ordered = true;
 #ifdef MULTI_THREADED
-		for (size_t ss = 0; ss < sequence_stages.size(); ss++)
+		auto stages = pipeline_transmission.get_stages();
+		for (size_t ss = 0; ss < stages.size(); ss++)
 		{
-			std::cout << "#" << std::endl << "# Sequence stage " << ss << " (" << sequence_stages[ss]->get_n_threads()
-			                 << " thread(s)): " << std::endl;
-			tools::Stats::show(sequence_stages[ss]->get_tasks_per_types(), ordered);
+			std::cout << "#" << std::endl << "# Sequence stage " << ss << " (" << stages[ss]->get_n_threads()
+			          << " thread(s)): " << std::endl;
+			tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered);
 		}
 #else
-		std::cout << "#" << std::endl << "# Sequence sequential (" << sequence_sequential.get_n_threads()
+		std::cout << "#" << std::endl << "# Sequence sequential (" << sequence_transmission.get_n_threads()
 		          << " thread(s)): " << std::endl;
-		tools::Stats::show(sequence_sequential.get_tasks_per_types(), ordered);
-#endif
+		tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
+#endif /* MULTI_THREADED */
 	}
 
 #ifdef MULTI_THREADED
 	if (thread_pinnig)
 		tools::Thread_pinning::destroy();
-#endif
+#endif /* MULTI_THREADED */
 
 	return EXIT_SUCCESS;
 }

@@ -290,7 +290,7 @@ int main(int argc, char** argv)
 
 	if (enable_logs)
 	{
-		std::ofstream f("pipeline_transmission.dot");
+		std::ofstream f("rx_pipeline_transmission.dot");
 		pipeline_transmission.export_dot(f);
 	}
 
@@ -306,7 +306,7 @@ int main(int argc, char** argv)
 	tools::Sequence sequence_transmission(firsts_t);
 	if (enable_logs)
 	{
-		std::ofstream f("sequence_transmission.dot");
+		std::ofstream f("rx_sequence_transmission.dot");
 		sequence_transmission.export_dot(f);
 	}
 	auto tasks_per_types = sequence_transmission.get_tasks_per_types();
@@ -367,7 +367,7 @@ int main(int argc, char** argv)
 
 	if (enable_logs)
 	{
-		std::ofstream fs1("sequence_waiting_and_learning_1_2.dot");
+		std::ofstream fs1("rx_sequence_waiting_and_learning_1_2.dot");
 		sequence_waiting_and_learning_1_2.export_dot(fs1);
 	}
 
@@ -489,7 +489,7 @@ int main(int argc, char** argv)
 
 	if (enable_logs)
 	{
-		std::ofstream fs2("sequence_learning_3.dot");
+		std::ofstream fs2("rx_sequence_learning_3.dot");
 		sequence_learning_3.export_dot(fs2);
 	}
 
