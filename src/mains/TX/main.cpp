@@ -1,7 +1,10 @@
+#include <fstream>
 #include <aff3ct.hpp>
 
-#include "version.h"
 #include "Factory/DVBS2/DVBS2.hpp"
+#ifdef DVBS2_LINK_UHD
+#include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
+#endif
 
 using namespace aff3ct;
 using namespace aff3ct::module;
@@ -59,8 +62,8 @@ int main(int argc, char** argv)
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 
 	// add custom name to some modules
-	BCH_encoder   ->set_custom_name("Encoder BCH" );
-	LDPC_encoder  ->set_custom_name("Encoder LDPC");
+	BCH_encoder ->set_custom_name("Encoder BCH" );
+	LDPC_encoder->set_custom_name("Encoder LDPC");
 
 	// the full transmission chain binding
 	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*source        )[src::sck::generate  ::U_K ]);
@@ -146,6 +149,13 @@ int main(int argc, char** argv)
 	for (auto &m : sequence_transmission.get_modules<tools::Interface_waiting>())
 		m->cancel_waiting();
 #endif /* MULTI_THREADED */
+
+#ifdef DVBS2_LINK_UHD
+	// stop the radio thread
+	auto radio_usrp = reinterpret_cast<Radio_USRP<>*>(radio.get());
+	if (radio_usrp != nullptr)
+		radio_usrp->cancel_waiting();
+#endif
 
 	if (params.stats)
 	{

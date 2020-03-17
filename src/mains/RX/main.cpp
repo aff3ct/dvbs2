@@ -579,7 +579,6 @@ int main(int argc, char** argv)
 			terminal_stats.temp_report(stats_file);
 			return tools::Terminal::is_interrupt();
 		}});
-	// no need to stop the radio thread here, it is automatically done by the pipeline
 #else
 	// start the transmission sequence
 	sequence_transmission.exec([&prb_fra_id, &terminal_stats, &stats_file]
@@ -592,11 +591,13 @@ int main(int argc, char** argv)
 				          << prb_fra_id->get_occurrences() << ")" << std::endl;
 			return tools::Terminal::is_interrupt();
 		});
-
-	// stop the radio thread
-	for (auto &m : sequence_transmission.get_modules<tools::Interface_waiting>())
-		m->cancel_waiting();
 #endif /* MULTI_THREADED */
+
+#ifdef DVBS2_LINK_UHD
+	// stop the radio thread
+	if (radio_usrp != nullptr)
+		radio_usrp->cancel_waiting();
+#endif
 
 	// display the performance (BER and FER) in the terminals
 	terminal      .final_report(          );
