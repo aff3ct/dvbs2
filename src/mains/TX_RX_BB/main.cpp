@@ -58,28 +58,11 @@ int main(int argc, char** argv)
 	estimator->set_noise(noise_est );
 	modem    ->set_noise(noise_fake);
 
+	// add custom name to some modules
 	LDPC_encoder->set_custom_name("LDPC Encoder");
 	LDPC_decoder->set_custom_name("LDPC Decoder");
 	BCH_encoder ->set_custom_name("BCH Encoder" );
 	BCH_decoder ->set_custom_name("BCH Decoder" );
-
-	// fulfill the list of modules
-	std::vector<const Module*> modules;
-	modules = { bb_scrambler.get(), BCH_encoder.get(), BCH_decoder.get(), LDPC_encoder      , LDPC_decoder      ,
-	            itl_tx      .get(), itl_rx     .get(), modem      .get(), framer      .get(), pl_scrambler.get(),
-	            source      .get(), monitor    .get(), channel    .get(), estimator   .get()                      };
-
-	// configuration of the module tasks
-	for (auto& m : modules) for (auto& ta : m->tasks)
-	{
-		ta->set_autoalloc  (true              ); // enable the automatic allocation of the data in the tasks
-		ta->set_debug      (params.debug      ); // disable the debug mode
-		ta->set_debug_limit(params.debug_limit); // display only the 16 first bits if the debug mode is enabled
-		ta->set_stats      (params.stats      ); // enable the statistics
-
-		if (!ta->is_debug() && !ta->is_stats())
-			ta->set_fast(true);
-	}
 
 	// socket binding
 	(*bb_scrambler)[scr::sck::scramble     ::X_N1].bind((*source      )[src::sck::generate     ::U_K ]);
@@ -108,6 +91,20 @@ int main(int argc, char** argv)
 	{
 		std::ofstream f("sequence.dot");
 		sequence.export_dot(f);
+	}
+
+	// configuration of the sequence tasks
+	for (auto& type : sequence.get_tasks_per_types()) for (auto& tsk : type)
+	{
+		tsk->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
+		tsk->set_debug          (params.debug      ); // disable the debug mode
+		tsk->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
+		tsk->set_debug_precision(8                 );
+		tsk->set_stats          (params.stats      ); // enable the statistics
+
+		// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
+		if (!tsk->is_debug() && !tsk->is_stats())
+			tsk->set_fast(true);
 	}
 
 	// registering to noise updates
