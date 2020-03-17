@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 	uptr<Modem<>                    > modem        (factory::DVBS2::build_modem                   <>(params, cstl.get()));
 	uptr<Multiplier_sine_ccc_naive<>> freq_shift   (factory::DVBS2::build_freq_shift              <>(params            ));
 	uptr<Synchronizer_frame<>       > sync_frame   (factory::DVBS2::build_synchronizer_frame      <>(params            ));
-	uptr<Synchronizer_freq_fine<>   > sync_lr      (factory::DVBS2::build_synchronizer_lr         <>(params            ));
+	uptr<Synchronizer_freq_fine<>   > sync_fine_lr (factory::DVBS2::build_synchronizer_lr         <>(params            ));
 	uptr<Synchronizer_freq_fine<>   > sync_fine_pf (factory::DVBS2::build_synchronizer_freq_phase <>(params            ));
 	uptr<Framer<>                   > framer       (factory::DVBS2::build_framer                  <>(params            ));
 	uptr<Scrambler<float>           > pl_scrambler (factory::DVBS2::build_pl_scrambler            <>(params            ));
@@ -137,7 +137,7 @@ int main(int argc, char** argv)
 	// add custom name to some modules
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
 	BCH_decoder  ->set_custom_name("BCH Decoder" );
-	sync_lr      ->set_custom_name("L&R F Syn"   );
+	sync_fine_lr ->set_custom_name("L&R F Syn"   );
 	sync_fine_pf ->set_custom_name("Fine P/F Syn");
 	sync_timing  ->set_custom_name("Gardner Syn" );
 	sync_frame   ->set_custom_name("Frame Syn"   );
@@ -164,8 +164,8 @@ int main(int argc, char** argv)
 	(*mult_agc        )[mlt::sck::imultiply    ::X_N ].bind((*sync_timing  )[stm::sck::extract      ::Y_N2  ]);
 	(*sync_frame      )[sfm::sck::synchronize  ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply    ::Z_N   ]);
 	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize  ::Y_N2  ]);
-	(*sync_lr         )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler )[scr::sck::descramble   ::Y_N2  ]);
-	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1].bind((*sync_lr      )[sff::sck::synchronize  ::Y_N2  ]);
+	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler )[scr::sck::descramble   ::Y_N2  ]);
+	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr )[sff::sck::synchronize  ::Y_N2  ]);
 	(*framer          )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf )[sff::sck::synchronize  ::Y_N2  ]);
 	(*estimator       )[est::sck::rescale      ::X_N ].bind((*framer       )[frm::sck::remove_plh   ::Y_N2  ]);
 	(*modem           )[mdm::sck::demodulate_wg::H_N ].bind((*estimator    )[est::sck::rescale      ::H_N   ]);
@@ -187,7 +187,7 @@ int main(int argc, char** argv)
 	(*prb_sfm_del     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::DEL   ]);
 	(*prb_sfm_tri     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::TRI   ]);
 	(*prb_sfm_flg     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::FLG   ]);
-	(*prb_frq_lr      )[prb::sck::probe        ::in  ].bind((*sync_lr      )[sff::sck::synchronize  ::FRQ   ]);
+	(*prb_frq_lr      )[prb::sck::probe        ::in  ].bind((*sync_fine_lr )[sff::sck::synchronize  ::FRQ   ]);
 	(*prb_frq_fin     )[prb::sck::probe        ::in  ].bind((*sync_fine_pf )[sff::sck::synchronize  ::FRQ   ]);
 	(*prb_noise_es    )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::Es_N0 ]);
 	(*prb_noise_eb    )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::Eb_N0 ]);
@@ -481,7 +481,7 @@ int main(int argc, char** argv)
 
 	std::vector<Task*> firsts_l3 = { &(*radio       )[rad::tsk::receive], &(*prb_thr_lat )[prb::tsk::probe],
 	                                 &(*prb_thr_time)[prb::tsk::probe  ], &(*prb_thr_tsta)[prb::tsk::probe],
-	                                 &(*prb_fra_id  )[prb::tsk::probe  ] };
+	                                 &(*prb_fra_id  )[prb::tsk::probe  ], &(*prb_frq_fin )[prb::tsk::probe] };
 
 	std::vector<Task*> lasts_l3 = { &(*sync_fine_pf)[sff::tsk::synchronize] };
 

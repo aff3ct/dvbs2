@@ -85,16 +85,16 @@ int main(int argc, char** argv)
 	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
-	tools::Sequence sequence((*source)[src::tsk::generate], std::thread::hardware_concurrency());
+	tools::Sequence sequence_transmission((*source)[src::tsk::generate], std::thread::hardware_concurrency());
 
 	if (enable_logs)
 	{
-		std::ofstream f("sequence.dot");
-		sequence.export_dot(f);
+		std::ofstream f("tx_rx_bb_sequence_transmission.dot");
+		sequence_transmission.export_dot(f);
 	}
 
 	// configuration of the sequence tasks
-	for (auto& type : sequence.get_tasks_per_types()) for (auto& tsk : type)
+	for (auto& type : sequence_transmission.get_tasks_per_types()) for (auto& tsk : type)
 	{
 		tsk->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
 		tsk->set_debug          (params.debug      ); // disable the debug mode
@@ -108,16 +108,16 @@ int main(int argc, char** argv)
 	}
 
 	// registering to noise updates
-	for (auto &m : sequence.get_modules<Channel<>>())
+	for (auto &m : sequence_transmission.get_modules<Channel<>>())
 		noise_ref.record_callback_update([m](){ m->notify_noise_update(); });
 
 	// set different seeds in the modules that uses PRNG
 	std::mt19937 prng;
-	for (auto &m : sequence.get_modules<tools::Interface_set_seed>())
+	for (auto &m : sequence_transmission.get_modules<tools::Interface_set_seed>())
 		m->set_seed(prng());
 
 	// allocate a common monitor module to reduce all the monitors
-	Monitor_BFER_reduction monitor_red(sequence.get_modules<Monitor_BFER<>>());
+	Monitor_BFER_reduction monitor_red(sequence_transmission.get_modules<Monitor_BFER<>>());
 	monitor_red.set_reduce_frequency(std::chrono::milliseconds(500));
 	monitor_red.check_reducible();
 
@@ -149,7 +149,9 @@ int main(int argc, char** argv)
 			terminal.start_temp_report(params.ter_freq);
 
 		// execute the simulation sequence
-		sequence.exec([&monitor_red]() { return monitor_red.is_done_all() || tools::Terminal::is_interrupt(); });
+		sequence_transmission.exec([&monitor_red]() {
+			return monitor_red.is_done_all() || tools::Terminal::is_interrupt();
+		});
 
 		// final reduction
 		const bool fully = true;
@@ -167,9 +169,9 @@ int main(int argc, char** argv)
 		{
 			std::cout << "#" << std::endl;
 			const auto ordered = true;
-			tools::Stats::show(sequence.get_tasks_per_types(), ordered);
+			tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
 
-			for (auto &tt : sequence.get_tasks_per_types())
+			for (auto &tt : sequence_transmission.get_tasks_per_types())
 				for (auto &t : tt)
 					t->reset();
 

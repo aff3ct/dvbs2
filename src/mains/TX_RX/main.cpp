@@ -43,6 +43,7 @@ int main(int argc, char** argv)
 
 	// construct modules
 	uptr<Source<>                    > source       (factory::DVBS2::build_source                   <>(params             ));
+	uptr<Sink<>                      > sink         (factory::DVBS2::build_sink                     <>(params             ));
 	uptr<Channel<>                   > channel      (factory::DVBS2::build_channel                  <>(params, gen        ));
 	uptr<Scrambler<>                 > bb_scrambler (factory::DVBS2::build_bb_scrambler             <>(params             ));
 	uptr<Encoder<>                   > BCH_encoder  (factory::DVBS2::build_bch_encoder              <>(params, poly_gen   ));
@@ -76,6 +77,71 @@ int main(int argc, char** argv)
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
+	// create reporters and probes for the statistics file
+	tools::Reporter_probe rep_fra_stats("Frame Counter", params.n_frames);
+	uptr<Probe_occurrence<int32_t>> prb_fra_id(rep_fra_stats.create_probe_occurrence<int32_t>("ID"));
+
+	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
+	uptr<Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL"));
+	uptr<Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG"));
+	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 1,
+	                                                                           std::ios_base::dec |
+	                                                                           std::ios_base::fixed));
+
+	tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm", params.n_frames);
+	uptr<Probe<int32_t>> prb_stm_uff(rep_stm_stats.create_probe_value<int32_t>("UFW", "FLAG"));
+	uptr<Probe<float  >> prb_stm_del(rep_stm_stats.create_probe_value<float  >("DEL", "FRAC"));
+
+	tools::Reporter_probe rep_frq_stats("Frequency Synchronization", params.n_frames);
+	uptr<Probe<float>> prb_frq_coa(rep_frq_stats.create_probe_value<float>("COA", "CFO"));
+	uptr<Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO"));
+	uptr<Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO"));
+
+	tools::Reporter_probe_decstat rep_decstat_stats("Decoders Decoding Status", "('0' = success, '1' = fail)",
+	                                                params.n_frames);
+	uptr<Probe<int32_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int32_t>("LDPC"));
+	uptr<Probe<int32_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int32_t>("BCH"));
+
+	tools::Reporter_probe rep_noise_rea_stats("Signal Noise Ratio", "Real (SNR)", params.n_frames);
+	uptr<Probe<float>> prb_noise_rsig(rep_noise_rea_stats.create_probe_value<float>("SIGMA", "", 1,
+	                                                                                std::ios_base::dec |
+	                                                                                std::ios_base::fixed,
+	                                                                                4));
+	uptr<Probe<float>> prb_noise_res(rep_noise_rea_stats.create_probe_value<float>("Es/N0", "(dB)", 1,
+	                                                                               std::ios_base::dec |
+	                                                                               std::ios_base::fixed));
+	uptr<Probe<float>> prb_noise_reb(rep_noise_rea_stats.create_probe_value<float>("Eb/N0", "(dB)", 1,
+	                                                                               std::ios_base::dec |
+	                                                                               std::ios_base::fixed));
+
+	tools::Reporter_probe rep_noise_est_stats("Signal Noise Ratio", "Estimated (SNR)", params.n_frames);
+	uptr<Probe<float>> prb_noise_esig(rep_noise_est_stats.create_probe_value<float>("SIGMA", "", 1,
+	                                                                                std::ios_base::dec |
+	                                                                                std::ios_base::fixed,
+	                                                                                4));
+	uptr<Probe<float>> prb_noise_ees(rep_noise_est_stats.create_probe_value<float>("Es/N0", "(dB)", 1,
+	                                                                               std::ios_base::dec |
+	                                                                               std::ios_base::fixed));
+	uptr<Probe<float>> prb_noise_eeb(rep_noise_est_stats.create_probe_value<float>("Eb/N0", "(dB)", 1,
+	                                                                               std::ios_base::dec |
+	                                                                               std::ios_base::fixed));
+
+	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER)", "and Frame Error Rate (FER)", params.n_frames);
+	uptr<Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE"));
+	uptr<Probe<int32_t>> prb_bfer_fe (rep_BFER_stats.create_probe_value<int32_t>("FE"));
+	uptr<Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe_value<float  >("BER"));
+	uptr<Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe_value<float  >("FER"));
+
+	tools::Reporter_probe rep_thr_stats("Throughput", "and elapsed time", params.n_frames);
+	uptr<Probe<int32_t>> prb_thr_thr (rep_thr_stats.create_probe_throughput<int32_t>("THR", params.K_bch));
+	uptr<Probe<int32_t>> prb_thr_lat (rep_thr_stats.create_probe_latency   <int32_t>("LAT"));
+	uptr<Probe<int32_t>> prb_thr_time(rep_thr_stats.create_probe_time      <int32_t>("TIME"));
+	uptr<Probe<int32_t>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp <int32_t>("TSTA"));
+
+	tools::Terminal_dump terminal_stats({ &rep_fra_stats,       &rep_sfm_stats,     &rep_stm_stats,
+	                                      &rep_frq_stats,       &rep_decstat_stats, &rep_noise_rea_stats,
+	                                      &rep_noise_est_stats, &rep_BFER_stats,    &rep_thr_stats });
+
 	// manage noise
 	estimator->set_noise(noise_est );
 	modem    ->set_noise(noise_fake);
@@ -101,6 +167,79 @@ int main(int argc, char** argv)
 	chn_int_del  ->set_custom_name("Chn int del ");
 	chn_frac_del ->set_custom_name("Chn frac del");
 
+	// socket binding of the full transmission sequence
+	// delay line for BER/FER
+	(*delay           )[flt::sck::filter       ::X_N1].bind((*source       )[src::sck::generate     ::U_K   ]);
+	// TX
+	(*bb_scrambler    )[scr::sck::scramble     ::X_N1].bind((*source       )[src::sck::generate     ::U_K   ]);
+	(*BCH_encoder     )[enc::sck::encode       ::U_K ].bind((*bb_scrambler )[scr::sck::scramble     ::X_N2  ]);
+	(*LDPC_encoder    )[enc::sck::encode       ::U_K ].bind((*BCH_encoder  )[enc::sck::encode       ::X_N   ]);
+	(*itl_tx          )[itl::sck::interleave   ::nat ].bind((*LDPC_encoder )[enc::sck::encode       ::X_N   ]);
+	(*modem           )[mdm::sck::modulate     ::X_N1].bind((*itl_tx       )[itl::sck::interleave   ::itl   ]);
+	(*framer          )[frm::sck::generate     ::Y_N1].bind((*modem        )[mdm::sck::modulate     ::X_N2  ]);
+	(*pl_scrambler    )[scr::sck::scramble     ::X_N1].bind((*framer       )[frm::sck::generate     ::Y_N2  ]);
+	(*shaping_flt     )[flt::sck::filter       ::X_N1].bind((*pl_scrambler )[scr::sck::scramble     ::X_N2  ]);
+	// Channel
+	(*fad_mlt         )[mlt::sck::imultiply    ::X_N ].bind((*shaping_flt  )[flt::sck::filter       ::Y_N2  ]);
+	(*chn_frm_del     )[flt::sck::filter       ::X_N1].bind((*fad_mlt      )[mlt::sck::imultiply    ::Z_N   ]);
+	(*chn_int_del     )[flt::sck::filter       ::X_N1].bind((*chn_frm_del  )[flt::sck::filter       ::Y_N2  ]);
+	(*chn_frac_del    )[flt::sck::filter       ::X_N1].bind((*chn_int_del  )[flt::sck::filter       ::Y_N2  ]);
+	(*freq_shift      )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del )[flt::sck::filter       ::Y_N2  ]);
+	(*channel         )[chn::sck::add_noise    ::X_N ].bind((*freq_shift   )[mlt::sck::imultiply    ::Z_N   ]);
+	// RX
+	(*sync_coarse_f   )[sfc::sck::synchronize  ::X_N1].bind((*channel      )[chn::sck::add_noise    ::Y_N   ]);
+	(*matched_flt     )[flt::sck::filter       ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize  ::Y_N2  ]);
+	(*sync_timing     )[stm::sck::synchronize  ::X_N1].bind((*matched_flt  )[flt::sck::filter       ::Y_N2  ]);
+	(*sync_timing     )[stm::sck::extract      ::B_N1].bind((*sync_timing  )[stm::sck::synchronize  ::B_N1  ]);
+	(*sync_timing     )[stm::sck::extract      ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize  ::Y_N1  ]);
+	(*mult_agc        )[mlt::sck::imultiply    ::X_N ].bind((*sync_timing  )[stm::sck::extract      ::Y_N2  ]);
+	(*sync_frame      )[sfm::sck::synchronize  ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply    ::Z_N   ]);
+	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize  ::Y_N2  ]);
+	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler )[scr::sck::descramble   ::Y_N2  ]);
+	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr )[sff::sck::synchronize  ::Y_N2  ]);
+	(*framer          )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf )[sff::sck::synchronize  ::Y_N2  ]);
+	(*estimator       )[est::sck::rescale      ::X_N ].bind((*framer       )[frm::sck::remove_plh   ::Y_N2  ]);
+	(*modem           )[mdm::sck::demodulate_wg::H_N ].bind((*estimator    )[est::sck::rescale      ::H_N   ]);
+	(*modem           )[mdm::sck::demodulate_wg::Y_N1].bind((*estimator    )[est::sck::rescale      ::Y_N   ]);
+	(*itl_rx          )[itl::sck::deinterleave ::itl ].bind((*modem        )[mdm::sck::demodulate_wg::Y_N2  ]);
+	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx       )[itl::sck::deinterleave ::nat   ]);
+	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::V_K   ]);
+	(*bb_scrambler    )[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::V_K   ]);
+	(*monitor         )[mnt::sck::check_errors2::U   ].bind((*delay        )[flt::sck::filter       ::Y_N2  ]);
+	(*monitor         )[mnt::sck::check_errors2::V   ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
+	(*sink            )[snk::sck::send         ::V   ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
+	// bind the RX probes
+	(*prb_frq_coa     )[prb::sck::probe        ::in  ].bind((*sync_coarse_f)[sfc::sck::synchronize  ::FRQ   ]);
+	(*prb_stm_del     )[prb::sck::probe        ::in  ].bind((*sync_timing  )[stm::sck::synchronize  ::MU    ]);
+	(*prb_stm_uff     )[prb::sck::probe        ::in  ].bind((*sync_timing  )[stm::sck::extract      ::UFW   ]);
+	(*prb_sfm_del     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::DEL   ]);
+	(*prb_sfm_tri     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::TRI   ]);
+	(*prb_sfm_flg     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::FLG   ]);
+	(*prb_frq_lr      )[prb::sck::probe        ::in  ].bind((*sync_fine_lr )[sff::sck::synchronize  ::FRQ   ]);
+	(*prb_frq_fin     )[prb::sck::probe        ::in  ].bind((*sync_fine_pf )[sff::sck::synchronize  ::FRQ   ]);
+	(*prb_noise_ees   )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::Es_N0 ]);
+	(*prb_noise_eeb   )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::Eb_N0 ]);
+	(*prb_noise_esig  )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::SIG   ]);
+	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::status]);
+	(*prb_decstat_bch )[prb::sck::probe        ::in  ].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::status]);
+	(*prb_thr_thr     )[prb::sck::probe        ::in  ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
+	(*prb_thr_lat     )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
+	(*prb_thr_time    )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
+	(*prb_thr_tsta    )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
+	(*prb_bfer_be     )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::BE    ]);
+	(*prb_bfer_fe     )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::FE    ]);
+	(*prb_bfer_ber    )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::BER   ]);
+	(*prb_bfer_fer    )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::FER   ]);
+	(*prb_fra_id      )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
+
+	// first stages of the whole transmission sequence
+	const std::vector<module::Task*> firsts_t = { &(*source        )[src::tsk::generate],
+	                                              &(*prb_noise_res )[prb::tsk::probe   ],
+	                                              &(*prb_noise_reb )[prb::tsk::probe   ],
+	                                              &(*prb_noise_rsig)[prb::tsk::probe   ] };
+
+	tools::Sequence sequence_transmission(firsts_t);
+
 	// allocate reporters to display results in the terminal_stats
 	tools::Reporter_noise<>      rep_noise( noise_ref);
 	tools::Reporter_BFER<>       rep_BFER (*monitor  );
@@ -111,49 +250,6 @@ int main(int argc, char** argv)
 
 	// display the legend in the terminal
 	terminal.legend();
-
-	// socket binding of the full transmission sequence
-	// delay line for BER/FER
-	(*delay        )[flt::sck::filter       ::X_N1].bind((*source      )[src::sck::generate      ::U_K ]);
-	// TX
-	(*bb_scrambler )[scr::sck::scramble     ::X_N1].bind((*source      )[src::sck::generate      ::U_K ]);
-	(*BCH_encoder  )[enc::sck::encode       ::U_K ].bind((*bb_scrambler)[scr::sck::scramble      ::X_N2]);
-	(*LDPC_encoder )[enc::sck::encode       ::U_K ].bind((*BCH_encoder )[enc::sck::encode        ::X_N ]);
-	(*itl_tx       )[itl::sck::interleave   ::nat ].bind((*LDPC_encoder)[enc::sck::encode        ::X_N ]);
-	(*modem        )[mdm::sck::modulate     ::X_N1].bind((*itl_tx      )[itl::sck::interleave    ::itl ]);
-	(*framer       )[frm::sck::generate     ::Y_N1].bind((*modem       )[mdm::sck::modulate      ::X_N2]);
-	(*pl_scrambler )[scr::sck::scramble     ::X_N1].bind((*framer      )[frm::sck::generate      ::Y_N2]);
-	(*shaping_flt  )[flt::sck::filter       ::X_N1].bind((*pl_scrambler)[scr::sck::scramble      ::X_N2]);
-	// Channel
-	(*fad_mlt      )[mlt::sck::imultiply    ::X_N ].bind((*shaping_flt )[flt::sck::filter        ::Y_N2]);
-	(*chn_frm_del  )[flt::sck::filter       ::X_N1].bind((*fad_mlt     )[mlt::sck::imultiply     ::Z_N ]);
-	(*chn_int_del  )[flt::sck::filter       ::X_N1].bind((*chn_frm_del )[flt::sck::filter        ::Y_N2]);
-	(*chn_frac_del )[flt::sck::filter       ::X_N1].bind((*chn_int_del )[flt::sck::filter        ::Y_N2]);
-	(*freq_shift   )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del)[flt::sck::filter        ::Y_N2]);
-	(*channel      )[chn::sck::add_noise    ::X_N ].bind((*freq_shift  )[mlt::sck::imultiply     ::Z_N ]);
-	// RX
-	(*sync_coarse_f)[sfc::sck::synchronize  ::X_N1].bind((*channel      )[chn::sck::add_noise    ::Y_N ]);
-	(*matched_flt  )[flt::sck::filter       ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize  ::Y_N2]);
-	(*sync_timing  )[stm::sck::synchronize  ::X_N1].bind((*matched_flt  )[flt::sck::filter       ::Y_N2]);
-	(*sync_timing  )[stm::sck::extract      ::B_N1].bind((*sync_timing  )[stm::sck::synchronize  ::B_N1]);
-	(*sync_timing  )[stm::sck::extract      ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize  ::Y_N1]);
-	(*mult_agc     )[mlt::sck::imultiply    ::X_N ].bind((*sync_timing  )[stm::sck::extract      ::Y_N2]);
-	(*sync_frame   )[sfm::sck::synchronize  ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply    ::Z_N ]);
-	(*pl_scrambler )[scr::sck::descramble   ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize  ::Y_N2]);
-	(*sync_fine_lr )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler )[scr::sck::descramble   ::Y_N2]);
-	(*sync_fine_pf )[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr )[sff::sck::synchronize  ::Y_N2]);
-	(*framer       )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf )[sff::sck::synchronize  ::Y_N2]);
-	(*estimator    )[est::sck::rescale      ::X_N ].bind((*framer       )[frm::sck::remove_plh   ::Y_N2]);
-	(*modem        )[mdm::sck::demodulate_wg::H_N ].bind((*estimator    )[est::sck::rescale      ::H_N ]);
-	(*modem        )[mdm::sck::demodulate_wg::Y_N1].bind((*estimator    )[est::sck::rescale      ::Y_N ]);
-	(*itl_rx       )[itl::sck::deinterleave ::itl ].bind((*modem        )[mdm::sck::demodulate_wg::Y_N2]);
-	(*LDPC_decoder )[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx       )[itl::sck::deinterleave ::nat ]);
-	(*BCH_decoder  )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::V_K ]);
-	(*bb_scrambler )[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::V_K ]);
-	(*monitor      )[mnt::sck::check_errors ::U   ].bind((*delay        )[flt::sck::filter       ::Y_N2]);
-	(*monitor      )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2]);
-
-	tools::Sequence sequence_transmission((*source)[src::tsk::generate]);
 
 	// configuration of the sequence tasks
 	for (auto& type : sequence_transmission.get_tasks_per_types()) for (auto& tsk : type)
@@ -179,34 +275,79 @@ int main(int argc, char** argv)
 		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.bps);
 		const auto sigma = tools::esn0_to_sigma(esn0);
 
+		std::vector<float> esvec (params.n_frames, esn0 );
+		std::vector<float> ebvec (params.n_frames, ebn0 );
+		std::vector<float> sigvec(params.n_frames, sigma);
+
+		(*prb_noise_res )[prb::sck::probe::in].bind(esvec );
+		(*prb_noise_reb )[prb::sck::probe::in].bind(ebvec );
+		(*prb_noise_rsig)[prb::sck::probe::in].bind(sigvec);
+
+		std::stringstream sigma_ss;
+		sigma_ss << std::fixed << std::setprecision(3) << sigma;
+
 		noise_ref.set_values(sigma, ebn0, esn0);
 
 		// reset synchro modules
 		shaping_flt  ->reset(); chn_frac_del->reset(); chn_int_del->reset(); freq_shift ->reset();
 		sync_coarse_f->reset(); matched_flt ->reset(); sync_timing->reset(); sync_frame ->reset();
 		sync_fine_lr ->reset(); sync_fine_pf->reset(); delay      ->reset(); chn_frm_del->reset();
+		prb_fra_id   ->reset();
 
 		int delay_tx_rx = params.overall_delay;
 		delay->set_delay(delay_tx_rx);
+
+		std::ofstream stats_file("stats_sigma_" + sigma_ss.str() + ".txt");
+
+		if (params.ter_freq != std::chrono::nanoseconds(0))
+			terminal.start_temp_report(params.ter_freq);
 
 		if (!params.perfect_sync)
 		{
 			// ========================================================================================================
 			// WAITING PHASE ==========================================================================================
 			// ========================================================================================================
+			// display the legend in the terminal
+			std::ofstream waiting_stats("waiting_stats_sigma_" + sigma_ss.str() + ".txt");
+			waiting_stats << "#################" << std::endl;
+			waiting_stats << "# WAITING PHASE #" << std::endl;
+			waiting_stats << "#################" << std::endl;
+			terminal_stats.legend(waiting_stats);
+
 			// partial unbinding
-			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].unbind((*channel    )[chn::sck::add_noise  ::Y_N ]);
-			(*sync_timing  )[stm::sck::extract    ::B_N1].unbind((*sync_timing)[stm::sck::synchronize::B_N1]);
-			(*sync_timing  )[stm::sck::extract    ::Y_N1].unbind((*sync_timing)[stm::sck::synchronize::Y_N1]);
+			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].unbind((*channel      )[chn::sck::add_noise  ::Y_N   ]);
+			(*sync_timing  )[stm::sck::extract    ::B_N1].unbind((*sync_timing  )[stm::sck::synchronize::B_N1  ]);
+			(*sync_timing  )[stm::sck::extract    ::Y_N1].unbind((*sync_timing  )[stm::sck::synchronize::Y_N1  ]);
+			(*prb_frq_coa  )[prb::sck::probe      ::in  ].unbind((*sync_coarse_f)[sfc::sck::synchronize::FRQ   ]);
+			(*prb_stm_del  )[prb::sck::probe      ::in  ].unbind((*sync_timing  )[stm::sck::synchronize::MU    ]);
+			(*prb_thr_lat  )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
+			(*prb_thr_time )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
+			(*prb_thr_tsta )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
+			(*prb_fra_id   )[prb::sck::probe      ::in  ].unbind((*sink         )[snk::sck::send       ::status]);
 
 			// partial binding
-			(*sync_step_mf)[smf::sck::synchronize::X_N1].bind((*channel     )[chn::sck::add_noise  ::Y_N ]);
-			(*sync_step_mf)[smf::sck::synchronize::DEL ].bind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
-			(*sync_timing )[stm::sck::extract    ::B_N1].bind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
-			(*sync_timing )[stm::sck::extract    ::Y_N1].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
+			(*sync_step_mf)[smf::sck::synchronize::X_N1].bind((*channel     )[chn::sck::add_noise  ::Y_N   ]);
+			(*sync_step_mf)[smf::sck::synchronize::DEL ].bind((*sync_frame  )[sfm::sck::synchronize::DEL   ]);
+			(*sync_timing )[stm::sck::extract    ::B_N1].bind((*sync_step_mf)[smf::sck::synchronize::B_N1  ]);
+			(*sync_timing )[stm::sck::extract    ::Y_N1].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1  ]);
+			(*prb_frq_coa )[prb::sck::probe      ::in  ].bind((*sync_step_mf)[smf::sck::synchronize::FRQ   ]);
+			(*prb_stm_del )[prb::sck::probe      ::in  ].bind((*sync_step_mf)[smf::sck::synchronize::MU    ]);
+			(*prb_thr_lat )[prb::sck::probe      ::in  ].bind((*sync_frame  )[sfm::sck::synchronize::status]);
+			(*prb_thr_time)[prb::sck::probe      ::in  ].bind((*sync_frame  )[sfm::sck::synchronize::status]);
+			(*prb_thr_tsta)[prb::sck::probe      ::in  ].bind((*sync_frame  )[sfm::sck::synchronize::status]);
+			(*prb_fra_id  )[prb::sck::probe      ::in  ].bind((*sync_frame  )[sfm::sck::synchronize::status]);
 
-			tools::Sequence sequence_waiting_and_learning_1_2((*source)[src::tsk::generate],
-			                                                  (*sync_frame)[sfm::tsk::synchronize]);
+			std::vector<Task*> firsts_wl12 = { &(*source      )[src::tsk::generate], &(*prb_sfm_del )[prb::tsk::probe],
+			                                   &(*prb_sfm_tri )[prb::tsk::probe   ], &(*prb_sfm_flg )[prb::tsk::probe],
+			                                   &(*prb_thr_lat )[prb::tsk::probe   ], &(*prb_thr_time)[prb::tsk::probe],
+			                                   &(*prb_thr_tsta)[prb::tsk::probe   ], &(*prb_fra_id  )[prb::tsk::probe] };
+
+			std::vector<Task*> lasts_wl12 = { &(*sync_frame)[sfm::tsk::synchronize] };
+
+			prb_thr_thr ->reset();
+			prb_thr_lat ->reset();
+			prb_thr_time->reset();
+			tools::Sequence sequence_waiting_and_learning_1_2(firsts_wl12, lasts_wl12);
 
 			if (enable_logs && ebn0 == params.ebn0_min)
 			{
@@ -214,18 +355,17 @@ int main(int argc, char** argv)
 				sequence_waiting_and_learning_1_2.export_dot(f);
 			}
 
-			int m = 0;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 			sequence_waiting_and_learning_1_2.exec([&](const std::vector<int>& statuses)
 			{
+				const auto m = prb_fra_id->get_occurrences();
 				if (statuses.back() != status_t::SKIPPED)
 				{
-					terminal.temp_report();
-					m += params.n_frames;
+					terminal_stats.temp_report(waiting_stats);
 				}
 				else
 				{
-					delay_tx_rx+=params.n_frames;
+					delay_tx_rx += params.n_frames;
 					if (enable_logs)
 						std::clog << rang::tag::warning << "Sequence aborted! (waiting phase, m = " << m << ")"
 						          << std::endl;
@@ -233,23 +373,30 @@ int main(int argc, char** argv)
 
 				return sync_frame->get_packet_flag();
 			});
+			prb_fra_id->reset();
 
 			// ========================================================================================================
 			// LEARNING PHASE 1 & 2 ===================================================================================
 			// ========================================================================================================
-			m = 0;
+			// display the legend in the terminal
+			stats_file << "####################" << std::endl;
+			stats_file << "# LEARNING PHASE 1 #" << std::endl;
+			stats_file << "####################" << std::endl;
+			terminal_stats.legend(stats_file);
+
 			int limit = 150;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
+			prb_thr_thr ->reset();
+			prb_thr_lat ->reset();
+			prb_thr_time->reset();
 			sequence_waiting_and_learning_1_2.exec([&](const std::vector<int>& statuses)
 			{
+				const auto m = prb_fra_id->get_occurrences();
 				if (statuses.back() != status_t::SKIPPED)
-				{
-					terminal.temp_report();
-					m += params.n_frames;
-				}
+					terminal_stats.temp_report(stats_file);
 				else
 				{
-					delay_tx_rx+=params.n_frames;
+					delay_tx_rx += params.n_frames;
 					if (enable_logs)
 						std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")"
 						          << std::endl;
@@ -257,6 +404,10 @@ int main(int argc, char** argv)
 
 				if (limit == 150 && m >= 150)
 				{
+					stats_file << "####################" << std::endl;
+					stats_file << "# LEARNING PHASE 2 #" << std::endl;
+					stats_file << "####################" << std::endl;
+					terminal_stats.legend(stats_file);
 					limit = m + 150;
 					sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 				}
@@ -266,18 +417,41 @@ int main(int argc, char** argv)
 			// ========================================================================================================
 			// LEARNING PHASE 3 =======================================================================================
 			// ========================================================================================================
+			stats_file << "####################" << std::endl;
+			stats_file << "# LEARNING PHASE 3 #" << std::endl;
+			stats_file << "####################" << std::endl;
+			terminal_stats.legend(stats_file);
+
 			// partial unbinding
-			(*sync_step_mf)[smf::sck::synchronize::X_N1].unbind((*channel     )[chn::sck::add_noise  ::Y_N ]);
-			(*sync_step_mf)[smf::sck::synchronize::DEL ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
-			(*sync_timing )[stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
-			(*sync_timing )[stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
+			(*sync_step_mf)[smf::sck::synchronize::X_N1].unbind((*channel     )[chn::sck::add_noise  ::Y_N   ]);
+			(*sync_step_mf)[smf::sck::synchronize::DEL ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL   ]);
+			(*sync_timing )[stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize::B_N1  ]);
+			(*sync_timing )[stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize::Y_N1  ]);
+			(*prb_frq_coa )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::FRQ   ]);
+			(*prb_stm_del )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::MU    ]);
+			(*prb_thr_lat )[prb::sck::probe      ::in  ].unbind((*sync_frame  )[sfm::sck::synchronize::status]);
+			(*prb_thr_time)[prb::sck::probe      ::in  ].unbind((*sync_frame  )[sfm::sck::synchronize::status]);
+			(*prb_thr_tsta)[prb::sck::probe      ::in  ].unbind((*sync_frame  )[sfm::sck::synchronize::status]);
+			(*prb_fra_id  )[prb::sck::probe      ::in  ].unbind((*sync_frame  )[sfm::sck::synchronize::status]);
 
 			// partial binding
-			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N ]);
-			(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
-			(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N   ]);
+			(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1  ]);
+			(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1  ]);
+			(*prb_frq_coa  )[prb::sck::probe      ::in  ].bind((*sync_coarse_f)[sfc::sck::synchronize::FRQ   ]);
+			(*prb_stm_del  )[prb::sck::probe      ::in  ].bind((*sync_timing  )[stm::sck::synchronize::MU    ]);
+			(*prb_thr_lat  )[prb::sck::probe      ::in  ].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
+			(*prb_thr_time )[prb::sck::probe      ::in  ].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
+			(*prb_thr_tsta )[prb::sck::probe      ::in  ].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
+			(*prb_fra_id   )[prb::sck::probe      ::in  ].bind((*sync_fine_pf )[sff::sck::synchronize::status]);
 
-			tools::Sequence sequence_learning_3((*source)[src::tsk::generate], (*sync_fine_pf)[sff::tsk::synchronize]);
+			std::vector<Task*> firsts_l3 = { &(*source      )[src::tsk::generate], &(*prb_thr_lat )[prb::tsk::probe],
+			                                 &(*prb_thr_time)[prb::tsk::probe   ], &(*prb_thr_tsta)[prb::tsk::probe],
+			                                 &(*prb_fra_id  )[prb::tsk::probe   ], &(*prb_frq_fin )[prb::tsk::probe] };
+
+			std::vector<Task*> lasts_l3 = { &(*sync_fine_pf)[sff::tsk::synchronize] };
+
+			tools::Sequence sequence_learning_3(firsts_l3, lasts_l3);
 
 			if (enable_logs && ebn0 == params.ebn0_min)
 			{
@@ -285,17 +459,17 @@ int main(int argc, char** argv)
 				sequence_learning_3.export_dot(f);
 			}
 
-			limit = m + 200;
+			limit = prb_fra_id->get_occurrences() + 200;
+			prb_thr_thr->reset();
+			prb_thr_lat->reset();
 			sequence_learning_3.exec([&](const std::vector<int>& statuses)
 			{
+				const auto m = prb_fra_id->get_occurrences();
 				if (statuses.back() != status_t::SKIPPED)
-				{
-					m += params.n_frames;
-					terminal.temp_report();
-				}
+					terminal_stats.temp_report(stats_file);
 				else
 				{
-					delay_tx_rx+=params.n_frames;
+					delay_tx_rx += params.n_frames;
 					if (enable_logs)
 						std::clog << rang::tag::warning << "Sequence aborted! (learning phase 3, m = " << m << ")"
 						          << std::endl;
@@ -308,7 +482,23 @@ int main(int argc, char** argv)
 		// ============================================================================================================
 		// TRANSMISSION PHASE =========================================================================================
 		// ============================================================================================================
-		int m = 0;
+		stats_file << "######################" << std::endl;
+		stats_file << "# TRANSMISSION PHASE #" << std::endl;
+		stats_file << "######################" << std::endl;
+		terminal_stats.legend(stats_file);
+
+		// partial unbinding
+		(*prb_thr_lat )[prb::sck::probe::in].unbind((*sync_fine_pf)[sff::sck::synchronize::status]);
+		(*prb_thr_time)[prb::sck::probe::in].unbind((*sync_fine_pf)[sff::sck::synchronize::status]);
+		(*prb_thr_tsta)[prb::sck::probe::in].unbind((*sync_fine_pf)[sff::sck::synchronize::status]);
+		(*prb_fra_id  )[prb::sck::probe::in].unbind((*sync_fine_pf)[sff::sck::synchronize::status]);
+
+		// partial binding
+		(*prb_thr_lat )[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
+		(*prb_thr_time)[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
+		(*prb_thr_tsta)[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
+		(*prb_fra_id  )[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
+
 		delay->set_delay(delay_tx_rx);
 		sync_timing->set_act(true);
 
@@ -318,18 +508,24 @@ int main(int argc, char** argv)
 			sequence_transmission.export_dot(f);
 		}
 
+		int d = 0;
+		prb_thr_thr->reset();
+		prb_thr_lat->reset();
 		sequence_transmission.exec([&](const std::vector<int>& statuses)
 		{
 			if (statuses.back() != status_t::SKIPPED)
 			{
-				m += params.n_frames;
-				terminal.temp_report();
+				d += params.n_frames;
+				terminal_stats.temp_report(stats_file);
 			}
 			else if (enable_logs)
+			{
+				const auto m = prb_fra_id->get_occurrences();
 				std::clog << rang::tag::warning << "Sequence aborted! (Transmisison phase, m = " << m << ")"
 				                                << std::endl;
+			}
 
-			if (m < delay_tx_rx + params.n_frames) // first frame is delayed
+			if (d < delay_tx_rx + params.n_frames) // first frame is delayed
 				monitor->reset();
 
 			return monitor->is_done() || tools::Terminal::is_interrupt();
