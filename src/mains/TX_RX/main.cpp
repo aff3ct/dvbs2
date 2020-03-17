@@ -112,28 +112,6 @@ int main(int argc, char** argv)
 	// display the legend in the terminal
 	terminal.legend();
 
-	// fulfill the list of modules
-	std::vector<const module::Module*> modules;
-	modules = { bb_scrambler.get(), BCH_encoder .get(), BCH_decoder .get(), LDPC_encoder      , LDPC_decoder       ,
-	            itl_tx      .get(), itl_rx      .get(), modem       .get(), framer      .get(), pl_scrambler .get(),
-	            monitor     .get(), freq_shift  .get(), sync_fine_lr.get(), sync_fine_pf.get(), shaping_flt  .get(),
-	            chn_frac_del.get(), mult_agc    .get(), sync_frame  .get(), delay       .get(), sync_coarse_f.get(),
-	            matched_flt .get(), sync_timing .get(), sync_step_mf.get(), source      .get(), channel      .get(),
-	            chn_int_del .get(), estimator   .get(), fad_mlt     .get(), chn_frm_del .get()
-	         };
-
-	// configuration of the module tasks
-	for (auto& m : modules)
-		for (auto& ta : m->tasks)
-		{
-			ta->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
-			ta->set_debug          (params.debug      ); // disable the debug mode
-			ta->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
-			ta->set_debug_precision(8                 );
-			ta->set_stats          (params.stats      ); // enable the statistics
-			ta->set_fast           (false             ); // disable the fast mode
-		}
-
 	// socket binding of the full transmission sequence
 	// delay line for BER/FER
 	(*delay        )[flt::sck::filter       ::X_N1].bind((*source      )[src::sck::generate      ::U_K ]);
@@ -175,6 +153,22 @@ int main(int argc, char** argv)
 	(*monitor      )[mnt::sck::check_errors ::U   ].bind((*delay        )[flt::sck::filter       ::Y_N2]);
 	(*monitor      )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2]);
 
+	tools::Sequence sequence_transmission((*source)[src::tsk::generate]);
+
+	// configuration of the sequence tasks
+	for (auto& type : sequence_transmission.get_tasks_per_types()) for (auto& tsk : type)
+	{
+		tsk->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
+		tsk->set_debug          (params.debug      ); // disable the debug mode
+		tsk->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
+		tsk->set_debug_precision(8                 );
+		tsk->set_stats          (params.stats      ); // enable the statistics
+
+		// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
+		if (!tsk->is_debug() && !tsk->is_stats())
+			tsk->set_fast(true);
+	}
+
 	// a loop over the various SNRs
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
 	{
@@ -200,31 +194,29 @@ int main(int argc, char** argv)
 			// ========================================================================================================
 			// WAITING PHASE ==========================================================================================
 			// ========================================================================================================
-			(*channel     )[chn::sck::add_noise  ::Y_N ].reset();
-			(*sync_step_mf)[smf::sck::synchronize::X_N1].reset();
-			(*sync_frame  )[sfm::sck::synchronize::DEL ].reset();
-			(*sync_step_mf)[smf::sck::synchronize::DEL ].reset();
-			(*sync_step_mf)[smf::sck::synchronize::B_N1].reset();
-			(*sync_step_mf)[smf::sck::synchronize::Y_N1].reset();
-			(*sync_timing )[stm::sck::extract    ::B_N1].reset();
-			(*sync_timing )[stm::sck::extract    ::Y_N1].reset();
+			// partial unbinding
+			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].unbind((*channel    )[chn::sck::add_noise  ::Y_N ]);
+			(*sync_timing  )[stm::sck::extract    ::B_N1].unbind((*sync_timing)[stm::sck::synchronize::B_N1]);
+			(*sync_timing  )[stm::sck::extract    ::Y_N1].unbind((*sync_timing)[stm::sck::synchronize::Y_N1]);
 
+			// partial binding
 			(*sync_step_mf)[smf::sck::synchronize::X_N1].bind((*channel     )[chn::sck::add_noise  ::Y_N ]);
 			(*sync_step_mf)[smf::sck::synchronize::DEL ].bind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
 			(*sync_timing )[stm::sck::extract    ::B_N1].bind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
 			(*sync_timing )[stm::sck::extract    ::Y_N1].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
 
-			tools::Sequence sequence_waiting((*source)[src::tsk::generate], (*sync_frame)[sfm::tsk::synchronize]);
+			tools::Sequence sequence_waiting_and_learning_1_2((*source)[src::tsk::generate],
+			                                                  (*sync_frame)[sfm::tsk::synchronize]);
 
 			if (enable_logs && ebn0 == params.ebn0_min)
 			{
-				std::ofstream f("sequence_waiting.dot");
-				sequence_waiting.export_dot(f);
+				std::ofstream f("tx_rx_sequence_waiting_and_learning_1_2.dot");
+				sequence_waiting_and_learning_1_2.export_dot(f);
 			}
 
 			int m = 0;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
-			sequence_waiting.exec([&](const std::vector<int>& statuses)
+			sequence_waiting_and_learning_1_2.exec([&](const std::vector<int>& statuses)
 			{
 				if (statuses.back() != status_t::SKIPPED)
 				{
@@ -245,18 +237,10 @@ int main(int argc, char** argv)
 			// ========================================================================================================
 			// LEARNING PHASE 1 & 2 ===================================================================================
 			// ========================================================================================================
-			tools::Sequence sequence_learning_1_2((*source)[src::tsk::generate], (*pl_scrambler)[scr::tsk::descramble]);
-
-			if (enable_logs && ebn0 == params.ebn0_min)
-			{
-				std::ofstream f("sequence_learning_1_2.dot");
-				sequence_learning_1_2.export_dot(f);
-			}
-
 			m = 0;
 			int limit = 150;
 			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
-			sequence_learning_1_2.exec([&](const std::vector<int>& statuses)
+			sequence_waiting_and_learning_1_2.exec([&](const std::vector<int>& statuses)
 			{
 				if (statuses.back() != status_t::SKIPPED)
 				{
@@ -282,20 +266,14 @@ int main(int argc, char** argv)
 			// ========================================================================================================
 			// LEARNING PHASE 3 =======================================================================================
 			// ========================================================================================================
-			(*channel      )[chn::sck::add_noise  ::Y_N ].reset();
-			(*matched_flt  )[flt::sck::filter     ::X_N1].reset();
-			(*matched_flt  )[flt::sck::filter     ::Y_N2].reset();
-			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].reset();
-			(*sync_coarse_f)[sfc::sck::synchronize::Y_N2].reset();
-			(*sync_timing  )[stm::sck::synchronize::X_N1].reset();
-			(*sync_timing  )[stm::sck::synchronize::Y_N1].reset();
-			(*sync_timing  )[stm::sck::synchronize::B_N1].reset();
-			(*sync_timing  )[stm::sck::extract    ::B_N1].reset();
-			(*sync_timing  )[stm::sck::extract    ::Y_N1].reset();
+			// partial unbinding
+			(*sync_step_mf)[smf::sck::synchronize::X_N1].unbind((*channel     )[chn::sck::add_noise  ::Y_N ]);
+			(*sync_step_mf)[smf::sck::synchronize::DEL ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
+			(*sync_timing )[stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
+			(*sync_timing )[stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
 
+			// partial binding
 			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N ]);
-			(*matched_flt  )[flt::sck::filter     ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize::Y_N2]);
-			(*sync_timing  )[stm::sck::synchronize::X_N1].bind((*matched_flt  )[flt::sck::filter     ::Y_N2]);
 			(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
 			(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
 
@@ -303,7 +281,7 @@ int main(int argc, char** argv)
 
 			if (enable_logs && ebn0 == params.ebn0_min)
 			{
-				std::ofstream f("sequence_learning_3.dot");
+				std::ofstream f("tx_rx_sequence_learning_3.dot");
 				sequence_learning_3.export_dot(f);
 			}
 
@@ -334,11 +312,9 @@ int main(int argc, char** argv)
 		delay->set_delay(delay_tx_rx);
 		sync_timing->set_act(true);
 
-		tools::Sequence sequence_transmission((*source)[src::tsk::generate]);
-
 		if (enable_logs && ebn0 == params.ebn0_min)
 		{
-			std::ofstream f("sequence_transmission.dot");
+			std::ofstream f("tx_rx_sequence_transmission.dot");
 			sequence_transmission.export_dot(f);
 		}
 
@@ -372,9 +348,9 @@ int main(int argc, char** argv)
 			const auto ordered = true;
 			tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
 
-			for (auto& m : modules)
-				for (auto& ta : m->tasks)
-					ta->reset();
+			for (auto &tt : sequence_transmission.get_tasks_per_types())
+				for (auto &t : tt)
+					t->reset();
 
 			if (ebn0 + params.ebn0_step < params.ebn0_max)
 			{
