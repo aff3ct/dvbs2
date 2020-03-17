@@ -499,6 +499,11 @@ int main(int argc, char** argv)
 		(*prb_thr_tsta)[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
 		(*prb_fra_id  )[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
 
+		// reset the statistics of the tasks before the transmission phase
+		for (auto &tt : sequence_transmission.get_tasks_per_types())
+			for (auto &t : tt)
+				t->reset();
+
 		delay->set_delay(delay_tx_rx);
 		sync_timing->set_act(true);
 
