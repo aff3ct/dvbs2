@@ -1,8 +1,8 @@
 #include <vector>
-#include <numeric>
 #include <string>
+#include <chrono>
+#include <numeric>
 #include <iostream>
-#include <vector>
 #include <algorithm>
 
 #include <aff3ct.hpp>
@@ -14,8 +14,14 @@
 using namespace aff3ct;
 using namespace aff3ct::module;
 
+// #define MULTI_THREADED // comment this line to disable multi-threaded RX
+
 // global parameters
 constexpr bool enable_logs = false;
+#ifdef MULTI_THREADED
+constexpr bool active_waiting = false;
+const size_t n_threads = std::thread::hardware_concurrency();
+#endif /* MULTI_THREADED */
 
 // aliases
 template<class T> using uptr = std::unique_ptr<T>;
@@ -238,21 +244,103 @@ int main(int argc, char** argv)
 	                                              &(*prb_noise_reb )[prb::tsk::probe   ],
 	                                              &(*prb_noise_rsig)[prb::tsk::probe   ] };
 
+#ifdef MULTI_THREADED
+	auto start_clone = std::chrono::system_clock::now();
+	std::cout << "Cloning the modules of the parallel sequence... ";
+	std::cout.flush();
+
+	// pipeline definition with separation stages
+	const std::vector<std::tuple<std::vector<module::Task*>,
+	                             std::vector<module::Task*>,
+	                             std::vector<module::Task*>>> sep_stages =
+	{ // pipeline stage 0 -> TX
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*source)[src::tsk::generate], &(*delay)[flt::tsk::filter], &(*prb_noise_res)[prb::tsk::probe],
+	      &(*prb_noise_reb)[prb::tsk::probe], &(*prb_noise_rsig)[prb::tsk::probe] },
+	    { &(*source)[src::tsk::generate] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 1 -> TX
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*bb_scrambler)[scr::tsk::scramble] },
+	    { &(*pl_scrambler)[scr::tsk::scramble] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 2 -> TX / channel
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*shaping_flt)[flt::tsk::filter] },
+	    { &(*channel)[chn::tsk::add_noise] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 3 -> RX
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*sync_coarse_f)[sfc::tsk::synchronize] },
+	    { &(*matched_flt)[flt::tsk::filter], &(*prb_frq_coa)[prb::tsk::probe] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 4 -> RX
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*sync_timing)[stm::tsk::synchronize], &(*prb_stm_del)[prb::tsk::probe] },
+	    { &(*sync_timing)[stm::tsk::synchronize] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 5 -> RX
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*sync_timing)[stm::tsk::extract], &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe],
+	      &(*prb_sfm_flg)[prb::tsk::probe] },
+	    { &(*sync_frame)[sfm::tsk::synchronize] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 6 -> RX
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*pl_scrambler)[scr::tsk::descramble], &(*prb_frq_fin)[prb::tsk::probe] },
+	    { &(*sync_fine_pf)[sff::tsk::synchronize], &(*prb_frq_lr)[prb::tsk::probe] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 7 -> RX
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_esig)[prb::tsk::probe], &(*prb_noise_ees)[prb::tsk::probe],
+	      &(*prb_noise_eeb)[prb::tsk::probe] },
+	    { &(*estimator)[est::tsk::rescale] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 8 -> RX
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*modem)[mdm::tsk::demodulate_wg] },
+	    { &(*bb_scrambler)[scr::tsk::descramble] },
+	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
+	      &(*prb_thr_thr)[prb::tsk::probe] } ),
+	  // pipeline stage 9 -> RX
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*monitor)[mnt::tsk::check_errors2], &(*sink)[snk::tsk::send],
+	      &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
+	      &(*prb_thr_thr)[prb::tsk::probe] },
+	    { /* end of the sequence */ },
+	    { /* no exclusions in this stage */ } ),
+	};
+	// number of threads per stages
+	const std::vector<size_t> n_threads_per_stages = { 1, n_threads, 1, 1, 1, 1, 1, 1, n_threads, 1 };
+	// synchronization buffer size between stages
+	const std::vector<size_t> buffer_sizes(sep_stages.size() -1, 1);
+	// type of waiting between stages (true = active, false = passive)
+	const std::vector<bool> active_waitings(sep_stages.size() -1, active_waiting);
+
+	tools::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings);
+
+	if (enable_logs)
+	{
+		std::ofstream f("tx_rx_pipeline_transmission.dot");
+		pipeline_transmission.export_dot(f);
+	}
+
+	auto tasks_per_types = pipeline_transmission.get_tasks_per_types();
+	auto end_clone = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds_clone = end_clone - start_clone;
+	std::cout << "Done (" << elapsed_seconds_clone.count() << "s)." << std::endl;
+#else
 	tools::Sequence sequence_transmission(firsts_t);
-
-	// allocate reporters to display results in the terminal_stats
-	tools::Reporter_noise<>      rep_noise( noise_ref);
-	tools::Reporter_BFER<>       rep_BFER (*monitor  );
-	tools::Reporter_throughput<> rep_thr  (*monitor  );
-
-	// allocate a terminal that will display the collected data from the reporters
-	tools::Terminal_std terminal({ &rep_noise, &rep_BFER, &rep_thr });
-
-	// display the legend in the terminal
-	terminal.legend();
+	if (enable_logs)
+	{
+		std::ofstream f("tx_rx_sequence_transmission.dot");
+		sequence_transmission.export_dot(f);
+	}
+	auto tasks_per_types = sequence_transmission.get_tasks_per_types();
+#endif /* MULTI_THREADED */
 
 	// configuration of the sequence tasks
-	for (auto& type : sequence_transmission.get_tasks_per_types()) for (auto& tsk : type)
+	for (auto& type : tasks_per_types) for (auto& tsk : type)
 	{
 		tsk->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
 		tsk->set_debug          (params.debug      ); // disable the debug mode
@@ -265,7 +353,19 @@ int main(int argc, char** argv)
 			tsk->set_fast(true);
 	}
 
+	// allocate reporters to display results in the terminal_stats
+	tools::Reporter_noise<>      rep_noise( noise_ref);
+	tools::Reporter_BFER<>       rep_BFER (*monitor  );
+	tools::Reporter_throughput<> rep_thr  (*monitor  );
+
+	// allocate a terminal that will display the collected data from the reporters
+	tools::Terminal_std terminal({ &rep_noise, &rep_BFER, &rep_thr });
+
+	// display the legend in the terminal
+	terminal.legend();
+
 	// a loop over the various SNRs
+	std::mt19937 prng;
 	for (auto ebn0 = params.ebn0_min; ebn0 < params.ebn0_max; ebn0 += params.ebn0_step)
 	{
 		// compute the code rate
@@ -302,8 +402,13 @@ int main(int argc, char** argv)
 		if (params.ter_freq != std::chrono::nanoseconds(0))
 			terminal.start_temp_report(params.ter_freq);
 
+		source ->set_seed(prng());
+		channel->set_seed(prng());
 		if (!params.perfect_sync)
 		{
+#ifdef MULTI_THREADED
+			pipeline_transmission.unbind_adaptors();
+#endif /* MULTI_THREADED */
 			// ========================================================================================================
 			// WAITING PHASE ==========================================================================================
 			// ========================================================================================================
@@ -500,22 +605,52 @@ int main(int argc, char** argv)
 		(*prb_fra_id  )[prb::sck::probe::in].bind((*sink)[snk::sck::send::status]);
 
 		// reset the statistics of the tasks before the transmission phase
-		for (auto &tt : sequence_transmission.get_tasks_per_types())
+		for (auto &tt : tasks_per_types)
 			for (auto &t : tt)
 				t->reset();
 
 		delay->set_delay(delay_tx_rx);
 		sync_timing->set_act(true);
 
-		if (enable_logs && ebn0 == params.ebn0_min)
-		{
-			std::ofstream f("tx_rx_sequence_transmission.dot");
-			sequence_transmission.export_dot(f);
-		}
+		auto stop_condition = [&monitor](const std::vector<int>& statuses) {
+			return monitor->is_done() || tools::Terminal::is_interrupt();
+		};
 
 		int d = 0;
 		prb_thr_thr->reset();
 		prb_thr_lat->reset();
+#ifdef MULTI_THREADED
+		pipeline_transmission.bind_adaptors();
+		pipeline_transmission.exec({
+			stop_condition, // stop condition stage 0
+			stop_condition, // stop condition stage 1
+			stop_condition, // stop condition stage 2
+			stop_condition, // stop condition stage 3
+			stop_condition, // stop condition stage 4
+			                // stop condition stage 5
+			[&stop_condition, &prb_fra_id] (const std::vector<int>& statuses)
+			{
+				if (statuses.back() == status_t::SKIPPED && enable_logs)
+					std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, stage = 5"
+					          << ", m = " << prb_fra_id->get_occurrences() << ")" << std::endl;
+				return stop_condition(statuses);
+			},
+			stop_condition, // stop condition stage 6
+			stop_condition, // stop condition stage 7
+			stop_condition, // stop condition stage 8
+			                // stop condition stage 9
+			[&monitor, &stop_condition, &terminal_stats, &stats_file, &delay_tx_rx, &d, &params]
+			(const std::vector<int>& statuses)
+			{
+				d += params.n_frames;
+				terminal_stats.temp_report(stats_file);
+				// first frame is delayed
+				if (d < delay_tx_rx + params.n_frames)
+					monitor->reset();
+				return stop_condition(statuses);
+			}
+		});
+#else
 		sequence_transmission.exec([&](const std::vector<int>& statuses)
 		{
 			if (statuses.back() != status_t::SKIPPED)
@@ -533,11 +668,16 @@ int main(int argc, char** argv)
 			if (d < delay_tx_rx + params.n_frames) // first frame is delayed
 				monitor->reset();
 
-			return monitor->is_done() || tools::Terminal::is_interrupt();
+			return stop_condition(statuses);
 		});
+#endif /* MULTI_THREADED */
 
 		// display the performance (BER and FER) in the terminal
 		terminal.final_report();
+
+		auto reporters = terminal_stats.get_reporters();
+		for (auto reporter : reporters)
+			reporter->reset();
 
 		// reset the monitors and the terminal for the next SNR
 		monitor->reset();
@@ -545,11 +685,21 @@ int main(int argc, char** argv)
 
 		if (params.stats)
 		{
-			std::cout << "#" << std::endl;
 			const auto ordered = true;
+#ifdef MULTI_THREADED
+			auto stages = pipeline_transmission.get_stages();
+			for (size_t ss = 0; ss < stages.size(); ss++)
+			{
+				std::cout << "#" << std::endl << "# Sequence stage " << ss << " (" << stages[ss]->get_n_threads()
+				          << " thread(s)): " << std::endl;
+				tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered);
+			}
+#else
+			std::cout << "#" << std::endl << "# Sequence sequential (" << sequence_transmission.get_n_threads()
+			          << " thread(s)): " << std::endl;
 			tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
-
-			for (auto &tt : sequence_transmission.get_tasks_per_types())
+#endif /* MULTI_THREADED */
+			for (auto &tt : tasks_per_types)
 				for (auto &t : tt)
 					t->reset();
 
