@@ -359,9 +359,9 @@ int main(int argc, char** argv)
 	}
 
 	// allocate reporters to display results in the terminal_stats
-	tools::Reporter_noise<>      rep_noise( noise_ref);
-	tools::Reporter_BFER<>       rep_BFER (*monitor  );
-	tools::Reporter_throughput<> rep_thr  (*monitor  );
+	tools::Reporter_noise<>      rep_noise( noise_ref, true);
+	tools::Reporter_BFER<>       rep_BFER (*monitor        );
+	tools::Reporter_throughput<> rep_thr  (*monitor        );
 
 	// allocate a terminal that will display the collected data from the reporters
 	tools::Terminal_std terminal({ &rep_noise, &rep_BFER, &rep_thr });
@@ -473,13 +473,9 @@ int main(int argc, char** argv)
 				{
 					terminal_stats.temp_report(waiting_stats);
 				}
-				else
-				{
-					delay_tx_rx += params.n_frames;
-					if (enable_logs)
-						std::clog << rang::tag::warning << "Sequence aborted! (waiting phase, m = " << m << ")"
-						          << std::endl;
-				}
+				else if (enable_logs)
+					std::clog << rang::tag::warning << "Sequence aborted! (waiting phase, m = " << m << ")"
+					          << std::endl;
 
 				return sync_frame->get_packet_flag();
 			});
@@ -504,13 +500,9 @@ int main(int argc, char** argv)
 				const auto m = prb_fra_id->get_occurrences();
 				if (statuses.back() != status_t::SKIPPED)
 					terminal_stats.temp_report(stats_file);
-				else
-				{
-					delay_tx_rx += params.n_frames;
-					if (enable_logs)
-						std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")"
-						          << std::endl;
-				}
+				else if (enable_logs)
+					std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")"
+					          << std::endl;
 
 				if (limit == 150 && m >= 150)
 				{
@@ -577,13 +569,9 @@ int main(int argc, char** argv)
 				const auto m = prb_fra_id->get_occurrences();
 				if (statuses.back() != status_t::SKIPPED)
 					terminal_stats.temp_report(stats_file);
-				else
-				{
-					delay_tx_rx += params.n_frames;
-					if (enable_logs)
-						std::clog << rang::tag::warning << "Sequence aborted! (learning phase 3, m = " << m << ")"
-						          << std::endl;
-				}
+				else if (enable_logs)
+					std::clog << rang::tag::warning << "Sequence aborted! (learning phase 3, m = " << m << ")"
+					          << std::endl;
 				return m >= limit;
 			});
 		}
