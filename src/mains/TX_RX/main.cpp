@@ -264,45 +264,50 @@ int main(int argc, char** argv)
 	    { &(*bb_scrambler)[scr::tsk::scramble] },
 	    { &(*pl_scrambler)[scr::tsk::scramble] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 2 -> TX / channel
+	  // pipeline stage 2 -> TX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*shaping_flt)[flt::tsk::filter] },
+	    { &(*shaping_flt)[flt::tsk::filter] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 3 -> channel
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*fad_mlt)[mlt::tsk::imultiply] },
 	    { &(*channel)[chn::tsk::add_noise] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 3 -> RX
+	  // pipeline stage 4 -> RX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*sync_coarse_f)[sfc::tsk::synchronize] },
 	    { &(*matched_flt)[flt::tsk::filter], &(*prb_frq_coa)[prb::tsk::probe] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 4 -> RX
+	  // pipeline stage 5 -> RX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*sync_timing)[stm::tsk::synchronize], &(*prb_stm_del)[prb::tsk::probe] },
 	    { &(*sync_timing)[stm::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 5 -> RX
+	  // pipeline stage 6 -> RX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*sync_timing)[stm::tsk::extract], &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe],
 	      &(*prb_sfm_flg)[prb::tsk::probe] },
 	    { &(*sync_frame)[sfm::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 6 -> RX
+	  // pipeline stage 7 -> RX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*pl_scrambler)[scr::tsk::descramble], &(*prb_frq_fin)[prb::tsk::probe] },
 	    { &(*sync_fine_pf)[sff::tsk::synchronize], &(*prb_frq_lr)[prb::tsk::probe] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 7 -> RX
+	  // pipeline stage 8 -> RX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_esig)[prb::tsk::probe], &(*prb_noise_ees)[prb::tsk::probe],
 	      &(*prb_noise_eeb)[prb::tsk::probe] },
 	    { &(*estimator)[est::tsk::rescale] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 8 -> RX
+	  // pipeline stage 9 -> RX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*modem)[mdm::tsk::demodulate_wg] },
 	    { &(*bb_scrambler)[scr::tsk::descramble] },
 	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
 	      &(*prb_thr_thr)[prb::tsk::probe] } ),
-	  // pipeline stage 9 -> RX
+	  // pipeline stage 10 -> RX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*monitor)[mnt::tsk::check_errors2], &(*sink)[snk::tsk::send],
 	      &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
@@ -311,7 +316,7 @@ int main(int argc, char** argv)
 	    { /* no exclusions in this stage */ } ),
 	};
 	// number of threads per stages
-	const std::vector<size_t> n_threads_per_stages = { 1, n_threads, 1, 1, 1, 1, 1, 1, n_threads, 1 };
+	const std::vector<size_t> n_threads_per_stages = { 1, n_threads, 1, 1, 1, 1, 1, 1, 1, n_threads, 1 };
 	// synchronization buffer size between stages
 	const std::vector<size_t> buffer_sizes(sep_stages.size() -1, 1);
 	// type of waiting between stages (true = active, false = passive)
@@ -622,12 +627,13 @@ int main(int argc, char** argv)
 #ifdef MULTI_THREADED
 		pipeline_transmission.bind_adaptors();
 		pipeline_transmission.exec({
-			stop_condition, // stop condition stage 0
-			stop_condition, // stop condition stage 1
-			stop_condition, // stop condition stage 2
-			stop_condition, // stop condition stage 3
-			stop_condition, // stop condition stage 4
-			                // stop condition stage 5
+			stop_condition, // stop condition stage  0
+			stop_condition, // stop condition stage  1
+			stop_condition, // stop condition stage  2
+			stop_condition, // stop condition stage  3
+			stop_condition, // stop condition stage  4
+			stop_condition, // stop condition stage  5
+			                // stop condition stage  6
 			[&stop_condition, &prb_fra_id] (const std::vector<int>& statuses)
 			{
 				if (statuses.back() == status_t::SKIPPED && enable_logs)
@@ -635,10 +641,10 @@ int main(int argc, char** argv)
 					          << ", m = " << prb_fra_id->get_occurrences() << ")" << std::endl;
 				return stop_condition(statuses);
 			},
-			stop_condition, // stop condition stage 6
-			stop_condition, // stop condition stage 7
-			stop_condition, // stop condition stage 8
-			                // stop condition stage 9
+			stop_condition, // stop condition stage  7
+			stop_condition, // stop condition stage  8
+			stop_condition, // stop condition stage  9
+			                // stop condition stage 10
 			[&monitor, &stop_condition, &terminal_stats, &stats_file, &delay_tx_rx, &d, &params]
 			(const std::vector<int>& statuses)
 			{
