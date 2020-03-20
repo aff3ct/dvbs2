@@ -14,7 +14,7 @@
 using namespace aff3ct;
 using namespace aff3ct::module;
 
-// #define MULTI_THREADED // comment this line to disable multi-threaded RX
+#define MULTI_THREADED // comment this line to disable multi-threaded RX
 
 // global parameters
 constexpr bool enable_logs = false;
@@ -48,38 +48,39 @@ int main(int argc, char** argv)
 	std::unique_ptr<tools::Interleaver_core<>> itl_core(factory::DVBS2::build_itl_core<>(params));
 
 	// construct modules
-	uptr<Source<>                    > source       (factory::DVBS2::build_source                   <>(params             ));
-	uptr<Sink<>                      > sink         (factory::DVBS2::build_sink                     <>(params             ));
-	uptr<Channel<>                   > channel      (factory::DVBS2::build_channel                  <>(params, gen        ));
-	uptr<Scrambler<>                 > bb_scrambler (factory::DVBS2::build_bb_scrambler             <>(params             ));
-	uptr<Encoder<>                   > BCH_encoder  (factory::DVBS2::build_bch_encoder              <>(params, poly_gen   ));
-	uptr<Decoder_HIHO<>              > BCH_decoder  (factory::DVBS2::build_bch_decoder              <>(params, poly_gen   ));
-	uptr<Codec_SIHO<>                > LDPC_cdc     (factory::DVBS2::build_ldpc_cdc                 <>(params             ));
-	uptr<Interleaver<>               > itl_tx       (factory::DVBS2::build_itl                      <>(params, *itl_core  ));
-	uptr<Interleaver<float,uint32_t> > itl_rx       (factory::DVBS2::build_itl<float,uint32_t>        (params, *itl_core  ));
-	uptr<Modem<>                     > modem        (factory::DVBS2::build_modem                    <>(params, &cstl      ));
-	uptr<Filter_UPRRC_ccr_naive<>    > shaping_flt  (factory::DVBS2::build_uprrc_filter             <>(params             ));
-	uptr<Multiplier_sine_ccc_naive<> > freq_shift   (factory::DVBS2::build_freq_shift               <>(params             ));
-	uptr<Filter_Farrow_ccr_naive<>   > chn_frac_del (factory::DVBS2::build_channel_frac_delay       <>(params             ));
-	uptr<Variable_delay_cc_naive<>   > chn_int_del  (factory::DVBS2::build_channel_int_delay        <>(params             ));
-	uptr<Filter_buffered_delay<float>> chn_frm_del  (factory::DVBS2::build_channel_frame_delay      <>(params             ));
-	uptr<Synchronizer_frame<>        > sync_frame   (factory::DVBS2::build_synchronizer_frame       <>(params             ));
-	uptr<Framer<>                    > framer       (factory::DVBS2::build_framer                   <>(params             ));
-	uptr<Scrambler<float>            > pl_scrambler (factory::DVBS2::build_pl_scrambler             <>(params             ));
-	uptr<Filter_buffered_delay<>     > delay        (factory::DVBS2::build_txrx_delay               <>(params             ));
-	uptr<Monitor_BFER<>              > monitor      (factory::DVBS2::build_monitor                  <>(params             ));
-	uptr<Filter_RRC_ccr_naive<>      > matched_flt  (factory::DVBS2::build_matched_filter           <>(params             ));
-	uptr<Synchronizer_timing<>       > sync_timing  (factory::DVBS2::build_synchronizer_timing      <>(params             ));
-	uptr<Multiplier_AGC_cc_naive<>   > mult_agc     (factory::DVBS2::build_agc_shift                <>(params             ));
-	uptr<Estimator<>                 > estimator    (factory::DVBS2::build_estimator                <>(params, &noise_ref ));
-	uptr<Multiplier_fading_DVBS2<>   > fad_mlt      (factory::DVBS2::build_fading_mult              <>(params             ));
-	uptr<Synchronizer_freq_coarse<>  > sync_coarse_f(factory::DVBS2::build_synchronizer_freq_coarse <>(params             ));
-	uptr<Synchronizer_freq_fine<>    > sync_fine_pf (factory::DVBS2::build_synchronizer_freq_phase  <>(params             ));
-	uptr<Synchronizer_freq_fine<>    > sync_fine_lr (factory::DVBS2::build_synchronizer_lr          <>(params             ));
-	uptr<Synchronizer_step_mf_cc<>   > sync_step_mf (factory::DVBS2::build_synchronizer_step_mf_cc  <>(params,
-	                                                                                                   sync_coarse_f.get(),
-	                                                                                                   matched_flt  .get(),
-	                                                                                                   sync_timing  .get()));
+	uptr<Source<>                    > source        (factory::DVBS2::build_source                   <>(params             ));
+	uptr<Sink<>                      > sink          (factory::DVBS2::build_sink                     <>(params             ));
+	uptr<Channel<>                   > channel       (factory::DVBS2::build_channel                  <>(params, gen        ));
+	uptr<Scrambler<>                 > bb_scrambler  (factory::DVBS2::build_bb_scrambler             <>(params             ));
+	uptr<Scrambler<>                 > bb_descrambler(factory::DVBS2::build_bb_scrambler             <>(params             ));
+	uptr<Encoder<>                   > BCH_encoder   (factory::DVBS2::build_bch_encoder              <>(params, poly_gen   ));
+	uptr<Decoder_HIHO<>              > BCH_decoder   (factory::DVBS2::build_bch_decoder              <>(params, poly_gen   ));
+	uptr<Codec_SIHO<>                > LDPC_cdc      (factory::DVBS2::build_ldpc_cdc                 <>(params             ));
+	uptr<Interleaver<>               > itl_tx        (factory::DVBS2::build_itl                      <>(params, *itl_core  ));
+	uptr<Interleaver<float,uint32_t> > itl_rx        (factory::DVBS2::build_itl<float,uint32_t>        (params, *itl_core  ));
+	uptr<Modem<>                     > modem         (factory::DVBS2::build_modem                    <>(params, &cstl      ));
+	uptr<Filter_UPRRC_ccr_naive<>    > shaping_flt   (factory::DVBS2::build_uprrc_filter             <>(params             ));
+	uptr<Multiplier_sine_ccc_naive<> > freq_shift    (factory::DVBS2::build_freq_shift               <>(params             ));
+	uptr<Filter_Farrow_ccr_naive<>   > chn_frac_del  (factory::DVBS2::build_channel_frac_delay       <>(params             ));
+	uptr<Variable_delay_cc_naive<>   > chn_int_del   (factory::DVBS2::build_channel_int_delay        <>(params             ));
+	uptr<Filter_buffered_delay<float>> chn_frm_del   (factory::DVBS2::build_channel_frame_delay      <>(params             ));
+	uptr<Synchronizer_frame<>        > sync_frame    (factory::DVBS2::build_synchronizer_frame       <>(params             ));
+	uptr<Framer<>                    > framer        (factory::DVBS2::build_framer                   <>(params             ));
+	uptr<Scrambler<float>            > pl_scrambler  (factory::DVBS2::build_pl_scrambler             <>(params             ));
+	uptr<Filter_buffered_delay<>     > delay         (factory::DVBS2::build_txrx_delay               <>(params             ));
+	uptr<Monitor_BFER<>              > monitor       (factory::DVBS2::build_monitor                  <>(params             ));
+	uptr<Filter_RRC_ccr_naive<>      > matched_flt   (factory::DVBS2::build_matched_filter           <>(params             ));
+	uptr<Synchronizer_timing<>       > sync_timing   (factory::DVBS2::build_synchronizer_timing      <>(params             ));
+	uptr<Multiplier_AGC_cc_naive<>   > mult_agc      (factory::DVBS2::build_agc_shift                <>(params             ));
+	uptr<Estimator<>                 > estimator     (factory::DVBS2::build_estimator                <>(params, &noise_ref ));
+	uptr<Multiplier_fading_DVBS2<>   > fad_mlt       (factory::DVBS2::build_fading_mult              <>(params             ));
+	uptr<Synchronizer_freq_coarse<>  > sync_coarse_f (factory::DVBS2::build_synchronizer_freq_coarse <>(params             ));
+	uptr<Synchronizer_freq_fine<>    > sync_fine_pf  (factory::DVBS2::build_synchronizer_freq_phase  <>(params             ));
+	uptr<Synchronizer_freq_fine<>    > sync_fine_lr  (factory::DVBS2::build_synchronizer_lr          <>(params             ));
+	uptr<Synchronizer_step_mf_cc<>   > sync_step_mf  (factory::DVBS2::build_synchronizer_step_mf_cc  <>(params,
+	                                                                                                    sync_coarse_f.get(),
+	                                                                                                    matched_flt  .get(),
+	                                                                                                    sync_timing  .get()));
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
@@ -175,68 +176,68 @@ int main(int argc, char** argv)
 
 	// socket binding of the full transmission sequence
 	// delay line for BER/FER
-	(*delay           )[flt::sck::filter       ::X_N1].bind((*source       )[src::sck::generate     ::U_K   ]);
+	(*delay           )[flt::sck::filter       ::X_N1].bind((*source        )[src::sck::generate     ::U_K   ]);
 	// TX
-	(*bb_scrambler    )[scr::sck::scramble     ::X_N1].bind((*source       )[src::sck::generate     ::U_K   ]);
-	(*BCH_encoder     )[enc::sck::encode       ::U_K ].bind((*bb_scrambler )[scr::sck::scramble     ::X_N2  ]);
-	(*LDPC_encoder    )[enc::sck::encode       ::U_K ].bind((*BCH_encoder  )[enc::sck::encode       ::X_N   ]);
-	(*itl_tx          )[itl::sck::interleave   ::nat ].bind((*LDPC_encoder )[enc::sck::encode       ::X_N   ]);
-	(*modem           )[mdm::sck::modulate     ::X_N1].bind((*itl_tx       )[itl::sck::interleave   ::itl   ]);
-	(*framer          )[frm::sck::generate     ::Y_N1].bind((*modem        )[mdm::sck::modulate     ::X_N2  ]);
-	(*pl_scrambler    )[scr::sck::scramble     ::X_N1].bind((*framer       )[frm::sck::generate     ::Y_N2  ]);
-	(*shaping_flt     )[flt::sck::filter       ::X_N1].bind((*pl_scrambler )[scr::sck::scramble     ::X_N2  ]);
+	(*bb_scrambler    )[scr::sck::scramble     ::X_N1].bind((*source        )[src::sck::generate     ::U_K   ]);
+	(*BCH_encoder     )[enc::sck::encode       ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble     ::X_N2  ]);
+	(*LDPC_encoder    )[enc::sck::encode       ::U_K ].bind((*BCH_encoder   )[enc::sck::encode       ::X_N   ]);
+	(*itl_tx          )[itl::sck::interleave   ::nat ].bind((*LDPC_encoder  )[enc::sck::encode       ::X_N   ]);
+	(*modem           )[mdm::sck::modulate     ::X_N1].bind((*itl_tx        )[itl::sck::interleave   ::itl   ]);
+	(*framer          )[frm::sck::generate     ::Y_N1].bind((*modem         )[mdm::sck::modulate     ::X_N2  ]);
+	(*pl_scrambler    )[scr::sck::scramble     ::X_N1].bind((*framer        )[frm::sck::generate     ::Y_N2  ]);
+	(*shaping_flt     )[flt::sck::filter       ::X_N1].bind((*pl_scrambler  )[scr::sck::scramble     ::X_N2  ]);
 	// Channel
-	(*fad_mlt         )[mlt::sck::imultiply    ::X_N ].bind((*shaping_flt  )[flt::sck::filter       ::Y_N2  ]);
-	(*chn_frm_del     )[flt::sck::filter       ::X_N1].bind((*fad_mlt      )[mlt::sck::imultiply    ::Z_N   ]);
-	(*chn_int_del     )[flt::sck::filter       ::X_N1].bind((*chn_frm_del  )[flt::sck::filter       ::Y_N2  ]);
-	(*chn_frac_del    )[flt::sck::filter       ::X_N1].bind((*chn_int_del  )[flt::sck::filter       ::Y_N2  ]);
-	(*freq_shift      )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del )[flt::sck::filter       ::Y_N2  ]);
-	(*channel         )[chn::sck::add_noise    ::X_N ].bind((*freq_shift   )[mlt::sck::imultiply    ::Z_N   ]);
+	(*fad_mlt         )[mlt::sck::imultiply    ::X_N ].bind((*shaping_flt   )[flt::sck::filter       ::Y_N2  ]);
+	(*chn_frm_del     )[flt::sck::filter       ::X_N1].bind((*fad_mlt       )[mlt::sck::imultiply    ::Z_N   ]);
+	(*chn_int_del     )[flt::sck::filter       ::X_N1].bind((*chn_frm_del   )[flt::sck::filter       ::Y_N2  ]);
+	(*chn_frac_del    )[flt::sck::filter       ::X_N1].bind((*chn_int_del   )[flt::sck::filter       ::Y_N2  ]);
+	(*freq_shift      )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del  )[flt::sck::filter       ::Y_N2  ]);
+	(*channel         )[chn::sck::add_noise    ::X_N ].bind((*freq_shift    )[mlt::sck::imultiply    ::Z_N   ]);
 	// RX
-	(*sync_coarse_f   )[sfc::sck::synchronize  ::X_N1].bind((*channel      )[chn::sck::add_noise    ::Y_N   ]);
-	(*matched_flt     )[flt::sck::filter       ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize  ::Y_N2  ]);
-	(*sync_timing     )[stm::sck::synchronize  ::X_N1].bind((*matched_flt  )[flt::sck::filter       ::Y_N2  ]);
-	(*sync_timing     )[stm::sck::extract      ::B_N1].bind((*sync_timing  )[stm::sck::synchronize  ::B_N1  ]);
-	(*sync_timing     )[stm::sck::extract      ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize  ::Y_N1  ]);
-	(*mult_agc        )[mlt::sck::imultiply    ::X_N ].bind((*sync_timing  )[stm::sck::extract      ::Y_N2  ]);
-	(*sync_frame      )[sfm::sck::synchronize  ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply    ::Z_N   ]);
-	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize  ::Y_N2  ]);
-	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler )[scr::sck::descramble   ::Y_N2  ]);
-	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr )[sff::sck::synchronize  ::Y_N2  ]);
-	(*framer          )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf )[sff::sck::synchronize  ::Y_N2  ]);
-	(*estimator       )[est::sck::rescale      ::X_N ].bind((*framer       )[frm::sck::remove_plh   ::Y_N2  ]);
-	(*modem           )[mdm::sck::demodulate_wg::H_N ].bind((*estimator    )[est::sck::rescale      ::H_N   ]);
-	(*modem           )[mdm::sck::demodulate_wg::Y_N1].bind((*estimator    )[est::sck::rescale      ::Y_N   ]);
-	(*itl_rx          )[itl::sck::deinterleave ::itl ].bind((*modem        )[mdm::sck::demodulate_wg::Y_N2  ]);
-	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx       )[itl::sck::deinterleave ::nat   ]);
-	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::V_K   ]);
-	(*bb_scrambler    )[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::V_K   ]);
-	(*monitor         )[mnt::sck::check_errors2::U   ].bind((*delay        )[flt::sck::filter       ::Y_N2  ]);
-	(*monitor         )[mnt::sck::check_errors2::V   ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
-	(*sink            )[snk::sck::send         ::V   ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
+	(*sync_coarse_f   )[sfc::sck::synchronize  ::X_N1].bind((*channel       )[chn::sck::add_noise    ::Y_N   ]);
+	(*matched_flt     )[flt::sck::filter       ::X_N1].bind((*sync_coarse_f )[sfc::sck::synchronize  ::Y_N2  ]);
+	(*sync_timing     )[stm::sck::synchronize  ::X_N1].bind((*matched_flt   )[flt::sck::filter       ::Y_N2  ]);
+	(*sync_timing     )[stm::sck::extract      ::B_N1].bind((*sync_timing   )[stm::sck::synchronize  ::B_N1  ]);
+	(*sync_timing     )[stm::sck::extract      ::Y_N1].bind((*sync_timing   )[stm::sck::synchronize  ::Y_N1  ]);
+	(*mult_agc        )[mlt::sck::imultiply    ::X_N ].bind((*sync_timing   )[stm::sck::extract      ::Y_N2  ]);
+	(*sync_frame      )[sfm::sck::synchronize  ::X_N1].bind((*mult_agc      )[mlt::sck::imultiply    ::Z_N   ]);
+	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1].bind((*sync_frame    )[sfm::sck::synchronize  ::Y_N2  ]);
+	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler  )[scr::sck::descramble   ::Y_N2  ]);
+	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr  )[sff::sck::synchronize  ::Y_N2  ]);
+	(*framer          )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf  )[sff::sck::synchronize  ::Y_N2  ]);
+	(*estimator       )[est::sck::rescale      ::X_N ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2  ]);
+	(*modem           )[mdm::sck::demodulate_wg::H_N ].bind((*estimator     )[est::sck::rescale      ::H_N   ]);
+	(*modem           )[mdm::sck::demodulate_wg::Y_N1].bind((*estimator     )[est::sck::rescale      ::Y_N   ]);
+	(*itl_rx          )[itl::sck::deinterleave ::itl ].bind((*modem         )[mdm::sck::demodulate_wg::Y_N2  ]);
+	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx        )[itl::sck::deinterleave ::nat   ]);
+	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder  )[dec::sck::decode_siho  ::V_K   ]);
+	(*bb_descrambler  )[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder   )[dec::sck::decode_hiho  ::V_K   ]);
+	(*monitor         )[mnt::sck::check_errors2::U   ].bind((*delay         )[flt::sck::filter       ::Y_N2  ]);
+	(*monitor         )[mnt::sck::check_errors2::V   ].bind((*bb_descrambler)[scr::sck::descramble   ::Y_N2  ]);
+	(*sink            )[snk::sck::send         ::V   ].bind((*bb_descrambler)[scr::sck::descramble   ::Y_N2  ]);
 	// bind the RX probes
-	(*prb_frq_coa     )[prb::sck::probe        ::in  ].bind((*sync_coarse_f)[sfc::sck::synchronize  ::FRQ   ]);
-	(*prb_stm_del     )[prb::sck::probe        ::in  ].bind((*sync_timing  )[stm::sck::synchronize  ::MU    ]);
-	(*prb_stm_uff     )[prb::sck::probe        ::in  ].bind((*sync_timing  )[stm::sck::extract      ::UFW   ]);
-	(*prb_sfm_del     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::DEL   ]);
-	(*prb_sfm_tri     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::TRI   ]);
-	(*prb_sfm_flg     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::FLG   ]);
-	(*prb_frq_lr      )[prb::sck::probe        ::in  ].bind((*sync_fine_lr )[sff::sck::synchronize  ::FRQ   ]);
-	(*prb_frq_fin     )[prb::sck::probe        ::in  ].bind((*sync_fine_pf )[sff::sck::synchronize  ::FRQ   ]);
-	(*prb_noise_ees   )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::Es_N0 ]);
-	(*prb_noise_eeb   )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::Eb_N0 ]);
-	(*prb_noise_esig  )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::SIG   ]);
-	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::status]);
-	(*prb_decstat_bch )[prb::sck::probe        ::in  ].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::status]);
-	(*prb_thr_thr     )[prb::sck::probe        ::in  ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
-	(*prb_thr_lat     )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
-	(*prb_thr_time    )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
-	(*prb_thr_tsta    )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
-	(*prb_bfer_be     )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::BE    ]);
-	(*prb_bfer_fe     )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::FE    ]);
-	(*prb_bfer_ber    )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::BER   ]);
-	(*prb_bfer_fer    )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::FER   ]);
-	(*prb_fra_id      )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
+	(*prb_frq_coa     )[prb::sck::probe        ::in  ].bind((*sync_coarse_f )[sfc::sck::synchronize  ::FRQ   ]);
+	(*prb_stm_del     )[prb::sck::probe        ::in  ].bind((*sync_timing   )[stm::sck::synchronize  ::MU    ]);
+	(*prb_stm_uff     )[prb::sck::probe        ::in  ].bind((*sync_timing   )[stm::sck::extract      ::UFW   ]);
+	(*prb_sfm_del     )[prb::sck::probe        ::in  ].bind((*sync_frame    )[sfm::sck::synchronize  ::DEL   ]);
+	(*prb_sfm_tri     )[prb::sck::probe        ::in  ].bind((*sync_frame    )[sfm::sck::synchronize  ::TRI   ]);
+	(*prb_sfm_flg     )[prb::sck::probe        ::in  ].bind((*sync_frame    )[sfm::sck::synchronize  ::FLG   ]);
+	(*prb_frq_lr      )[prb::sck::probe        ::in  ].bind((*sync_fine_lr  )[sff::sck::synchronize  ::FRQ   ]);
+	(*prb_frq_fin     )[prb::sck::probe        ::in  ].bind((*sync_fine_pf  )[sff::sck::synchronize  ::FRQ   ]);
+	(*prb_noise_ees   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::rescale      ::Es_N0 ]);
+	(*prb_noise_eeb   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::rescale      ::Eb_N0 ]);
+	(*prb_noise_esig  )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::rescale      ::SIG   ]);
+	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ].bind((*LDPC_decoder  )[dec::sck::decode_siho  ::status]);
+	(*prb_decstat_bch )[prb::sck::probe        ::in  ].bind((*BCH_decoder   )[dec::sck::decode_hiho  ::status]);
+	(*prb_thr_thr     )[prb::sck::probe        ::in  ].bind((*bb_descrambler)[scr::sck::descramble   ::Y_N2  ]);
+	(*prb_thr_lat     )[prb::sck::probe        ::in  ].bind((*sink          )[snk::sck::send         ::status]);
+	(*prb_thr_time    )[prb::sck::probe        ::in  ].bind((*sink          )[snk::sck::send         ::status]);
+	(*prb_thr_tsta    )[prb::sck::probe        ::in  ].bind((*sink          )[snk::sck::send         ::status]);
+	(*prb_bfer_be     )[prb::sck::probe        ::in  ].bind((*monitor       )[mnt::sck::check_errors2::BE    ]);
+	(*prb_bfer_fe     )[prb::sck::probe        ::in  ].bind((*monitor       )[mnt::sck::check_errors2::FE    ]);
+	(*prb_bfer_ber    )[prb::sck::probe        ::in  ].bind((*monitor       )[mnt::sck::check_errors2::BER   ]);
+	(*prb_bfer_fer    )[prb::sck::probe        ::in  ].bind((*monitor       )[mnt::sck::check_errors2::FER   ]);
+	(*prb_fra_id      )[prb::sck::probe        ::in  ].bind((*sink          )[snk::sck::send         ::status]);
 
 	// first stages of the whole transmission sequence
 	const std::vector<module::Task*> firsts_t = { &(*source        )[src::tsk::generate],
@@ -304,7 +305,7 @@ int main(int argc, char** argv)
 	  // pipeline stage 9 -> RX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*modem)[mdm::tsk::demodulate_wg] },
-	    { &(*bb_scrambler)[scr::tsk::descramble] },
+	    { &(*bb_descrambler)[scr::tsk::descramble] },
 	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
 	      &(*prb_thr_thr)[prb::tsk::probe] } ),
 	  // pipeline stage 10 -> RX
@@ -473,9 +474,13 @@ int main(int argc, char** argv)
 				{
 					terminal_stats.temp_report(waiting_stats);
 				}
-				else if (enable_logs)
-					std::clog << rang::tag::warning << "Sequence aborted! (waiting phase, m = " << m << ")"
-					          << std::endl;
+				else
+				{
+					delay_tx_rx += params.n_frames;
+					if (enable_logs)
+						std::clog << rang::tag::warning << "Sequence aborted! (waiting phase, m = " << m << ")"
+						          << std::endl;
+				}
 
 				return sync_frame->get_packet_flag();
 			});
@@ -500,9 +505,13 @@ int main(int argc, char** argv)
 				const auto m = prb_fra_id->get_occurrences();
 				if (statuses.back() != status_t::SKIPPED)
 					terminal_stats.temp_report(stats_file);
-				else if (enable_logs)
-					std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")"
-					          << std::endl;
+				else
+				{
+					delay_tx_rx += params.n_frames;
+					if (enable_logs)
+						std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")"
+						          << std::endl;
+				}
 
 				if (limit == 150 && m >= 150)
 				{
@@ -569,9 +578,13 @@ int main(int argc, char** argv)
 				const auto m = prb_fra_id->get_occurrences();
 				if (statuses.back() != status_t::SKIPPED)
 					terminal_stats.temp_report(stats_file);
-				else if (enable_logs)
-					std::clog << rang::tag::warning << "Sequence aborted! (learning phase 3, m = " << m << ")"
-					          << std::endl;
+				else
+				{
+					delay_tx_rx += params.n_frames;
+					if (enable_logs)
+						std::clog << rang::tag::warning << "Sequence aborted! (learning phase 3, m = " << m << ")"
+						          << std::endl;
+				}
 				return m >= limit;
 			});
 		}
