@@ -13,7 +13,7 @@ using namespace aff3ct::module;
 #define MULTI_THREADED // comment this line to disable multi-threaded RX
 
 // global parameters
-constexpr bool enable_logs = true;
+constexpr bool enable_logs = false;
 #ifdef MULTI_THREADED
 constexpr bool thread_pinnig = true;
 constexpr bool active_waiting = false;

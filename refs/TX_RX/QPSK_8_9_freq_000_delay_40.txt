@@ -1,5 +1,5 @@
 [metadata]
-command=dvbs2_tx_rx -m 3.4 -M 3.81 -s 0.1 --chn-max-freq-shift 0 --chn-max-delay 4.0 --no-sync-info --frame-sync-fast
+command=dvbs2_tx_rx -m 3.4 -M 3.81 -s 0.1 --chn-max-freq-shift 0 --chn-max-delay 4.0
 
 [trace]
 # * DVB-S2 ----------------------------------------

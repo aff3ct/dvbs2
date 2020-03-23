@@ -10,8 +10,15 @@
 using namespace aff3ct;
 using namespace aff3ct::module;
 
+#define MULTI_THREADED // comment this line to disable multi-threaded TX/RX baseband
+
 // global parameters
-constexpr bool enable_logs = true;
+constexpr bool enable_logs = false;
+#ifdef MULTI_THREADED
+const size_t n_threads = std::thread::hardware_concurrency();
+#else
+const size_t n_threads = 1;
+#endif /* MULTI_THREADED */
 
 // aliases
 namespace aff3ct { namespace module { using Monitor_BFER_reduction = Monitor_reduction<Monitor_BFER<>>; } }
@@ -85,7 +92,7 @@ int main(int argc, char** argv)
 	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
-	tools::Sequence sequence_transmission((*source)[src::tsk::generate], std::thread::hardware_concurrency());
+	tools::Sequence sequence_transmission((*source)[src::tsk::generate], n_threads);
 
 	if (enable_logs)
 	{

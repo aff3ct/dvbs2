@@ -45,9 +45,9 @@ struct DVBS2 : Factory
 {
 public:
 	// const
-	const int   N_ldpc    = 16200;
-	const int   M         = 90;    // number of symbols per slot
-	const int   P         = 36;    // number of symbols per pilot
+	const int N_ldpc = 16200;
+	const int M      = 90;    // number of symbols per slot
+	const int P      = 36;    // number of symbols per pilot
 
 	const std::vector<float> pilot_values = std::vector<float  > (P*2, std::sqrt(2.0f)/2.0f);
 	const std::vector<int  > pilot_start  = {1530, 3006, 4482, 5958, 7434};
@@ -67,7 +67,6 @@ public:
 	int   overall_delay;
 	bool  debug;
 	bool  stats;
-	bool  no_sync_info;
 	bool  src_fifo;
 	bool  display_help;
 	bool  perfect_sync;
@@ -79,9 +78,9 @@ public:
 	int   N_bch_unshortened;
 	int   ldpc_nite;
 	int   bps;
-	int   N_xfec_frame;              // number of complex symbols
+	int   N_xfec_frame; // number of complex symbols
 	int   N_pilots;
-	int   S;                         // number of slots
+	int   S;            // number of slots
 	int   pl_frame_size;
 	int   itl_n_cols;
 	int   n_frames;

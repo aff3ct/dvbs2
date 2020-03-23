@@ -14,7 +14,7 @@
 using namespace aff3ct;
 using namespace aff3ct::module;
 
-#define MULTI_THREADED // comment this line to disable multi-threaded RX
+#define MULTI_THREADED // comment this line to disable multi-threaded TX/RX
 
 // global parameters
 constexpr bool enable_logs = false;
@@ -716,6 +716,9 @@ int main(int argc, char** argv)
 				terminal.legend();
 			}
 		}
+
+		// if user pressed Ctrl+c twice, exit the SNRs loop
+		if (tools::Terminal::is_over()) break;
 	}
 
 	std::cout << "#" << std::endl;
