@@ -1,10 +1,3 @@
-/*!
- * \file
- * \brief Generates a message.
- *
- * \section LICENSE
- * This file is under MIT license (https://opensource.org/licenses/MIT).
- */
 #ifndef ESTIMATOR_PERFECT_HPP
 #define ESTIMATOR_PERFECT_HPP
 

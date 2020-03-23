@@ -34,7 +34,8 @@ public:
 	std::string rx_antenna      = "RX2";
 	double rx_freq             = 1090e6;
 	double rx_gain             = 10;
-	std::string rx_filepath    = "radio.bin";
+	std::string rx_filepath    = "";
+	std::string tx_filepath    = "";
 
 	bool tx_enabled            = false;
 	double tx_rate             = 0; // if tx_rate is not overriden, tx is disabled

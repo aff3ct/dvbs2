@@ -1,13 +1,3 @@
-/*!
- * \file
- * \brief Generates a message.
- *
- * \section LICENSE
- * This file is under MIT license (https://opensource.org/licenses/MIT).
- */
-#ifndef ESTIMATOR_DVBS2_HXX
-#define ESTIMATOR_DVBS2_HXX
-
 #include <sstream>
 #include <complex>
 
@@ -66,6 +56,8 @@ _estimate(const R *X_N, R *H_N, const int frame_id)
 	float Se      = std::sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
 	float Ne      = std::abs( moment2 - Se );
 	float esn0_estimated = 10 * std::log10(Se / Ne);
+	// saturate 'esn0_estimated' to 100 dB
+	esn0_estimated = std::isinf(esn0_estimated) ? 100. : esn0_estimated;
 
 	pow_tot = moment2;
 
@@ -85,6 +77,7 @@ _estimate(const R *X_N, R *H_N, const int frame_id)
 		H_N[2*i+1] = 0;
 	}
 
+	this->sigma_estimated = sigma_estimated;
 	this->ebn0_estimated = ebn0_estimated;
 	this->esn0_estimated = esn0_estimated;
 }
@@ -107,6 +100,8 @@ _rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
 	float Se      = std::sqrt( std::abs(2 * moment2 * moment2 - moment4 ) );
 	float Ne      = std::abs( moment2 - Se );
 	float esn0_estimated = 10 * std::log10(Se / Ne);
+	// saturate 'esn0_estimated' to 100 dB
+	esn0_estimated = std::isinf(esn0_estimated) ? 100. : esn0_estimated;
 
 	const auto sigma_estimated = tools::esn0_to_sigma(esn0_estimated);
 	const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, code_rate, bps);
@@ -125,9 +120,9 @@ _rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
 		H_N[2*i+1] = 0;
 	}
 
-	this->ebn0_estimated = ebn0_estimated;
-	this->esn0_estimated = esn0_estimated;
+	this->sigma_estimated = sigma_estimated;
+	this->ebn0_estimated  = ebn0_estimated;
+	this->esn0_estimated  = esn0_estimated;
 }
 }
 }
-#endif

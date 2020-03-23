@@ -1,10 +1,3 @@
-/*!
- * \file
- * \brief Generates a message.
- *
- * \section LICENSE
- * This file is under MIT license (https://opensource.org/licenses/MIT).
- */
 #ifndef ESTIMATOR_DVBS2_HPP
 #define ESTIMATOR_DVBS2_HPP
 

@@ -10,8 +10,15 @@
 using namespace aff3ct;
 using namespace aff3ct::module;
 
+#define MULTI_THREADED // comment this line to disable multi-threaded TX/RX baseband
+
 // global parameters
-constexpr bool enable_logs = true;
+constexpr bool enable_logs = false;
+#ifdef MULTI_THREADED
+const size_t n_threads = std::thread::hardware_concurrency();
+#else
+const size_t n_threads = 1;
+#endif /* MULTI_THREADED */
 
 // aliases
 namespace aff3ct { namespace module { using Monitor_BFER_reduction = Monitor_reduction<Monitor_BFER<>>; } }
@@ -58,28 +65,11 @@ int main(int argc, char** argv)
 	estimator->set_noise(noise_est );
 	modem    ->set_noise(noise_fake);
 
+	// add custom name to some modules
 	LDPC_encoder->set_custom_name("LDPC Encoder");
 	LDPC_decoder->set_custom_name("LDPC Decoder");
 	BCH_encoder ->set_custom_name("BCH Encoder" );
 	BCH_decoder ->set_custom_name("BCH Decoder" );
-
-	// fulfill the list of modules
-	std::vector<const Module*> modules;
-	modules = { bb_scrambler.get(), BCH_encoder.get(), BCH_decoder.get(), LDPC_encoder      , LDPC_decoder      ,
-	            itl_tx      .get(), itl_rx     .get(), modem      .get(), framer      .get(), pl_scrambler.get(),
-	            source      .get(), monitor    .get(), channel    .get(), estimator   .get()                      };
-
-	// configuration of the module tasks
-	for (auto& m : modules) for (auto& ta : m->tasks)
-	{
-		ta->set_autoalloc  (true              ); // enable the automatic allocation of the data in the tasks
-		ta->set_debug      (params.debug      ); // disable the debug mode
-		ta->set_debug_limit(params.debug_limit); // display only the 16 first bits if the debug mode is enabled
-		ta->set_stats      (params.stats      ); // enable the statistics
-
-		if (!ta->is_debug() && !ta->is_stats())
-			ta->set_fast(true);
-	}
 
 	// socket binding
 	(*bb_scrambler)[scr::sck::scramble     ::X_N1].bind((*source      )[src::sck::generate     ::U_K ]);
@@ -102,25 +92,39 @@ int main(int argc, char** argv)
 	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
 	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
 
-	tools::Chain chain((*source)[src::tsk::generate], std::thread::hardware_concurrency());
+	tools::Sequence sequence_transmission((*source)[src::tsk::generate], n_threads);
 
 	if (enable_logs)
 	{
-		std::ofstream f("chain.dot");
-		chain.export_dot(f);
+		std::ofstream f("tx_rx_bb_sequence_transmission.dot");
+		sequence_transmission.export_dot(f);
+	}
+
+	// configuration of the sequence tasks
+	for (auto& type : sequence_transmission.get_tasks_per_types()) for (auto& tsk : type)
+	{
+		tsk->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
+		tsk->set_debug          (params.debug      ); // disable the debug mode
+		tsk->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
+		tsk->set_debug_precision(8                 );
+		tsk->set_stats          (params.stats      ); // enable the statistics
+
+		// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
+		if (!tsk->is_debug() && !tsk->is_stats())
+			tsk->set_fast(true);
 	}
 
 	// registering to noise updates
-	for (auto &m : chain.get_modules<Channel<>>())
+	for (auto &m : sequence_transmission.get_modules<Channel<>>())
 		noise_ref.record_callback_update([m](){ m->notify_noise_update(); });
 
 	// set different seeds in the modules that uses PRNG
 	std::mt19937 prng;
-	for (auto &m : chain.get_modules<tools::Interface_set_seed>())
+	for (auto &m : sequence_transmission.get_modules<tools::Interface_set_seed>())
 		m->set_seed(prng());
 
 	// allocate a common monitor module to reduce all the monitors
-	Monitor_BFER_reduction monitor_red(chain.get_modules<Monitor_BFER<>>());
+	Monitor_BFER_reduction monitor_red(sequence_transmission.get_modules<Monitor_BFER<>>());
 	monitor_red.set_reduce_frequency(std::chrono::milliseconds(500));
 	monitor_red.check_reducible();
 
@@ -151,8 +155,10 @@ int main(int argc, char** argv)
 		if (params.ter_freq != std::chrono::nanoseconds(0))
 			terminal.start_temp_report(params.ter_freq);
 
-		// execute the simulation chain
-		chain.exec([&monitor_red]() { return monitor_red.is_done_all() || tools::Terminal::is_interrupt(); });
+		// execute the simulation sequence
+		sequence_transmission.exec([&monitor_red]() {
+			return monitor_red.is_done_all() || tools::Terminal::is_interrupt();
+		});
 
 		// final reduction
 		const bool fully = true;
@@ -170,9 +176,9 @@ int main(int argc, char** argv)
 		{
 			std::cout << "#" << std::endl;
 			const auto ordered = true;
-			tools::Stats::show(chain.get_tasks_per_types(), ordered);
+			tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
 
-			for (auto &tt : chain.get_tasks_per_types())
+			for (auto &tt : sequence_transmission.get_tasks_per_types())
 				for (auto &t : tt)
 					t->reset();
 
