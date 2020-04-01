@@ -48,7 +48,7 @@ iface eth2 inet static
     mtu 8000
 ```
 
-- Example file for 18.04 Server: `/etc/netplan/50-cloud-init.yaml/`
+- Example file for 18.04 Server: `/etc/netplan/50-cloud-init.yaml`
 
 
 ```bash
