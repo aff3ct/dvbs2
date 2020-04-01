@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 
 #ifdef DVBS2_LINK_UHD
 	// stop the radio thread
-	auto radio_usrp = reinterpret_cast<Radio_USRP<>*>(radio.get());
+	auto radio_usrp = dynamic_cast<Radio_USRP<>*>(radio.get());
 	if (radio_usrp != nullptr)
 		radio_usrp->cancel_waiting();
 #endif
