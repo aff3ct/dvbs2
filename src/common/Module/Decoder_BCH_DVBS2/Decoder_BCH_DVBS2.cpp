@@ -9,8 +9,8 @@ using namespace aff3ct::module;
 
 template <typename B, typename R>
 Decoder_BCH_DVBS2<B, R>
-::Decoder_BCH_DVBS2(const int& K, const int& N, const tools::BCH_polynomial_generator<B>& GF_poly, const int n_frames)
-: Decoder_BCH_std<B, R>(K, N, GF_poly, n_frames)
+::Decoder_BCH_DVBS2(const int& K, const int& N, const tools::BCH_polynomial_generator<B>& GF_poly)
+: Decoder_BCH_std<B, R>(K, N, GF_poly)
 {
 	const std::string name = "Decoder_BCH_DVBS2";
 	this->set_name(name);
@@ -27,7 +27,7 @@ Decoder_BCH_DVBS2<B,R>* Decoder_BCH_DVBS2<B,R>
 
 template <typename B, typename R>
 int Decoder_BCH_DVBS2<B, R>
-::_decode_hiho(const B *Y_N, B *V_K, const int frame_id)
+::_decode_hiho(const B *Y_N, int8_t *CWD, B *V_K, const size_t frame_id)
 {
 	std::reverse_copy(Y_N, Y_N + this->N, this->YH_N.begin());
 
@@ -35,26 +35,27 @@ int Decoder_BCH_DVBS2<B, R>
 
 	std::reverse_copy(this->YH_N.data() + this->N - this->K, this->YH_N.data() + this->N, V_K);
 
+	CWD[0] = !status;
 	return status;
 }
 
 template <typename B, typename R>
 int Decoder_BCH_DVBS2<B, R>
-::_decode_hiho_cw(const B *Y_N, B *V_N, const int frame_id)
+::_decode_hiho_cw(const B *Y_N, int8_t *CWD, B *V_N, const size_t frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename B, typename R>
 int Decoder_BCH_DVBS2<B, R>
-::_decode_siho(const R *Y_N, B *V_K, const int frame_id)
+::_decode_siho(const R *Y_N, int8_t *CWD, B *V_K, const size_t frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename B, typename R>
 int Decoder_BCH_DVBS2<B, R>
-::_decode_siho_cw(const R *Y_N, B *V_N, const int frame_id)
+::_decode_siho_cw(const R *Y_N, int8_t *CWD, B *V_N, const size_t frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }

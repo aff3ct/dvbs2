@@ -16,7 +16,7 @@ Synchronizer_step_mf_cc<B,R>
                            aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
                            aff3ct::module::Synchronizer_timing<B,R>    *sync_timing,
                            const int n_frames)
-: Module(n_frames),
+: Module(),
   last_delay(0),
   N_in(sync_coarse_f->get_N()),
   N_out(sync_timing->get_N_in()),
@@ -29,6 +29,8 @@ Synchronizer_step_mf_cc<B,R>
 	const std::string name = "Sync_step_mf";
 	this->set_name(name);
 	this->set_short_name(name);
+	this->set_n_frames(n_frames);
+	this->set_single_wave(true);
 
 	if (N_in <= 0)
 	{
@@ -52,7 +54,7 @@ Synchronizer_step_mf_cc<B,R>
 	auto p1s_PHS   = this->template create_socket_out<R  >(p1, "PHS"  , 1          );
 	auto p1s_Y_N1  = this->template create_socket_out<R  >(p1, "Y_N1" , this->N_out);
 	auto p1s_B_N1  = this->template create_socket_out<B  >(p1, "B_N1" , this->N_out);
-	this->create_codelet(p1, [p1s_delay, p1s_X_N1, p1s_MU, p1s_FRQ, p1s_PHS, p1s_Y_N1, p1s_B_N1](Module &m, Task &t) -> int
+	this->create_codelet(p1, [p1s_delay, p1s_X_N1, p1s_MU, p1s_FRQ, p1s_PHS, p1s_Y_N1, p1s_B_N1](Module &m, Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Synchronizer_step_mf_cc<B,R>&>(m).synchronize(static_cast<int*>(t[p1s_delay].get_dataptr()),
 		                                                          static_cast<R*  >(t[p1s_X_N1 ].get_dataptr()),

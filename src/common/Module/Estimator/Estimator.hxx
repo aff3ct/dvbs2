@@ -10,11 +10,13 @@ namespace module
 template <typename R>
 Estimator<R>
 ::Estimator(const int N, const int n_frames)
-: Module(n_frames), N(N), noise(nullptr), sigma_estimated(0), ebn0_estimated(0), esn0_estimated(0)
+: Module(), N(N), noise(nullptr), sigma_estimated(0), ebn0_estimated(0), esn0_estimated(0)
 {
 	const std::string name = "Estimator";
 	this->set_name(name);
 	this->set_short_name(name);
+	this->set_n_frames(n_frames);
+	this->set_single_wave(true);
 
 	if (N <= 0)
 	{
@@ -30,7 +32,7 @@ Estimator<R>
 	auto p1s_Es_N0 = this->template create_socket_out<R>(p1, "Es_N0",       1);
 	auto p1s_H_N   = this->template create_socket_out<R>(p1, "H_N"  , this->N);
 
-	this->create_codelet(p1, [p1s_X_N, p1s_SIG, p1s_Eb_N0, p1s_Es_N0, p1s_H_N](Module& m, Task& t) -> int
+	this->create_codelet(p1, [p1s_X_N, p1s_SIG, p1s_Eb_N0, p1s_Es_N0, p1s_H_N](Module& m, Task& t, const size_t frame_id) -> int
 	{
 		static_cast<Estimator<R>&>(m).estimate(static_cast<R*>(t[p1s_X_N  ].get_dataptr()),
 		                                       static_cast<R*>(t[p1s_SIG  ].get_dataptr()),
@@ -49,7 +51,7 @@ Estimator<R>
 	auto p2s_Es_N0 = this->template create_socket_out<R>(p2, "Es_N0",     1);
 	auto p2s_H_N   = this->template create_socket_out<R>(p2, "H_N", this->N);
 	auto p2s_Y_N   = this->template create_socket_out<R>(p2, "Y_N", this->N);
-	this->create_codelet(p2, [p2s_X_N, p2s_SIG, p2s_Eb_N0, p2s_Es_N0, p2s_H_N, p2s_Y_N](Module& m, Task& t) -> int
+	this->create_codelet(p2, [p2s_X_N, p2s_SIG, p2s_Eb_N0, p2s_Es_N0, p2s_H_N, p2s_Y_N](Module& m, Task& t, const size_t frame_id) -> int
 	{
 		static_cast<Estimator<R>&>(m).rescale(static_cast<R*>(t[p2s_X_N  ].get_dataptr()),
 		                                      static_cast<R*>(t[p2s_SIG  ].get_dataptr()),
