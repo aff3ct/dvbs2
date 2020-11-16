@@ -16,11 +16,13 @@ namespace module
 	template <typename R>
 	Synchronizer_freq_fine<R>::
 	Synchronizer_freq_fine(const int N, const int n_frames)
-	: Module(n_frames), N(N), estimated_freq((R)0.0), estimated_phase((R)0.0)
+	: Module(), N(N), estimated_freq((R)0.0), estimated_phase((R)0.0)
 	{
 		const std::string name = "Synchronizer_freq_fine";
 		this->set_name(name);
 		this->set_short_name(name);
+		this->set_n_frames(n_frames);
+		this->set_single_wave(true);
 
 		if (N <= 0)
 		{
@@ -34,7 +36,7 @@ namespace module
 		auto p1s_FRQ  = this->template create_socket_out<R>(p1, "FRQ" , 1       );
 		auto p1s_PHS  = this->template create_socket_out<R>(p1, "PHS" , 1       );
 		auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N);
-		this->create_codelet(p1, [p1s_X_N1, p1s_FRQ, p1s_PHS, p1s_Y_N2](Module &m, Task &t) -> int
+		this->create_codelet(p1, [p1s_X_N1, p1s_FRQ, p1s_PHS, p1s_Y_N2](Module &m, Task &t, const size_t frame_id) -> int
 		{
 			static_cast<Synchronizer_freq_fine<R>&>(m).synchronize(static_cast<R*>(t[p1s_X_N1].get_dataptr()),
 			                                                       static_cast<R*>(t[p1s_FRQ] .get_dataptr()),

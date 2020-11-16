@@ -23,11 +23,13 @@ namespace module
 template <typename B>
 Framer<B>::
 Framer(const int xfec_frame_size, const int pl_frame_size, const std::string modcod, const int n_frames)
-: Module(n_frames), xfec_frame_size(xfec_frame_size), pl_frame_size(pl_frame_size), modcod(modcod)
+: Module(), xfec_frame_size(xfec_frame_size), pl_frame_size(pl_frame_size), modcod(modcod)
 {
 	const std::string name = "Framer";
 	this->set_name(name);
 	this->set_short_name(name);
+	this->set_n_frames(n_frames);
+	this->set_single_wave(true);
 
 	this->generate_plh();
 
@@ -51,17 +53,17 @@ Framer(const int xfec_frame_size, const int pl_frame_size, const std::string mod
 	auto &p1 = this->create_task("generate");
 	auto p1s_Y_N1 = this->template create_socket_in <B>(p1, "Y_N1", this->xfec_frame_size);
 	auto p1s_Y_N2 = this->template create_socket_out<B>(p1, "Y_N2", this->pl_frame_size  );
-	this->create_codelet(p1, [p1s_Y_N1, p1s_Y_N2](Module &m, Task &t) -> int
+	this->create_codelet(p1, [p1s_Y_N1, p1s_Y_N2](Module &m, Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Framer<B>&>(m).generate(static_cast<B*>(t[p1s_Y_N1].get_dataptr()),
-		                                     static_cast<B*>(t[p1s_Y_N2].get_dataptr()));
+		                                    static_cast<B*>(t[p1s_Y_N2].get_dataptr()));
 		return 0;
 	});
 
 	auto &p2 = this->create_task("remove_plh");
 	auto p2s_Y_N1 = this->template create_socket_in <B>(p2, "Y_N1", this->pl_frame_size  );
 	auto p2s_Y_N2 = this->template create_socket_out<B>(p2, "Y_N2", this->xfec_frame_size);
-	this->create_codelet(p2, [p2s_Y_N1, p2s_Y_N2](Module &m, Task &t) -> int
+	this->create_codelet(p2, [p2s_Y_N1, p2s_Y_N2](Module &m, Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Framer<B>&>(m).remove_plh(static_cast<B*>(t[p2s_Y_N1].get_dataptr()),
 		                                      static_cast<B*>(t[p2s_Y_N2].get_dataptr()));

@@ -17,11 +17,13 @@ namespace module
 template <typename R>
 Synchronizer_frame<R>::
 Synchronizer_frame(const int N, const int n_frames)
-: Module(n_frames), N_in(N), N_out(N), delay(0)
+: Module(), N_in(N), N_out(N), delay(0)
 {
 	const std::string name = "Synchronizer_frame";
 	this->set_name(name);
 	this->set_short_name(name);
+	this->set_n_frames(n_frames);
+	this->set_single_wave(true);
 
 	if (N_in <= 0)
 	{
@@ -38,12 +40,12 @@ Synchronizer_frame(const int N, const int n_frames)
 	}
 
 	auto &p1 = this->create_task("synchronize");
-	auto p1s_X_N1  = this->template create_socket_in <R>  (p1, "X_N1" , this->N_in );
-	auto p1s_DEL   = this->template create_socket_out<int>(p1, "DEL", 1            );
-	auto p1s_FLG   = this->template create_socket_out<int>(p1, "FLG", 1            );
-	auto p1s_TRI   = this->template create_socket_out<R>  (p1, "TRI", 1            );
-	auto p1s_Y_N2  = this->template create_socket_out<R>  (p1, "Y_N2" , this->N_out);
-	this->create_codelet(p1, [p1s_X_N1, p1s_DEL, p1s_FLG, p1s_TRI, p1s_Y_N2](Module &m, Task &t) -> int
+	auto p1s_X_N1 = this->template create_socket_in <R>  (p1, "X_N1" , this->N_in );
+	auto p1s_DEL  = this->template create_socket_out<int>(p1, "DEL", 1            );
+	auto p1s_FLG  = this->template create_socket_out<int>(p1, "FLG", 1            );
+	auto p1s_TRI  = this->template create_socket_out<R>  (p1, "TRI", 1            );
+	auto p1s_Y_N2 = this->template create_socket_out<R>  (p1, "Y_N2" , this->N_out);
+	this->create_codelet(p1, [p1s_X_N1, p1s_DEL, p1s_FLG, p1s_TRI, p1s_Y_N2](Module &m, Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Synchronizer_frame<R>&>(m).synchronize(static_cast<R*  >(t[p1s_X_N1 ].get_dataptr()),
 		                                                   static_cast<int*>(t[p1s_DEL  ].get_dataptr()),
