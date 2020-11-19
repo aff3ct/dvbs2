@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 	tools::Header::print_parameters(param_vec, false, std::cout);
 
 	// construct tools
-	tools::Sigma<> noise_ref, noise_est, noise_fake(1.f);
+	tools::Sigma<> noise_ref;
 	tools::Constellation_user<float> cstl(params.constellation_file);
 	tools::BCH_polynomial_generator<> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 	tools::Gaussian_noise_generator_fast<R> gen;
@@ -60,11 +60,6 @@ int main(int argc, char** argv)
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
-	// set the noise
-	channel  ->set_noise(noise_ref );
-	estimator->set_noise(noise_est );
-	modem    ->set_noise(noise_fake);
-
 	// add custom name to some modules
 	LDPC_encoder->set_custom_name("LDPC Encoder");
 	LDPC_decoder->set_custom_name("LDPC Decoder");
@@ -72,25 +67,27 @@ int main(int argc, char** argv)
 	BCH_decoder ->set_custom_name("BCH Decoder" );
 
 	// socket binding
-	(*bb_scrambler)[scr::sck::scramble     ::X_N1].bind((*source      )[src::sck::generate     ::U_K ]);
-	(*BCH_encoder )[enc::sck::encode       ::U_K ].bind((*bb_scrambler)[scr::sck::scramble     ::X_N2]);
-	(*LDPC_encoder)[enc::sck::encode       ::U_K ].bind((*BCH_encoder )[enc::sck::encode       ::X_N ]);
-	(*itl_tx      )[itl::sck::interleave   ::nat ].bind((*LDPC_encoder)[enc::sck::encode       ::X_N ]);
-	(*modem       )[mdm::sck::modulate     ::X_N1].bind((*itl_tx      )[itl::sck::interleave   ::itl ]);
-	(*framer      )[frm::sck::generate     ::Y_N1].bind((*modem       )[mdm::sck::modulate     ::X_N2]);
-	(*pl_scrambler)[scr::sck::scramble     ::X_N1].bind((*framer      )[frm::sck::generate     ::Y_N2]);
-	(*channel     )[chn::sck::add_noise    ::X_N ].bind((*pl_scrambler)[scr::sck::scramble     ::X_N2]);
-	(*pl_scrambler)[scr::sck::descramble   ::Y_N1].bind((*channel     )[chn::sck::add_noise    ::Y_N ]);
-	(*framer      )[frm::sck::remove_plh   ::Y_N1].bind((*pl_scrambler)[scr::sck::descramble   ::Y_N2]);
-	(*estimator   )[est::sck::rescale      ::X_N ].bind((*framer      )[frm::sck::remove_plh   ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate_wg::H_N ].bind((*estimator   )[est::sck::rescale      ::H_N ]);
-	(*modem       )[mdm::sck::demodulate_wg::Y_N1].bind((*estimator   )[est::sck::rescale      ::Y_N ]);
-	(*itl_rx      )[itl::sck::deinterleave ::itl ].bind((*modem       )[mdm::sck::demodulate_wg::Y_N2]);
-	(*LDPC_decoder)[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave ::nat ]);
-	(*BCH_decoder )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho  ::V_K ]);
-	(*bb_scrambler)[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder )[dec::sck::decode_hiho  ::V_K ]);
-	(*monitor     )[mnt::sck::check_errors ::U   ].bind((*source      )[src::sck::generate     ::U_K ]);
-	(*monitor     )[mnt::sck::check_errors ::V   ].bind((*bb_scrambler)[scr::sck::descramble   ::Y_N2]);
+	std::vector<float> sigma(params.n_frames);
+	(*bb_scrambler)[scr::sck::scramble    ::X_N1 ].bind((*source      )[src::sck::generate    ::U_K ]);
+	(*BCH_encoder )[enc::sck::encode      ::U_K  ].bind((*bb_scrambler)[scr::sck::scramble    ::X_N2]);
+	(*LDPC_encoder)[enc::sck::encode      ::U_K  ].bind((*BCH_encoder )[enc::sck::encode      ::X_N ]);
+	(*itl_tx      )[itl::sck::interleave  ::nat  ].bind((*LDPC_encoder)[enc::sck::encode      ::X_N ]);
+	(*modem       )[mdm::sck::modulate    ::X_N1 ].bind((*itl_tx      )[itl::sck::interleave  ::itl ]);
+	(*framer      )[frm::sck::generate    ::Y_N1 ].bind((*modem       )[mdm::sck::modulate    ::X_N2]);
+	(*pl_scrambler)[scr::sck::scramble    ::X_N1 ].bind((*framer      )[frm::sck::generate    ::Y_N2]);
+	(*channel     )[chn::sck::add_noise   ::noise].bind(                                        sigma);
+	(*channel     )[chn::sck::add_noise   ::X_N  ].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
+	(*pl_scrambler)[scr::sck::descramble  ::Y_N1 ].bind((*channel     )[chn::sck::add_noise   ::Y_N ]);
+	(*framer      )[frm::sck::remove_plh  ::Y_N1 ].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
+	(*estimator   )[est::sck::rescale     ::X_N  ].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate  ::noise].bind((*estimator   )[est::sck::rescale     ::SIG ]);
+	(*modem       )[mdm::sck::demodulate  ::Y_N1 ].bind((*estimator   )[est::sck::rescale     ::Y_N ]);
+	(*itl_rx      )[itl::sck::deinterleave::itl  ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
+	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N  ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
+	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N  ].bind((*LDPC_decoder)[dec::sck::decode_siho ::V_K ]);
+	(*bb_scrambler)[scr::sck::descramble  ::Y_N1 ].bind((*BCH_decoder )[dec::sck::decode_hiho ::V_K ]);
+	(*monitor     )[mnt::sck::check_errors::U    ].bind((*source      )[src::sck::generate    ::U_K ]);
+	(*monitor     )[mnt::sck::check_errors::V    ].bind((*bb_scrambler)[scr::sck::descramble  ::Y_N2]);
 
 	tools::Sequence sequence_transmission((*source)[src::tsk::generate], n_threads);
 
@@ -113,10 +110,6 @@ int main(int argc, char** argv)
 		if (!tsk->is_debug() && !tsk->is_stats())
 			tsk->set_fast(true);
 	}
-
-	// registering to noise updates
-	for (auto &m : sequence_transmission.get_modules<Channel<>>())
-		noise_ref.record_callback_update([m](){ m->notify_noise_update(); });
 
 	// set different seeds in the modules that uses PRNG
 	std::mt19937 prng;
@@ -147,9 +140,9 @@ int main(int argc, char** argv)
 
 		// compute the current sigma for the channel noise
 		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.bps);
-		const auto sigma = tools::esn0_to_sigma(esn0);
+		std::fill(sigma.begin(), sigma.end(), tools::esn0_to_sigma(esn0));
 
-		noise_ref.set_values(sigma, ebn0, esn0);
+		noise_ref.set_values(sigma[0], ebn0, esn0);
 
 		// display the performance (BER and FER) in real time (in a separate thread)
 		if (params.ter_freq != std::chrono::nanoseconds(0))

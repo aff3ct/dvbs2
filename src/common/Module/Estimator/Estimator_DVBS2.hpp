@@ -39,11 +39,9 @@ public:
 
 	virtual Estimator_DVBS2<R>* clone() const;
 
-	void check_noise(); // check that the noise has the expected type
-
 protected:
-	virtual void _estimate  (const R *X_N, R *H_N,         const int frame_id);
-	virtual void _rescale   (const R *X_N, R *H_N, R *Y_N, const int frame_id);
+	virtual void _estimate(const R *X_N,         const int frame_id);
+	virtual void _rescale (const R *X_N, R *Y_N, const int frame_id);
 };
 }
 }

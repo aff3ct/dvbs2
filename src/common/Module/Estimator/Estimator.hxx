@@ -10,7 +10,7 @@ namespace module
 template <typename R>
 Estimator<R>
 ::Estimator(const int N, const int n_frames)
-: Module(), N(N), noise(nullptr), sigma_estimated(0), ebn0_estimated(0), esn0_estimated(0)
+: Module(), N(N), sigma_estimated(0), ebn0_estimated(0), esn0_estimated(0)
 {
 	const std::string name = "Estimator";
 	this->set_name(name);
@@ -30,15 +30,13 @@ Estimator<R>
 	auto p1s_SIG   = this->template create_socket_out<R>(p1, "SIG"  ,       1);
 	auto p1s_Eb_N0 = this->template create_socket_out<R>(p1, "Eb_N0",       1);
 	auto p1s_Es_N0 = this->template create_socket_out<R>(p1, "Es_N0",       1);
-	auto p1s_H_N   = this->template create_socket_out<R>(p1, "H_N"  , this->N);
 
-	this->create_codelet(p1, [p1s_X_N, p1s_SIG, p1s_Eb_N0, p1s_Es_N0, p1s_H_N](Module& m, Task& t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_X_N, p1s_SIG, p1s_Eb_N0, p1s_Es_N0](Module& m, Task& t, const size_t frame_id) -> int
 	{
 		static_cast<Estimator<R>&>(m).estimate(static_cast<R*>(t[p1s_X_N  ].get_dataptr()),
 		                                       static_cast<R*>(t[p1s_SIG  ].get_dataptr()),
 		                                       static_cast<R*>(t[p1s_Eb_N0].get_dataptr()),
-		                                       static_cast<R*>(t[p1s_Es_N0].get_dataptr()),
-		                                       static_cast<R*>(t[p1s_H_N  ].get_dataptr()));
+		                                       static_cast<R*>(t[p1s_Es_N0].get_dataptr()));
 
 		return 0;
 	});
@@ -49,15 +47,13 @@ Estimator<R>
 	auto p2s_SIG   = this->template create_socket_out<R>(p2, "SIG",       1);
 	auto p2s_Eb_N0 = this->template create_socket_out<R>(p2, "Eb_N0",     1);
 	auto p2s_Es_N0 = this->template create_socket_out<R>(p2, "Es_N0",     1);
-	auto p2s_H_N   = this->template create_socket_out<R>(p2, "H_N", this->N);
 	auto p2s_Y_N   = this->template create_socket_out<R>(p2, "Y_N", this->N);
-	this->create_codelet(p2, [p2s_X_N, p2s_SIG, p2s_Eb_N0, p2s_Es_N0, p2s_H_N, p2s_Y_N](Module& m, Task& t, const size_t frame_id) -> int
+	this->create_codelet(p2, [p2s_X_N, p2s_SIG, p2s_Eb_N0, p2s_Es_N0, p2s_Y_N](Module& m, Task& t, const size_t frame_id) -> int
 	{
 		static_cast<Estimator<R>&>(m).rescale(static_cast<R*>(t[p2s_X_N  ].get_dataptr()),
 		                                      static_cast<R*>(t[p2s_SIG  ].get_dataptr()),
 		                                      static_cast<R*>(t[p2s_Eb_N0].get_dataptr()),
 		                                      static_cast<R*>(t[p2s_Es_N0].get_dataptr()),
-		                                      static_cast<R*>(t[p2s_H_N  ].get_dataptr()),
 		                                      static_cast<R*>(t[p2s_Y_N  ].get_dataptr()));
 
 		return 0;
@@ -85,7 +81,6 @@ void Estimator<R>
                  std::vector<R,A>& SIG,
                  std::vector<R,A>& Eb_N0,
                  std::vector<R,A>& Es_N0,
-                 std::vector<R,A>& H_N,
            const int frame_id)
 {
 	if (this->N * this->n_frames != (int)X_N.size())
@@ -95,13 +90,7 @@ void Estimator<R>
 		        << ", 'N' = " << this->N << ", 'n_frames' = " << this->n_frames << ").";
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
-	if (this->N * this->n_frames != (int)H_N.size())
-	{
-		std::stringstream message;
-		message << "'H_N.size()' has to be equal to 'N' * 'n_frames' ('H_N.size()' = " << H_N.size()
-		        << ", 'N' = " << this->N << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
-	}
+
 	if (this->n_frames != (int)SIG.size())
 	{
 		std::stringstream message;
@@ -109,6 +98,7 @@ void Estimator<R>
 		        << ", 'n_frames' = " << this->n_frames << ").";
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
+
 	if (this->n_frames != (int)Eb_N0.size())
 	{
 		std::stringstream message;
@@ -116,6 +106,7 @@ void Estimator<R>
 		        << ", 'n_frames' = " << this->n_frames << ").";
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
+
 	if (this->n_frames != (int)Es_N0.size())
 	{
 		std::stringstream message;
@@ -124,19 +115,19 @@ void Estimator<R>
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->estimate(X_N.data(), SIG.data(), Eb_N0.data(), Es_N0.data(), H_N.data(), frame_id);
+	this->estimate(X_N.data(), SIG.data(), Eb_N0.data(), Es_N0.data(), frame_id);
 }
 
 template <typename R>
 void Estimator<R>
-::estimate(const R *X_N, R *SIG, R *Eb_N0, R *Es_N0, R *H_N, const int frame_id)
+::estimate(const R *X_N, R *SIG, R *Eb_N0, R *Es_N0, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
 	{
-		this->_estimate(X_N + f * this->N, H_N + f * this->N, f);
+		this->_estimate(X_N + f * this->N, f);
 		SIG  [f] = this->sigma_estimated;
 		Eb_N0[f] = this->ebn0_estimated;
 		Es_N0[f] = this->esn0_estimated;
@@ -151,7 +142,6 @@ void Estimator<R>
                 std::vector<R,A>& SIG,
                 std::vector<R,A>& Eb_N0,
                 std::vector<R,A>& Es_N0,
-                std::vector<R,A>& H_N,
                 std::vector<R,A>& Y_N,
           const int frame_id)
 {
@@ -171,14 +161,6 @@ void Estimator<R>
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	if (this->N * this->n_frames != (int)H_N.size())
-	{
-		std::stringstream message;
-		message << "'H_N.size()' has to be equal to 'N' * 'n_frames' ('H_N.size()' = " << H_N.size()
-		        << ", 'N' = " << this->N << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
-	}
-
 	if (this->n_frames != (int)SIG.size())
 	{
 		std::stringstream message;
@@ -202,12 +184,12 @@ void Estimator<R>
 		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
-	this->rescale(X_N.data(), SIG.data(), Eb_N0.data(), Es_N0.data(), H_N.data(), Y_N.data(), frame_id);
+	this->rescale(X_N.data(), SIG.data(), Eb_N0.data(), Es_N0.data(), Y_N.data(), frame_id);
 }
 
 template <typename R>
 void Estimator<R>
-::rescale(const R *X_N, R *SIG, R *Eb_N0, R *Es_N0, R *H_N, R *Y_N, const int frame_id)
+::rescale(const R *X_N, R *SIG, R *Eb_N0, R *Es_N0, R *Y_N, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
@@ -215,7 +197,7 @@ void Estimator<R>
 
 	for (auto f = f_start; f < f_stop; f++)
 	{
-		this->_rescale(X_N + f * this->N, H_N + f * this->N, Y_N + f * this->N, f);
+		this->_rescale(X_N + f * this->N, Y_N + f * this->N, f);
 		SIG  [f] = this->sigma_estimated;
 		Eb_N0[f] = this->ebn0_estimated;
 		Es_N0[f] = this->esn0_estimated;
@@ -224,43 +206,14 @@ void Estimator<R>
 
 template <typename R>
 void Estimator<R>
-::set_noise(tools::Noise<>& noise)
-{
-	this->noise = &noise;
-	this->check_noise();
-}
-
-template<typename R>
-tools::Noise<>& Estimator<R>
-::get_noise() const
-{
-	this->check_noise();
-	return *this->noise;
-}
-
-template<typename R>
-void Estimator<R>
-::check_noise()
-{
-	if (this->noise == nullptr)
-	{
-		std::stringstream message;
-		message << "'noise' should not be nullptr.";
-		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
-	}
-}
-
-
-template <typename R>
-void Estimator<R>
-::_estimate(const R *X_N, R *H_N, const int frame_id)
+::_estimate(const R *X_N, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename R>
 void Estimator<R>
-::_rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
+::_rescale(const R *X_N, R *Y_N, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }

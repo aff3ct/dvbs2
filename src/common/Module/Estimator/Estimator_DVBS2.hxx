@@ -26,23 +26,11 @@ Estimator_DVBS2<R>* Estimator_DVBS2<R>
 	return m;
 }
 
-template<typename R>
-void Estimator_DVBS2<R>
-::check_noise()
-{
-	Estimator<R>::check_noise();
-	this->noise->is_of_type_throw(tools::Noise_type::SIGMA);
-}
-
-
 template <typename R>
 void Estimator_DVBS2<R>::
-_estimate(const R *X_N, R *H_N, const int frame_id)
+_estimate(const R *X_N, const int frame_id)
 {
-	this->check_noise();
-
 	float moment2 = 0, moment4 = 0;
-	float pow_tot, pow_sig_util;
 
 	for (int i = 0; i < this->N / 2; i++)
 	{
@@ -59,23 +47,8 @@ _estimate(const R *X_N, R *H_N, const int frame_id)
 	// saturate 'esn0_estimated' to 100 dB
 	esn0_estimated = std::isinf(esn0_estimated) ? 100. : esn0_estimated;
 
-	pow_tot = moment2;
-
-	pow_sig_util = pow_tot / (1+(std::pow(10, (-1 * esn0_estimated/10))));
-
 	const auto sigma_estimated = tools::esn0_to_sigma(esn0_estimated);
 	const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, code_rate, bps);
-
-	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise);
-	sigma->set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
-
-	float H = std::sqrt(pow_sig_util);
-
-	for (int i = 0; i < this->N / 2; i++)
-	{
-		H_N[2*i] = H;
-		H_N[2*i+1] = 0;
-	}
 
 	this->sigma_estimated = sigma_estimated;
 	this->ebn0_estimated = ebn0_estimated;
@@ -84,7 +57,7 @@ _estimate(const R *X_N, R *H_N, const int frame_id)
 
 template <typename R>
 void Estimator_DVBS2<R>::
-_rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
+_rescale(const R *X_N, R *Y_N, const int frame_id)
 {
 	float moment2 = 0, moment4 = 0;
 
@@ -106,18 +79,10 @@ _rescale(const R *X_N, R *H_N, R *Y_N, const int frame_id)
 	const auto sigma_estimated = tools::esn0_to_sigma(esn0_estimated);
 	const auto ebn0_estimated  = tools::esn0_to_ebn0(esn0_estimated, code_rate, bps);
 
-	// hack to have the SNR displayed in the terminal
-	tools::Sigma<R> * sigma = dynamic_cast<tools::Sigma<R>*>(this->noise);
-	sigma->set_values(sigma_estimated, ebn0_estimated, esn0_estimated);
-
-	float H_ =  1.0f / sigma_estimated;
 	for (int i = 0; i < this->N / 2; i++)
 	{
 		Y_N[2*i  ] = X_N[2*i  ] / sigma_estimated;
 		Y_N[2*i+1] = X_N[2*i+1] / sigma_estimated;
-
-		H_N[2*i  ] = H_;
-		H_N[2*i+1] = 0;
 	}
 
 	this->sigma_estimated = sigma_estimated;
