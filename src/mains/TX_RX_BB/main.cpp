@@ -43,19 +43,19 @@ int main(int argc, char** argv)
 	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2::build_itl_core<>(params));
 
 	// construct modules
-	uptr<Source<>                   > source      (factory::DVBS2::build_source           <>(params             ));
-	uptr<Scrambler<>                > bb_scrambler(factory::DVBS2::build_bb_scrambler     <>(params             ));
-	uptr<Encoder<>                  > BCH_encoder (factory::DVBS2::build_bch_encoder      <>(params, poly_gen   ));
-	uptr<Decoder_HIHO<>             > BCH_decoder (factory::DVBS2::build_bch_decoder      <>(params, poly_gen   ));
-	uptr<tools::Codec_SIHO<>        > LDPC_cdc    (factory::DVBS2::build_ldpc_cdc         <>(params             ));
-	uptr<Interleaver<>              > itl_tx      (factory::DVBS2::build_itl              <>(params, *itl_core  ));
-	uptr<Interleaver<float,uint32_t>> itl_rx      (factory::DVBS2::build_itl<float,uint32_t>(params, *itl_core  ));
-	uptr<Modem<>                    > modem       (factory::DVBS2::build_modem            <>(params, &cstl      ));
-	uptr<Channel<>                  > channel     (factory::DVBS2::build_channel          <>(params, gen, false ));
-	uptr<Framer<>                   > framer      (factory::DVBS2::build_framer           <>(params             ));
-	uptr<Scrambler<float>           > pl_scrambler(factory::DVBS2::build_pl_scrambler     <>(params             ));
-	uptr<Estimator<>                > estimator   (factory::DVBS2::build_estimator        <>(params, &noise_ref ));
-	uptr<Monitor_BFER<>             > monitor     (factory::DVBS2::build_monitor          <>(params             ));
+	uptr<Source<>                   > source      (factory::DVBS2::build_source           <>(params            ));
+	uptr<Scrambler<>                > bb_scrambler(factory::DVBS2::build_bb_scrambler     <>(params            ));
+	uptr<Encoder<>                  > BCH_encoder (factory::DVBS2::build_bch_encoder      <>(params, poly_gen  ));
+	uptr<Decoder_HIHO<>             > BCH_decoder (factory::DVBS2::build_bch_decoder      <>(params, poly_gen  ));
+	uptr<tools::Codec_SIHO<>        > LDPC_cdc    (factory::DVBS2::build_ldpc_cdc         <>(params            ));
+	uptr<Interleaver<>              > itl_tx      (factory::DVBS2::build_itl              <>(params, *itl_core ));
+	uptr<Interleaver<float,uint32_t>> itl_rx      (factory::DVBS2::build_itl<float,uint32_t>(params, *itl_core ));
+	uptr<Modem<>                    > modem       (factory::DVBS2::build_modem            <>(params, &cstl     ));
+	uptr<Channel<>                  > channel     (factory::DVBS2::build_channel          <>(params, gen, false));
+	uptr<Framer<>                   > framer      (factory::DVBS2::build_framer           <>(params            ));
+	uptr<Scrambler<float>           > pl_scrambler(factory::DVBS2::build_pl_scrambler     <>(params            ));
+	uptr<Estimator<>                > estimator   (factory::DVBS2::build_estimator        <>(params, &noise_ref));
+	uptr<Monitor_BFER<>             > monitor     (factory::DVBS2::build_monitor          <>(params            ));
 
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
@@ -79,9 +79,9 @@ int main(int argc, char** argv)
 	(*channel     )[chn::sck::add_noise   ::X_N ].bind((*pl_scrambler)[scr::sck::scramble    ::X_N2]);
 	(*pl_scrambler)[scr::sck::descramble  ::Y_N1].bind((*channel     )[chn::sck::add_noise   ::Y_N ]);
 	(*framer      )[frm::sck::remove_plh  ::Y_N1].bind((*pl_scrambler)[scr::sck::descramble  ::Y_N2]);
-	(*estimator   )[est::sck::rescale     ::X_N ].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
-	(*modem       )[mdm::sck::demodulate  ::CP  ].bind((*estimator   )[est::sck::rescale     ::SIG ]);
-	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*estimator   )[est::sck::rescale     ::Y_N ]);
+	(*estimator   )[est::sck::estimate    ::X_N ].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
+	(*modem       )[mdm::sck::demodulate  ::CP  ].bind((*estimator   )[est::sck::estimate    ::SIG ]);
+	(*modem       )[mdm::sck::demodulate  ::Y_N1].bind((*framer      )[frm::sck::remove_plh  ::Y_N2]);
 	(*itl_rx      )[itl::sck::deinterleave::itl ].bind((*modem       )[mdm::sck::demodulate  ::Y_N2]);
 	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ].bind((*itl_rx      )[itl::sck::deinterleave::nat ]);
 	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ].bind((*LDPC_decoder)[dec::sck::decode_siho ::V_K ]);

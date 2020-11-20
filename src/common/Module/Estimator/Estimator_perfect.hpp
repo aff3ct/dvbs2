@@ -42,8 +42,7 @@ public:
 	tools::Sigma<>& get_noise_ref() const;
 
 protected:
-	virtual void _estimate(const R *X_N,         const int frame_id);
-	virtual void _rescale (const R *X_N, R *Y_N, const int frame_id);
+	virtual void _estimate(const R *X_N, const int frame_id);
 };
 }
 }

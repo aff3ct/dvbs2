@@ -18,8 +18,7 @@ namespace module
 
 		namespace sck
 		{
-			enum class estimate : uint8_t { X_N, SIG, Eb_N0, Es_N0,      status };
-			enum class rescale  : uint8_t { X_N, SIG, Eb_N0, Es_N0, Y_N, status };
+			enum class estimate : uint8_t { X_N, SIG, Eb_N0, Es_N0, status };
 		}
 	}
 
@@ -36,7 +35,6 @@ class Estimator : public Module, tools::Interface_reset
 public:
 	inline Task&   operator[](const est::tsk           t) { return Module::operator[]((int)t);                          }
 	inline Socket& operator[](const est::sck::estimate s) { return Module::operator[]((int)est::tsk::estimate)[(int)s]; }
-	inline Socket& operator[](const est::sck::rescale  s) { return Module::operator[]((int)est::tsk::rescale )[(int)s]; }
 
 protected:
 	const int N; // Size of one frame (= number of datas in one frame)
@@ -74,26 +72,10 @@ public:
 
 	virtual void estimate(const R *X_N, R *SIG, R *Eb_N0, R *Es_N0, const int frame_id = -1);
 
-
-	/*!
-	 * \brief Estimate the noise the frame and rescale the signal.
-	 *
-	 */
-	template <class A = std::allocator<R>>
-	void rescale(const std::vector<R,A>& X_N,
-	                   std::vector<R,A>& SIG,
-	                   std::vector<R,A>& Eb_N0,
-	                   std::vector<R,A>& Es_N0,
-	                   std::vector<R,A>& Y_N,
-	             const int frame_id = -1);
-
-	virtual void rescale(const R *X_N, R *SIG, R *Eb_N0, R *Es_N0, R *Y_N, const int frame_id = -1);
-
 	void reset();
 
 protected:
-	virtual void _estimate(const R *X_N,         const int frame_id);
-	virtual void _rescale (const R *X_N, R *Y_N, const int frame_id);
+	virtual void _estimate(const R *X_N, const int frame_id);
 };
 }
 }

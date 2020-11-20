@@ -199,9 +199,9 @@ int main(int argc, char** argv)
 	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler  )[scr::sck::descramble   ::Y_N2  ]);
 	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr  )[sff::sck::synchronize  ::Y_N2  ]);
 	(*framer          )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf  )[sff::sck::synchronize  ::Y_N2  ]);
-	(*estimator       )[est::sck::rescale      ::X_N ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2  ]);
-	(*modem           )[mdm::sck::demodulate   ::CP  ].bind((*estimator     )[est::sck::rescale      ::SIG   ]);
-	(*modem           )[mdm::sck::demodulate   ::Y_N1].bind((*estimator     )[est::sck::rescale      ::Y_N   ]);
+	(*estimator       )[est::sck::estimate     ::X_N ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2  ]);
+	(*modem           )[mdm::sck::demodulate   ::CP  ].bind((*estimator     )[est::sck::estimate     ::SIG   ]);
+	(*modem           )[mdm::sck::demodulate   ::Y_N1].bind((*framer        )[frm::sck::remove_plh   ::Y_N2  ]);
 	(*itl_rx          )[itl::sck::deinterleave ::itl ].bind((*modem         )[mdm::sck::demodulate   ::Y_N2  ]);
 	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx        )[itl::sck::deinterleave ::nat   ]);
 	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder  )[dec::sck::decode_siho  ::V_K   ]);
@@ -218,9 +218,9 @@ int main(int argc, char** argv)
 	(*prb_sfm_flg     )[prb::sck::probe        ::in  ].bind((*sync_frame    )[sfm::sck::synchronize  ::FLG   ]);
 	(*prb_frq_lr      )[prb::sck::probe        ::in  ].bind((*sync_fine_lr  )[sff::sck::synchronize  ::FRQ   ]);
 	(*prb_frq_fin     )[prb::sck::probe        ::in  ].bind((*sync_fine_pf  )[sff::sck::synchronize  ::FRQ   ]);
-	(*prb_noise_ees   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::rescale      ::Es_N0 ]);
-	(*prb_noise_eeb   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::rescale      ::Eb_N0 ]);
-	(*prb_noise_esig  )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::rescale      ::SIG   ]);
+	(*prb_noise_ees   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::estimate     ::Es_N0 ]);
+	(*prb_noise_eeb   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::estimate     ::Eb_N0 ]);
+	(*prb_noise_esig  )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::estimate     ::SIG   ]);
 	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ].bind((*LDPC_decoder  )[dec::sck::decode_siho  ::CWD   ]);
 	(*prb_decstat_bch )[prb::sck::probe        ::in  ].bind((*BCH_decoder   )[dec::sck::decode_hiho  ::CWD   ]);
 	(*prb_thr_thr     )[prb::sck::probe        ::in  ].bind((*bb_descrambler)[scr::sck::descramble   ::Y_N2  ]);
@@ -294,8 +294,8 @@ int main(int argc, char** argv)
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_esig)[prb::tsk::probe], &(*prb_noise_ees)[prb::tsk::probe],
 	      &(*prb_noise_eeb)[prb::tsk::probe] },
-	    { &(*estimator)[est::tsk::rescale] },
-	    { /* no exclusions in this stage */ } ),
+	    { &(*estimator)[est::tsk::estimate] },
+	    { &(*modem)[mdm::tsk::demodulate] } ),
 	  // pipeline stage 9 -> RX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*modem)[mdm::tsk::demodulate] },

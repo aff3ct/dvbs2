@@ -45,39 +45,14 @@ tools::Sigma<>& Estimator_perfect<R>
 }
 
 template <typename R>
-void Estimator_perfect<R>::
-_estimate(const R *X_N, const int frame_id)
+void Estimator_perfect<R>
+::_estimate(const R *X_N, const int frame_id)
 {
 	if (this->noise_ref == nullptr)
 	{
 		std::stringstream message;
 		message << "'noise_ref' should not be nullptr.";
 		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
-	}
-
-	this->sigma_estimated = this->noise_ref->get_value();
-	this->ebn0_estimated  = this->noise_ref->get_ebn0();
-	this->esn0_estimated  = this->noise_ref->get_esn0();
-}
-
-template <typename R>
-void Estimator_perfect<R>::
-_rescale(const R *X_N, R *Y_N, const int frame_id)
-{
-	if (this->noise_ref == nullptr)
-	{
-		std::stringstream message;
-		message << "'noise_ref' should not be nullptr.";
-		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
-	}
-
-	std::copy(X_N, X_N + this->N, Y_N);
-	R _sigma = this->noise_ref->get_value();
-
-	for (int i = 0; i < this->N / 2; i++)
-	{
-		Y_N[2*i]   /= _sigma;
-		Y_N[2*i+1] /= _sigma;
 	}
 
 	this->sigma_estimated = this->noise_ref->get_value();
