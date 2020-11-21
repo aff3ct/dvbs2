@@ -44,8 +44,8 @@ int main(int argc, char** argv)
 	tools::Constellation_user<float> cstl(params.constellation_file);
 	tools::BCH_polynomial_generator<> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 	tools::Gaussian_noise_generator_fast<R> gen(0);
-	tools::Sigma<> noise_est, noise_ref, noise_fake(1.f);
 	std::unique_ptr<tools::Interleaver_core<>> itl_core(factory::DVBS2::build_itl_core<>(params));
+	tools::Sigma<> noise_ref;
 
 	// construct modules
 	uptr<Source<>                    > source        (factory::DVBS2::build_source                   <>(params             ));
@@ -148,13 +148,6 @@ int main(int argc, char** argv)
 	                                      &rep_frq_stats,       &rep_decstat_stats, &rep_noise_rea_stats,
 	                                      &rep_noise_est_stats, &rep_BFER_stats,    &rep_thr_stats });
 
-	// manage noise
-	estimator->set_noise(noise_est );
-	modem    ->set_noise(noise_fake);
-	channel  ->set_noise(noise_ref );
-	auto chn_ptr = channel.get();
-	noise_ref.record_callback_update([chn_ptr](){ chn_ptr->notify_noise_update(); });
-
 	delay        ->set_custom_name("TX/RX Delay");
 	LDPC_encoder ->set_custom_name("LDPC Encoder");
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
@@ -174,6 +167,7 @@ int main(int argc, char** argv)
 	chn_frac_del ->set_custom_name("Chn frac del");
 
 	// socket binding of the full transmission sequence
+	std::vector<float> sigma(params.n_frames);
 	// delay line for BER/FER
 	(*delay           )[flt::sck::filter       ::X_N1].bind((*source        )[src::sck::generate     ::U_K   ]);
 	// TX
@@ -191,6 +185,7 @@ int main(int argc, char** argv)
 	(*chn_int_del     )[flt::sck::filter       ::X_N1].bind((*chn_frm_del   )[flt::sck::filter       ::Y_N2  ]);
 	(*chn_frac_del    )[flt::sck::filter       ::X_N1].bind((*chn_int_del   )[flt::sck::filter       ::Y_N2  ]);
 	(*freq_shift      )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del  )[flt::sck::filter       ::Y_N2  ]);
+	(*channel         )[chn::sck::add_noise    ::CP  ].bind(                                           sigma  );
 	(*channel         )[chn::sck::add_noise    ::X_N ].bind((*freq_shift    )[mlt::sck::imultiply    ::Z_N   ]);
 	// RX
 	(*sync_coarse_f   )[sfc::sck::synchronize  ::X_N1].bind((*channel       )[chn::sck::add_noise    ::Y_N   ]);
@@ -204,10 +199,10 @@ int main(int argc, char** argv)
 	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler  )[scr::sck::descramble   ::Y_N2  ]);
 	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr  )[sff::sck::synchronize  ::Y_N2  ]);
 	(*framer          )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf  )[sff::sck::synchronize  ::Y_N2  ]);
-	(*estimator       )[est::sck::rescale      ::X_N ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2  ]);
-	(*modem           )[mdm::sck::demodulate_wg::H_N ].bind((*estimator     )[est::sck::rescale      ::H_N   ]);
-	(*modem           )[mdm::sck::demodulate_wg::Y_N1].bind((*estimator     )[est::sck::rescale      ::Y_N   ]);
-	(*itl_rx          )[itl::sck::deinterleave ::itl ].bind((*modem         )[mdm::sck::demodulate_wg::Y_N2  ]);
+	(*estimator       )[est::sck::estimate     ::X_N ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2  ]);
+	(*modem           )[mdm::sck::demodulate   ::CP  ].bind((*estimator     )[est::sck::estimate     ::SIG   ]);
+	(*modem           )[mdm::sck::demodulate   ::Y_N1].bind((*framer        )[frm::sck::remove_plh   ::Y_N2  ]);
+	(*itl_rx          )[itl::sck::deinterleave ::itl ].bind((*modem         )[mdm::sck::demodulate   ::Y_N2  ]);
 	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx        )[itl::sck::deinterleave ::nat   ]);
 	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder  )[dec::sck::decode_siho  ::V_K   ]);
 	(*bb_descrambler  )[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder   )[dec::sck::decode_hiho  ::V_K   ]);
@@ -223,9 +218,9 @@ int main(int argc, char** argv)
 	(*prb_sfm_flg     )[prb::sck::probe        ::in  ].bind((*sync_frame    )[sfm::sck::synchronize  ::FLG   ]);
 	(*prb_frq_lr      )[prb::sck::probe        ::in  ].bind((*sync_fine_lr  )[sff::sck::synchronize  ::FRQ   ]);
 	(*prb_frq_fin     )[prb::sck::probe        ::in  ].bind((*sync_fine_pf  )[sff::sck::synchronize  ::FRQ   ]);
-	(*prb_noise_ees   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::rescale      ::Es_N0 ]);
-	(*prb_noise_eeb   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::rescale      ::Eb_N0 ]);
-	(*prb_noise_esig  )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::rescale      ::SIG   ]);
+	(*prb_noise_ees   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::estimate     ::Es_N0 ]);
+	(*prb_noise_eeb   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::estimate     ::Eb_N0 ]);
+	(*prb_noise_esig  )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::estimate     ::SIG   ]);
 	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ].bind((*LDPC_decoder  )[dec::sck::decode_siho  ::CWD   ]);
 	(*prb_decstat_bch )[prb::sck::probe        ::in  ].bind((*BCH_decoder   )[dec::sck::decode_hiho  ::CWD   ]);
 	(*prb_thr_thr     )[prb::sck::probe        ::in  ].bind((*bb_descrambler)[scr::sck::descramble   ::Y_N2  ]);
@@ -299,11 +294,11 @@ int main(int argc, char** argv)
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_esig)[prb::tsk::probe], &(*prb_noise_ees)[prb::tsk::probe],
 	      &(*prb_noise_eeb)[prb::tsk::probe] },
-	    { &(*estimator)[est::tsk::rescale] },
-	    { /* no exclusions in this stage */ } ),
+	    { &(*estimator)[est::tsk::estimate] },
+	    { &(*modem)[mdm::tsk::demodulate] } ),
 	  // pipeline stage 9 -> RX
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
-	    { &(*modem)[mdm::tsk::demodulate_wg] },
+	    { &(*modem)[mdm::tsk::demodulate] },
 	    { &(*bb_descrambler)[scr::tsk::descramble] },
 	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
 	      &(*prb_thr_thr)[prb::tsk::probe] } ),
@@ -378,20 +373,20 @@ int main(int argc, char** argv)
 
 		// compute the current sigma for the channel noise
 		const auto esn0  = tools::ebn0_to_esn0 (ebn0, R, params.bps);
-		const auto sigma = tools::esn0_to_sigma(esn0);
+		std::fill(sigma.begin(), sigma.end(), tools::esn0_to_sigma(esn0));
 
-		std::vector<float> esvec (params.n_frames, esn0 );
-		std::vector<float> ebvec (params.n_frames, ebn0 );
-		std::vector<float> sigvec(params.n_frames, sigma);
+		std::vector<float> esvec (params.n_frames, esn0    );
+		std::vector<float> ebvec (params.n_frames, ebn0    );
+		std::vector<float> sigvec(params.n_frames, sigma[0]);
 
 		(*prb_noise_res )[prb::sck::probe::in].bind(esvec );
 		(*prb_noise_reb )[prb::sck::probe::in].bind(ebvec );
 		(*prb_noise_rsig)[prb::sck::probe::in].bind(sigvec);
 
 		std::stringstream sigma_ss;
-		sigma_ss << std::fixed << std::setprecision(3) << sigma;
+		sigma_ss << std::fixed << std::setprecision(3) << sigma[0];
 
-		noise_ref.set_values(sigma, ebn0, esn0);
+		noise_ref.set_values(sigma[0], ebn0, esn0);
 
 		// reset synchro modules
 		shaping_flt  ->reset(); chn_frac_del->reset(); chn_int_del->reset(); freq_shift ->reset();

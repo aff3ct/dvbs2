@@ -538,7 +538,16 @@ module::Estimator<R>* DVBS2
 {
 	const float code_rate = (float)params.K_bch / (float)params.N_ldpc;
 	if (params.est_type == "PERFECT")
-		return new module::Estimator_perfect<R>(2 * params.N_xfec_frame, noise_ref, params.n_frames);
+	{
+		tools::Sigma<R> *sigma_ref = noise_ref != nullptr ? dynamic_cast<tools::Sigma<R>*>(noise_ref) : nullptr;
+		if (sigma_ref == nullptr && noise_ref != nullptr)
+		{
+			std::stringstream message;
+			message << "'sigma_ref' should not be nullptr.";
+			throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+		}
+		return new module::Estimator_perfect<R>(2 * params.N_xfec_frame, sigma_ref, params.n_frames);
+	}
 	else if (params.est_type == "DVBS2" )
 		return new module::Estimator_DVBS2<R>(2 * params.N_xfec_frame, code_rate, params.bps, params.n_frames);
 

@@ -18,8 +18,8 @@ template <typename R = float>
 class Estimator_DVBS2 : public Estimator<R>
 {
 protected:
-	const int bps;               // bits per symbol for eb_n0 computation
-	const float code_rate;       // Code rate for eb_n0 computation
+	const int bps;         // bits per symbol for eb_n0 computation
+	const float code_rate; // Code rate for eb_n0 computation
 
 public:
 	/*!
@@ -39,11 +39,8 @@ public:
 
 	virtual Estimator_DVBS2<R>* clone() const;
 
-	void check_noise(); // check that the noise has the expected type
-
 protected:
-	virtual void _estimate  (const R *X_N, R *H_N,         const int frame_id);
-	virtual void _rescale   (const R *X_N, R *H_N, R *Y_N, const int frame_id);
+	virtual void _estimate(const R *X_N, const int frame_id);
 };
 }
 }

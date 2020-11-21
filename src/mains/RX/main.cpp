@@ -144,12 +144,6 @@ int main(int argc, char** argv)
 	sync_coarse_f->set_custom_name("Coarse_Synch");
 	sync_step_mf ->set_custom_name("MF Synch"    );
 
-	// manage noise
-	tools::Sigma<> noise_fake(1.f);
-	modem->set_noise(noise_fake);
-	tools::Sigma<> noise_est;
-	estimator->set_noise(noise_est);
-
 	std::vector<double> theoretical_thr(params.n_frames, params.p_rad.rx_rate/1e6 * (double)params.K_bch /
 	                                                     ((double)params.pl_frame_size * (double)params.p_shp.osf));
 
@@ -166,10 +160,10 @@ int main(int argc, char** argv)
 	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler )[scr::sck::descramble   ::Y_N2  ]);
 	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr )[sff::sck::synchronize  ::Y_N2  ]);
 	(*framer          )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf )[sff::sck::synchronize  ::Y_N2  ]);
-	(*estimator       )[est::sck::rescale      ::X_N ].bind((*framer       )[frm::sck::remove_plh   ::Y_N2  ]);
-	(*modem           )[mdm::sck::demodulate_wg::H_N ].bind((*estimator    )[est::sck::rescale      ::H_N   ]);
-	(*modem           )[mdm::sck::demodulate_wg::Y_N1].bind((*estimator    )[est::sck::rescale      ::Y_N   ]);
-	(*itl_rx          )[itl::sck::deinterleave ::itl ].bind((*modem        )[mdm::sck::demodulate_wg::Y_N2  ]);
+	(*estimator       )[est::sck::estimate     ::X_N ].bind((*framer       )[frm::sck::remove_plh   ::Y_N2  ]);
+	(*modem           )[mdm::sck::demodulate   ::CP  ].bind((*estimator    )[est::sck::estimate     ::SIG   ]);
+	(*modem           )[mdm::sck::demodulate   ::Y_N1].bind((*framer       )[frm::sck::remove_plh   ::Y_N2  ]);
+	(*itl_rx          )[itl::sck::deinterleave ::itl ].bind((*modem        )[mdm::sck::demodulate   ::Y_N2  ]);
 	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx       )[itl::sck::deinterleave ::nat   ]);
 	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::V_K   ]);
 	(*bb_scrambler    )[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::V_K   ]);
@@ -188,9 +182,9 @@ int main(int argc, char** argv)
 	(*prb_sfm_flg     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::FLG   ]);
 	(*prb_frq_lr      )[prb::sck::probe        ::in  ].bind((*sync_fine_lr )[sff::sck::synchronize  ::FRQ   ]);
 	(*prb_frq_fin     )[prb::sck::probe        ::in  ].bind((*sync_fine_pf )[sff::sck::synchronize  ::FRQ   ]);
-	(*prb_noise_es    )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::Es_N0 ]);
-	(*prb_noise_eb    )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::Eb_N0 ]);
-	(*prb_noise_sig   )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::rescale      ::SIG   ]);
+	(*prb_noise_es    )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::estimate     ::Es_N0 ]);
+	(*prb_noise_eb    )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::estimate     ::Eb_N0 ]);
+	(*prb_noise_sig   )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::estimate     ::SIG   ]);
 	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::CWD   ]);
 	(*prb_decstat_bch )[prb::sck::probe        ::in  ].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::CWD   ]);
 	(*prb_thr_thr     )[prb::sck::probe        ::in  ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
@@ -247,11 +241,11 @@ int main(int argc, char** argv)
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_sig)[prb::tsk::probe], &(*prb_noise_es)[prb::tsk::probe],
 	      &(*prb_noise_eb)[prb::tsk::probe] },
-	    { &(*estimator)[est::tsk::rescale] },
-	    { /* no exclusions in this stage */ } ),
+	    { &(*estimator)[est::tsk::estimate] },
+	    { &(*modem)[mdm::tsk::demodulate] } ),
 	  // pipeline stage 6
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
-	    { &(*modem)[mdm::tsk::demodulate_wg] },
+	    { &(*modem)[mdm::tsk::demodulate] },
 	    { &(*bb_scrambler)[scr::tsk::descramble] },
 	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
 	      &(*prb_thr_thr)[prb::tsk::probe] } ),
@@ -502,6 +496,7 @@ int main(int argc, char** argv)
 	// TRANSMISSION PHASE =============================================================================================
 	// ================================================================================================================
 	// allocate reporters to display results in the terminal
+	tools::Sigma<> noise_est;
 	tools::Reporter_noise<>      rep_noise( noise_est);
 	tools::Reporter_BFER<>       rep_BFER (*monitor  );
 	tools::Reporter_throughput<> rep_thr  (*monitor  );
@@ -543,7 +538,15 @@ int main(int argc, char** argv)
 			return tools::Terminal::is_interrupt();
 		},
 		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 4
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 5
+		[&noise_est, &estimator] (const std::vector<const int*>& statuses)                        // stop condition stage 5
+		{
+			// update "noise_est" for the terminal display
+			if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
+				noise_est.set_values(((float*)(*estimator)[est::sck::estimate::SIG  ].get_dataptr())[0],
+				                     ((float*)(*estimator)[est::sck::estimate::Eb_N0].get_dataptr())[0],
+				                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
+			return tools::Terminal::is_interrupt();
+		},
 		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 6
 		[&prb_thr_the, &terminal_stats, &stats_file] (const std::vector<const int*>& statuses)    // stop condition stage 7
 		{
@@ -552,11 +555,18 @@ int main(int argc, char** argv)
 		}});
 #else
 	// start the transmission sequence
-	sequence_transmission.exec([&prb_fra_id, &terminal_stats, &stats_file]
+	sequence_transmission.exec([&prb_fra_id, &terminal_stats, &stats_file, &noise_est, &estimator]
 		(const std::vector<const int*>& statuses)
 		{
 			if (statuses.back() != nullptr)
+			{
 				terminal_stats.temp_report(stats_file);
+				// update "noise_est" for the terminal display
+				if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
+					noise_est.set_values(((float*)(*estimator)[est::sck::estimate::SIG  ].get_dataptr())[0],
+					                     ((float*)(*estimator)[est::sck::estimate::Eb_N0].get_dataptr())[0],
+					                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
+			}
 			else if (enable_logs)
 				std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, m = "
 				          << prb_fra_id->get_occurrences() << ")" << std::endl;
