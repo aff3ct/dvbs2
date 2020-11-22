@@ -9,9 +9,9 @@ using namespace aff3ct::module;
 
 template <typename B>
 Encoder_BCH_inter_DVBS2<B>
-::Encoder_BCH_inter_DVBS2(const int& K, const int& N, const tools::BCH_polynomial_generator<B>& GF_poly, const int n_frames)
-: Encoder_BCH_inter<B>(K, N, GF_poly, n_frames),
-  U_K_rev(K * this->simd_inter_frame_level)
+::Encoder_BCH_inter_DVBS2(const int& K, const int& N, const tools::BCH_polynomial_generator<B>& GF_poly)
+: Encoder_BCH_inter<B>(K, N, GF_poly),
+  U_K_rev(K * this->get_n_frames_per_wave())
 {
 	const std::string name = "Encoder_BCH_inter_DVBS2";
 	this->set_name(name);
@@ -28,10 +28,10 @@ Encoder_BCH_inter_DVBS2<B>* Encoder_BCH_inter_DVBS2<B>
 
 template <typename B>
 void Encoder_BCH_inter_DVBS2<B>
-::_encode(const B *U_K, B *X_N, const int frame_id)
+::_encode(const B *U_K, B *X_N, const size_t frame_id)
 {
 	// reverse bits for DVBS2 standard to aff3ct compliance
-	for (auto f = 0; f < this->simd_inter_frame_level; f++)
+	for (size_t f = 0; f < this->get_n_frames_per_wave(); f++)
 		std::reverse_copy(U_K             + (f +0) * this->K,
 		                  U_K             + (f +1) * this->K,
 		                  U_K_rev.begin() + (f +0) * this->K);
@@ -40,13 +40,13 @@ void Encoder_BCH_inter_DVBS2<B>
 	this->__encode(U_K_rev.data(), X_N);
 
 	// copy sys bits
-	for (auto f = 0; f < this->simd_inter_frame_level; f++)
+	for (size_t f = 0; f < this->get_n_frames_per_wave(); f++)
 		std::copy(U_K_rev.data() + (f +0) * this->K,
 		          U_K_rev.data() + (f +1) * this->K,
 		          X_N            + (f +0) * this->N + this->n_rdncy);
 
 	// reverse bits for DVBS2 standard to aff3ct compliance
-	for (auto f = 0; f < this->simd_inter_frame_level; f++)
+	for (size_t f = 0; f < this->get_n_frames_per_wave(); f++)
 		std::reverse(X_N + (f +0) * this->N,
 		             X_N + (f +0) * this->N + this->K + this->n_rdncy);
 }

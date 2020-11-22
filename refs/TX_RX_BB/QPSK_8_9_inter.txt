@@ -1,5 +1,5 @@
 [metadata]
-command=dvbs2_tx_rx_bb -m 3.60 -M 3.81 --src-fra 2
+command=dvbs2_tx_rx_bb -m 3.60 -M 3.81 -F 2
 
 [trace]
 # * DVB-S2 ----------------------------------------

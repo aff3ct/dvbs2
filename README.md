@@ -148,11 +148,11 @@ directory for `build/bin/dvbs2_tx_rx` and
 Here are example command lines for RX and TX, considering `QPSK-S_8/9`:
 
 ```bash
-./bin/dvbs2_rx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-rx-rate 30e6 --rad-rx-freq 2360e6 --rad-rx-gain 20 --src-fra 16 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9 --dec-implem NMS --dec-ite 10 --dec-simd INTER
+./bin/dvbs2_rx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-rx-rate 30e6 --rad-rx-freq 2360e6 --rad-rx-gain 20 -F 16 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9 --dec-implem NMS --dec-ite 10 --dec-simd INTER
 ```
 
 ```bash
-./bin/dvbs2_tx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 --src-fra  8 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9
+./bin/dvbs2_tx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 -F  8 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9
 ```
 
 #### Video Streaming
@@ -164,14 +164,14 @@ and a third for displaying the video.
 - Stream that video from TX computer:
 
 ```bash
-./bin/dvbs2_tx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 --src-fra  8 --src-type USER_BIN --src-path /path/to/input/ts/video.ts --mod-cod QPSK-S_8/9
+./bin/dvbs2_tx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 -F  8 --src-type USER_BIN --src-path /path/to/input/ts/video.ts --mod-cod QPSK-S_8/9
 ```
 
 - Create a fifo on RX computer `mkfifo output_stream_fifo.ts`
 - Receive the video and write into this fifo
 
 ```bash
-./bin/dvbs2_rx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-rx-rate 30e6 --rad-rx-freq 2360e6 --rad-rx-gain 20 --src-fra 16 --mod-cod QPSK-S_8/9 --dec-implem NMS --dec-ite 10 --dec-simd INTER --snk-path output_stream_fifo.ts
+./bin/dvbs2_rx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-rx-rate 30e6 --rad-rx-freq 2360e6 --rad-rx-gain 20 -F 16 --mod-cod QPSK-S_8/9 --dec-implem NMS --dec-ite 10 --dec-simd INTER --snk-path output_stream_fifo.ts
 ```
 
 - On the third computer, connected by ssh to the RX computer, stream and display

@@ -13,7 +13,7 @@ namespace module
 template <typename B, typename R>
 Synchronizer_timing<B, R>
 ::Synchronizer_timing(const int N, const int osf, const int n_frames)
-: Module(n_frames), N_in(N), N_out(N / osf),
+: Module(), N_in(N), N_out(N / osf),
   osf(osf),
   POW_osf(1<<osf),
   INV_osf((R)1.0/ (R)osf),
@@ -30,6 +30,8 @@ Synchronizer_timing<B, R>
 	const std::string name = "Synchronizer_timing";
 	this->set_name(name);
 	this->set_short_name(name);
+	this->set_n_frames(n_frames);
+	this->set_single_wave(true);
 
 	if (N_in <= 0)
 	{
@@ -50,7 +52,7 @@ Synchronizer_timing<B, R>
 	auto p0s_MU   = this->template create_socket_out<R>(p0, "MU"  , 1             );
 	auto p0s_Y_N1 = this->template create_socket_out<R>(p0, "Y_N1", this->N_in    );
 	auto p0s_B_N1 = this->template create_socket_out<B>(p0, "B_N1", this->N_in    );
-	this->create_codelet(p0, [p0s_X_N1, p0s_MU, p0s_Y_N1,p0s_B_N1](Module &m, Task &t) -> int
+	this->create_codelet(p0, [p0s_X_N1, p0s_MU, p0s_Y_N1,p0s_B_N1](Module &m, Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Synchronizer_timing<B,R>&>(m).synchronize(static_cast<R*>(t[p0s_X_N1].get_dataptr()),
 		                                                      static_cast<R*>(t[p0s_MU  ].get_dataptr()),
@@ -64,7 +66,7 @@ Synchronizer_timing<B, R>
 	auto p1s_B_N1 = this->template create_socket_in <B>(p1, "B_N1", this->N_in );
 	auto p1s_UFF  = this->template create_socket_out<B>(p1, "UFW" , 1          );
 	auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N_out);
-	this->create_codelet(p1, [p1s_Y_N1, p1s_B_N1, p1s_UFF, p1s_Y_N2](Module &m, Task &t) -> int
+	this->create_codelet(p1, [p1s_Y_N1, p1s_B_N1, p1s_UFF, p1s_Y_N2](Module &m, Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Synchronizer_timing<B,R>&>(m).extract(static_cast<R*>(t[p1s_Y_N1].get_dataptr()),
 		                                                  static_cast<B*>(t[p1s_B_N1].get_dataptr()),
@@ -95,7 +97,7 @@ void Synchronizer_timing<B,R>
 	this->last_symbol = std::complex<R> (R(0),R(0));
 	this->is_strobe   = 0;
 
-	for (auto f = 0; f < this->n_frames; f++)
+	for (size_t f = 0; f < this->n_frames; f++)
 		this->underflow_cnt[f] = 0;
 
 	this->outbuf_head = 0;
