@@ -1,8 +1,8 @@
-# DVB-S2
+# DVB-S2 SDR Transceiver
 
 ## Machines installation
 
-- Ubuntu 16.04 Desktop and 18.04 Server have been tested
+- Ubuntu 16.04, 18.04 and 20.04 have been tested
 - Needs `Git`, `CMake` and `hwloc`:
 
 ```bash
@@ -104,6 +104,12 @@ cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall 
 make -j20
 ```
 
+If you don't want to compile the code with USRPs you can add the `-DDVBS2_LINK_UHD=OFF` option:
+
+```bash
+cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native" -DAFF3CT_LINK_HWLOC=ON -DDVBS2_LINK_UHD=OFF
+```
+
 ## Binaries
 
 The source code of this project is in the `src/` directory:
@@ -114,8 +120,6 @@ The source code of this project is in the `src/` directory:
 transmitter and the receiver,
 - `src/mains/TX_RX_BB`: source code of the Monte-Carlo simulation without
 filters and synchro,
-- `src/mains/MATLAB`: source code of the rx, tx and bridge chain to communicate
-with MATLAB,
 - `src/common`: source code common to the transmitter and the receiver.
 
 The compiled binaries are:
@@ -127,11 +131,7 @@ The compiled binaries are:
 - `build/bin/dvbs2_tx_rx`: the Monte-Carlo simulation of the transmitter
 and the receiver,
 - `build/bin/dvbs2_tx_rx_bb`: the Monte-Carlo simulation of the
-transmitter and the receiver without filters and synchro,
-- `build/bin/dvbs2_matlab_bridge`: bridge to MATLAB,
-- `build/bin/dvbs2_matlab_tx`: the transmitter to be launched from
-MATLAB,
-- `build/bin/dvbs2_matlab_rx`: the receiver to be launched from MATLAB.
+transmitter and the receiver without filters and synchro.
 
 ## Run
 
