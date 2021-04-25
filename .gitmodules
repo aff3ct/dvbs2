@@ -1,3 +1,3 @@
 [submodule "lib/aff3ct"]
 	path = lib/aff3ct
-	url = ../../fec/aff3ct
+	url = ../aff3ct
