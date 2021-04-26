@@ -30,8 +30,9 @@ public:
 protected:
 	std::vector<R> b;
 	void _filter(const R *X_N1,  R *Y_N2, const int frame_id);
+	void _filter1(const R *X_N1,  R *Y_N2, const int frame_id);
+	void _filter2(const R *X_N1, const R *Y_N2h,  R *Y_N2, const int frame_id);
 	void _filter_old(const R *X_N1,  R *Y_N2, const int frame_id);
-
 };
 
 // Adrien: I put this function here because you wanted to be inlined

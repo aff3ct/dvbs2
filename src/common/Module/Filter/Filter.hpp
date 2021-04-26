@@ -19,11 +19,13 @@ namespace module
 {
 	namespace flt
 	{
-		enum class tsk : size_t { filter, SIZE };
+		enum class tsk : size_t { filter, filter1, filter2, SIZE };
 
 		namespace sck
 		{
-			enum class filter : size_t { X_N1, Y_N2, status };
+			enum class filter  : size_t { X_N1,        Y_N2, status };
+			enum class filter1 : size_t { X_N1,        Y_N2, status };
+			enum class filter2 : size_t { X_N1, Y_N2h, Y_N2, status };
 		}
 	}
 
@@ -41,7 +43,9 @@ class Filter : public Module
 {
 public:
 	inline Task&   operator[](const flt::tsk                 t) { return Module::operator[]((int)t);                        }
-	inline Socket& operator[](const flt::sck::filter         s) { return Module::operator[]((int)flt::tsk::filter)[(int)s]; }
+	inline Socket& operator[](const flt::sck::filter         s) { return Module::operator[]((int)flt::tsk::filter )[(int)s]; }
+	inline Socket& operator[](const flt::sck::filter1        s) { return Module::operator[]((int)flt::tsk::filter1)[(int)s]; }
+	inline Socket& operator[](const flt::sck::filter2        s) { return Module::operator[]((int)flt::tsk::filter2)[(int)s]; }
 
 protected:
 	const int N;     /*!< Size of one frame (= number of samples in one frame) */
@@ -80,10 +84,14 @@ public:
 	template <class AR = std::allocator<R>>
 	void filter(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_id = -1);
 
-	virtual void filter(const R *X_N1, R *Y_N2, const int frame_id = -1);
+	virtual void filter (const R *X_N1,                 R *Y_N2, const int frame_id = -1);
+	virtual void filter1(const R *X_N1,                 R *Y_N2, const int frame_id = -1);
+	virtual void filter2(const R *X_N1, const R *Y_N2h, R *Y_N2, const int frame_id = -1);
 
 protected:
-	virtual void _filter(const R *X_N1,  R *Y_N2, const int frame_id);
+	virtual void _filter (const R *X_N1,                  R *Y_N2, const int frame_id);
+	virtual void _filter1(const R *X_N1,                  R *Y_N2, const int frame_id);
+	virtual void _filter2(const R *X_N1, const R *Y_N2h,  R *Y_N2, const int frame_id);
 };
 }
 }

@@ -69,13 +69,18 @@ template <typename R>
 void Filter_FIR_ccr<R>
 ::_filter(const R *X_N1, R *Y_N2, const int frame_id)
 {
-	auto cX_N1 = reinterpret_cast<const std::complex<R>* >(X_N1);
-	auto cY_N2 = reinterpret_cast<      std::complex<R>* >(Y_N2);
+	auto cX_N1 = reinterpret_cast<const std::complex<R>*>(X_N1);
+	auto cY_N2 = reinterpret_cast<      std::complex<R>*>(Y_N2);
 
 	int rest = this->N - this->P * this->M;
 
 	for(auto i = 0; i < rest/2; i++)
 		step(&cX_N1[i], &cY_N2[i]);
+
+	int sz = this->N/2;
+	std::copy(&cX_N1[sz - this->size], &cX_N1[sz], &this->buff[0]);
+	std::copy(&cX_N1[sz - this->size], &cX_N1[sz], &this->buff[this->size]);
+	this->head = 0;
 
 	mipp::Reg<R> ps = (R)0;
 	mipp::Reg<R> ps0;
@@ -96,7 +101,7 @@ void Filter_FIR_ccr<R>
 	size_t b_size = b.size();
 	size_t b_size_unrolled4 = (b_size / 4) * 4;
 
-	for (auto i = rest; i < this->N ; i += this->M)
+	for (auto i = rest; i < this->N; i += this->M)
 	{
 		ps0 = (R)0;
 		ps1 = (R)0;
@@ -134,11 +139,147 @@ void Filter_FIR_ccr<R>
 
 		ps.store(Y_N2 + i);
 	}
+}
+
+template <typename R>
+void Filter_FIR_ccr<R>
+::_filter1(const R *X_N1, R *Y_N2, const int frame_id)
+{
+	auto cX_N1 = reinterpret_cast<const std::complex<R>*>(X_N1);
+	auto cY_N2 = reinterpret_cast<      std::complex<R>*>(Y_N2);
+
+	int rest = this->N - this->P * this->M;
+
+	for(auto i = 0; i < rest/2; i++)
+		step(&cX_N1[i], &cY_N2[i]);
 
 	int sz = this->N/2;
 	std::copy(&cX_N1[sz - this->size], &cX_N1[sz], &this->buff[0]);
 	std::copy(&cX_N1[sz - this->size], &cX_N1[sz], &this->buff[this->size]);
 	this->head = 0;
+
+	mipp::Reg<R> ps = (R)0;
+	mipp::Reg<R> ps0;
+	mipp::Reg<R> ps1;
+	mipp::Reg<R> ps2;
+	mipp::Reg<R> ps3;
+
+	mipp::Reg<R> reg_x0;
+	mipp::Reg<R> reg_x1;
+	mipp::Reg<R> reg_x2;
+	mipp::Reg<R> reg_x3;
+
+	mipp::Reg<R> reg_b0;
+	mipp::Reg<R> reg_b1;
+	mipp::Reg<R> reg_b2;
+	mipp::Reg<R> reg_b3;
+
+	size_t b_size = b.size();
+	size_t b_size_unrolled4 = (b_size / 4) * 4;
+
+	for (auto i = rest; i < this->N/2 ; i += this->M)
+	{
+		ps0 = (R)0;
+		ps1 = (R)0;
+		ps2 = (R)0;
+		ps3 = (R)0;
+
+		for (size_t k = 0; k < b_size_unrolled4; k += 4)
+		{
+			reg_b0 = b[k +0];
+			reg_b1 = b[k +1];
+			reg_b2 = b[k +2];
+			reg_b3 = b[k +3];
+
+			reg_x0 = &X_N1[-2 * (b_size -1) + i + 2 * (k + 0)];
+			reg_x1 = &X_N1[-2 * (b_size -1) + i + 2 * (k + 1)];
+			reg_x2 = &X_N1[-2 * (b_size -1) + i + 2 * (k + 2)];
+			reg_x3 = &X_N1[-2 * (b_size -1) + i + 2 * (k + 3)];
+
+			ps0 = mipp::fmadd(reg_b0, reg_x0, ps0); // same as 'ps0 += reg_b0 * reg_x0'
+			ps1 = mipp::fmadd(reg_b1, reg_x1, ps1); // same as 'ps1 += reg_b1 * reg_x1'
+			ps2 = mipp::fmadd(reg_b2, reg_x2, ps2); // same as 'ps2 += reg_b2 * reg_x2'
+			ps3 = mipp::fmadd(reg_b3, reg_x3, ps3); // same as 'ps3 += reg_b3 * reg_x3'
+		}
+
+		ps0 += ps1;
+		ps2 += ps3;
+		ps = ps0 + ps2;
+
+		for (size_t k = b_size_unrolled4; k < b_size; k++)
+		{
+			reg_b0 = b[k];
+			reg_x0.load(X_N1 - 2 * (b_size -1) + i + (2 * k));
+			ps = mipp::fmadd(reg_b0, reg_x0, ps); // same as 'ps += reg_b0 * reg_x0'
+		}
+
+		ps.store(Y_N2 + i);
+	}
+}
+
+template <typename R>
+void Filter_FIR_ccr<R>
+::_filter2(const R *X_N1, const R *Y_N2h, R *Y_N2, const int frame_id)
+{
+	std::copy(Y_N2h, Y_N2h + this->N, Y_N2);
+
+	mipp::Reg<R> ps = (R)0;
+	mipp::Reg<R> ps0;
+	mipp::Reg<R> ps1;
+	mipp::Reg<R> ps2;
+	mipp::Reg<R> ps3;
+
+	mipp::Reg<R> reg_x0;
+	mipp::Reg<R> reg_x1;
+	mipp::Reg<R> reg_x2;
+	mipp::Reg<R> reg_x3;
+
+	mipp::Reg<R> reg_b0;
+	mipp::Reg<R> reg_b1;
+	mipp::Reg<R> reg_b2;
+	mipp::Reg<R> reg_b3;
+
+	size_t b_size = b.size();
+	size_t b_size_unrolled4 = (b_size / 4) * 4;
+
+	for (auto i = this->N/2; i < this->N ; i += this->M)
+	{
+		ps0 = (R)0;
+		ps1 = (R)0;
+		ps2 = (R)0;
+		ps3 = (R)0;
+
+		for (size_t k = 0; k < b_size_unrolled4; k += 4)
+		{
+			reg_b0 = b[k +0];
+			reg_b1 = b[k +1];
+			reg_b2 = b[k +2];
+			reg_b3 = b[k +3];
+
+			reg_x0 = &X_N1[-2 * (b_size -1) + i + 2 * (k + 0)];
+			reg_x1 = &X_N1[-2 * (b_size -1) + i + 2 * (k + 1)];
+			reg_x2 = &X_N1[-2 * (b_size -1) + i + 2 * (k + 2)];
+			reg_x3 = &X_N1[-2 * (b_size -1) + i + 2 * (k + 3)];
+
+			ps0 = mipp::fmadd(reg_b0, reg_x0, ps0); // same as 'ps0 += reg_b0 * reg_x0'
+			ps1 = mipp::fmadd(reg_b1, reg_x1, ps1); // same as 'ps1 += reg_b1 * reg_x1'
+			ps2 = mipp::fmadd(reg_b2, reg_x2, ps2); // same as 'ps2 += reg_b2 * reg_x2'
+			ps3 = mipp::fmadd(reg_b3, reg_x3, ps3); // same as 'ps3 += reg_b3 * reg_x3'
+		}
+
+		ps0 += ps1;
+		ps2 += ps3;
+		ps = ps0 + ps2;
+
+		for (size_t k = b_size_unrolled4; k < b_size; k++)
+		{
+			reg_b0 = b[k];
+			reg_x0.load(X_N1 - 2 * (b_size -1) + i + (2 * k));
+			ps = mipp::fmadd(reg_b0, reg_x0, ps); // same as 'ps += reg_b0 * reg_x0'
+		}
+
+		ps.store(Y_N2 + i);
+	}
 }
 
 template <typename R>

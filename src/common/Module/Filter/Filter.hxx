@@ -65,6 +65,30 @@ init_processes()
 
 		return 0;
 	});
+	
+	auto &p2 = this->create_task("filter1");
+	auto p2s_X_N1 = this->template create_socket_in <R>(p2, "X_N1", this->N    );
+	auto p2s_Y_N2 = this->template create_socket_out<R>(p2, "Y_N2", this->N_fil);
+	this->create_codelet(p2, [p2s_X_N1, p2s_Y_N2](Module &m, Task &t, const size_t frame_id) -> int
+	{
+		static_cast<Filter<R>&>(m).filter1(static_cast<R*>(t[p2s_X_N1].get_dataptr()),
+		                                   static_cast<R*>(t[p2s_Y_N2].get_dataptr()));
+
+		return 0;
+	});
+	
+	auto &p3 = this->create_task("filter2");
+	auto p3s_X_N1  = this->template create_socket_in <R>(p3, "X_N1",  this->N    );
+	auto p3s_Y_N2h = this->template create_socket_in <R>(p3, "Y_N2h", this->N_fil);
+	auto p3s_Y_N2  = this->template create_socket_out<R>(p3, "Y_N2",  this->N_fil);
+	this->create_codelet(p3, [p3s_X_N1, p3s_Y_N2, p3s_Y_N2h](Module &m, Task &t, const size_t frame_id) -> int
+	{
+		static_cast<Filter<R>&>(m).filter2(static_cast<R*>(t[p3s_X_N1 ].get_dataptr()),
+		                                   static_cast<R*>(t[p3s_Y_N2h].get_dataptr()),
+		                                   static_cast<R*>(t[p3s_Y_N2 ].get_dataptr()));
+
+		return 0;
+	});
 }
 
 template <typename R>
@@ -121,6 +145,47 @@ filter(const R *X_N1, R *Y_N2, const int frame_id)
 template <typename R>
 void Filter<R>::
 _filter(const R *X_N1, R *Y_N2, const int frame_id)
+{
+	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+}
+
+template <typename R>
+void Filter<R>::
+filter1(const R *X_N1, R *Y_N2, const int frame_id)
+{
+	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
+	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
+
+	for (auto f = f_start; f < f_stop; f++)
+		this->_filter1(X_N1 + f * this->N,
+		               Y_N2 + f * this->N_fil,
+		               f);
+}
+
+template <typename R>
+void Filter<R>::
+_filter1(const R *X_N1, R *Y_N2, const int frame_id)
+{
+	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+}
+
+template <typename R>
+void Filter<R>::
+filter2(const R *X_N1, const R *Y_N2h, R *Y_N2, const int frame_id)
+{
+	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
+	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
+
+	for (auto f = f_start; f < f_stop; f++)
+		this->_filter2(X_N1  + f * this->N,
+		               Y_N2h + f * this->N_fil,
+		               Y_N2  + f * this->N_fil,
+		               f);
+}
+
+template <typename R>
+void Filter<R>::
+_filter2(const R *X_N1, const R *Y_N2h, R *Y_N2, const int frame_id)
 {
 	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }

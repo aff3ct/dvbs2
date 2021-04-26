@@ -148,54 +148,56 @@ int main(int argc, char** argv)
 	                                                     ((double)params.pl_frame_size * (double)params.p_shp.osf));
 
 	// the full transmission chain binding
-	(*front_agc       )[mlt::sck::imultiply    ::X_N ].bind((*radio        )[rad::sck::receive      ::Y_N1  ]);
-	(*sync_coarse_f   )[sfc::sck::synchronize  ::X_N1].bind((*front_agc    )[mlt::sck::imultiply    ::Z_N   ]);
-	(*matched_flt     )[flt::sck::filter       ::X_N1].bind((*sync_coarse_f)[sfc::sck::synchronize  ::Y_N2  ]);
-	(*sync_timing     )[stm::sck::synchronize  ::X_N1].bind((*matched_flt  )[flt::sck::filter       ::Y_N2  ]);
-	(*sync_timing     )[stm::sck::extract      ::B_N1].bind((*sync_timing  )[stm::sck::synchronize  ::B_N1  ]);
-	(*sync_timing     )[stm::sck::extract      ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize  ::Y_N1  ]);
-	(*mult_agc        )[mlt::sck::imultiply    ::X_N ].bind((*sync_timing  )[stm::sck::extract      ::Y_N2  ]);
-	(*sync_frame      )[sfm::sck::synchronize  ::X_N1].bind((*mult_agc     )[mlt::sck::imultiply    ::Z_N   ]);
-	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1].bind((*sync_frame   )[sfm::sck::synchronize  ::Y_N2  ]);
-	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler )[scr::sck::descramble   ::Y_N2  ]);
-	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr )[sff::sck::synchronize  ::Y_N2  ]);
-	(*framer          )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf )[sff::sck::synchronize  ::Y_N2  ]);
-	(*estimator       )[est::sck::estimate     ::X_N ].bind((*framer       )[frm::sck::remove_plh   ::Y_N2  ]);
-	(*modem           )[mdm::sck::demodulate   ::CP  ].bind((*estimator    )[est::sck::estimate     ::SIG   ]);
-	(*modem           )[mdm::sck::demodulate   ::Y_N1].bind((*framer       )[frm::sck::remove_plh   ::Y_N2  ]);
-	(*itl_rx          )[itl::sck::deinterleave ::itl ].bind((*modem        )[mdm::sck::demodulate   ::Y_N2  ]);
-	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx       )[itl::sck::deinterleave ::nat   ]);
-	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::V_K   ]);
-	(*bb_scrambler    )[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::V_K   ]);
-	(*monitor         )[mnt::sck::check_errors2::U   ].bind((*source       )[src::sck::generate     ::U_K   ]);
-	(*monitor         )[mnt::sck::check_errors2::V   ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
-	(*sink            )[snk::sck::send         ::V   ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
+	(*front_agc       )[mlt::sck::imultiply    ::X_N  ].bind((*radio        )[rad::sck::receive      ::Y_N1  ]);
+	(*sync_coarse_f   )[sfc::sck::synchronize  ::X_N1 ].bind((*front_agc    )[mlt::sck::imultiply    ::Z_N   ]);
+	(*matched_flt     )[flt::sck::filter1      ::X_N1 ].bind((*sync_coarse_f)[sfc::sck::synchronize  ::Y_N2  ]);
+	(*matched_flt     )[flt::sck::filter2      ::X_N1 ].bind((*sync_coarse_f)[sfc::sck::synchronize  ::Y_N2  ]);
+	(*matched_flt     )[flt::sck::filter2      ::Y_N2h].bind((*matched_flt  )[flt::sck::filter1      ::Y_N2  ]);
+	(*sync_timing     )[stm::sck::synchronize  ::X_N1 ].bind((*matched_flt  )[flt::sck::filter2      ::Y_N2  ]);
+	(*sync_timing     )[stm::sck::extract      ::B_N1 ].bind((*sync_timing  )[stm::sck::synchronize  ::B_N1  ]);
+	(*sync_timing     )[stm::sck::extract      ::Y_N1 ].bind((*sync_timing  )[stm::sck::synchronize  ::Y_N1  ]);
+	(*mult_agc        )[mlt::sck::imultiply    ::X_N  ].bind((*sync_timing  )[stm::sck::extract      ::Y_N2  ]);
+	(*sync_frame      )[sfm::sck::synchronize  ::X_N1 ].bind((*mult_agc     )[mlt::sck::imultiply    ::Z_N   ]);
+	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1 ].bind((*sync_frame   )[sfm::sck::synchronize  ::Y_N2  ]);
+	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1 ].bind((*pl_scrambler )[scr::sck::descramble   ::Y_N2  ]);
+	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1 ].bind((*sync_fine_lr )[sff::sck::synchronize  ::Y_N2  ]);
+	(*framer          )[frm::sck::remove_plh   ::Y_N1 ].bind((*sync_fine_pf )[sff::sck::synchronize  ::Y_N2  ]);
+	(*estimator       )[est::sck::estimate     ::X_N  ].bind((*framer       )[frm::sck::remove_plh   ::Y_N2  ]);
+	(*modem           )[mdm::sck::demodulate   ::CP   ].bind((*estimator    )[est::sck::estimate     ::SIG   ]);
+	(*modem           )[mdm::sck::demodulate   ::Y_N1 ].bind((*framer       )[frm::sck::remove_plh   ::Y_N2  ]);
+	(*itl_rx          )[itl::sck::deinterleave ::itl  ].bind((*modem        )[mdm::sck::demodulate   ::Y_N2  ]);
+	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N  ].bind((*itl_rx       )[itl::sck::deinterleave ::nat   ]);
+	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N  ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::V_K   ]);
+	(*bb_scrambler    )[scr::sck::descramble   ::Y_N1 ].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::V_K   ]);
+	(*monitor         )[mnt::sck::check_errors2::U    ].bind((*source       )[src::sck::generate     ::U_K   ]);
+	(*monitor         )[mnt::sck::check_errors2::V    ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
+	(*sink            )[snk::sck::send         ::V    ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
 	// bind the probes
-	(*prb_thr_the     )[prb::sck::probe        ::in  ].bind(theoretical_thr.data()                           );
-	(*prb_rad_ovf     )[prb::sck::probe        ::in  ].bind((*radio        )[rad::sck::receive      ::OVF   ]);
-	(*prb_rad_seq     )[prb::sck::probe        ::in  ].bind((*radio        )[rad::sck::receive      ::SEQ   ]);
-	(*prb_frq_coa     )[prb::sck::probe        ::in  ].bind((*sync_coarse_f)[sfc::sck::synchronize  ::FRQ   ]);
-	(*prb_stm_del     )[prb::sck::probe        ::in  ].bind((*sync_timing  )[stm::sck::synchronize  ::MU    ]);
-	(*prb_stm_uff     )[prb::sck::probe        ::in  ].bind((*sync_timing  )[stm::sck::extract      ::UFW   ]);
-	(*prb_sfm_del     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::DEL   ]);
-	(*prb_sfm_tri     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::TRI   ]);
-	(*prb_sfm_flg     )[prb::sck::probe        ::in  ].bind((*sync_frame   )[sfm::sck::synchronize  ::FLG   ]);
-	(*prb_frq_lr      )[prb::sck::probe        ::in  ].bind((*sync_fine_lr )[sff::sck::synchronize  ::FRQ   ]);
-	(*prb_frq_fin     )[prb::sck::probe        ::in  ].bind((*sync_fine_pf )[sff::sck::synchronize  ::FRQ   ]);
-	(*prb_noise_es    )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::estimate     ::Es_N0 ]);
-	(*prb_noise_eb    )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::estimate     ::Eb_N0 ]);
-	(*prb_noise_sig   )[prb::sck::probe        ::in  ].bind((*estimator    )[est::sck::estimate     ::SIG   ]);
-	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::CWD   ]);
-	(*prb_decstat_bch )[prb::sck::probe        ::in  ].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::CWD   ]);
-	(*prb_thr_thr     )[prb::sck::probe        ::in  ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
-	(*prb_thr_lat     )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
-	(*prb_thr_time    )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
-	(*prb_thr_tsta    )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
-	(*prb_bfer_be     )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::BE    ]);
-	(*prb_bfer_fe     )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::FE    ]);
-	(*prb_bfer_ber    )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::BER   ]);
-	(*prb_bfer_fer    )[prb::sck::probe        ::in  ].bind((*monitor      )[mnt::sck::check_errors2::FER   ]);
-	(*prb_fra_id      )[prb::sck::probe        ::in  ].bind((*sink         )[snk::sck::send         ::status]);
+	(*prb_thr_the     )[prb::sck::probe        ::in   ].bind(theoretical_thr.data()                           );
+	(*prb_rad_ovf     )[prb::sck::probe        ::in   ].bind((*radio        )[rad::sck::receive      ::OVF   ]);
+	(*prb_rad_seq     )[prb::sck::probe        ::in   ].bind((*radio        )[rad::sck::receive      ::SEQ   ]);
+	(*prb_frq_coa     )[prb::sck::probe        ::in   ].bind((*sync_coarse_f)[sfc::sck::synchronize  ::FRQ   ]);
+	(*prb_stm_del     )[prb::sck::probe        ::in   ].bind((*sync_timing  )[stm::sck::synchronize  ::MU    ]);
+	(*prb_stm_uff     )[prb::sck::probe        ::in   ].bind((*sync_timing  )[stm::sck::extract      ::UFW   ]);
+	(*prb_sfm_del     )[prb::sck::probe        ::in   ].bind((*sync_frame   )[sfm::sck::synchronize  ::DEL   ]);
+	(*prb_sfm_tri     )[prb::sck::probe        ::in   ].bind((*sync_frame   )[sfm::sck::synchronize  ::TRI   ]);
+	(*prb_sfm_flg     )[prb::sck::probe        ::in   ].bind((*sync_frame   )[sfm::sck::synchronize  ::FLG   ]);
+	(*prb_frq_lr      )[prb::sck::probe        ::in   ].bind((*sync_fine_lr )[sff::sck::synchronize  ::FRQ   ]);
+	(*prb_frq_fin     )[prb::sck::probe        ::in   ].bind((*sync_fine_pf )[sff::sck::synchronize  ::FRQ   ]);
+	(*prb_noise_es    )[prb::sck::probe        ::in   ].bind((*estimator    )[est::sck::estimate     ::Es_N0 ]);
+	(*prb_noise_eb    )[prb::sck::probe        ::in   ].bind((*estimator    )[est::sck::estimate     ::Eb_N0 ]);
+	(*prb_noise_sig   )[prb::sck::probe        ::in   ].bind((*estimator    )[est::sck::estimate     ::SIG   ]);
+	(*prb_decstat_ldpc)[prb::sck::probe        ::in   ].bind((*LDPC_decoder )[dec::sck::decode_siho  ::CWD   ]);
+	(*prb_decstat_bch )[prb::sck::probe        ::in   ].bind((*BCH_decoder  )[dec::sck::decode_hiho  ::CWD   ]);
+	(*prb_thr_thr     )[prb::sck::probe        ::in   ].bind((*bb_scrambler )[scr::sck::descramble   ::Y_N2  ]);
+	(*prb_thr_lat     )[prb::sck::probe        ::in   ].bind((*sink         )[snk::sck::send         ::status]);
+	(*prb_thr_time    )[prb::sck::probe        ::in   ].bind((*sink         )[snk::sck::send         ::status]);
+	(*prb_thr_tsta    )[prb::sck::probe        ::in   ].bind((*sink         )[snk::sck::send         ::status]);
+	(*prb_bfer_be     )[prb::sck::probe        ::in   ].bind((*monitor      )[mnt::sck::check_errors2::BE    ]);
+	(*prb_bfer_fe     )[prb::sck::probe        ::in   ].bind((*monitor      )[mnt::sck::check_errors2::FE    ]);
+	(*prb_bfer_ber    )[prb::sck::probe        ::in   ].bind((*monitor      )[mnt::sck::check_errors2::BER   ]);
+	(*prb_bfer_fer    )[prb::sck::probe        ::in   ].bind((*monitor      )[mnt::sck::check_errors2::FER   ]);
+	(*prb_fra_id      )[prb::sck::probe        ::in   ].bind((*sink         )[snk::sck::send         ::status]);
 
 	// first stages of the whole transmission sequence
 	const std::vector<module::Task*> firsts_t = { &(*radio)[rad::tsk::receive], &(*source)[src::tsk::generate],
@@ -219,37 +221,57 @@ int main(int argc, char** argv)
 	  // pipeline stage 1
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*front_agc)[mlt::tsk::imultiply] },
-	    { &(*matched_flt)[flt::tsk::filter], &(*prb_frq_coa)[prb::tsk::probe] },
-	    { /* no exclusions in this stage */ } ),
+	    { &(*prb_frq_coa)[prb::tsk::probe] },
+	    { &(*matched_flt)[flt::tsk::filter1] } ),
 	  // pipeline stage 2
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*matched_flt)[flt::tsk::filter1] },
+	    { &(*matched_flt)[flt::tsk::filter1] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 3
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*matched_flt)[flt::tsk::filter2] },
+	    { &(*matched_flt)[flt::tsk::filter2] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 4
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*sync_timing)[stm::tsk::synchronize], &(*prb_stm_del)[prb::tsk::probe] },
 	    { &(*sync_timing)[stm::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 3
+	  // pipeline stage 5
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
-	    { &(*sync_timing)[stm::tsk::extract], &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe],
+	    { &(*sync_timing)[stm::tsk::extract] },
+	    { &(*mult_agc   )[mlt::tsk::imultiply] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 6
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*sync_frame)[sfm::tsk::synchronize], &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe],
 	      &(*prb_sfm_flg)[prb::tsk::probe] },
 	    { &(*sync_frame)[sfm::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 4
+	  // pipeline stage 7
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
-	    { &(*pl_scrambler)[scr::tsk::descramble], &(*prb_frq_fin)[prb::tsk::probe] },
-	    { &(*sync_fine_pf)[sff::tsk::synchronize], &(*prb_frq_lr)[prb::tsk::probe] },
+	    { &(*pl_scrambler)[scr::tsk::descramble], &(*prb_frq_lr)[prb::tsk::probe] },
+	    { &(*sync_fine_lr)[sff::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 5
+	  // pipeline stage 8
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*sync_fine_pf)[sff::tsk::synchronize], &(*prb_frq_fin)[prb::tsk::probe]},
+	    { &(*sync_fine_pf)[sff::tsk::synchronize] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 9
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_sig)[prb::tsk::probe], &(*prb_noise_es)[prb::tsk::probe],
 	      &(*prb_noise_eb)[prb::tsk::probe] },
 	    { &(*estimator)[est::tsk::estimate] },
 	    { &(*modem)[mdm::tsk::demodulate] } ),
-	  // pipeline stage 6
+	  // pipeline stage 10
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*modem)[mdm::tsk::demodulate] },
 	    { &(*bb_scrambler)[scr::tsk::descramble] },
 	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
 	      &(*prb_thr_thr)[prb::tsk::probe] } ),
-	  // pipeline stage 7
+	  // pipeline stage 11
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*monitor)[mnt::tsk::check_errors2], &(*sink)[snk::tsk::send], &(*prb_decstat_ldpc)[prb::tsk::probe],
 	      &(*prb_decstat_bch)[prb::tsk::probe], &(*prb_thr_thr)[prb::tsk::probe] },
@@ -257,7 +279,7 @@ int main(int argc, char** argv)
 	    { /* no exclusions in this stage */ } ),
 	};
 	// number of threads per stages
-	const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 28, 1 };
+	const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 40, 1 };
 	// synchronization buffer size between stages
 	const std::vector<size_t> buffer_sizes(sep_stages.size() -1, 1);
 	// type of waiting between stages (true = active, false = passive)
@@ -265,18 +287,23 @@ int main(int argc, char** argv)
 	// enable thread pinning
 	const std::vector<bool> thread_pinnigs(sep_stages.size(), thread_pinnig);
 	// process unit (pu) ids per stage for thread pinning
-	const std::vector<std::vector<size_t>> puids = { { 2 },                            // for stage 0
-	                                                 { 3 },                            // for stage 1
-	                                                 { 4 },                            // for stage 2
-	                                                 { 5 },                            // for stage 3
-	                                                 { 6 },                            // for stage 4
-	                                                 { 7 },                            // for stage 5
-	                                                 { 12, 24, 25, 26, 27, 28, 29, 13, // for stage 6
-	                                                   30, 14, 31, 15, 32, 16, 33, 17,
-	                                                   34, 18, 35, 19, 36, 20, 37, 21,
-	                                                   38, 22, 39, 23, 39, 40, 41, 42,
-	                                                   43, 44, 45, 46, 47 },
-	                                                 { 8 } };                          // for stage 7
+	const std::vector<std::vector<size_t>> puids = { {  2*4 },                            // for stage 0
+	                                                 {  3*4 },                            // for stage 1
+	                                                 {  4*4 },                            // for stage 2
+	                                                 {  5*4 },                            // for stage 3
+	                                                 {  6*4 },                            // for stage 4
+	                                                 {  7*4 },                            // for stage 5
+	                                                 {  8*4 },                            // for stage 6
+	                                                 {  9*4 },                            // for stage 7
+	                                                 { 10*4 },                            // for stage 8
+	                                                 { 11*4 },                            // for stage 9
+	                                                 { 13*4, 28*4, 29*4, 30*4, 31*4, 32*4, 33*4, 34*4, // for stage 10
+	                                                   35*4, 36*4, 37*4, 38*4, 14*4, 39*4, 15*4, 40*4, 
+	                                                   16*4, 41*4, 17*4, 42*4, 18*4, 43*4, 19*4, 44*4, 
+	                                                   20*4, 45*4, 21*4, 46*4, 22*4, 47*4, 23*4, 48*4, 
+	                                                   24*4, 49*4, 25*4, 50*4, 26*4, 51*4, 27*4, 52*4,
+	                                                   53*4, 54*4, 55*4 },
+	                                                 { 12*4 } };                          // for stage 11
 
 	tools::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
 	                                      thread_pinnigs, puids);
@@ -530,15 +557,19 @@ int main(int argc, char** argv)
 		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 0
 		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 1
 		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 2
-		[&prb_fra_id] (const std::vector<const int*>& statuses)                                   // stop condition stage 3
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 3
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 4
+		[&prb_fra_id] (const std::vector<const int*>& statuses)                                   // stop condition stage 5
 		{
 			if (statuses.back() == nullptr && enable_logs)
 				std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, stage = 3"
 				          << ", m = " << prb_fra_id->get_occurrences() << ")" << std::endl;
 			return tools::Terminal::is_interrupt();
 		},
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 4
-		[&noise_est, &estimator] (const std::vector<const int*>& statuses)                        // stop condition stage 5
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 6
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 7
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 8
+		[&noise_est, &estimator] (const std::vector<const int*>& statuses)                        // stop condition stage 9
 		{
 			// update "noise_est" for the terminal display
 			if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
@@ -547,8 +578,8 @@ int main(int argc, char** argv)
 				                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
 			return tools::Terminal::is_interrupt();
 		},
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 6
-		[&prb_thr_the, &terminal_stats, &stats_file] (const std::vector<const int*>& statuses)    // stop condition stage 7
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 10
+		[&prb_thr_the, &terminal_stats, &stats_file] (const std::vector<const int*>& statuses)    // stop condition stage 11
 		{
 			terminal_stats.temp_report(stats_file);
 			return tools::Terminal::is_interrupt();
