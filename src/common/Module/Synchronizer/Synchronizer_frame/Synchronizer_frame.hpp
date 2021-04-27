@@ -13,11 +13,13 @@ namespace module
 
 namespace sfm
 {
-	enum class tsk : uint8_t { synchronize, SIZE };
+	enum class tsk : uint8_t { synchronize, synchronize1, synchronize2, SIZE };
 
 	namespace sck
 	{
-		enum class synchronize : uint8_t { X_N1, DEL, FLG, TRI, Y_N2, status };
+		enum class synchronize  : uint8_t { X_N1, DEL, FLG, TRI, Y_N2, status };
+		enum class synchronize1 : uint8_t { X_N1,                      status };
+		enum class synchronize2 : uint8_t { X_N1, DEL, FLG, TRI, Y_N2, status };
 	}
 }
 template <typename R = float>
@@ -29,8 +31,10 @@ protected:
 	int delay;
 
 public:
-	inline Task&   operator[](const sfm::tsk              t) { return Module::operator[]((int)t);                             }
-	inline Socket& operator[](const sfm::sck::synchronize s) { return Module::operator[]((int)syn::tsk::synchronize)[(int)s]; }
+	inline Task&   operator[](const sfm::tsk               t) { return Module::operator[]((int)t);                              }
+	inline Socket& operator[](const sfm::sck::synchronize  s) { return Module::operator[]((int)sfm::tsk::synchronize )[(int)s]; }
+	inline Socket& operator[](const sfm::sck::synchronize1 s) { return Module::operator[]((int)sfm::tsk::synchronize1)[(int)s]; }
+	inline Socket& operator[](const sfm::sck::synchronize2 s) { return Module::operator[]((int)sfm::tsk::synchronize2)[(int)s]; }
 
 public:
 	Synchronizer_frame(const int N, const int n_frames = 1);
@@ -57,10 +61,15 @@ public:
 	template <class AR = std::allocator<R>>
 	void synchronize(const std::vector<R,AR>& X_N1, std::vector<int>& DEL, std::vector<int>& FLG, std::vector<R,AR>& TRI, std::vector<R,AR>& Y_N2, const int frame_id = -1);
 
-	virtual void synchronize(const R *X_N1, int* DEL, int* FLG, R *TRI, R *Y_N2, const int frame_id = -1);
+	virtual void synchronize (const R *X_N1, int* DEL, int* FLG, R *TRI, R *Y_N2, const int frame_id = -1);
+	virtual void synchronize1(const R *X_N1,                                      const int frame_id = -1);
+	virtual void synchronize2(const R *X_N1, int* DEL, int* FLG, R *TRI, R *Y_N2, const int frame_id = -1);
 
 protected:
-	virtual void _synchronize(const R *X_N1, int* DEL, R *Y_N2, const int frame_id) = 0;
+	virtual void _synchronize (const R *X_N1, int* DEL, R *Y_N2, const int frame_id);
+	virtual void _synchronize1(const R *X_N1,                    const int frame_id);
+	virtual void _synchronize2(const R *X_N1, int* DEL, R *Y_N2, const int frame_id);
+
 	virtual R    _get_metric     () const = 0;
 	virtual bool _get_packet_flag() const = 0;
 };

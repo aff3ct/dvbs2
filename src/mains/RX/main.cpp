@@ -157,8 +157,9 @@ int main(int argc, char** argv)
 	(*sync_timing     )[stm::sck::extract      ::B_N1 ].bind((*sync_timing  )[stm::sck::synchronize  ::B_N1  ]);
 	(*sync_timing     )[stm::sck::extract      ::Y_N1 ].bind((*sync_timing  )[stm::sck::synchronize  ::Y_N1  ]);
 	(*mult_agc        )[mlt::sck::imultiply    ::X_N  ].bind((*sync_timing  )[stm::sck::extract      ::Y_N2  ]);
-	(*sync_frame      )[sfm::sck::synchronize  ::X_N1 ].bind((*mult_agc     )[mlt::sck::imultiply    ::Z_N   ]);
-	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1 ].bind((*sync_frame   )[sfm::sck::synchronize  ::Y_N2  ]);
+	(*sync_frame      )[sfm::sck::synchronize1 ::X_N1 ].bind((*mult_agc     )[mlt::sck::imultiply    ::Z_N   ]);
+	(*sync_frame      )[sfm::sck::synchronize2 ::X_N1 ].bind((*mult_agc     )[mlt::sck::imultiply    ::Z_N   ]);
+	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1 ].bind((*sync_frame   )[sfm::sck::synchronize2 ::Y_N2  ]);
 	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1 ].bind((*pl_scrambler )[scr::sck::descramble   ::Y_N2  ]);
 	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1 ].bind((*sync_fine_lr )[sff::sck::synchronize  ::Y_N2  ]);
 	(*framer          )[frm::sck::remove_plh   ::Y_N1 ].bind((*sync_fine_pf )[sff::sck::synchronize  ::Y_N2  ]);
@@ -179,9 +180,9 @@ int main(int argc, char** argv)
 	(*prb_frq_coa     )[prb::sck::probe        ::in   ].bind((*sync_coarse_f)[sfc::sck::synchronize  ::FRQ   ]);
 	(*prb_stm_del     )[prb::sck::probe        ::in   ].bind((*sync_timing  )[stm::sck::synchronize  ::MU    ]);
 	(*prb_stm_uff     )[prb::sck::probe        ::in   ].bind((*sync_timing  )[stm::sck::extract      ::UFW   ]);
-	(*prb_sfm_del     )[prb::sck::probe        ::in   ].bind((*sync_frame   )[sfm::sck::synchronize  ::DEL   ]);
-	(*prb_sfm_tri     )[prb::sck::probe        ::in   ].bind((*sync_frame   )[sfm::sck::synchronize  ::TRI   ]);
-	(*prb_sfm_flg     )[prb::sck::probe        ::in   ].bind((*sync_frame   )[sfm::sck::synchronize  ::FLG   ]);
+	(*prb_sfm_del     )[prb::sck::probe        ::in   ].bind((*sync_frame   )[sfm::sck::synchronize2 ::DEL   ]);
+	(*prb_sfm_tri     )[prb::sck::probe        ::in   ].bind((*sync_frame   )[sfm::sck::synchronize2 ::TRI   ]);
+	(*prb_sfm_flg     )[prb::sck::probe        ::in   ].bind((*sync_frame   )[sfm::sck::synchronize2 ::FLG   ]);
 	(*prb_frq_lr      )[prb::sck::probe        ::in   ].bind((*sync_fine_lr )[sff::sck::synchronize  ::FRQ   ]);
 	(*prb_frq_fin     )[prb::sck::probe        ::in   ].bind((*sync_fine_pf )[sff::sck::synchronize  ::FRQ   ]);
 	(*prb_noise_es    )[prb::sck::probe        ::in   ].bind((*estimator    )[est::sck::estimate     ::Es_N0 ]);
@@ -245,9 +246,9 @@ int main(int argc, char** argv)
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 6
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
-	    { &(*sync_frame)[sfm::tsk::synchronize], &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe],
+	    { &(*sync_frame)[sfm::tsk::synchronize1], &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe],
 	      &(*prb_sfm_flg)[prb::tsk::probe] },
-	    { &(*sync_frame)[sfm::tsk::synchronize] },
+	    { &(*sync_frame)[sfm::tsk::synchronize2] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 7
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
@@ -361,19 +362,19 @@ int main(int argc, char** argv)
 	(*prb_stm_del  )[prb::sck::probe      ::in  ].unbind((*sync_timing  )[stm::sck::synchronize::MU  ]);
 
 	// partial binding
-	(*sync_step_mf)[smf::sck::synchronize::X_N1].bind((*front_agc   )[mlt::sck::imultiply  ::Z_N ]);
-	(*sync_step_mf)[smf::sck::synchronize::DEL ].bind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
-	(*sync_timing )[stm::sck::extract    ::B_N1].bind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
-	(*sync_timing )[stm::sck::extract    ::Y_N1].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
-	(*prb_frq_coa )[prb::sck::probe      ::in  ].bind((*sync_step_mf)[smf::sck::synchronize::FRQ ]);
-	(*prb_stm_del )[prb::sck::probe      ::in  ].bind((*sync_step_mf)[smf::sck::synchronize::MU  ]);
+	(*sync_step_mf)[smf::sck::synchronize::X_N1].bind((*front_agc   )[mlt::sck::imultiply   ::Z_N ]);
+	(*sync_step_mf)[smf::sck::synchronize::DEL ].bind((*sync_frame  )[sfm::sck::synchronize2::DEL ]);
+	(*sync_timing )[stm::sck::extract    ::B_N1].bind((*sync_step_mf)[smf::sck::synchronize ::B_N1]);
+	(*sync_timing )[stm::sck::extract    ::Y_N1].bind((*sync_step_mf)[smf::sck::synchronize ::Y_N1]);
+	(*prb_frq_coa )[prb::sck::probe      ::in  ].bind((*sync_step_mf)[smf::sck::synchronize ::FRQ ]);
+	(*prb_stm_del )[prb::sck::probe      ::in  ].bind((*sync_step_mf)[smf::sck::synchronize ::MU  ]);
 
 	std::vector<Task*> firsts_wl12 = { &(*radio       )[rad::tsk::receive], &(*prb_sfm_del )[prb::tsk::probe],
 	                                   &(*prb_sfm_tri )[prb::tsk::probe  ], &(*prb_sfm_flg )[prb::tsk::probe],
 	                                   &(*prb_thr_lat )[prb::tsk::probe  ], &(*prb_thr_time)[prb::tsk::probe],
 	                                   &(*prb_thr_tsta)[prb::tsk::probe  ], &(*prb_fra_id  )[prb::tsk::probe] };
 
-	std::vector<Task*> lasts_wl12 = { &(*sync_frame)[sfm::tsk::synchronize] };
+	std::vector<Task*> lasts_wl12 = { &(*sync_frame)[sfm::tsk::synchronize2] };
 
 	tools::Sequence sequence_waiting_and_learning_1_2(firsts_wl12, lasts_wl12);
 
@@ -469,12 +470,12 @@ int main(int argc, char** argv)
 	// LEARNING PHASE 3 ===============================================================================================
 	// ================================================================================================================
 	// partial unbinding
-	(*sync_step_mf)[smf::sck::synchronize::X_N1].unbind((*front_agc   )[mlt::sck::imultiply  ::Z_N ]);
-	(*sync_step_mf)[smf::sck::synchronize::DEL ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
-	(*sync_timing )[stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
-	(*sync_timing )[stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
-	(*prb_frq_coa )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::FRQ ]);
-	(*prb_stm_del )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::MU  ]);
+	(*sync_step_mf)[smf::sck::synchronize::X_N1].unbind((*front_agc   )[mlt::sck::imultiply   ::Z_N ]);
+	(*sync_step_mf)[smf::sck::synchronize::DEL ].unbind((*sync_frame  )[sfm::sck::synchronize2::DEL ]);
+	(*sync_timing )[stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize ::B_N1]);
+	(*sync_timing )[stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize ::Y_N1]);
+	(*prb_frq_coa )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize ::FRQ ]);
+	(*prb_stm_del )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize ::MU  ]);
 
 	// partial binding
 	(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
