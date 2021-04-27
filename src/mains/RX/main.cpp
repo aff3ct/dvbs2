@@ -246,33 +246,38 @@ int main(int argc, char** argv)
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 6
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
-	    { &(*sync_frame)[sfm::tsk::synchronize1], &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe],
-	      &(*prb_sfm_flg)[prb::tsk::probe] },
-	    { &(*sync_frame)[sfm::tsk::synchronize2] },
+	    { &(*sync_frame)[sfm::tsk::synchronize1] },
+	    { &(*sync_frame)[sfm::tsk::synchronize1] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 7
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*sync_frame)[sfm::tsk::synchronize2],
+	      &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe], &(*prb_sfm_flg)[prb::tsk::probe] },
+	    { &(*sync_frame)[sfm::tsk::synchronize2] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 8
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*pl_scrambler)[scr::tsk::descramble], &(*prb_frq_lr)[prb::tsk::probe] },
 	    { &(*sync_fine_lr)[sff::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 8
+	  // pipeline stage 9
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*sync_fine_pf)[sff::tsk::synchronize], &(*prb_frq_fin)[prb::tsk::probe]},
 	    { &(*sync_fine_pf)[sff::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 9
+	  // pipeline stage 10
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_sig)[prb::tsk::probe], &(*prb_noise_es)[prb::tsk::probe],
 	      &(*prb_noise_eb)[prb::tsk::probe] },
 	    { &(*estimator)[est::tsk::estimate] },
 	    { &(*modem)[mdm::tsk::demodulate] } ),
-	  // pipeline stage 10
+	  // pipeline stage 11
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*modem)[mdm::tsk::demodulate] },
 	    { &(*bb_scrambler)[scr::tsk::descramble] },
 	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
 	      &(*prb_thr_thr)[prb::tsk::probe] } ),
-	  // pipeline stage 11
+	  // pipeline stage 12
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
 	    { &(*monitor)[mnt::tsk::check_errors2], &(*sink)[snk::tsk::send], &(*prb_decstat_ldpc)[prb::tsk::probe],
 	      &(*prb_decstat_bch)[prb::tsk::probe], &(*prb_thr_thr)[prb::tsk::probe] },
@@ -280,7 +285,7 @@ int main(int argc, char** argv)
 	    { /* no exclusions in this stage */ } ),
 	};
 	// number of threads per stages
-	const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 40, 1 };
+	const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 40, 1 };
 	// synchronization buffer size between stages
 	const std::vector<size_t> buffer_sizes(sep_stages.size() -1, 1);
 	// type of waiting between stages (true = active, false = passive)
@@ -298,13 +303,14 @@ int main(int argc, char** argv)
 	                                                 {  9*4 },                            // for stage 7
 	                                                 { 10*4 },                            // for stage 8
 	                                                 { 11*4 },                            // for stage 9
-	                                                 { 13*4, 28*4, 29*4, 30*4, 31*4, 32*4, 33*4, 34*4, // for stage 10
-	                                                   35*4, 36*4, 37*4, 38*4, 14*4, 39*4, 15*4, 40*4, 
-	                                                   16*4, 41*4, 17*4, 42*4, 18*4, 43*4, 19*4, 44*4, 
-	                                                   20*4, 45*4, 21*4, 46*4, 22*4, 47*4, 23*4, 48*4, 
-	                                                   24*4, 49*4, 25*4, 50*4, 26*4, 51*4, 27*4, 52*4,
-	                                                   53*4, 54*4, 55*4 },
-	                                                 { 12*4 } };                          // for stage 11
+	                                                 { 12*4 },                            // for stage 10
+	                                                 { 14*4, 28*4, 29*4, 30*4, 31*4, 32*4, 33*4, 34*4, // for stage 11
+	                                                   35*4, 36*4, 37*4, 38*4, 39*4, 15*4, 40*4, 16*4,
+	                                                   41*4, 17*4, 42*4, 18*4, 43*4, 19*4, 44*4, 20*4,
+	                                                   45*4, 21*4, 46*4, 22*4, 47*4, 23*4, 48*4, 24*4,
+	                                                   49*4, 25*4, 50*4, 26*4, 51*4, 27*4, 52*4, 53*4,
+	                                                   54*4, 55*4},
+	                                                 { 13*4 } };                          // for stage 12
 
 	tools::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
 	                                      thread_pinnigs, puids);
@@ -570,7 +576,8 @@ int main(int argc, char** argv)
 		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 6
 		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 7
 		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 8
-		[&noise_est, &estimator] (const std::vector<const int*>& statuses)                        // stop condition stage 9
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 9
+		[&noise_est, &estimator] (const std::vector<const int*>& statuses)                        // stop condition stage 10
 		{
 			// update "noise_est" for the terminal display
 			if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
@@ -579,8 +586,8 @@ int main(int argc, char** argv)
 				                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
 			return tools::Terminal::is_interrupt();
 		},
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 10
-		[&prb_thr_the, &terminal_stats, &stats_file] (const std::vector<const int*>& statuses)    // stop condition stage 11
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 11
+		[&prb_thr_the, &terminal_stats, &stats_file] (const std::vector<const int*>& statuses)    // stop condition stage 12
 		{
 			terminal_stats.temp_report(stats_file);
 			return tools::Terminal::is_interrupt();

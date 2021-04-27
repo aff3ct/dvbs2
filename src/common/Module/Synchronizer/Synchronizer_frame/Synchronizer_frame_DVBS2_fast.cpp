@@ -145,7 +145,7 @@ void Synchronizer_frame_DVBS2_fast<R>
 
 	corr_SOF      .filter(&diff_signal[0], &cor_SOF [0]       );
 	corr_PLSC     .filter(&diff_signal[0], &cor_PLSC[0]       );
-	SOF_PLSC_delay.filter(&cor_SOF[0]    , &cor_SOF_delayed[0]);
+	// SOF_PLSC_delay.filter(&cor_SOF[0]    , &cor_SOF_delayed[0]);
 
 	// max_corr   = 0;
 	// int max_idx  = 0;
@@ -233,7 +233,7 @@ void Synchronizer_frame_DVBS2_fast<R>
 
 	// corr_SOF      .filter(&diff_signal[0], &cor_SOF [0]       );
 	// corr_PLSC     .filter(&diff_signal[0], &cor_PLSC[0]       );
-	// SOF_PLSC_delay.filter(&cor_SOF[0]    , &cor_SOF_delayed[0]);
+	SOF_PLSC_delay.filter(&cor_SOF[0]    , &cor_SOF_delayed[0]);
 
 	max_corr   = 0;
 	int max_idx  = 0;
