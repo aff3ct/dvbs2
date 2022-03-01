@@ -67,16 +67,16 @@ int main(int argc, char** argv)
 	LDPC_encoder->set_custom_name("Encoder LDPC");
 
 	// the full transmission chain binding
-	(*bb_scrambler  )[scr::sck::scramble  ::X_N1].bind((*source        )[src::sck::generate  ::U_K ]);
-	(*BCH_encoder   )[enc::sck::encode    ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble  ::X_N2]);
-	(*LDPC_encoder  )[enc::sck::encode    ::U_K ].bind((*BCH_encoder   )[enc::sck::encode    ::X_N ]);
-	(*itl           )[itl::sck::interleave::nat ].bind((*LDPC_encoder  )[enc::sck::encode    ::X_N ]);
-	(*modem         )[mdm::sck::modulate  ::X_N1].bind((*itl           )[itl::sck::interleave::itl ]);
-	(*framer        )[frm::sck::generate  ::Y_N1].bind((*modem         )[mdm::sck::modulate  ::X_N2]);
-	(*pl_scrambler  )[scr::sck::scramble  ::X_N1].bind((*framer        )[frm::sck::generate  ::Y_N2]);
-	(*shaping_filter)[flt::sck::filter    ::X_N1].bind((*pl_scrambler  )[scr::sck::scramble  ::X_N2]);
-	(*fad_mlt       )[mlt::sck::imultiply ::X_N ].bind((*shaping_filter)[flt::sck::filter    ::Y_N2]);
-	(*radio         )[rad::sck::send      ::X_N1].bind((*fad_mlt       )[mlt::sck::imultiply ::Z_N ]);
+	(*bb_scrambler  )[scr::sck::scramble  ::X_N1] = (*source        )[src::sck::generate  ::U_K ];
+	(*BCH_encoder   )[enc::sck::encode    ::U_K ] = (*bb_scrambler  )[scr::sck::scramble  ::X_N2];
+	(*LDPC_encoder  )[enc::sck::encode    ::U_K ] = (*BCH_encoder   )[enc::sck::encode    ::X_N ];
+	(*itl           )[itl::sck::interleave::nat ] = (*LDPC_encoder  )[enc::sck::encode    ::X_N ];
+	(*modem         )[mdm::sck::modulate  ::X_N1] = (*itl           )[itl::sck::interleave::itl ];
+	(*framer        )[frm::sck::generate  ::Y_N1] = (*modem         )[mdm::sck::modulate  ::X_N2];
+	(*pl_scrambler  )[scr::sck::scramble  ::X_N1] = (*framer        )[frm::sck::generate  ::Y_N2];
+	(*shaping_filter)[flt::sck::filter    ::X_N1] = (*pl_scrambler  )[scr::sck::scramble  ::X_N2];
+	(*fad_mlt       )[mlt::sck::imultiply ::X_N ] = (*shaping_filter)[flt::sck::filter    ::Y_N2];
+	(*radio         )[rad::sck::send      ::X_N1] = (*fad_mlt       )[mlt::sck::imultiply ::Z_N ];
 
 	// first stages of the whole transmission sequence
 	const std::vector<module::Task*> firsts_t = { &(*source)[src::tsk::generate] };

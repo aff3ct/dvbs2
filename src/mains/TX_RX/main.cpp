@@ -65,6 +65,7 @@ int main(int argc, char** argv)
 	uptr<Variable_delay_cc_naive<>   > chn_int_del   (factory::DVBS2::build_channel_int_delay        <>(params             ));
 	uptr<Filter_buffered_delay<float>> chn_frm_del   (factory::DVBS2::build_channel_frame_delay      <>(params             ));
 	uptr<Synchronizer_frame<>        > sync_frame    (factory::DVBS2::build_synchronizer_frame       <>(params             ));
+	uptr<Feedbacker<>                > feedbr        (factory::DVBS2::build_feedbacker               <>(params             ));
 	uptr<Framer<>                    > framer        (factory::DVBS2::build_framer                   <>(params             ));
 	uptr<Scrambler<float>            > pl_scrambler  (factory::DVBS2::build_pl_scrambler             <>(params             ));
 	uptr<Filter_buffered_delay<>     > delay         (factory::DVBS2::build_txrx_delay               <>(params             ));
@@ -169,69 +170,69 @@ int main(int argc, char** argv)
 	// socket binding of the full transmission sequence
 	std::vector<float> sigma(params.n_frames);
 	// delay line for BER/FER
-	(*delay           )[flt::sck::filter       ::X_N1].bind((*source        )[src::sck::generate     ::U_K   ]);
+	(*delay           )[flt::sck::filter       ::X_N1] = (*source        )[src::sck::generate     ::U_K   ];
 	// TX
-	(*bb_scrambler    )[scr::sck::scramble     ::X_N1].bind((*source        )[src::sck::generate     ::U_K   ]);
-	(*BCH_encoder     )[enc::sck::encode       ::U_K ].bind((*bb_scrambler  )[scr::sck::scramble     ::X_N2  ]);
-	(*LDPC_encoder    )[enc::sck::encode       ::U_K ].bind((*BCH_encoder   )[enc::sck::encode       ::X_N   ]);
-	(*itl_tx          )[itl::sck::interleave   ::nat ].bind((*LDPC_encoder  )[enc::sck::encode       ::X_N   ]);
-	(*modem           )[mdm::sck::modulate     ::X_N1].bind((*itl_tx        )[itl::sck::interleave   ::itl   ]);
-	(*framer          )[frm::sck::generate     ::Y_N1].bind((*modem         )[mdm::sck::modulate     ::X_N2  ]);
-	(*pl_scrambler    )[scr::sck::scramble     ::X_N1].bind((*framer        )[frm::sck::generate     ::Y_N2  ]);
-	(*shaping_flt     )[flt::sck::filter       ::X_N1].bind((*pl_scrambler  )[scr::sck::scramble     ::X_N2  ]);
+	(*bb_scrambler    )[scr::sck::scramble     ::X_N1] = (*source        )[src::sck::generate     ::U_K   ];
+	(*BCH_encoder     )[enc::sck::encode       ::U_K ] = (*bb_scrambler  )[scr::sck::scramble     ::X_N2  ];
+	(*LDPC_encoder    )[enc::sck::encode       ::U_K ] = (*BCH_encoder   )[enc::sck::encode       ::X_N   ];
+	(*itl_tx          )[itl::sck::interleave   ::nat ] = (*LDPC_encoder  )[enc::sck::encode       ::X_N   ];
+	(*modem           )[mdm::sck::modulate     ::X_N1] = (*itl_tx        )[itl::sck::interleave   ::itl   ];
+	(*framer          )[frm::sck::generate     ::Y_N1] = (*modem         )[mdm::sck::modulate     ::X_N2  ];
+	(*pl_scrambler    )[scr::sck::scramble     ::X_N1] = (*framer        )[frm::sck::generate     ::Y_N2  ];
+	(*shaping_flt     )[flt::sck::filter       ::X_N1] = (*pl_scrambler  )[scr::sck::scramble     ::X_N2  ];
 	// Channel
-	(*fad_mlt         )[mlt::sck::imultiply    ::X_N ].bind((*shaping_flt   )[flt::sck::filter       ::Y_N2  ]);
-	(*chn_frm_del     )[flt::sck::filter       ::X_N1].bind((*fad_mlt       )[mlt::sck::imultiply    ::Z_N   ]);
-	(*chn_int_del     )[flt::sck::filter       ::X_N1].bind((*chn_frm_del   )[flt::sck::filter       ::Y_N2  ]);
-	(*chn_frac_del    )[flt::sck::filter       ::X_N1].bind((*chn_int_del   )[flt::sck::filter       ::Y_N2  ]);
-	(*freq_shift      )[mlt::sck::imultiply    ::X_N ].bind((*chn_frac_del  )[flt::sck::filter       ::Y_N2  ]);
-	(*channel         )[chn::sck::add_noise    ::CP  ].bind(                                           sigma  );
-	(*channel         )[chn::sck::add_noise    ::X_N ].bind((*freq_shift    )[mlt::sck::imultiply    ::Z_N   ]);
+	(*fad_mlt         )[mlt::sck::imultiply    ::X_N ] = (*shaping_flt   )[flt::sck::filter       ::Y_N2  ];
+	(*chn_frm_del     )[flt::sck::filter       ::X_N1] = (*fad_mlt       )[mlt::sck::imultiply    ::Z_N   ];
+	(*chn_int_del     )[flt::sck::filter       ::X_N1] = (*chn_frm_del   )[flt::sck::filter       ::Y_N2  ];
+	(*chn_frac_del    )[flt::sck::filter       ::X_N1] = (*chn_int_del   )[flt::sck::filter       ::Y_N2  ];
+	(*freq_shift      )[mlt::sck::imultiply    ::X_N ] = (*chn_frac_del  )[flt::sck::filter       ::Y_N2  ];
+	(*channel         )[chn::sck::add_noise    ::CP  ] =                                            sigma  ;
+	(*channel         )[chn::sck::add_noise    ::X_N ] = (*freq_shift    )[mlt::sck::imultiply    ::Z_N   ];
 	// RX
-	(*sync_coarse_f   )[sfc::sck::synchronize  ::X_N1].bind((*channel       )[chn::sck::add_noise    ::Y_N   ]);
-	(*matched_flt     )[flt::sck::filter       ::X_N1].bind((*sync_coarse_f )[sfc::sck::synchronize  ::Y_N2  ]);
-	(*sync_timing     )[stm::sck::synchronize  ::X_N1].bind((*matched_flt   )[flt::sck::filter       ::Y_N2  ]);
-	(*sync_timing     )[stm::sck::extract      ::B_N1].bind((*sync_timing   )[stm::sck::synchronize  ::B_N1  ]);
-	(*sync_timing     )[stm::sck::extract      ::Y_N1].bind((*sync_timing   )[stm::sck::synchronize  ::Y_N1  ]);
-	(*mult_agc        )[mlt::sck::imultiply    ::X_N ].bind((*sync_timing   )[stm::sck::extract      ::Y_N2  ]);
-	(*sync_frame      )[sfm::sck::synchronize  ::X_N1].bind((*mult_agc      )[mlt::sck::imultiply    ::Z_N   ]);
-	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1].bind((*sync_frame    )[sfm::sck::synchronize  ::Y_N2  ]);
-	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1].bind((*pl_scrambler  )[scr::sck::descramble   ::Y_N2  ]);
-	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1].bind((*sync_fine_lr  )[sff::sck::synchronize  ::Y_N2  ]);
-	(*framer          )[frm::sck::remove_plh   ::Y_N1].bind((*sync_fine_pf  )[sff::sck::synchronize  ::Y_N2  ]);
-	(*estimator       )[est::sck::estimate     ::X_N ].bind((*framer        )[frm::sck::remove_plh   ::Y_N2  ]);
-	(*modem           )[mdm::sck::demodulate   ::CP  ].bind((*estimator     )[est::sck::estimate     ::SIG   ]);
-	(*modem           )[mdm::sck::demodulate   ::Y_N1].bind((*framer        )[frm::sck::remove_plh   ::Y_N2  ]);
-	(*itl_rx          )[itl::sck::deinterleave ::itl ].bind((*modem         )[mdm::sck::demodulate   ::Y_N2  ]);
-	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N ].bind((*itl_rx        )[itl::sck::deinterleave ::nat   ]);
-	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N ].bind((*LDPC_decoder  )[dec::sck::decode_siho  ::V_K   ]);
-	(*bb_descrambler  )[scr::sck::descramble   ::Y_N1].bind((*BCH_decoder   )[dec::sck::decode_hiho  ::V_K   ]);
-	(*monitor         )[mnt::sck::check_errors2::U   ].bind((*delay         )[flt::sck::filter       ::Y_N2  ]);
-	(*monitor         )[mnt::sck::check_errors2::V   ].bind((*bb_descrambler)[scr::sck::descramble   ::Y_N2  ]);
-	(*sink            )[snk::sck::send         ::V   ].bind((*bb_descrambler)[scr::sck::descramble   ::Y_N2  ]);
+	(*sync_coarse_f   )[sfc::sck::synchronize  ::X_N1] = (*channel       )[chn::sck::add_noise    ::Y_N   ];
+	(*matched_flt     )[flt::sck::filter       ::X_N1] = (*sync_coarse_f )[sfc::sck::synchronize  ::Y_N2  ];
+	(*sync_timing     )[stm::sck::synchronize  ::X_N1] = (*matched_flt   )[flt::sck::filter       ::Y_N2  ];
+	(*sync_timing     )[stm::sck::extract      ::B_N1] = (*sync_timing   )[stm::sck::synchronize  ::B_N1  ];
+	(*sync_timing     )[stm::sck::extract      ::Y_N1] = (*sync_timing   )[stm::sck::synchronize  ::Y_N1  ];
+	(*mult_agc        )[mlt::sck::imultiply    ::X_N ] = (*sync_timing   )[stm::sck::extract      ::Y_N2  ];
+	(*sync_frame      )[sfm::sck::synchronize  ::X_N1] = (*mult_agc      )[mlt::sck::imultiply    ::Z_N   ];
+	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1] = (*sync_frame    )[sfm::sck::synchronize  ::Y_N2  ];
+	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1] = (*pl_scrambler  )[scr::sck::descramble   ::Y_N2  ];
+	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1] = (*sync_fine_lr  )[sff::sck::synchronize  ::Y_N2  ];
+	(*framer          )[frm::sck::remove_plh   ::Y_N1] = (*sync_fine_pf  )[sff::sck::synchronize  ::Y_N2  ];
+	(*estimator       )[est::sck::estimate     ::X_N ] = (*framer        )[frm::sck::remove_plh   ::Y_N2  ];
+	(*modem           )[mdm::sck::demodulate   ::CP  ] = (*estimator     )[est::sck::estimate     ::SIG   ];
+	(*modem           )[mdm::sck::demodulate   ::Y_N1] = (*framer        )[frm::sck::remove_plh   ::Y_N2  ];
+	(*itl_rx          )[itl::sck::deinterleave ::itl ] = (*modem         )[mdm::sck::demodulate   ::Y_N2  ];
+	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N ] = (*itl_rx        )[itl::sck::deinterleave ::nat   ];
+	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N ] = (*LDPC_decoder  )[dec::sck::decode_siho  ::V_K   ];
+	(*bb_descrambler  )[scr::sck::descramble   ::Y_N1] = (*BCH_decoder   )[dec::sck::decode_hiho  ::V_K   ];
+	(*monitor         )[mnt::sck::check_errors2::U   ] = (*delay         )[flt::sck::filter       ::Y_N2  ];
+	(*monitor         )[mnt::sck::check_errors2::V   ] = (*bb_descrambler)[scr::sck::descramble   ::Y_N2  ];
+	(*sink            )[snk::sck::send         ::V   ] = (*bb_descrambler)[scr::sck::descramble   ::Y_N2  ];
 	// bind the RX probes
-	(*prb_frq_coa     )[prb::sck::probe        ::in  ].bind((*sync_coarse_f )[sfc::sck::synchronize  ::FRQ   ]);
-	(*prb_stm_del     )[prb::sck::probe        ::in  ].bind((*sync_timing   )[stm::sck::synchronize  ::MU    ]);
-	(*prb_stm_uff     )[prb::sck::probe        ::in  ].bind((*sync_timing   )[stm::sck::extract      ::UFW   ]);
-	(*prb_sfm_del     )[prb::sck::probe        ::in  ].bind((*sync_frame    )[sfm::sck::synchronize  ::DEL   ]);
-	(*prb_sfm_tri     )[prb::sck::probe        ::in  ].bind((*sync_frame    )[sfm::sck::synchronize  ::TRI   ]);
-	(*prb_sfm_flg     )[prb::sck::probe        ::in  ].bind((*sync_frame    )[sfm::sck::synchronize  ::FLG   ]);
-	(*prb_frq_lr      )[prb::sck::probe        ::in  ].bind((*sync_fine_lr  )[sff::sck::synchronize  ::FRQ   ]);
-	(*prb_frq_fin     )[prb::sck::probe        ::in  ].bind((*sync_fine_pf  )[sff::sck::synchronize  ::FRQ   ]);
-	(*prb_noise_ees   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::estimate     ::Es_N0 ]);
-	(*prb_noise_eeb   )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::estimate     ::Eb_N0 ]);
-	(*prb_noise_esig  )[prb::sck::probe        ::in  ].bind((*estimator     )[est::sck::estimate     ::SIG   ]);
-	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ].bind((*LDPC_decoder  )[dec::sck::decode_siho  ::CWD   ]);
-	(*prb_decstat_bch )[prb::sck::probe        ::in  ].bind((*BCH_decoder   )[dec::sck::decode_hiho  ::CWD   ]);
-	(*prb_thr_thr     )[prb::sck::probe        ::in  ].bind((*bb_descrambler)[scr::sck::descramble   ::Y_N2  ]);
-	(*prb_thr_lat     )[prb::sck::probe        ::in  ].bind((*sink          )[snk::sck::send         ::status]);
-	(*prb_thr_time    )[prb::sck::probe        ::in  ].bind((*sink          )[snk::sck::send         ::status]);
-	(*prb_thr_tsta    )[prb::sck::probe        ::in  ].bind((*sink          )[snk::sck::send         ::status]);
-	(*prb_bfer_be     )[prb::sck::probe        ::in  ].bind((*monitor       )[mnt::sck::check_errors2::BE    ]);
-	(*prb_bfer_fe     )[prb::sck::probe        ::in  ].bind((*monitor       )[mnt::sck::check_errors2::FE    ]);
-	(*prb_bfer_ber    )[prb::sck::probe        ::in  ].bind((*monitor       )[mnt::sck::check_errors2::BER   ]);
-	(*prb_bfer_fer    )[prb::sck::probe        ::in  ].bind((*monitor       )[mnt::sck::check_errors2::FER   ]);
-	(*prb_fra_id      )[prb::sck::probe        ::in  ].bind((*sink          )[snk::sck::send         ::status]);
+	(*prb_frq_coa     )[prb::sck::probe        ::in  ] = (*sync_coarse_f )[sfc::sck::synchronize  ::FRQ   ];
+	(*prb_stm_del     )[prb::sck::probe        ::in  ] = (*sync_timing   )[stm::sck::synchronize  ::MU    ];
+	(*prb_stm_uff     )[prb::sck::probe        ::in  ] = (*sync_timing   )[stm::sck::extract      ::UFW   ];
+	(*prb_sfm_del     )[prb::sck::probe        ::in  ] = (*sync_frame    )[sfm::sck::synchronize  ::DEL   ];
+	(*prb_sfm_tri     )[prb::sck::probe        ::in  ] = (*sync_frame    )[sfm::sck::synchronize  ::TRI   ];
+	(*prb_sfm_flg     )[prb::sck::probe        ::in  ] = (*sync_frame    )[sfm::sck::synchronize  ::FLG   ];
+	(*prb_frq_lr      )[prb::sck::probe        ::in  ] = (*sync_fine_lr  )[sff::sck::synchronize  ::FRQ   ];
+	(*prb_frq_fin     )[prb::sck::probe        ::in  ] = (*sync_fine_pf  )[sff::sck::synchronize  ::FRQ   ];
+	(*prb_noise_ees   )[prb::sck::probe        ::in  ] = (*estimator     )[est::sck::estimate     ::Es_N0 ];
+	(*prb_noise_eeb   )[prb::sck::probe        ::in  ] = (*estimator     )[est::sck::estimate     ::Eb_N0 ];
+	(*prb_noise_esig  )[prb::sck::probe        ::in  ] = (*estimator     )[est::sck::estimate     ::SIG   ];
+	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ] = (*LDPC_decoder  )[dec::sck::decode_siho  ::CWD   ];
+	(*prb_decstat_bch )[prb::sck::probe        ::in  ] = (*BCH_decoder   )[dec::sck::decode_hiho  ::CWD   ];
+	(*prb_thr_thr     )[prb::sck::probe        ::in  ] = (*bb_descrambler)[scr::sck::descramble   ::Y_N2  ];
+	(*prb_thr_lat     )[prb::sck::probe        ::in  ] = (*sink          )[snk::sck::send         ::status];
+	(*prb_thr_time    )[prb::sck::probe        ::in  ] = (*sink          )[snk::sck::send         ::status];
+	(*prb_thr_tsta    )[prb::sck::probe        ::in  ] = (*sink          )[snk::sck::send         ::status];
+	(*prb_bfer_be     )[prb::sck::probe        ::in  ] = (*monitor       )[mnt::sck::check_errors2::BE    ];
+	(*prb_bfer_fe     )[prb::sck::probe        ::in  ] = (*monitor       )[mnt::sck::check_errors2::FE    ];
+	(*prb_bfer_ber    )[prb::sck::probe        ::in  ] = (*monitor       )[mnt::sck::check_errors2::BER   ];
+	(*prb_bfer_fer    )[prb::sck::probe        ::in  ] = (*monitor       )[mnt::sck::check_errors2::FER   ];
+	(*prb_fra_id      )[prb::sck::probe        ::in  ] = (*sink          )[snk::sck::send         ::status];
 
 	// first stages of the whole transmission sequence
 	const std::vector<module::Task*> firsts_t = { &(*source        )[src::tsk::generate],
@@ -427,24 +428,27 @@ int main(int argc, char** argv)
 			(*prb_stm_del  )[prb::sck::probe      ::in  ].unbind((*sync_timing  )[stm::sck::synchronize::MU  ]);
 
 			// partial binding
-			(*sync_step_mf)[smf::sck::synchronize::X_N1].bind((*channel     )[chn::sck::add_noise  ::Y_N ]);
-			(*sync_step_mf)[smf::sck::synchronize::DEL ].bind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
-			(*sync_timing )[stm::sck::extract    ::B_N1].bind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
-			(*sync_timing )[stm::sck::extract    ::Y_N1].bind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
-			(*prb_frq_coa )[prb::sck::probe      ::in  ].bind((*sync_step_mf)[smf::sck::synchronize::FRQ ]);
-			(*prb_stm_del )[prb::sck::probe      ::in  ].bind((*sync_step_mf)[smf::sck::synchronize::MU  ]);
+			(*sync_step_mf)[smf::sck::synchronize::X_N1] = (*channel     )[chn::sck::add_noise  ::Y_N ];
+			(*feedbr      )[fbr::sck::memorize   ::X_N ] = (*sync_frame  )[sfm::sck::synchronize::DEL ];
+			(*sync_step_mf)[smf::sck::synchronize::DEL ] = (*feedbr      )[fbr::sck::produce    ::Y_N ];
+			(*sync_timing )[stm::sck::extract    ::B_N1] = (*sync_step_mf)[smf::sck::synchronize::B_N1];
+			(*sync_timing )[stm::sck::extract    ::Y_N1] = (*sync_step_mf)[smf::sck::synchronize::Y_N1];
+			(*prb_frq_coa )[prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::FRQ ];
+			(*prb_stm_del )[prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::MU  ];
 
 			std::vector<Task*> firsts_wl12 = { &(*source      )[src::tsk::generate], &(*prb_sfm_del )[prb::tsk::probe],
 			                                   &(*prb_sfm_tri )[prb::tsk::probe   ], &(*prb_sfm_flg )[prb::tsk::probe],
 			                                   &(*prb_thr_lat )[prb::tsk::probe   ], &(*prb_thr_time)[prb::tsk::probe],
-			                                   &(*prb_thr_tsta)[prb::tsk::probe   ], &(*prb_fra_id  )[prb::tsk::probe] };
+			                                   &(*prb_thr_tsta)[prb::tsk::probe   ], &(*prb_fra_id  )[prb::tsk::probe],
+			                                   &(*feedbr      )[fbr::tsk::produce ]                                     };
 
-			std::vector<Task*> lasts_wl12 = { &(*sync_frame)[sfm::tsk::synchronize] };
+			std::vector<Task*> lasts_wl12 = { &(*feedbr)[fbr::tsk::memorize] };
+			std::vector<Task*> exclude_wl12 = { &(*pl_scrambler)[scr::tsk::descramble] };
 
 			prb_thr_thr ->reset();
 			prb_thr_lat ->reset();
 			prb_thr_time->reset();
-			tools::Sequence sequence_waiting_and_learning_1_2(firsts_wl12, lasts_wl12);
+			tools::Sequence sequence_waiting_and_learning_1_2(firsts_wl12, lasts_wl12, exclude_wl12);
 
 			if (enable_logs && ebn0 == params.ebn0_min)
 			{
@@ -521,18 +525,18 @@ int main(int argc, char** argv)
 
 			// partial unbinding
 			(*sync_step_mf)[smf::sck::synchronize::X_N1].unbind((*channel     )[chn::sck::add_noise  ::Y_N ]);
-			(*sync_step_mf)[smf::sck::synchronize::DEL ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
+			(*feedbr      )[fbr::sck::memorize   ::X_N ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
 			(*sync_timing )[stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
 			(*sync_timing )[stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
 			(*prb_frq_coa )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::FRQ ]);
 			(*prb_stm_del )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::MU  ]);
 
 			// partial binding
-			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].bind((*channel      )[chn::sck::add_noise  ::Y_N ]);
-			(*sync_timing  )[stm::sck::extract    ::B_N1].bind((*sync_timing  )[stm::sck::synchronize::B_N1]);
-			(*sync_timing  )[stm::sck::extract    ::Y_N1].bind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
-			(*prb_frq_coa  )[prb::sck::probe      ::in  ].bind((*sync_coarse_f)[sfc::sck::synchronize::FRQ ]);
-			(*prb_stm_del  )[prb::sck::probe      ::in  ].bind((*sync_timing  )[stm::sck::synchronize::MU  ]);
+			(*sync_coarse_f)[sfc::sck::synchronize::X_N1] = (*channel      )[chn::sck::add_noise  ::Y_N ];
+			(*sync_timing  )[stm::sck::extract    ::B_N1] = (*sync_timing  )[stm::sck::synchronize::B_N1];
+			(*sync_timing  )[stm::sck::extract    ::Y_N1] = (*sync_timing  )[stm::sck::synchronize::Y_N1];
+			(*prb_frq_coa  )[prb::sck::probe      ::in  ] = (*sync_coarse_f)[sfc::sck::synchronize::FRQ ];
+			(*prb_stm_del  )[prb::sck::probe      ::in  ] = (*sync_timing  )[stm::sck::synchronize::MU  ];
 
 			std::vector<Task*> firsts_l3 = { &(*source      )[src::tsk::generate], &(*prb_thr_lat )[prb::tsk::probe],
 			                                 &(*prb_thr_time)[prb::tsk::probe   ], &(*prb_thr_tsta)[prb::tsk::probe],

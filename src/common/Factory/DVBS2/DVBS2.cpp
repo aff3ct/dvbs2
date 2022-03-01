@@ -680,6 +680,15 @@ module::Radio<R>* DVBS2
 	return params.p_rad.build<R>();
 }
 
+template <typename D>
+module::Feedbacker<D>* DVBS2
+::build_feedbacker(const DVBS2& params)
+{
+	auto fbr = new module::Feedbacker<D>(1,0);
+	fbr->set_n_frames(params.n_frames);
+	return fbr;
+}
+
 template aff3ct::module::Source<B>*                            DVBS2::build_source<B>                   (const DVBS2& params, const int seed);
 template aff3ct::module::Sink<B>*                              DVBS2::build_sink<B>                     (const DVBS2& params);
 template aff3ct::module::Encoder_BCH<B>*                       DVBS2::build_bch_encoder<B>              (const DVBS2& params, tools::BCH_polynomial_generator<B>& poly_gen);
@@ -712,6 +721,7 @@ template aff3ct::module::Synchronizer_freq_coarse<R>*          DVBS2::build_sync
 template aff3ct::module::Filter_buffered_delay<B>*             DVBS2::build_txrx_delay<B>               (const DVBS2& params);
 template aff3ct::tools ::Interleaver_core<uint32_t>*           DVBS2::build_itl_core<uint32_t>          (const DVBS2& params);
 template aff3ct::module::Radio<R>*                             DVBS2::build_radio<R>                    (const DVBS2& params);
+template aff3ct::module::Feedbacker<int>*                      DVBS2::build_feedbacker<int>             (const DVBS2& params);
 template aff3ct::module::Synchronizer_step_mf_cc<B,R>*         DVBS2::build_synchronizer_step_mf_cc<B,R>(const DVBS2& params,
                                                                                                          aff3ct::module::Synchronizer_freq_coarse<R> *sync_coarse_f,
                                                                                                          aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
