@@ -32,6 +32,7 @@
 #include "Module/Estimator/Estimator.hpp"
 #include "Module/Radio/Radio.hpp"
 #include "Module/Sink/Sink.hpp"
+#include "Module/Feedbacker/Feedbacker.hpp"
 
 namespace aff3ct
 {
@@ -257,7 +258,11 @@ public:
 
 	template <typename R = float>
 	static module::Radio<R>*
-	build_radio (const DVBS2& params);
+	build_radio(const DVBS2& params);
+
+	template <typename D = int>
+	static module::Feedbacker<D>*
+	build_feedbacker(const DVBS2& params);
 };
 }
 }
