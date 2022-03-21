@@ -244,9 +244,26 @@ int main(int argc, char** argv)
 	      &(*prb_noise_eb)[prb::tsk::probe] },
 	    { &(*estimator)[est::tsk::estimate] },
 	    { &(*modem)[mdm::tsk::demodulate] } ),
-	  // pipeline stage 6
+	  // pipeline stage 6.0
 	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
-	    { &(*modem)[mdm::tsk::demodulate] },
+	    { &(*modem )[mdm::tsk::demodulate] },
+	    { &(*itl_rx)[itl::tsk::deinterleave] },
+	    { /* no exclusions in this stage */ } ),
+	  // pipeline stage 6.1
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*LDPC_decoder)[dec::tsk::decode_siho] },
+	    { &(*LDPC_decoder)[dec::tsk::decode_siho] },
+	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
+	      &(*prb_thr_thr)[prb::tsk::probe] } ),
+	  // pipeline stage 6.2
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*BCH_decoder)[dec::tsk::decode_hiho] },
+	    { &(*BCH_decoder)[dec::tsk::decode_hiho] },
+	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
+	      &(*prb_thr_thr)[prb::tsk::probe] } ),
+	  // pipeline stage 6.3
+	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	    { &(*bb_scrambler)[scr::tsk::descramble] },
 	    { &(*bb_scrambler)[scr::tsk::descramble] },
 	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
 	      &(*prb_thr_thr)[prb::tsk::probe] } ),
@@ -258,11 +275,13 @@ int main(int argc, char** argv)
 	    { /* no exclusions in this stage */ } ),
 	};
 	// number of threads per stages
-	const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 28, 1 };
+	//const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 28, 1 };
+	const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 	// synchronization buffer size between stages
 	const std::vector<size_t> buffer_sizes(sep_stages.size() -1, 1);
 	// type of waiting between stages (true = active, false = passive)
 	const std::vector<bool> active_waitings(sep_stages.size() -1, active_waiting);
+	/*
 	// enable thread pinning
 	const std::vector<bool> thread_pinnigs(sep_stages.size(), thread_pinnig);
 	// process unit (pu) ids per stage for thread pinning
@@ -278,9 +297,10 @@ int main(int argc, char** argv)
 	                                                   38, 22, 39, 23, 39, 40, 41, 42,
 	                                                   43, 44, 45, 46, 47 },
 	                                                 { 8 } };                          // for stage 7
+	*/
 
-	tools::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
-	                                      thread_pinnigs, puids);
+	tools::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings/*,
+	                                      thread_pinnigs, puids*/);
 
 	pipeline_transmission.set_auto_stop(false);
 
@@ -556,7 +576,10 @@ int main(int argc, char** argv)
 				                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
 			return tools::Terminal::is_interrupt();
 		},
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 6
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 6.0
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 6.1
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 6.2
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 6.3
 		[&prb_thr_the, &terminal_stats, &stats_file] (const std::vector<const int*>& statuses)    // stop condition stage 7
 		{
 			terminal_stats.temp_report(stats_file);
