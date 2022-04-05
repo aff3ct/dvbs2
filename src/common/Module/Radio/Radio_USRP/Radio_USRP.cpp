@@ -75,8 +75,8 @@ Radio_USRP<R>
 	// uhd::log::set_console_level(uhd::log::severity_level(3));
 	// uhd::log::set_file_level   (uhd::log::severity_level(2));
 
-	usrp = uhd::usrp::multi_usrp::make("addr=" + params.usrp_addr + ",master_clock_rate=" + std::to_string(params.clk_rate));
-	usrp->set_master_clock_rate(params.clk_rate);
+	usrp = uhd::usrp::multi_usrp::make(params.usrp_addr);
+	//usrp->set_master_clock_rate(params.clk_rate);
 
 	if (params.rx_enabled)
 	{

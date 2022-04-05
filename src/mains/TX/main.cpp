@@ -1,6 +1,6 @@
 #include <fstream>
 #include <aff3ct.hpp>
-
+#include "Module/Multiplier/Sequence/Multiplier_constant_crc.hpp"
 #include "Factory/DVBS2/DVBS2.hpp"
 #ifdef DVBS2_LINK_UHD
 #include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
@@ -59,6 +59,8 @@ int main(int argc, char** argv)
 	uptr<Filter<>        > shaping_filter(factory::DVBS2::build_uprrc_filter<>(params            ));
 	uptr<Radio<>         > radio         (factory::DVBS2::build_radio       <>(params            ));
 
+	uptr<Multiplier_constant_crc> mlt(new Multiplier_constant_crc(params.pl_frame_size * params.p_shp.osf, 0.5, params.n_frames));
+
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 
 	// add custom name to some modules
@@ -74,7 +76,8 @@ int main(int argc, char** argv)
 	(*framer        )[frm::sck::generate  ::Y_N1] = (*modem         )[mdm::sck::modulate  ::X_N2];
 	(*pl_scrambler  )[scr::sck::scramble  ::X_N1] = (*framer        )[frm::sck::generate  ::Y_N2];
 	(*shaping_filter)[flt::sck::filter    ::X_N1] = (*pl_scrambler  )[scr::sck::scramble  ::X_N2];
-	(*radio         )[rad::sck::send      ::X_N1] = (*shaping_filter)[flt::sck::filter    ::Y_N2];
+	(*mlt           )[mlt::sck::imultiply ::X_N ] = (*shaping_filter)[flt::sck::filter    ::Y_N2];
+	(*radio         )[rad::sck::send      ::X_N1] = (*mlt           )[mlt::sck::imultiply ::Z_N ];
 
 	// first stages of the whole transmission sequence
 	const std::vector<module::Task*> firsts_t = { &(*source)[src::tsk::generate] };
