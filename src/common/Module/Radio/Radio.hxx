@@ -44,7 +44,7 @@ Radio<R>
 
 	auto &p1 = this->create_task("send");
 	auto p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", 2 * N);
-	this->create_codelet(p1, [p1s_X_N1](Module &m, Task &t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_X_N1](Module &m, runtime::Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Radio<R>&>(m).send(static_cast<R*>(t[p1s_X_N1].get_dataptr()));
 		return 0;
@@ -56,7 +56,7 @@ Radio<R>
 	auto p2s_CLT  = this->template create_socket_out<int32_t>(p2, "CLT" , 1    );
 	auto p2s_TIM  = this->template create_socket_out<int32_t>(p2, "TIM" , 1    );
 	auto p2s_Y_N1 = this->template create_socket_out<R      >(p2, "Y_N1", 2 * N);
-	this->create_codelet(p2, [p2s_OVF, p2s_SEQ, p2s_CLT, p2s_TIM, p2s_Y_N1](Module &m, Task &t, const size_t frame_id) -> int
+	this->create_codelet(p2, [p2s_OVF, p2s_SEQ, p2s_CLT, p2s_TIM, p2s_Y_N1](Module &m, runtime::Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Radio<R>&>(m).receive(static_cast<int32_t*>(t[p2s_OVF ].get_dataptr()),
 		                                  static_cast<int32_t*>(t[p2s_SEQ ].get_dataptr()),

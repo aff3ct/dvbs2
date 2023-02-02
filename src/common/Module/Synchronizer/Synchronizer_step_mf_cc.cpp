@@ -54,7 +54,7 @@ Synchronizer_step_mf_cc<B,R>
 	auto p1s_PHS   = this->template create_socket_out<R  >(p1, "PHS"  , 1          );
 	auto p1s_Y_N1  = this->template create_socket_out<R  >(p1, "Y_N1" , this->N_out);
 	auto p1s_B_N1  = this->template create_socket_out<B  >(p1, "B_N1" , this->N_out);
-	this->create_codelet(p1, [p1s_delay, p1s_X_N1, p1s_MU, p1s_FRQ, p1s_PHS, p1s_Y_N1, p1s_B_N1](Module &m, Task &t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_delay, p1s_X_N1, p1s_MU, p1s_FRQ, p1s_PHS, p1s_Y_N1, p1s_B_N1](Module &m, runtime::Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Synchronizer_step_mf_cc<B,R>&>(m).synchronize(static_cast<int*>(t[p1s_delay].get_dataptr()),
 		                                                          static_cast<R*  >(t[p1s_X_N1 ].get_dataptr()),

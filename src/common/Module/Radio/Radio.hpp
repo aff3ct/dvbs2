@@ -39,9 +39,9 @@ template <typename R = float>
 class Radio : public Module
 {
 public:
-	inline Task&   operator[](const rad::tsk          t) { return Module::operator[]((int)t);                         }
-	inline Socket& operator[](const rad::sck::send    s) { return Module::operator[]((int)rad::tsk::send  )[(int)s];  }
-	inline Socket& operator[](const rad::sck::receive s) { return Module::operator[]((int)rad::tsk::receive)[(int)s]; }
+	inline runtime::Task&   operator[](const rad::tsk          t) { return Module::operator[]((int)t);                         }
+	inline runtime::Socket& operator[](const rad::sck::send    s) { return Module::operator[]((int)rad::tsk::send  )[(int)s];  }
+	inline runtime::Socket& operator[](const rad::sck::receive s) { return Module::operator[]((int)rad::tsk::receive)[(int)s]; }
 
 protected:
 	const int N; /*!< Size of one frame (= number of samples in one frame) */

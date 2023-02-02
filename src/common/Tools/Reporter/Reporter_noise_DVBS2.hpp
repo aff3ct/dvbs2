@@ -6,7 +6,7 @@
 #define REPORTER_NOISE_DVBS2_HPP_
 
 #include "Tools/Noise/Noise.hpp"
-#include "Tools/Display/Reporter/Reporter.hpp"
+#include "Tools/Reporter/Reporter.hpp"
 
 namespace aff3ct
 {

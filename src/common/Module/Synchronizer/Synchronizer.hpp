@@ -40,8 +40,8 @@ template <typename R = float>
 class Synchronizer : public Module
 {
 public:
-	inline Task&   operator[](const syn::tsk              t) { return Module::operator[]((int)t);                             }
-	inline Socket& operator[](const syn::sck::synchronize s) { return Module::operator[]((int)syn::tsk::synchronize)[(int)s]; }
+	inline runtime::Task&   operator[](const syn::tsk              t) { return Module::operator[]((int)t);                             }
+	inline runtime::Socket& operator[](const syn::sck::synchronize s) { return Module::operator[]((int)syn::tsk::synchronize)[(int)s]; }
 protected:
 	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */
 	const int N_out; /*!< Number of samples after the synchronization process */

@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <mipp.h>
 
 #include "Module/Synchronizer/Synchronizer_freq/Synchronizer_freq_fine/Synchronizer_Luise_Reggiannini_DVBS2_aib.hpp"
 

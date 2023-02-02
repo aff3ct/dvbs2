@@ -103,13 +103,15 @@ Reporter::report_t Reporter_throughput_DVBS2<T>
 	auto delta     = (double)duration_cast<microseconds>(now - t_prev_report).count(); // usec
 	t_prev_report  = now;
 	double displayed_time  = simu_time * 1e-6; // sec
-	double displayed_delta = delta     * 1e-6; // sec
+	//double displayed_delta = delta     * 1e-6; // sec
 
 	if (!final && progress != 0 && progress_limit != 0)
 		displayed_time *= (double)progress_limit / (double)progress - 1.;
 
+	/*
 	if (!final && progress != 0 && progress_limit != 0)
 		displayed_delta *= (double)progress_limit / (double)progress - 1.;
+	*/
 
 	auto str_time = get_time_format(displayed_time);
 	//auto simu_thr = (double)nbits / simu_time; // = Mbps

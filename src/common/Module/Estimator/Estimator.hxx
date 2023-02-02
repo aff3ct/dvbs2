@@ -31,7 +31,7 @@ Estimator<R>
 	auto p1s_Eb_N0 = this->template create_socket_out<R>(p1, "Eb_N0",       1);
 	auto p1s_Es_N0 = this->template create_socket_out<R>(p1, "Es_N0",       1);
 
-	this->create_codelet(p1, [p1s_X_N, p1s_SIG, p1s_Eb_N0, p1s_Es_N0](Module& m, Task& t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_X_N, p1s_SIG, p1s_Eb_N0, p1s_Es_N0](Module& m, runtime::Task& t, const size_t frame_id) -> int
 	{
 		static_cast<Estimator<R>&>(m).estimate(static_cast<R*>(t[p1s_X_N  ].get_dataptr()),
 		                                       static_cast<R*>(t[p1s_SIG  ].get_dataptr()),

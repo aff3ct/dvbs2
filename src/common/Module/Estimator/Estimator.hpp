@@ -33,8 +33,8 @@ template <typename R = float>
 class Estimator : public Module, tools::Interface_reset
 {
 public:
-	inline Task&   operator[](const est::tsk           t) { return Module::operator[]((int)t);                          }
-	inline Socket& operator[](const est::sck::estimate s) { return Module::operator[]((int)est::tsk::estimate)[(int)s]; }
+	inline runtime::Task&   operator[](const est::tsk           t) { return Module::operator[]((int)t);                          }
+	inline runtime::Socket& operator[](const est::sck::estimate s) { return Module::operator[]((int)est::tsk::estimate)[(int)s]; }
 
 protected:
 	const int N; // Size of one frame (= number of datas in one frame)

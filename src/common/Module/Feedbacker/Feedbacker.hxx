@@ -31,7 +31,7 @@ Feedbacker<D>
 
 	auto &p1 = this->create_task("memorize");
 	auto p1s_X_N = this->template create_socket_in <D>(p1, "X_N", this->N);
-	this->create_codelet(p1, [p1s_X_N](Module &m, Task &t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_X_N](Module &m, runtime::Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Feedbacker<D>&>(m)._memorize(static_cast<D*>(t[p1s_X_N].get_dataptr()), frame_id);
 		return 0;
@@ -39,7 +39,7 @@ Feedbacker<D>
 
 	auto &p2 = this->create_task("produce");
 	auto p2s_Y_N = this->template create_socket_out<D>(p2, "Y_N", this->N);
-	this->create_codelet(p2, [p2s_Y_N](Module &m, Task &t, const size_t frame_id) -> int
+	this->create_codelet(p2, [p2s_Y_N](Module &m, runtime::Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Feedbacker<D>&>(m)._produce(static_cast<D*>(t[p2s_Y_N].get_dataptr()), frame_id);
 		return 0;

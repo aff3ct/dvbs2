@@ -68,28 +68,28 @@ int main(int argc, char** argv)
 
 	// socket binding
 	std::vector<float> sigma(params.n_frames);
-	(*bb_scrambler)[scr::sck::scramble    ::X_N1] = (*source      )[src::sck::generate    ::U_K ];
-	(*BCH_encoder )[enc::sck::encode      ::U_K ] = (*bb_scrambler)[scr::sck::scramble    ::X_N2];
-	(*LDPC_encoder)[enc::sck::encode      ::U_K ] = (*BCH_encoder )[enc::sck::encode      ::X_N ];
-	(*itl_tx      )[itl::sck::interleave  ::nat ] = (*LDPC_encoder)[enc::sck::encode      ::X_N ];
-	(*modem       )[mdm::sck::modulate    ::X_N1] = (*itl_tx      )[itl::sck::interleave  ::itl ];
-	(*framer      )[frm::sck::generate    ::Y_N1] = (*modem       )[mdm::sck::modulate    ::X_N2];
-	(*pl_scrambler)[scr::sck::scramble    ::X_N1] = (*framer      )[frm::sck::generate    ::Y_N2];
-	(*channel     )[chn::sck::add_noise   ::CP  ] =                                         sigma;
-	(*channel     )[chn::sck::add_noise   ::X_N ] = (*pl_scrambler)[scr::sck::scramble    ::X_N2];
-	(*pl_scrambler)[scr::sck::descramble  ::Y_N1] = (*channel     )[chn::sck::add_noise   ::Y_N ];
-	(*framer      )[frm::sck::remove_plh  ::Y_N1] = (*pl_scrambler)[scr::sck::descramble  ::Y_N2];
-	(*estimator   )[est::sck::estimate    ::X_N ] = (*framer      )[frm::sck::remove_plh  ::Y_N2];
-	(*modem       )[mdm::sck::demodulate  ::CP  ] = (*estimator   )[est::sck::estimate    ::SIG ];
-	(*modem       )[mdm::sck::demodulate  ::Y_N1] = (*framer      )[frm::sck::remove_plh  ::Y_N2];
-	(*itl_rx      )[itl::sck::deinterleave::itl ] = (*modem       )[mdm::sck::demodulate  ::Y_N2];
-	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ] = (*itl_rx      )[itl::sck::deinterleave::nat ];
-	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ] = (*LDPC_decoder)[dec::sck::decode_siho ::V_K ];
-	(*bb_scrambler)[scr::sck::descramble  ::Y_N1] = (*BCH_decoder )[dec::sck::decode_hiho ::V_K ];
-	(*monitor     )[mnt::sck::check_errors::U   ] = (*source      )[src::sck::generate    ::U_K ];
-	(*monitor     )[mnt::sck::check_errors::V   ] = (*bb_scrambler)[scr::sck::descramble  ::Y_N2];
+	(*bb_scrambler)[scr::sck::scramble    ::X_N1] = (*source      )[src::sck::generate    ::out_data];
+	(*BCH_encoder )[enc::sck::encode      ::U_K ] = (*bb_scrambler)[scr::sck::scramble    ::X_N2    ];
+	(*LDPC_encoder)[enc::sck::encode      ::U_K ] = (*BCH_encoder )[enc::sck::encode      ::X_N     ];
+	(*itl_tx      )[itl::sck::interleave  ::nat ] = (*LDPC_encoder)[enc::sck::encode      ::X_N     ];
+	(*modem       )[mdm::sck::modulate    ::X_N1] = (*itl_tx      )[itl::sck::interleave  ::itl     ];
+	(*framer      )[frm::sck::generate    ::Y_N1] = (*modem       )[mdm::sck::modulate    ::X_N2    ];
+	(*pl_scrambler)[scr::sck::scramble    ::X_N1] = (*framer      )[frm::sck::generate    ::Y_N2    ];
+	(*channel     )[chn::sck::add_noise   ::CP  ] =                                         sigma    ;
+	(*channel     )[chn::sck::add_noise   ::X_N ] = (*pl_scrambler)[scr::sck::scramble    ::X_N2    ];
+	(*pl_scrambler)[scr::sck::descramble  ::Y_N1] = (*channel     )[chn::sck::add_noise   ::Y_N     ];
+	(*framer      )[frm::sck::remove_plh  ::Y_N1] = (*pl_scrambler)[scr::sck::descramble  ::Y_N2    ];
+	(*estimator   )[est::sck::estimate    ::X_N ] = (*framer      )[frm::sck::remove_plh  ::Y_N2    ];
+	(*modem       )[mdm::sck::demodulate  ::CP  ] = (*estimator   )[est::sck::estimate    ::SIG     ];
+	(*modem       )[mdm::sck::demodulate  ::Y_N1] = (*framer      )[frm::sck::remove_plh  ::Y_N2    ];
+	(*itl_rx      )[itl::sck::deinterleave::itl ] = (*modem       )[mdm::sck::demodulate  ::Y_N2    ];
+	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ] = (*itl_rx      )[itl::sck::deinterleave::nat     ];
+	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ] = (*LDPC_decoder)[dec::sck::decode_siho ::V_K     ];
+	(*bb_scrambler)[scr::sck::descramble  ::Y_N1] = (*BCH_decoder )[dec::sck::decode_hiho ::V_K     ];
+	(*monitor     )[mnt::sck::check_errors::U   ] = (*source      )[src::sck::generate    ::out_data];
+	(*monitor     )[mnt::sck::check_errors::V   ] = (*bb_scrambler)[scr::sck::descramble  ::Y_N2    ];
 
-	tools::Sequence sequence_transmission((*source)[src::tsk::generate], n_threads);
+	runtime::Sequence sequence_transmission((*source)[src::tsk::generate], n_threads);
 
 	if (enable_logs)
 	{
