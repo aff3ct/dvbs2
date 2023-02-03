@@ -92,6 +92,7 @@ void DVBS2
 	args.add({"ter-freq"},           cli::Integer(cli::Positive()),                     "Terminal frequency."                                            );
 	args.add({"src-type"},           src_type_format,                                   "Type of the binary source"                                      );
 	args.add({"src-path"},           cli::Text(),                                       "Path of the binary source"                                      );
+	args.add({"src-loop"},           cli::None(),                                       "Play the source in loop"                                        );
 	args.add({"src-fifo"},           cli::None(),                                       "Enable FIFO mode."                                              );
 	args.add({"perfect-sync"},       cli::None(),                                       "Enable genie aided synchronization."                            );
 
@@ -133,6 +134,7 @@ void DVBS2
 	section                  = vals.exist({"section"}            ) ? vals.at      ({"section"}           ) : ""          ;
 	src_type                 = vals.exist({"src-type"}           ) ? vals.at      ({"src-type"}          ) : "RAND"      ;
 	src_path                 = vals.exist({"src-path"}           ) ? vals.at      ({"src-path"}          ) : src_path    ;
+	src_loop                 = vals.exist({"src-loop"}           ) ? true                                  : false       ;
 	src_fifo                 = vals.exist({"src-fifo"}           ) ? true                                  : false       ;
 	dump_filename            = vals.exist({"dump-filename"}      ) ? vals.at      ({"dump-filename"}     ) : "dump"      ;
 	debug                    = vals.exist({"sim-dbg","d"}        ) ? true                                  : false       ;
@@ -346,9 +348,9 @@ module::Source<B>* DVBS2
 	if (params.src_type == "RAND")
 		src = new module::Source_random_fast<B>(params.K_bch, seed);
 	else if (params.src_type == "USER")
-		src = new module::Source_user<B>(params.K_bch, params.src_path);
+		src = new module::Source_user<B>(params.K_bch, params.src_path, params.src_loop);
 	else if (params.src_type == "USER_BIN")
-		src = new module::Source_user_binary<B>(params.K_bch, params.src_path, true, params.src_fifo);
+		src = new module::Source_user_binary<B>(params.K_bch, params.src_path, params.src_loop, params.src_fifo);
 	else if (params.src_type == "AZCW")
 		src = new module::Source_AZCW<B>(params.K_bch);
 	else

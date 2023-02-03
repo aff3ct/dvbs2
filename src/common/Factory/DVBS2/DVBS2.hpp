@@ -71,6 +71,7 @@ public:
 	bool  src_fifo;
 	bool  display_help;
 	bool  perfect_sync;
+	bool  src_loop;
 
 	int   max_fe;       // max number of frame errors per SNR point
 	int   max_n_frames; // max number of simulated frames per SNR point
