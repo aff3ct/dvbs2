@@ -36,6 +36,7 @@ public:
 	double rx_gain             = 10;
 	std::string rx_filepath    = "";
 	std::string tx_filepath    = "";
+	bool   rx_loop             = false;
 
 	bool tx_enabled            = false;
 	double tx_rate             = 0; // if tx_rate is not overriden, tx is disabled

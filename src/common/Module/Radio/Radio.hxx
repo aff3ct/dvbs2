@@ -123,6 +123,19 @@ void Radio<R>
 	}
 }
 
+template <typename R>
+bool Radio<R>
+::is_done() const
+{
+	return false;
+}
+
+template <typename R>
+void Radio<R>
+::reset()
+{
+}
+
 }
 }
 

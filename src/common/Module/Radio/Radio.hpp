@@ -9,7 +9,8 @@
 #define RADIO_HPP
 
 #include "Module/Module.hpp"
-
+#include "Tools/Interface/Interface_is_done.hpp"
+#include "Tools/Interface/Interface_reset.hpp"
 
 namespace aff3ct
 {
@@ -36,7 +37,7 @@ namespace module
  *
  */
 template <typename R = float>
-class Radio : public Module
+class Radio : public Module, public tools::Interface_is_done, public tools::Interface_reset
 {
 public:
 	inline runtime::Task&   operator[](const rad::tsk          t) { return Module::operator[]((int)t);                         }
@@ -95,6 +96,9 @@ public:
 	                     R *Y_N1,
 	                     const int frame_id = -1);
 
+	virtual bool is_done() const;
+
+	virtual void reset();
 
 protected:
 	virtual void _send   (const R *X_N1, const int frame_id) = 0;

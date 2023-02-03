@@ -12,8 +12,9 @@ Radio_user_binary<R>
 ::Radio_user_binary(const int N,
                     const std::string &input_filename,
                     const std::string &output_filename,
+                    const bool auto_reset,
                     const int n_frames)
-: Radio<R>(N, n_frames)
+: Radio<R>(N, n_frames), auto_reset(auto_reset), done(false)
 {
 	const std::string name = "Radio_user_binary";
 	this->set_name(name);
@@ -39,6 +40,17 @@ Radio_user_binary<R>
 			throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 		}
 	}
+}
+
+
+template <typename R>
+Radio_user_binary<R>
+::Radio_user_binary(const int N,
+                    const std::string &input_filename,
+                    const std::string &output_filename,
+                    const int n_frames)
+: Radio_user_binary<R>(N, input_filename, output_filename, true, n_frames)
+{
 }
 
 template <typename R>
@@ -75,14 +87,32 @@ void Radio_user_binary<R>
 	{
 		if (input_file.eof())
 		{
-			// throw tools::runtime_error(__FILE__, __LINE__, __func__, "Radio USER_BIN reached EOF.");
-			input_file.clear();
-			input_file.seekg(0, std::ios::beg);
+			if (this->auto_reset)
+				this->reset();
+			else {
+				this->done = true;
+				throw tools::processing_aborted(__FILE__, __LINE__, __func__);
+			}
 		}
 
 		if (input_file.fail())
 			throw tools::runtime_error(__FILE__, __LINE__, __func__, "Unknown error during file reading.");
 	}
+}
+
+template <typename R>
+bool Radio_user_binary<R>
+::is_done() const
+{
+	return this->done;
+}
+
+template <typename R>
+void Radio_user_binary<R>
+::reset()
+{
+	input_file.clear();
+	input_file.seekg(0, std::ios::beg);
 }
 
 // ==================================================================================== explicit template instantiation
