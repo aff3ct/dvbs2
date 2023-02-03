@@ -188,15 +188,15 @@ int main(int argc, char** argv)
 	(*prb_noise_sig   )[prb::sck::probe        ::in  ] = (*estimator    )[est::sck::estimate     ::SIG   ];
 	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ] = (*LDPC_decoder )[dec::sck::decode_siho  ::CWD   ];
 	(*prb_decstat_bch )[prb::sck::probe        ::in  ] = (*BCH_decoder  )[dec::sck::decode_hiho  ::CWD   ];
-	(*prb_thr_thr     )[prb::sck::probe        ::in  ] = (*bb_scrambler )[scr::sck::descramble   ::Y_N2  ];
-	(*prb_thr_lat     )[prb::sck::probe        ::in  ] = (*sink         )[snk::sck::send         ::status];
-	(*prb_thr_time    )[prb::sck::probe        ::in  ] = (*sink         )[snk::sck::send         ::status];
-	(*prb_thr_tsta    )[prb::sck::probe        ::in  ] = (*sink         )[snk::sck::send         ::status];
+	(*prb_thr_thr     )[prb::tsk::probe              ] = (*bb_scrambler )[scr::sck::descramble   ::Y_N2  ];
+	(*prb_thr_lat     )[prb::tsk::probe              ] = (*sink         )[snk::sck::send         ::status];
+	(*prb_thr_time    )[prb::tsk::probe              ] = (*sink         )[snk::sck::send         ::status];
+	(*prb_thr_tsta    )[prb::tsk::probe              ] = (*sink         )[snk::sck::send         ::status];
 	(*prb_bfer_be     )[prb::sck::probe        ::in  ] = (*monitor      )[mnt::sck::check_errors2::BE    ];
 	(*prb_bfer_fe     )[prb::sck::probe        ::in  ] = (*monitor      )[mnt::sck::check_errors2::FE    ];
 	(*prb_bfer_ber    )[prb::sck::probe        ::in  ] = (*monitor      )[mnt::sck::check_errors2::BER   ];
 	(*prb_bfer_fer    )[prb::sck::probe        ::in  ] = (*monitor      )[mnt::sck::check_errors2::FER   ];
-	(*prb_fra_id      )[prb::sck::probe        ::in  ] = (*sink         )[snk::sck::send         ::status];
+	(*prb_fra_id      )[prb::tsk::probe              ] = (*sink         )[snk::sck::send         ::status];
 
 	// first stages of the whole transmission sequence
 	const std::vector<runtime::Task*> firsts_t = { &(*radio)[rad::tsk::receive], &(*source)[src::tsk::generate],
@@ -282,7 +282,7 @@ int main(int argc, char** argv)
 	runtime::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
 	                                        thread_pinnigs, puids);
 
-	pipeline_transmission.set_auto_stop(false);
+	// pipeline_transmission.set_auto_stop(false);
 
 	if (enable_logs)
 	{
