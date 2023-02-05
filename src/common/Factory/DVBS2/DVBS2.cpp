@@ -92,9 +92,10 @@ void DVBS2
 	args.add({"ter-freq"},           cli::Integer(cli::Positive()),                     "Terminal frequency."                                            );
 	args.add({"src-type"},           src_type_format,                                   "Type of the binary source"                                      );
 	args.add({"src-path"},           cli::Text(),                                       "Path of the binary source"                                      );
-	args.add({"src-no-loop"},        cli::None(),                                       "Do not play the source in loop"                                        );
+	args.add({"src-no-loop"},        cli::None(),                                       "Do not play the source in loop"                                 );
 	args.add({"src-fifo"},           cli::None(),                                       "Enable FIFO mode."                                              );
 	args.add({"perfect-sync"},       cli::None(),                                       "Enable genie aided synchronization."                            );
+	args.add({"no-wl-phases"},       cli::None(),                                       "Skip waiting and learning phases."                              );
 
 	p_shp.get_description(args);
 	p_sfc.get_description(args);
@@ -141,6 +142,7 @@ void DVBS2
 	debug_limit              = vals.exist({"sim-dbg-limit"}      ) ? vals.to_int  ({"sim-dbg-limit"}     ) : -1          ;
 	stats                    = vals.exist({"sim-stats"}          ) ? true                                  : false       ;
 	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
+	no_wl_phases             = vals.exist({"no-wl-phases"}       ) ? true                                  : false       ;
 	display_help = false;
 	if(vals.exist({"help","h"}))
 		display_help = true;

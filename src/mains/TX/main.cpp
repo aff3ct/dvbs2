@@ -117,7 +117,7 @@ int main(int argc, char** argv)
 	}
 	auto tasks_per_types = pipeline_transmission.get_tasks_per_types();
 #else
-	tools::Sequence sequence_transmission(firsts_t);
+	runtime::Sequence sequence_transmission(firsts_t);
 	if (enable_logs)
 	{
 		std::ofstream f("tx_sequence_transmission.dot");
@@ -141,7 +141,10 @@ int main(int argc, char** argv)
 	}
 
 #ifdef MULTI_THREADED
-	pipeline_transmission.exec([]() { return tools::Terminal::is_interrupt(); });
+	pipeline_transmission.exec({
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 0
+		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition stage 1
+		[] (const std::vector<const int*>& statuses) { return false; }});                         // stop condition stage 2
 	// no need to stop the radio thread here, it is automatically done by the pipeline
 #else
 	sequence_transmission.exec([]() { return tools::Terminal::is_interrupt(); });

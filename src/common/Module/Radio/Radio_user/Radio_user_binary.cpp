@@ -42,7 +42,6 @@ Radio_user_binary<R>
 	}
 }
 
-
 template <typename R>
 Radio_user_binary<R>
 ::Radio_user_binary(const int N,
