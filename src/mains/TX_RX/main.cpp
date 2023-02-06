@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
 	uptr<Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL"));
 	uptr<Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG"));
-	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 1,
+	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 100, 1,
 	                                                                           std::ios_base::dec |
 	                                                                           std::ios_base::fixed));
 
@@ -110,26 +110,26 @@ int main(int argc, char** argv)
 	uptr<Probe<int8_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int8_t>("BCH"));
 
 	tools::Reporter_probe rep_noise_rea_stats("Signal Noise Ratio", "Real (SNR)", params.n_frames);
-	uptr<Probe<float>> prb_noise_rsig(rep_noise_rea_stats.create_probe_value<float>("SIGMA", "", 1,
+	uptr<Probe<float>> prb_noise_rsig(rep_noise_rea_stats.create_probe_value<float>("SIGMA", "", 100, 1,
 	                                                                                std::ios_base::dec |
 	                                                                                std::ios_base::fixed,
 	                                                                                4));
-	uptr<Probe<float>> prb_noise_res(rep_noise_rea_stats.create_probe_value<float>("Es/N0", "(dB)", 1,
+	uptr<Probe<float>> prb_noise_res(rep_noise_rea_stats.create_probe_value<float>("Es/N0", "(dB)", 100, 1,
 	                                                                               std::ios_base::dec |
 	                                                                               std::ios_base::fixed));
-	uptr<Probe<float>> prb_noise_reb(rep_noise_rea_stats.create_probe_value<float>("Eb/N0", "(dB)", 1,
+	uptr<Probe<float>> prb_noise_reb(rep_noise_rea_stats.create_probe_value<float>("Eb/N0", "(dB)", 100, 1,
 	                                                                               std::ios_base::dec |
 	                                                                               std::ios_base::fixed));
 
 	tools::Reporter_probe rep_noise_est_stats("Signal Noise Ratio", "Estimated (SNR)", params.n_frames);
-	uptr<Probe<float>> prb_noise_esig(rep_noise_est_stats.create_probe_value<float>("SIGMA", "", 1,
+	uptr<Probe<float>> prb_noise_esig(rep_noise_est_stats.create_probe_value<float>("SIGMA", "", 100, 1,
 	                                                                                std::ios_base::dec |
 	                                                                                std::ios_base::fixed,
 	                                                                                4));
-	uptr<Probe<float>> prb_noise_ees(rep_noise_est_stats.create_probe_value<float>("Es/N0", "(dB)", 1,
+	uptr<Probe<float>> prb_noise_ees(rep_noise_est_stats.create_probe_value<float>("Es/N0", "(dB)", 100, 1,
 	                                                                               std::ios_base::dec |
 	                                                                               std::ios_base::fixed));
-	uptr<Probe<float>> prb_noise_eeb(rep_noise_est_stats.create_probe_value<float>("Eb/N0", "(dB)", 1,
+	uptr<Probe<float>> prb_noise_eeb(rep_noise_est_stats.create_probe_value<float>("Eb/N0", "(dB)", 100, 1,
 	                                                                               std::ios_base::dec |
 	                                                                               std::ios_base::fixed));
 
