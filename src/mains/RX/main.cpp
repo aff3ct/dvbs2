@@ -13,7 +13,7 @@ using namespace aff3ct::module;
 #define MULTI_THREADED // comment this line to disable multi-threaded RX
 
 // global parameters
-constexpr bool enable_logs = true;
+constexpr bool enable_logs = false;
 #ifdef MULTI_THREADED
 constexpr bool thread_pinnig = true;
 constexpr bool active_waiting = false;
@@ -78,60 +78,63 @@ int main(int argc, char** argv)
 	monitor->disable_is_done(true); // this prevents the monitor to stop the sequence or pipeline with the `is_done()`
 	                                // interface
 
+	const size_t probe_buff = 200;
 	// create reporters and probes for the statistics file
 	tools::Reporter_probe rep_fra_stats("Frame Counter", params.n_frames);
-	uptr<Probe_occurrence> prb_fra_id(rep_fra_stats.create_probe_occurrence("ID"));
+	uptr<Probe_occurrence> prb_fra_id(rep_fra_stats.create_probe_occurrence("ID", "", probe_buff));
 
 	tools::Reporter_probe rep_rad_stats("Radio", params.n_frames);
-	std::unique_ptr<module::Probe<int32_t>> prb_rad_ovf(rep_rad_stats.create_probe_value<int32_t>("OVF", "FLAG"));
-	std::unique_ptr<module::Probe<int32_t>> prb_rad_seq(rep_rad_stats.create_probe_value<int32_t>("SEQ", "ERR"));
+	std::unique_ptr<module::Probe<int32_t>> prb_rad_ovf(rep_rad_stats.create_probe_value<int32_t>("OVF", "FLAG",
+	                                                                                              probe_buff));
+	std::unique_ptr<module::Probe<int32_t>> prb_rad_seq(rep_rad_stats.create_probe_value<int32_t>("SEQ", "ERR",
+	                                                                                              probe_buff));
 
 	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
-	uptr<Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL"));
-	uptr<Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG"));
-	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 100, 1,
+	uptr<Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL", "", probe_buff));
+	uptr<Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG", "", probe_buff));
+	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", probe_buff, 1,
 	                                                                           std::ios_base::dec |
 	                                                                           std::ios_base::fixed));
 
 	tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm", params.n_frames);
-	uptr<Probe<int32_t>> prb_stm_uff(rep_stm_stats.create_probe_value<int32_t>("UFW", "FLAG"));
-	uptr<Probe<float  >> prb_stm_del(rep_stm_stats.create_probe_value<float  >("DEL", "FRAC"));
+	uptr<Probe<int32_t>> prb_stm_uff(rep_stm_stats.create_probe_value<int32_t>("UFW", "FLAG", probe_buff));
+	uptr<Probe<float  >> prb_stm_del(rep_stm_stats.create_probe_value<float  >("DEL", "FRAC", probe_buff));
 
 	tools::Reporter_probe rep_frq_stats("Frequency Synchronization", params.n_frames);
-	uptr<Probe<float>> prb_frq_coa(rep_frq_stats.create_probe_value<float>("COA", "CFO"));
-	uptr<Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO"));
-	uptr<Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO"));
+	uptr<Probe<float>> prb_frq_coa(rep_frq_stats.create_probe_value<float>("COA", "CFO", probe_buff));
+	uptr<Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO", probe_buff));
+	uptr<Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO", probe_buff));
 
 	tools::Reporter_probe rep_decstat_stats("Decoders Decoding Status", "('1' = success, '0' = fail)", params.n_frames);
-	uptr<Probe<int8_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int8_t>("LDPC"));
-	uptr<Probe<int8_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int8_t>("BCH"));
+	uptr<Probe<int8_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int8_t>("LDPC", "", probe_buff));
+	uptr<Probe<int8_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int8_t>("BCH", "", probe_buff));
 
 	tools::Reporter_probe rep_noise_stats("Signal Noise Ratio", "(SNR)", params.n_frames);
-	uptr<Probe<float>> prb_noise_sig(rep_noise_stats.create_probe_value<float>("SIGMA", "", 100, 1,
+	uptr<Probe<float>> prb_noise_sig(rep_noise_stats.create_probe_value<float>("SIGMA", "", probe_buff, 1,
 	                                                                           std::ios_base::dec |
 	                                                                           std::ios_base::fixed,
 	                                                                           4));
-	uptr<Probe<float>> prb_noise_es(rep_noise_stats.create_probe_value<float>("Es/N0", "(dB)", 100, 1,
+	uptr<Probe<float>> prb_noise_es(rep_noise_stats.create_probe_value<float>("Es/N0", "(dB)", probe_buff, 1,
 	                                                                          std::ios_base::dec |
 	                                                                          std::ios_base::fixed));
-	uptr<Probe<float>> prb_noise_eb(rep_noise_stats.create_probe_value<float>("Eb/N0", "(dB)", 100, 1,
+	uptr<Probe<float>> prb_noise_eb(rep_noise_stats.create_probe_value<float>("Eb/N0", "(dB)", probe_buff, 1,
 	                                                                          std::ios_base::dec |
 	                                                                          std::ios_base::fixed));
 
 	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER)", "and Frame Error Rate (FER)", params.n_frames);
-	uptr<Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE"));
-	uptr<Probe<int32_t>> prb_bfer_fe (rep_BFER_stats.create_probe_value<int32_t>("FE"));
-	uptr<Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe_value<float  >("BER"));
-	uptr<Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe_value<float  >("FER"));
+	uptr<Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE", "", probe_buff));
+	uptr<Probe<int32_t>> prb_bfer_fe (rep_BFER_stats.create_probe_value<int32_t>("FE", "", probe_buff));
+	uptr<Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe_value<float  >("BER", "", probe_buff));
+	uptr<Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe_value<float  >("FER", "", probe_buff));
 
 	tools::Reporter_probe rep_thr_stats("Throughput", "and elapsed time", params.n_frames);
-	uptr<Probe<>> prb_thr_thr (rep_thr_stats.create_probe_throughput_mbps("THR", params.K_bch));
-	uptr<Probe<double> > prb_thr_the (rep_thr_stats.create_probe_value<double >("TTHR", "Theory", 100, 1,
+	uptr<Probe<>> prb_thr_thr (rep_thr_stats.create_probe_throughput_mbps("THR", params.K_bch, probe_buff));
+	uptr<Probe<double> > prb_thr_the (rep_thr_stats.create_probe_value<double >("TTHR", "Theory", probe_buff, 1,
 	                                                                             std::ios_base::dec |
 	                                                                             std::ios_base::fixed));
-	uptr<Probe<>> prb_thr_lat (rep_thr_stats.create_probe_latency  ("LAT"));
-	uptr<Probe<>> prb_thr_time(rep_thr_stats.create_probe_time     ("TIME"));
-	uptr<Probe<>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp("TSTA"));
+	uptr<Probe<>> prb_thr_lat (rep_thr_stats.create_probe_latency  ("LAT", probe_buff));
+	uptr<Probe<>> prb_thr_time(rep_thr_stats.create_probe_time     ("TIME", probe_buff));
+	uptr<Probe<>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp("TSTA", probe_buff));
 
 	tools::Terminal_dump terminal_stats({ &rep_fra_stats, &rep_rad_stats,     &rep_sfm_stats,   &rep_stm_stats,
 	                                      &rep_frq_stats, &rep_decstat_stats, &rep_noise_stats, &rep_BFER_stats,
@@ -348,10 +351,14 @@ int main(int argc, char** argv)
 		(*prb_frq_coa )[prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::FRQ ];
 		(*prb_stm_del )[prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::MU  ];
 
-		std::vector<runtime::Task*> firsts_wl12 = { &(*radio       )[rad::tsk::receive], &(*prb_sfm_del )[prb::tsk::probe],
-		                                            &(*prb_sfm_tri )[prb::tsk::probe  ], &(*prb_sfm_flg )[prb::tsk::probe],
-		                                            &(*prb_thr_lat )[prb::tsk::probe  ], &(*prb_thr_time)[prb::tsk::probe],
-		                                            &(*prb_thr_tsta)[prb::tsk::probe  ], &(*prb_fra_id  )[prb::tsk::probe],
+		std::vector<runtime::Task*> firsts_wl12 = { &(*radio       )[rad::tsk::receive],
+		                                            &(*prb_sfm_del )[prb::tsk::probe  ],
+		                                            &(*prb_sfm_tri )[prb::tsk::probe  ],
+		                                            &(*prb_sfm_flg )[prb::tsk::probe  ],
+		                                            &(*prb_thr_lat )[prb::tsk::probe  ],
+		                                            &(*prb_thr_time)[prb::tsk::probe  ],
+		                                            &(*prb_thr_tsta)[prb::tsk::probe  ],
+		                                            &(*prb_fra_id  )[prb::tsk::probe  ],
 		                                            &(*feedbr      )[fbr::tsk::produce] };
 
 		std::vector<runtime::Task*> lasts_wl12 = { &(*feedbr)[fbr::tsk::memorize] };
@@ -433,7 +440,8 @@ int main(int argc, char** argv)
 			if (statuses.back() != nullptr)
 				terminal_stats.temp_report(stats_file);
 			else if (enable_logs)
-				std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")" << std::endl;
+				std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")"
+				          << std::endl;
 
 			if (limit == 150 && m >= 150)
 			{
@@ -465,9 +473,12 @@ int main(int argc, char** argv)
 		(*prb_frq_coa  )[prb::sck::probe      ::in  ] = (*sync_coarse_f)[sfc::sck::synchronize::FRQ ];
 		(*prb_stm_del  )[prb::sck::probe      ::in  ] = (*sync_timing  )[stm::sck::synchronize::MU  ];
 
-		std::vector<runtime::Task*> firsts_l3 = { &(*radio       )[rad::tsk::receive], &(*prb_thr_lat )[prb::tsk::probe],
-		                                          &(*prb_thr_time)[prb::tsk::probe  ], &(*prb_thr_tsta)[prb::tsk::probe],
-		                                          &(*prb_fra_id  )[prb::tsk::probe  ], &(*prb_frq_fin )[prb::tsk::probe] };
+		std::vector<runtime::Task*> firsts_l3 = { &(*radio       )[rad::tsk::receive],
+		                                          &(*prb_thr_lat )[prb::tsk::probe  ],
+		                                          &(*prb_thr_time)[prb::tsk::probe  ],
+		                                          &(*prb_thr_tsta)[prb::tsk::probe  ],
+		                                          &(*prb_fra_id  )[prb::tsk::probe  ],
+		                                          &(*prb_frq_fin )[prb::tsk::probe  ] };
 
 		std::vector<runtime::Task*> lasts_l3 = { &(*sync_fine_pf)[sff::tsk::synchronize] };
 
@@ -538,18 +549,18 @@ int main(int argc, char** argv)
 #ifdef MULTI_THREADED
 	pipeline_transmission.bind_adaptors();
 	pipeline_transmission.exec({
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 0
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition stage 1
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition stage 2
-		[&prb_fra_id] (const std::vector<const int*>& statuses)                                   // stop condition stage 3
+		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition s0
+		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s1
+		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s2
+		[&prb_fra_id] (const std::vector<const int*>& statuses)                                   // stop condition s3
 		{
 			if (statuses.back() == nullptr && enable_logs)
 				std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, stage = 3"
 				          << ", m = " << prb_fra_id->get_occurrences() << ")" << std::endl;
 			return false;
 		},
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition stage 4
-		[&noise_est, &estimator] (const std::vector<const int*>& statuses)                        // stop condition stage 5
+		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s4
+		[&noise_est, &estimator] (const std::vector<const int*>& statuses)                        // stop condition s5
 		{
 			// update "noise_est" for the terminal display
 			if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
@@ -558,8 +569,8 @@ int main(int argc, char** argv)
 				                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
 			return false;
 		},
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition stage 6
-		[&terminal_stats, &stats_file] (const std::vector<const int*>& statuses)                  // stop condition stage 7
+		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s6
+		[&terminal_stats, &stats_file] (const std::vector<const int*>& statuses)                  // stop condition s7
 		{
 			terminal_stats.temp_report(stats_file);
 			return false;

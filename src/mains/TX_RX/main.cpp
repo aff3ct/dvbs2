@@ -85,65 +85,66 @@ int main(int argc, char** argv)
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
+	const size_t probe_buff = 200;
 	// create reporters and probes for the statistics file
 	tools::Reporter_probe rep_fra_stats("Frame Counter", params.n_frames);
-	uptr<Probe_occurrence> prb_fra_id(rep_fra_stats.create_probe_occurrence("ID"));
+	uptr<Probe_occurrence> prb_fra_id(rep_fra_stats.create_probe_occurrence("ID", "", probe_buff));
 
 	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
-	uptr<Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL"));
-	uptr<Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG"));
-	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 100, 1,
+	uptr<Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL", "", probe_buff));
+	uptr<Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG", "", probe_buff));
+	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", probe_buff, 1,
 	                                                                           std::ios_base::dec |
 	                                                                           std::ios_base::fixed));
 
 	tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm", params.n_frames);
-	uptr<Probe<int32_t>> prb_stm_uff(rep_stm_stats.create_probe_value<int32_t>("UFW", "FLAG"));
-	uptr<Probe<float  >> prb_stm_del(rep_stm_stats.create_probe_value<float  >("DEL", "FRAC"));
+	uptr<Probe<int32_t>> prb_stm_uff(rep_stm_stats.create_probe_value<int32_t>("UFW", "FLAG", probe_buff));
+	uptr<Probe<float  >> prb_stm_del(rep_stm_stats.create_probe_value<float  >("DEL", "FRAC", probe_buff));
 
 	tools::Reporter_probe rep_frq_stats("Frequency Synchronization", params.n_frames);
-	uptr<Probe<float>> prb_frq_coa(rep_frq_stats.create_probe_value<float>("COA", "CFO"));
-	uptr<Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO"));
-	uptr<Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO"));
+	uptr<Probe<float>> prb_frq_coa(rep_frq_stats.create_probe_value<float>("COA", "CFO", probe_buff));
+	uptr<Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO", probe_buff));
+	uptr<Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO", probe_buff));
 
 	tools::Reporter_probe rep_decstat_stats("Decoders Decoding Status", "('1' = success, '0' = fail)", params.n_frames);
-	uptr<Probe<int8_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int8_t>("LDPC"));
-	uptr<Probe<int8_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int8_t>("BCH"));
+	uptr<Probe<int8_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int8_t>("LDPC", "", probe_buff));
+	uptr<Probe<int8_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int8_t>("BCH", "", probe_buff));
 
 	tools::Reporter_probe rep_noise_rea_stats("Signal Noise Ratio", "Real (SNR)", params.n_frames);
-	uptr<Probe<float>> prb_noise_rsig(rep_noise_rea_stats.create_probe_value<float>("SIGMA", "", 100, 1,
+	uptr<Probe<float>> prb_noise_rsig(rep_noise_rea_stats.create_probe_value<float>("SIGMA", "", probe_buff, 1,
 	                                                                                std::ios_base::dec |
 	                                                                                std::ios_base::fixed,
 	                                                                                4));
-	uptr<Probe<float>> prb_noise_res(rep_noise_rea_stats.create_probe_value<float>("Es/N0", "(dB)", 100, 1,
+	uptr<Probe<float>> prb_noise_res(rep_noise_rea_stats.create_probe_value<float>("Es/N0", "(dB)", probe_buff, 1,
 	                                                                               std::ios_base::dec |
 	                                                                               std::ios_base::fixed));
-	uptr<Probe<float>> prb_noise_reb(rep_noise_rea_stats.create_probe_value<float>("Eb/N0", "(dB)", 100, 1,
+	uptr<Probe<float>> prb_noise_reb(rep_noise_rea_stats.create_probe_value<float>("Eb/N0", "(dB)", probe_buff, 1,
 	                                                                               std::ios_base::dec |
 	                                                                               std::ios_base::fixed));
 
 	tools::Reporter_probe rep_noise_est_stats("Signal Noise Ratio", "Estimated (SNR)", params.n_frames);
-	uptr<Probe<float>> prb_noise_esig(rep_noise_est_stats.create_probe_value<float>("SIGMA", "", 100, 1,
+	uptr<Probe<float>> prb_noise_esig(rep_noise_est_stats.create_probe_value<float>("SIGMA", "", probe_buff, 1,
 	                                                                                std::ios_base::dec |
 	                                                                                std::ios_base::fixed,
 	                                                                                4));
-	uptr<Probe<float>> prb_noise_ees(rep_noise_est_stats.create_probe_value<float>("Es/N0", "(dB)", 100, 1,
+	uptr<Probe<float>> prb_noise_ees(rep_noise_est_stats.create_probe_value<float>("Es/N0", "(dB)", probe_buff, 1,
 	                                                                               std::ios_base::dec |
 	                                                                               std::ios_base::fixed));
-	uptr<Probe<float>> prb_noise_eeb(rep_noise_est_stats.create_probe_value<float>("Eb/N0", "(dB)", 100, 1,
+	uptr<Probe<float>> prb_noise_eeb(rep_noise_est_stats.create_probe_value<float>("Eb/N0", "(dB)", probe_buff, 1,
 	                                                                               std::ios_base::dec |
 	                                                                               std::ios_base::fixed));
 
 	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER)", "and Frame Error Rate (FER)", params.n_frames);
-	uptr<Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE"));
-	uptr<Probe<int32_t>> prb_bfer_fe (rep_BFER_stats.create_probe_value<int32_t>("FE"));
-	uptr<Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe_value<float  >("BER"));
-	uptr<Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe_value<float  >("FER"));
+	uptr<Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE", "", probe_buff));
+	uptr<Probe<int32_t>> prb_bfer_fe (rep_BFER_stats.create_probe_value<int32_t>("FE", "", probe_buff));
+	uptr<Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe_value<float  >("BER", "", probe_buff));
+	uptr<Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe_value<float  >("FER", "", probe_buff));
 
 	tools::Reporter_probe rep_thr_stats("Throughput", "and elapsed time", params.n_frames);
-	uptr<Probe<>> prb_thr_thr (rep_thr_stats.create_probe_throughput_mbps("THR", params.K_bch));
-	uptr<Probe<>> prb_thr_lat (rep_thr_stats.create_probe_latency        ("LAT"));
-	uptr<Probe<>> prb_thr_time(rep_thr_stats.create_probe_time           ("TIME"));
-	uptr<Probe<>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp      ("TSTA"));
+	uptr<Probe<>> prb_thr_thr (rep_thr_stats.create_probe_throughput_mbps("THR", params.K_bch, probe_buff));
+	uptr<Probe<>> prb_thr_lat (rep_thr_stats.create_probe_latency        ("LAT", probe_buff));
+	uptr<Probe<>> prb_thr_time(rep_thr_stats.create_probe_time           ("TIME", probe_buff));
+	uptr<Probe<>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp      ("TSTA", probe_buff));
 
 	tools::Terminal_dump terminal_stats({ &rep_fra_stats,       &rep_sfm_stats,     &rep_stm_stats,
 	                                      &rep_frq_stats,       &rep_decstat_stats, &rep_noise_rea_stats,
