@@ -108,6 +108,7 @@ public:
 	std::string est_type;
 	std::string channel_type;
 	std::string dump_filename;
+	std::string stats_path;
 
 	factory::Radio                    p_rad;
 	factory::Synchronizer_freq_fine   p_sff;

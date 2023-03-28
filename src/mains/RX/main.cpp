@@ -608,19 +608,23 @@ int main(int argc, char** argv)
 
 	if (params.stats)
 	{
+		std::ofstream file_stream;
+		if (!params.stats_path.empty())
+			file_stream.open(params.stats_path);
+		std::ostream& stats_out = params.stats_path.empty() ? std::cout : file_stream;
 		const auto ordered = true;
 #ifdef MULTI_THREADED
 		auto stages = pipeline_transmission.get_stages();
 		for (size_t ss = 0; ss < stages.size(); ss++)
 		{
-			std::cout << "#" << std::endl << "# Sequence stage " << ss << " (" << stages[ss]->get_n_threads()
+			stats_out << "#" << std::endl << "# Sequence stage " << ss << " (" << stages[ss]->get_n_threads()
 			          << " thread(s)): " << std::endl;
-			tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered);
+			tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered, true, stats_out);
 		}
 #else
-		std::cout << "#" << std::endl << "# Sequence sequential (" << sequence_transmission.get_n_threads()
+		stats_out << "#" << std::endl << "# Sequence sequential (" << sequence_transmission.get_n_threads()
 		          << " thread(s)): " << std::endl;
-		tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
+		tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered, true, stats_out);
 #endif /* MULTI_THREADED */
 	}
 
