@@ -29,6 +29,7 @@ set(SRC_FILES_RX               ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/RX/main.cpp
 set(SRC_FILES_RX_DUMP          ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/RX/dump.cpp)
 set(SRC_FILES_TX_RX            ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/TX_RX/main.cpp)
 set(SRC_FILES_TX_RX_BB         ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/TX_RX_BB/main.cpp)
+set(SRC_FILES_CH               ${CMAKE_CURRENT_SOURCE_DIR}/src/mains/CH/main.cpp)
 
 # Auto generate a header containing the last Git SHA1
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.cpp.in"
@@ -43,6 +44,7 @@ add_executable(dvbs2_rx            ${SRC_FILES_RX})
 add_executable(dvbs2_rx_dump       ${SRC_FILES_RX_DUMP})
 add_executable(dvbs2_tx_rx         ${SRC_FILES_TX_RX})
 add_executable(dvbs2_tx_rx_bb      ${SRC_FILES_TX_RX_BB})
+add_executable(dvbs2_ch            ${SRC_FILES_CH})
 
 # Link with common sources
 target_link_libraries(dvbs2_tx       PRIVATE dvbs2_common)
@@ -51,6 +53,7 @@ target_link_libraries(dvbs2_rx       PRIVATE dvbs2_common)
 target_link_libraries(dvbs2_rx_dump  PRIVATE dvbs2_common)
 target_link_libraries(dvbs2_tx_rx    PRIVATE dvbs2_common)
 target_link_libraries(dvbs2_tx_rx_bb PRIVATE dvbs2_common)
+target_link_libraries(dvbs2_ch       PRIVATE dvbs2_common)
 
 target_include_directories(dvbs2_common   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 target_include_directories(dvbs2_tx       PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
@@ -59,6 +62,7 @@ target_include_directories(dvbs2_rx       PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sr
 target_include_directories(dvbs2_rx_dump  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 target_include_directories(dvbs2_tx_rx    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 target_include_directories(dvbs2_tx_rx_bb PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+target_include_directories(dvbs2_ch       PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 
 # Configure the AFF3CT library before compiling it
 option(AFF3CT_COMPILE_EXE        ""      OFF            )
@@ -79,6 +83,7 @@ target_link_libraries(dvbs2_rx       PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_rx_dump  PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_tx_rx    PRIVATE aff3ct-static-lib)
 target_link_libraries(dvbs2_tx_rx_bb PRIVATE aff3ct-static-lib)
+target_link_libraries(dvbs2_ch       PRIVATE aff3ct-static-lib)
 
 # Link with UHD (& boost)
 if(DVBS2_LINK_UHD)
