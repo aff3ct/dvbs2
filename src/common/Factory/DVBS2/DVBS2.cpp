@@ -96,6 +96,7 @@ void DVBS2
 	args.add({"src-fifo"},           cli::None(),                                       "Enable FIFO mode."                                              );
 	args.add({"perfect-sync"},       cli::None(),                                       "Enable genie aided synchronization."                            );
 	args.add({"no-wl-phases"},       cli::None(),                                       "Skip waiting and learning phases."                              );
+	args.add({"tx-time-limit"},      cli::Integer(cli::Positive()),                     "TX time limit in ms (if zero then no time limit)."              );
 
 	p_shp.get_description(args);
 	p_sfc.get_description(args);
@@ -143,6 +144,7 @@ void DVBS2
 	stats                    = vals.exist({"sim-stats"}          ) ? true                                  : false       ;
 	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
 	no_wl_phases             = vals.exist({"no-wl-phases"}       ) ? true                                  : false       ;
+	tx_time_limit            = vals.exist({"tx-time-limit"}      ) ? vals.to_int  ({"tx-time-limit"}     ) : 0           ;
 	display_help = false;
 	if(vals.exist({"help","h"}))
 		display_help = true;
@@ -259,7 +261,8 @@ void DVBS2
 		headers[p].push_back(std::make_pair("Path to source file", this->src_path));
 	headers[p].push_back(std::make_pair("Perfect synchronization", this->perfect_sync ? "YES" : "NO"));
 	headers[p].push_back(std::make_pair("Estimator type", this->est_type));
-
+	headers[p].push_back(std::make_pair("TX time limit (ms)", std::to_string(this->tx_time_limit)));
+	
 	this->p_shp.get_headers(headers);
 	this->p_sfc.get_headers(headers);
 	this->p_stm.get_headers(headers);

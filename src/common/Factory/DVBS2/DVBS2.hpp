@@ -88,6 +88,7 @@ public:
 	int   itl_n_cols;
 	int   n_frames;
 	int   debug_limit;
+	int   tx_time_limit;
 
 	std::chrono::milliseconds ter_freq;
 
