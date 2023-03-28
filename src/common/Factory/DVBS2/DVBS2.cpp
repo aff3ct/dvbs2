@@ -66,6 +66,7 @@ void DVBS2
 	auto modcod_format   = cli::Text(cli::Including_set("QPSK-S_8/9", "QPSK-S_3/5", "8PSK-S_3/5", "8PSK-S_8/9", "16APSK-S_8/9"                          ));
 	auto src_type_format = cli::Text(cli::Including_set("RAND", "USER", "USER_BIN", "AZCW"                                                              ));
 
+
 	args.add({"help","h"},           cli::None(),                                                  "Displays help."                                                 );
 	args.add({"mod-cod"},            modcod_format,                                                "Modulation and coding scheme."                                  );
 	args.add({"chn-type"},           cli::Text(cli::Including_set("AWGN", "USER_ADD", "SYNCHRO")), "Type of noise in the channel."                                  );
@@ -97,7 +98,7 @@ void DVBS2
 	args.add({"perfect-sync"},       cli::None(),                                                  "Enable genie aided synchronization."                            );
 	args.add({"no-wl-phases"},       cli::None(),                                                  "Skip waiting and learning phases."                              );
 	args.add({"tx-time-limit"},      cli::Integer(cli::Positive()),                                "TX time limit in ms (if zero then no time limit)."              );
-
+	args.add({"stats-path"},         cli::Text(),                                                  "Path of statistics of the tasks."                               );
 	p_shp.get_description(args);
 	p_sfc.get_description(args);
 	p_stm.get_description(args);
@@ -145,6 +146,7 @@ void DVBS2
 	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
 	no_wl_phases             = vals.exist({"no-wl-phases"}       ) ? true                                  : false       ;
 	tx_time_limit            = vals.exist({"tx-time-limit"}      ) ? vals.to_int  ({"tx-time-limit"}     ) : 0           ;
+	stats_path               = vals.exist({"stats-path"}         ) ? vals.at      ({"stats-path"}        ) : stats_path;
 	display_help = false;
 	if(vals.exist({"help","h"}))
 		display_help = true;
