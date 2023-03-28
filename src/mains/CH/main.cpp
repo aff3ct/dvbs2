@@ -37,15 +37,34 @@ int main(int argc, char** argv)
 	const auto esn0  = tools::ebn0_to_esn0(ebn0, R, params.bps);
 	std::fill(sigma.begin(), sigma.end(), tools::esn0_to_sigma(esn0));
 
-	// construct modules
+	// construct base modules
 	uptr<Radio<>> radio_rcv(factory::DVBS2::build_radio<>(params));
 	uptr<Channel<>> channel(factory::DVBS2::build_channel<>(params, gen));
 	uptr<Radio<>> radio_snd(factory::DVBS2::build_radio<>(params));
+	uptr<Multiplier_fading_DVBS2<>   > fad_mlt       (factory::DVBS2::build_fading_mult        <>(params             ));
+	uptr<Filter_Farrow_ccr_naive<>   > chn_frac_del  (factory::DVBS2::build_channel_frac_delay <>(params             ));
+	uptr<Variable_delay_cc_naive<>   > chn_int_del   (factory::DVBS2::build_channel_int_delay  <>(params             ));
+	uptr<Filter_buffered_delay<float>> chn_frm_del   (factory::DVBS2::build_channel_frame_delay<>(params             ));
+	uptr<Multiplier_sine_ccc_naive<> > freq_shift    (factory::DVBS2::build_freq_shift         <>(params             ));
 
 	(*channel  )[chn::sck::add_noise::CP  ] = sigma;
-	(*channel  )[chn::sck::add_noise::X_N ] = (*radio_rcv)[rad::sck::receive  ::Y_N1];
-	(*radio_snd)[rad::sck::send     ::X_N1] = (*channel  )[chn::sck::add_noise::Y_N ];
 
+	if (params.channel_type == "SYNCHRO"){
+		std::cout << "Channel AWGN+synchro" << std::endl; 
+		(*fad_mlt     )[mlt::sck::imultiply::X_N ] = (*radio_rcv   )[rad::sck::receive  ::Y_N1];
+		(*chn_frm_del )[flt::sck::filter   ::X_N1] = (*fad_mlt     )[mlt::sck::imultiply::Z_N ];
+		(*chn_int_del )[flt::sck::filter   ::X_N1] = (*chn_frm_del )[flt::sck::filter   ::Y_N2];
+		(*chn_frac_del)[flt::sck::filter   ::X_N1] = (*chn_int_del )[flt::sck::filter   ::Y_N2];
+		(*freq_shift  )[mlt::sck::imultiply::X_N ] = (*chn_frac_del)[flt::sck::filter   ::Y_N2];
+		(*channel     )[chn::sck::add_noise::X_N ] = (*freq_shift  )[mlt::sck::imultiply::Z_N ];
+		(*radio_snd   )[rad::sck::send     ::X_N1] = (*channel     )[chn::sck::add_noise::Y_N ];
+	}
+	else{
+		std::cout << "Channel AWGN" << std::endl; 
+		(*channel  )[chn::sck::add_noise::X_N ] = (*radio_rcv)[rad::sck::receive  ::Y_N1];
+		(*radio_snd)[rad::sck::send     ::X_N1] = (*channel  )[chn::sck::add_noise::Y_N ];
+	}
+	
 	runtime::Sequence sequence_channel((*radio_rcv)[rad::tsk::receive]);
 
 	uint64_t bytes = 0;
