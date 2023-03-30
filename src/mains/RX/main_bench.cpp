@@ -83,6 +83,7 @@ int main(int argc, char** argv)
 	matched_flt  ->set_custom_name("Matched Flt" );
 	sync_coarse_f->set_custom_name("Coarse_Synch");
 	sync_step_mf ->set_custom_name("MF Synch"    );
+	mult_agc     ->set_custom_name("Multiplier 2");
 
 	// the full transmission chain binding
 	(*front_agc    )[mlt::sck::imultiply   ::X_N    ] = (*radio        )[rad::sck::receive     ::Y_N1];
@@ -387,21 +388,7 @@ int main(int argc, char** argv)
 
 #ifdef MULTI_THREADED
 	pipeline_transmission.bind_adaptors();
-	pipeline_transmission.exec({
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition s0
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s1
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s2
-		[] (const std::vector<const int*>& statuses)                                              // stop condition s3
-		{
-			if (statuses.back() == nullptr && enable_logs)
-				std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, stage = 3)"
-				          << std::endl;
-			return false;
-		},
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s4
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s5
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s6
-		[] (const std::vector<const int*>& statuses) { return false; }});                         // stop condition s7
+	pipeline_transmission.exec([] (const std::vector<const int*>& statuses) { return false; });
 #else
 	// start the transmission sequence
 	sequence_transmission.exec([]
