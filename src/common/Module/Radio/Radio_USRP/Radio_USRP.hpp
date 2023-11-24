@@ -37,8 +37,8 @@ private:
 	uhd::rx_streamer::sptr      rx_stream;
 	uhd::tx_streamer::sptr      tx_stream;
 
-	boost::thread send_thread;
-	boost::thread receive_thread;
+	std::thread send_thread;
+	std::thread receive_thread;
 
 	const bool threaded;
 	const bool rx_enabled;
