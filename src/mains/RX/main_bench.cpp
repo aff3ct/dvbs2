@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 	matched_flt  ->set_custom_name("Matched Flt" );
 	sync_coarse_f->set_custom_name("Coarse_Synch");
 	sync_step_mf ->set_custom_name("MF Synch"    );
-	mult_agc     ->set_custom_name("Multiplier 2");
+	mult_agc     ->set_custom_name("Mult agc"    );
 
 	// the full transmission chain binding
 	(*front_agc    )[mlt::sck::imultiply   ::X_N    ] = (*radio        )[rad::sck::receive     ::Y_N1];
