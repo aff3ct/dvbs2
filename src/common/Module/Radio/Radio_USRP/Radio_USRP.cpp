@@ -140,7 +140,7 @@ void Radio_USRP<R>
 	if (this->threaded && !this->start_thread_send)
 	{
 		this->start_thread_send = true;
-		this->send_thread = boost::thread(&Radio_USRP::thread_function_send, this);
+		this->send_thread = std::thread(&Radio_USRP::thread_function_send, this);
 	}
 
 	if (threaded)
@@ -163,7 +163,7 @@ void Radio_USRP<R>
 	if (this->threaded && !this->start_thread_receive)
 	{
 		this->start_thread_receive = true;
-		this->receive_thread = boost::thread(&Radio_USRP::thread_function_receive, this);
+		this->receive_thread = std::thread(&Radio_USRP::thread_function_receive, this);
 	}
 
 	if (threaded)
