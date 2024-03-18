@@ -71,6 +71,8 @@ public:
 	bool  src_fifo;
 	bool  display_help;
 	bool  perfect_sync;
+	bool  src_no_loop;
+	bool  no_wl_phases;
 
 	int   max_fe;       // max number of frame errors per SNR point
 	int   max_n_frames; // max number of simulated frames per SNR point
@@ -86,6 +88,7 @@ public:
 	int   itl_n_cols;
 	int   n_frames;
 	int   debug_limit;
+	int   tx_time_limit;
 
 	std::chrono::milliseconds ter_freq;
 
@@ -105,6 +108,7 @@ public:
 	std::string est_type;
 	std::string channel_type;
 	std::string dump_filename;
+	std::string stats_path;
 
 	factory::Radio                    p_rad;
 	factory::Synchronizer_freq_fine   p_sff;

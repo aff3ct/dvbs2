@@ -33,9 +33,9 @@ template <typename B = int, typename R = float>
 class Synchronizer_timing : public Module
 {
 public:
-	inline Task&   operator[](const stm::tsk              t) { return Module::operator[]((int)t);                             }
-	inline Socket& operator[](const stm::sck::synchronize s) { return Module::operator[]((int)stm::tsk::synchronize)[(int)s]; }
-	inline Socket& operator[](const stm::sck::extract     s) { return Module::operator[]((int)stm::tsk::extract    )[(int)s]; }
+	inline runtime::Task&   operator[](const stm::tsk              t) { return Module::operator[]((int)t);                             }
+	inline runtime::Socket& operator[](const stm::sck::synchronize s) { return Module::operator[]((int)stm::tsk::synchronize)[(int)s]; }
+	inline runtime::Socket& operator[](const stm::sck::extract     s) { return Module::operator[]((int)stm::tsk::extract    )[(int)s]; }
 
 protected:
 	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */

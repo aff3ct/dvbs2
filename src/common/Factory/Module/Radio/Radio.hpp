@@ -36,6 +36,7 @@ public:
 	double rx_gain             = 10;
 	std::string rx_filepath    = "";
 	std::string tx_filepath    = "";
+	bool   rx_no_loop          = false;
 
 	bool tx_enabled            = false;
 	double tx_rate             = 0; // if tx_rate is not overriden, tx is disabled
@@ -54,7 +55,7 @@ public:
 	// parameters construction
 	virtual void get_description(cli::Argument_map_info &args) const;
 	virtual void store          (const cli::Argument_map_value &vals);
-	virtual void get_headers    (std::map<std::string,header_list>& headers, const bool full = true) const;
+	virtual void get_headers    (std::map<std::string,tools::header_list>& headers, const bool full = true) const;
 
 
 	template <typename R = float>

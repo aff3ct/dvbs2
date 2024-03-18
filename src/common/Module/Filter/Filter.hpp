@@ -42,10 +42,10 @@ template <typename R = float>
 class Filter : public Module
 {
 public:
-	inline Task&   operator[](const flt::tsk                 t) { return Module::operator[]((int)t);                        }
-	inline Socket& operator[](const flt::sck::filter         s) { return Module::operator[]((int)flt::tsk::filter )[(int)s]; }
-	inline Socket& operator[](const flt::sck::filter1        s) { return Module::operator[]((int)flt::tsk::filter1)[(int)s]; }
-	inline Socket& operator[](const flt::sck::filter2        s) { return Module::operator[]((int)flt::tsk::filter2)[(int)s]; }
+	inline runtime::Task&   operator[](const flt::tsk                 t) { return Module::operator[]((int)t);                         }
+	inline runtime::Socket& operator[](const flt::sck::filter         s) { return Module::operator[]((int)flt::tsk::filter )[(int)s]; }
+	inline runtime::Socket& operator[](const flt::sck::filter1        s) { return Module::operator[]((int)flt::tsk::filter1)[(int)s]; }
+	inline runtime::Socket& operator[](const flt::sck::filter2        s) { return Module::operator[]((int)flt::tsk::filter2)[(int)s]; }
 
 protected:
 	const int N;     /*!< Size of one frame (= number of samples in one frame) */
