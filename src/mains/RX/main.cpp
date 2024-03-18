@@ -33,6 +33,9 @@ int main(int argc, char** argv)
 	}
 #endif /* MULTI_THREADED */
 
+	// setup signal handlers
+	tools::setup_signal_handler();
+
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
 
@@ -550,18 +553,18 @@ int main(int argc, char** argv)
 #ifdef MULTI_THREADED
 	pipeline_transmission.bind_adaptors();
 	pipeline_transmission.exec({
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition s0
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s1
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s2
-		[&prb_fra_id] (const std::vector<const int*>& statuses)                                   // stop condition s3
+		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s0
+		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s1
+		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s2
+		[&prb_fra_id] (const std::vector<const int*>& statuses)                  // stop condition s3
 		{
 			if (statuses.back() == nullptr && enable_logs)
 				std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, stage = 3"
 				          << ", m = " << prb_fra_id->get_occurrences() << ")" << std::endl;
 			return false;
 		},
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s4
-		[&noise_est, &estimator] (const std::vector<const int*>& statuses)                        // stop condition s5
+		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s4
+		[&noise_est, &estimator] (const std::vector<const int*>& statuses)       // stop condition s5
 		{
 			// update "noise_est" for the terminal display
 			if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
@@ -570,8 +573,8 @@ int main(int argc, char** argv)
 				                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
 			return false;
 		},
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition s6
-		[&terminal_stats, &stats_file] (const std::vector<const int*>& statuses)                  // stop condition s7
+		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s6
+		[&terminal_stats, &stats_file] (const std::vector<const int*>& statuses) // stop condition s7
 		{
 			terminal_stats.temp_report(stats_file);
 			return false;
@@ -593,7 +596,7 @@ int main(int argc, char** argv)
 			else if (enable_logs)
 				std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, m = "
 				          << prb_fra_id->get_occurrences() << ")" << std::endl;
-			return tools::Terminal::is_interrupt();
+			return false;
 		});
 #endif /* MULTI_THREADED */
 

@@ -31,8 +31,8 @@ int main(int argc, char** argv)
 	}
 #endif /* MULTI_THREADED */
 
-	// install signal handlers
-	tools::Terminal::init();
+	// setup signal handlers
+	tools::setup_signal_handler();
 
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
@@ -143,17 +143,17 @@ int main(int argc, char** argv)
 #ifdef MULTI_THREADED
 	auto t_start = std::chrono::steady_clock::now();
 	pipeline_transmission.exec({
-		[t_start, &params] (const std::vector<const int*>& statuses) { 
-			if (params.tx_time_limit){
+		[t_start, &params] (const std::vector<const int*>& statuses) {                        // stop condition stage 0
+			if (params.tx_time_limit)
+			{
 				std::chrono::nanoseconds duration = std::chrono::steady_clock::now() - t_start;
-				if (duration.count() > params.tx_time_limit*1e6){
+				if (duration.count() > params.tx_time_limit*1e6)
 					return true;
-				}
 			}
-			return tools::Terminal::is_interrupt(); 
-			}, // stop condition stage 0
-		[] (const std::vector<const int*>& statuses) { return false; },                           // stop condition stage 1
-		[] (const std::vector<const int*>& statuses) { return false; }});                         // stop condition stage 2
+			return false;
+		},
+		[] (const std::vector<const int*>& statuses) { return false; },                       // stop condition stage 1
+		[] (const std::vector<const int*>& statuses) { return false; }});                     // stop condition stage 2
 	// no need to stop the radio thread here, it is automatically done by the pipeline
 #else
 	sequence_transmission.exec([]() { return tools::Terminal::is_interrupt(); });

@@ -31,8 +31,8 @@ int main(int argc, char** argv)
 	}
 #endif /* MULTI_THREADED */
 
-	// install signal handlers
-	tools::Terminal::init();
+	// setup signal handlers
+	tools::setup_signal_handler();
 
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
@@ -143,10 +143,10 @@ int main(int argc, char** argv)
 	}
 
 #ifdef MULTI_THREADED
-	pipeline_transmission.exec([]() { return tools::Terminal::is_interrupt(); });
+	pipeline_transmission.exec([]() { return false; });
 	// no need to stop the radio thread here, it is automatically done by the pipeline
 #else
-	sequence_transmission.exec([]() { return tools::Terminal::is_interrupt(); });
+	sequence_transmission.exec([]() { return false; });
 	// stop the radio thread
 	for (auto &m : sequence_transmission.get_modules<tools::Interface_waiting>())
 		m->cancel_waiting();

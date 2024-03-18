@@ -28,6 +28,9 @@ template<class T> using uptr = std::unique_ptr<T>;
 
 int main(int argc, char** argv)
 {
+	// setup signal handlers
+	tools::setup_signal_handler();
+
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
 
@@ -55,7 +58,7 @@ int main(int argc, char** argv)
 	uptr<Scrambler<>                 > bb_descrambler(factory::DVBS2::build_bb_scrambler             <>(params             ));
 	uptr<Encoder<>                   > BCH_encoder   (factory::DVBS2::build_bch_encoder              <>(params, poly_gen   ));
 	uptr<Decoder_HIHO<>              > BCH_decoder   (factory::DVBS2::build_bch_decoder              <>(params, poly_gen   ));
-	uptr<Codec_SIHO<>                > LDPC_cdc      (factory::DVBS2::build_ldpc_cdc                 <>(params             ));
+	uptr<tools::Codec_SIHO<>         > LDPC_cdc      (factory::DVBS2::build_ldpc_cdc                 <>(params             ));
 	uptr<Interleaver<>               > itl_tx        (factory::DVBS2::build_itl                      <>(params, *itl_core  ));
 	uptr<Interleaver<float,uint32_t> > itl_rx        (factory::DVBS2::build_itl<float,uint32_t>        (params, *itl_core  ));
 	uptr<Modem<>                     > modem         (factory::DVBS2::build_modem                    <>(params, &cstl      ));
@@ -597,7 +600,7 @@ int main(int argc, char** argv)
 		sync_timing->set_act(true);
 
 		auto stop_condition = [&monitor](const std::vector<const int*>&) {
-			return monitor->is_done() || tools::Terminal::is_interrupt();
+			return monitor->is_done();
 		};
 
 		int d = 0;
@@ -666,7 +669,6 @@ int main(int argc, char** argv)
 
 		// reset the monitors and the terminal for the next SNR
 		monitor->reset();
-		terminal.reset();
 
 		if (params.stats)
 		{
@@ -694,9 +696,6 @@ int main(int argc, char** argv)
 				terminal.legend();
 			}
 		}
-
-		// if user pressed Ctrl+c twice, exit the SNRs loop
-		if (tools::Terminal::is_over()) break;
 	}
 
 	std::cout << "#" << std::endl;

@@ -21,11 +21,14 @@ const size_t n_threads = 1;
 #endif /* MULTI_THREADED */
 
 // aliases
-namespace aff3ct { namespace module { using Monitor_BFER_reduction = Monitor_reduction<Monitor_BFER<>>; } }
+namespace aff3ct { namespace module { using Monitor_BFER_reduction = tools::Monitor_reduction<Monitor_BFER<>>; } }
 template<class T> using uptr = std::unique_ptr<T>;
 
 int main(int argc, char** argv)
 {
+	// setup signal handlers
+	tools::setup_signal_handler();
+
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
 
@@ -150,7 +153,7 @@ int main(int argc, char** argv)
 
 		// execute the simulation sequence
 		sequence_transmission.exec([&monitor_red]() {
-			return monitor_red.is_done_all() || tools::Terminal::is_interrupt();
+			return monitor_red.is_done_all();
 		});
 
 		// final reduction
@@ -162,7 +165,6 @@ int main(int argc, char** argv)
 
 		// reset the monitors and the terminal for the next SNR
 		monitor_red.reset_all();
-		terminal.reset();
 
 		// display the statistics of the tasks (if enabled)
 		if (params.stats)
@@ -181,9 +183,6 @@ int main(int argc, char** argv)
 				terminal.legend();
 			}
 		}
-
-		// if user pressed Ctrl+c twice, exit the SNRs loop
-		if (tools::Terminal::is_over()) break;
 	}
 
 	std::cout << "#" << std::endl;
