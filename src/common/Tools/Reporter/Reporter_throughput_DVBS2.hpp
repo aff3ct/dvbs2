@@ -13,7 +13,7 @@
 #include "Module/Monitor/MI/Monitor_MI.hpp"
 #include "Module/Monitor/BFER/Monitor_BFER.hpp"
 #include "Module/Monitor/EXIT/Monitor_EXIT.hpp"
-#include "Tools/Display/Reporter/Reporter.hpp"
+#include "Tools/Reporter/Reporter.hpp"
 
 namespace aff3ct
 {

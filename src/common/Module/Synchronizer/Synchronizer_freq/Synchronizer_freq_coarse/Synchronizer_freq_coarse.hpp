@@ -24,8 +24,8 @@ template <typename R = float>
 class Synchronizer_freq_coarse : public Module
 {
 public:
-	inline Task&   operator[](const sfc::tsk                      t) { return Module::operator[]((int)t);                                     }
-	inline Socket& operator[](const sfc::sck::synchronize         s) { return Module::operator[]((int)sfc::tsk::synchronize        )[(int)s]; }
+	inline runtime::Task&   operator[](const sfc::tsk                      t) { return Module::operator[]((int)t);                                     }
+	inline runtime::Socket& operator[](const sfc::sck::synchronize         s) { return Module::operator[]((int)sfc::tsk::synchronize        )[(int)s]; }
 
 protected:
 	const int N;  /*!< Size of one frame (= number of samples in one frame) */

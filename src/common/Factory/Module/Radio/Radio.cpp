@@ -46,6 +46,7 @@ void Radio
 	args.add({p+"-tx-freq"       }, cli::Real(cli::Positive(), cli::Non_zero())             , "");
 	args.add({p+"-tx-gain"       }, cli::Real(cli::Positive(), cli::Non_zero())             , "");
 	args.add({p+"-ip-addr"       }, cli::Text()                                             , "");
+	args.add({p+"-rx-no-loop"    }, cli::None()                                             , "");
 }
 
 void Radio
@@ -73,10 +74,11 @@ void Radio
 	if (vals.exist({p+"-tx-freq"       })) this->tx_freq        = vals.to_float ({p+"-tx-freq"       });
 	if (vals.exist({p+"-tx-gain"       })) this->tx_gain        = vals.to_float ({p+"-tx-gain"       });
 	if (vals.exist({p+"-ip-addr"       })) this->usrp_addr      = vals.at       ({p+"-ip-addr"       });
+	if (vals.exist({p+"-rx-no-loop"    })) this->rx_no_loop     = true                                 ;
 }
 
 void Radio
-::get_headers(std::map<std::string,header_list>& headers, const bool full) const
+::get_headers(std::map<std::string,tools::header_list>& headers, const bool full) const
 {
 	auto p = this->get_prefix();
 
@@ -91,6 +93,7 @@ void Radio
 	headers[p].push_back(std::make_pair("Rx freq   ", std::to_string(this->rx_freq  )));
 	headers[p].push_back(std::make_pair("Rx gain   ", std::to_string(this->rx_gain  )));
 	headers[p].push_back(std::make_pair("Rx File   ", this->rx_filepath              ));
+	headers[p].push_back(std::make_pair("Rx no loop", this->rx_no_loop ? "YES" : "NO"));
 	headers[p].push_back(std::make_pair("Tx File   ", this->tx_filepath              ));
 	headers[p].push_back(std::make_pair("Tx subdev ", this->tx_subdev_spec           ));
 	headers[p].push_back(std::make_pair("Tx antenna", this->tx_antenna               ));
@@ -108,7 +111,8 @@ module::Radio<R>* Radio
 	if (this->type == "NO")
 		return new module::Radio_NO<R>(this->N, this->n_frames);
 	else if (this->type == "USER_BIN")
-		return new module::Radio_user_binary<R>(this->N, this->rx_filepath, this->tx_filepath, this->n_frames);
+		return new module::Radio_user_binary<R>(this->N, this->rx_filepath, this->tx_filepath, !this->rx_no_loop,
+			                                    this->n_frames);
 	#ifdef DVBS2_LINK_UHD
 	else if (this->type == "USRP")
 		return new module::Radio_USRP<R>(*this);

@@ -37,7 +37,7 @@ public:
 	// parameters construction
 	virtual void get_description(cli::Argument_map_info &args) const;
 	virtual void store          (const cli::Argument_map_value &vals);
-	virtual void get_headers    (std::map<std::string,header_list>& headers, const bool full = true) const;
+	virtual void get_headers    (std::map<std::string,tools::header_list>& headers, const bool full = true) const;
 
 	template <typename R=float>
 	module::Filter_UPRRC_ccr_naive<R>* build_shaping_flt() const;

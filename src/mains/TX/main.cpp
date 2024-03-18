@@ -31,8 +31,8 @@ int main(int argc, char** argv)
 	}
 #endif /* MULTI_THREADED */
 
-	// install signal handlers
-	tools::Terminal::init();
+	// setup signal handlers
+	tools::setup_signal_handler();
 
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
@@ -66,32 +66,32 @@ int main(int argc, char** argv)
 	LDPC_encoder->set_custom_name("Encoder LDPC");
 
 	// the full transmission chain binding
-	(*bb_scrambler  )[scr::sck::scramble  ::X_N1] = (*source        )[src::sck::generate  ::U_K ];
-	(*BCH_encoder   )[enc::sck::encode    ::U_K ] = (*bb_scrambler  )[scr::sck::scramble  ::X_N2];
-	(*LDPC_encoder  )[enc::sck::encode    ::U_K ] = (*BCH_encoder   )[enc::sck::encode    ::X_N ];
-	(*itl           )[itl::sck::interleave::nat ] = (*LDPC_encoder  )[enc::sck::encode    ::X_N ];
-	(*modem         )[mdm::sck::modulate  ::X_N1] = (*itl           )[itl::sck::interleave::itl ];
-	(*framer        )[frm::sck::generate  ::Y_N1] = (*modem         )[mdm::sck::modulate  ::X_N2];
-	(*pl_scrambler  )[scr::sck::scramble  ::X_N1] = (*framer        )[frm::sck::generate  ::Y_N2];
-	(*shaping_filter)[flt::sck::filter    ::X_N1] = (*pl_scrambler  )[scr::sck::scramble  ::X_N2];
-	(*radio         )[rad::sck::send      ::X_N1] = (*shaping_filter)[flt::sck::filter    ::Y_N2];
+	(*bb_scrambler  )[scr::sck::scramble  ::X_N1] = (*source        )[src::sck::generate  ::out_data];
+	(*BCH_encoder   )[enc::sck::encode    ::U_K ] = (*bb_scrambler  )[scr::sck::scramble  ::X_N2    ];
+	(*LDPC_encoder  )[enc::sck::encode    ::U_K ] = (*BCH_encoder   )[enc::sck::encode    ::X_N     ];
+	(*itl           )[itl::sck::interleave::nat ] = (*LDPC_encoder  )[enc::sck::encode    ::X_N     ];
+	(*modem         )[mdm::sck::modulate  ::X_N1] = (*itl           )[itl::sck::interleave::itl     ];
+	(*framer        )[frm::sck::generate  ::Y_N1] = (*modem         )[mdm::sck::modulate  ::X_N2    ];
+	(*pl_scrambler  )[scr::sck::scramble  ::X_N1] = (*framer        )[frm::sck::generate  ::Y_N2    ];
+	(*shaping_filter)[flt::sck::filter    ::X_N1] = (*pl_scrambler  )[scr::sck::scramble  ::X_N2    ];
+	(*radio         )[rad::sck::send      ::X_N1] = (*shaping_filter)[flt::sck::filter    ::Y_N2    ];
 
 	// first stages of the whole transmission sequence
-	const std::vector<module::Task*> firsts_t = { &(*source)[src::tsk::generate] };
+	const std::vector<runtime::Task*> firsts_t = { &(*source)[src::tsk::generate] };
 
 #ifdef MULTI_THREADED
 	// pipeline definition with separation stages
-	const std::vector<std::pair<std::vector<module::Task*>, std::vector<module::Task*>>> sep_stages =
+	const std::vector<std::pair<std::vector<runtime::Task*>, std::vector<runtime::Task*>>> sep_stages =
 	{ // pipeline stage 0
-	  std::make_pair<std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_pair<std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*source)[src::tsk::generate] },
 	    { &(*source)[src::tsk::generate] }),
 	  // pipeline stage 1
-	  std::make_pair<std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_pair<std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*bb_scrambler)[scr::tsk::scramble] },
 	    { &(*pl_scrambler)[scr::tsk::scramble] }),
 	  // pipeline stage 2
-	  std::make_pair<std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_pair<std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*shaping_filter)[flt::tsk::filter] },
 	    { }),
 	};
@@ -108,8 +108,8 @@ int main(int argc, char** argv)
 	                                                 { 0, 1, 2, 5, 7, 8 }, // for stage 1
 	                                                 { 6 } };              // for stage 2
 
-	tools::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
-	                                      thread_pinnigs, puids);
+	runtime::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
+	                                        thread_pinnigs, puids);
 	if (enable_logs)
 	{
 		std::ofstream f("tx_pipeline_transmission.dot");
@@ -117,7 +117,7 @@ int main(int argc, char** argv)
 	}
 	auto tasks_per_types = pipeline_transmission.get_tasks_per_types();
 #else
-	tools::Sequence sequence_transmission(firsts_t);
+	runtime::Sequence sequence_transmission(firsts_t);
 	if (enable_logs)
 	{
 		std::ofstream f("tx_sequence_transmission.dot");
@@ -141,7 +141,19 @@ int main(int argc, char** argv)
 	}
 
 #ifdef MULTI_THREADED
-	pipeline_transmission.exec([]() { return tools::Terminal::is_interrupt(); });
+	auto t_start = std::chrono::steady_clock::now();
+	pipeline_transmission.exec({
+		[t_start, &params] (const std::vector<const int*>& statuses) {                        // stop condition stage 0
+			if (params.tx_time_limit)
+			{
+				std::chrono::nanoseconds duration = std::chrono::steady_clock::now() - t_start;
+				if (duration.count() > params.tx_time_limit*1e6)
+					return true;
+			}
+			return false;
+		},
+		[] (const std::vector<const int*>& statuses) { return false; },                       // stop condition stage 1
+		[] (const std::vector<const int*>& statuses) { return false; }});                     // stop condition stage 2
 	// no need to stop the radio thread here, it is automatically done by the pipeline
 #else
 	sequence_transmission.exec([]() { return tools::Terminal::is_interrupt(); });

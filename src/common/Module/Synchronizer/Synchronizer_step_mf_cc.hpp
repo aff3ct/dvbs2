@@ -37,8 +37,8 @@ template <typename B = int, typename R = float>
 class Synchronizer_step_mf_cc : public Module
 {
 public:
-	inline Task&   operator[](const smf::tsk              t) {return Module::operator[]((int)t);                            }
-	inline Socket& operator[](const smf::sck::synchronize s) {return Module::operator[]((int)smf::tsk::synchronize)[(int)s];}
+	inline runtime::Task&   operator[](const smf::tsk              t) {return Module::operator[]((int)t);                            }
+	inline runtime::Socket& operator[](const smf::sck::synchronize s) {return Module::operator[]((int)smf::tsk::synchronize)[(int)s];}
 
 private:
 	int last_delay;

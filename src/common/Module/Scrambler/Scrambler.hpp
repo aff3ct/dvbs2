@@ -40,9 +40,9 @@ template <typename D = int>
 class Scrambler : public Module
 {
 public:
-	inline Task&   operator[](const scr::tsk             t) { return Module::operator[]((int)t);                            }
-	inline Socket& operator[](const scr::sck::scramble   s) { return Module::operator[]((int)scr::tsk::scramble  )[(int)s]; }
-	inline Socket& operator[](const scr::sck::descramble s) { return Module::operator[]((int)scr::tsk::descramble)[(int)s]; }
+	inline runtime::Task&   operator[](const scr::tsk             t) { return Module::operator[]((int)t);                            }
+	inline runtime::Socket& operator[](const scr::sck::scramble   s) { return Module::operator[]((int)scr::tsk::scramble  )[(int)s]; }
+	inline runtime::Socket& operator[](const scr::sck::descramble s) { return Module::operator[]((int)scr::tsk::descramble)[(int)s]; }
 
 protected:
 	const int N;          // Size of one frame (= number of datas in one frame)

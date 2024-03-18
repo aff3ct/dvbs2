@@ -12,167 +12,87 @@ before_script:
 # - pwd
 
 analysis-cppcheck:
+  image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_cppcheck:v1.9
   stage: analysis
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
+  allow_failure: false
   artifacts:
     name: analysis-cppcheck-logs
     when: always
     paths:
       - cppcheck/
   tags:
-    - cppcheck
+    - x86_64
+    - linux
+    - docker
   script:
     - ./ci/analysis-cppcheck.sh
 
 build-linux-gcc:
+  image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
   stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  needs:
+    - job: analysis-cppcheck
+      artifacts: false
   tags:
+    - x86_64
+    - avx2
     - linux
-    - gcc
-    - cmake
-    - x86
-    - uhd
+    - docker
   artifacts:
     name: build-linux-gcc
-    when: always
     paths:
-      - ./build_linux_gcc/
+      - build_linux_gcc
   script:
+    - export CC="gcc"
     - export CXX="g++"
-    - export CFLAGS="-Wall -funroll-loops -mavx2"
+    - export CFLAGS="-Wall -Wno-overloaded-virtual -funroll-loops -mavx2"
+    - export CMAKE_OPT="-DDVBS2_LINK_UHD=OFF -DAFF3CT_OVERRIDE_VERSION=v3.0.2"
     - export BUILD="build_linux_gcc"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
 
 build-linux-clang:
+  image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_clang:v10.0.0
   stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  needs:
+    - job: analysis-cppcheck
+      artifacts: false
   tags:
+    - x86_64
+    - avx2
     - linux
-    - clang
-    - cmake
-    - x86
-    - uhd
+    - docker
   artifacts:
     name: build-linux-clang
-    when: always
     paths:
-      - ./build_linux_clang/
+      - build_linux_clang
   script:
+    - export CC="clang"
     - export CXX="clang++"
-    - export CFLAGS="-Wall -Wno-overloaded-virtual -funroll-loops -msse4.2"
+    - export CFLAGS="-Wall -Wno-overloaded-virtual -funroll-loops -mavx2"
+    - export CMAKE_OPT="-DDVBS2_LINK_UHD=OFF -DAFF3CT_OVERRIDE_VERSION=v3.0.2"
     - export BUILD="build_linux_clang"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
 
-build-linux-gcc-4.8:
-  stage: build
-  tags:
-    - linux
-    - gcc-4.8
-    - cmake
-  artifacts:
-    name: build-linux-gcc-4.8
-    when: always
-    paths:
-      - ./build_linux_gcc-4.8/
-  script:
-    - export CXX="g++-4.8"
-    - export CFLAGS="-Wall -funroll-loops -msse4.2"
-    - export CMAKE_OPT="-DDVBS2_LINK_UHD=OFF"
-    - export BUILD="build_linux_gcc-4.8"
-    - source ./ci/tools/threads.sh
-    - ./ci/build-linux-macos.sh
-
-# build-linux-icpc:
-#   stage: build
-#   tags:
-#     - linux
-#     - icpc
-#     - cmake
-#     - x86
-#     - uhd
-#   artifacts:
-#     name: build-linux-icpc
-#     when: always
-#     paths:
-#       - ./build_linux_icpc/
-#   script:
-#     - export CXX="icpc"
-#     - export CFLAGS="-Wall -funroll-loops -msse4.2 -std=c++11"
-#     - export BUILD="build_linux_icpc"
-#     - source ./ci/tools/threads.sh
-#     - ./ci/build-linux-macos.sh
-
-build-windows-gcc:
-  stage: build
-  tags:
-    - windows
-    - gcc
-    - cmake
-  artifacts:
-    name: build-windows-gcc
-    when: always
-    paths:
-      - ./build_windows_gcc/
-  script:
-    - set "CFLAGS=-Wall -funroll-loops -mavx"
-    - set "BUILD=build_windows_gcc"
-    - set "CMAKE_OPT=-DDVBS2_LINK_UHD=OFF"
-    - call ./ci/tools/threads.bat
-    - ./ci/build-windows-gcc.bat
-
-build-windows-msvc:
-  stage: build
-  tags:
-    - windows
-    - msvc
-    - cmake
-  artifacts:
-    name: build-windows-msvc
-    when: always
-    paths:
-      - ./build_windows_msvc/
-  script:
-    - set "CFLAGS=-D_CRT_SECURE_NO_DEPRECATE /EHsc /arch:AVX"
-    - set "BUILD=build_windows_msvc"
-    - set "CMAKE_OPT=-DDVBS2_LINK_UHD=OFF"
-    - call ./ci/tools/threads.bat
-    - ./ci/build-windows-msvc.bat
-
-build-macos-clang:
-  stage: build
-  tags:
-    - macos
-    - apple-clang
-    - cmake
-    - x86
-    - uhd
-  artifacts:
-    name: build-macos-clang
-    when: always
-    paths:
-      - ./build_macos_clang/
-  script:
-    - export CXX="clang++"
-    - export CFLAGS="-Wall -Wno-overloaded-virtual -funroll-loops -msse4.2"
-    - export BUILD="build_macos_clang"
-    - source ./ci/tools/threads.sh
-    - ./ci/build-linux-macos.sh
-
 test-regression-tx-rx-bb:
+  image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_python:v3.8.5
   stage: test
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   retry: 1
-  dependencies:
-    - build-linux-gcc
+  needs:
+    - job: build-linux-gcc
+      artifacts: true
   tags:
-    - linux
-    - x86
-    - 64-bit
+    - x86_64
     - avx2
-    - python3.4
+    - linux
+    - docker
     - powerful
   artifacts:
      name: test-regression-results-tx-rx-bb

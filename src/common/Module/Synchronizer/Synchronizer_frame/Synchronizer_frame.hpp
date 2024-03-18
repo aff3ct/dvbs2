@@ -29,8 +29,8 @@ protected:
 	int delay;
 
 public:
-	inline Task&   operator[](const sfm::tsk              t) { return Module::operator[]((int)t);                             }
-	inline Socket& operator[](const sfm::sck::synchronize s) { return Module::operator[]((int)syn::tsk::synchronize)[(int)s]; }
+	inline runtime::Task&   operator[](const sfm::tsk              t) { return Module::operator[]((int)t);                             }
+	inline runtime::Socket& operator[](const sfm::sck::synchronize s) { return Module::operator[]((int)syn::tsk::synchronize)[(int)s]; }
 
 public:
 	Synchronizer_frame(const int N, const int n_frames = 1);

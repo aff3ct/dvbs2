@@ -56,7 +56,7 @@ init_processes()
 	auto &p1 = this->create_task("synchronize");
 	auto p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", this->N_in );
 	auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N_out);
-	this->create_codelet(p1, [p1s_X_N1, p1s_Y_N2](Module &m, Task &t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_X_N1, p1s_Y_N2](Module &m, runtime::Task &t, const size_t frame_id) -> int
 	{
 		static_cast<Synchronizer<R>&>(m).synchronize(static_cast<R*>(t[p1s_X_N1].get_dataptr()),
 		                                             static_cast<R*>(t[p1s_Y_N2].get_dataptr()));

@@ -36,7 +36,7 @@ namespace module
 		auto p1s_FRQ  = this->template create_socket_out<R>(p1, "FRQ" , 1       );
 		auto p1s_PHS  = this->template create_socket_out<R>(p1, "PHS" , 1       );
 		auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N);
-		this->create_codelet(p1, [p1s_X_N1, p1s_FRQ, p1s_PHS, p1s_Y_N2](Module &m, Task &t, const size_t frame_id) -> int
+		this->create_codelet(p1, [p1s_X_N1, p1s_FRQ, p1s_PHS, p1s_Y_N2](Module &m, runtime::Task &t, const size_t frame_id) -> int
 		{
 			static_cast<Synchronizer_freq_fine<R>&>(m).synchronize(static_cast<R*>(t[p1s_X_N1].get_dataptr()),
 			                                                       static_cast<R*>(t[p1s_FRQ] .get_dataptr()),

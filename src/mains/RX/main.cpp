@@ -33,6 +33,9 @@ int main(int argc, char** argv)
 	}
 #endif /* MULTI_THREADED */
 
+	// setup signal handlers
+	tools::setup_signal_handler();
+
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
 
@@ -75,60 +78,66 @@ int main(int argc, char** argv)
 	                                                                                                 sync_timing  .get()));
 	auto* LDPC_decoder = &LDPC_cdc->get_decoder_siho();
 
+	monitor->disable_is_done(true); // this prevents the monitor to stop the sequence or pipeline with the `is_done()`
+	                                // interface
+
+	const size_t probe_buff = 200;
 	// create reporters and probes for the statistics file
 	tools::Reporter_probe rep_fra_stats("Frame Counter", params.n_frames);
-	uptr<Probe_occurrence<int32_t>> prb_fra_id(rep_fra_stats.create_probe_occurrence<int32_t>("ID"));
+	uptr<Probe_occurrence> prb_fra_id(rep_fra_stats.create_probe_occurrence("ID", "", probe_buff));
 
 	tools::Reporter_probe rep_rad_stats("Radio", params.n_frames);
-	std::unique_ptr<module::Probe<int32_t>> prb_rad_ovf(rep_rad_stats.create_probe_value<int32_t>("OVF", "FLAG"));
-	std::unique_ptr<module::Probe<int32_t>> prb_rad_seq(rep_rad_stats.create_probe_value<int32_t>("SEQ", "ERR"));
+	std::unique_ptr<module::Probe<int32_t>> prb_rad_ovf(rep_rad_stats.create_probe_value<int32_t>("OVF", "FLAG",
+	                                                                                              probe_buff));
+	std::unique_ptr<module::Probe<int32_t>> prb_rad_seq(rep_rad_stats.create_probe_value<int32_t>("SEQ", "ERR",
+	                                                                                              probe_buff));
 
 	tools::Reporter_probe rep_sfm_stats("Frame Synchronization", params.n_frames);
-	uptr<Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL"));
-	uptr<Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG"));
-	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", 1,
+	uptr<Probe<int32_t>> prb_sfm_del(rep_sfm_stats.create_probe_value<int32_t>("DEL", "", probe_buff));
+	uptr<Probe<int32_t>> prb_sfm_flg(rep_sfm_stats.create_probe_value<int32_t>("FLG", "", probe_buff));
+	uptr<Probe<float  >> prb_sfm_tri(rep_sfm_stats.create_probe_value<float  >("TRI", "", probe_buff, 1,
 	                                                                           std::ios_base::dec |
 	                                                                           std::ios_base::fixed));
 
 	tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm", params.n_frames);
-	uptr<Probe<int32_t>> prb_stm_uff(rep_stm_stats.create_probe_value<int32_t>("UFW", "FLAG"));
-	uptr<Probe<float  >> prb_stm_del(rep_stm_stats.create_probe_value<float  >("DEL", "FRAC"));
+	uptr<Probe<int32_t>> prb_stm_uff(rep_stm_stats.create_probe_value<int32_t>("UFW", "FLAG", probe_buff));
+	uptr<Probe<float  >> prb_stm_del(rep_stm_stats.create_probe_value<float  >("DEL", "FRAC", probe_buff));
 
 	tools::Reporter_probe rep_frq_stats("Frequency Synchronization", params.n_frames);
-	uptr<Probe<float>> prb_frq_coa(rep_frq_stats.create_probe_value<float>("COA", "CFO"));
-	uptr<Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO"));
-	uptr<Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO"));
+	uptr<Probe<float>> prb_frq_coa(rep_frq_stats.create_probe_value<float>("COA", "CFO", probe_buff));
+	uptr<Probe<float>> prb_frq_lr (rep_frq_stats.create_probe_value<float>("L&R", "CFO", probe_buff));
+	uptr<Probe<float>> prb_frq_fin(rep_frq_stats.create_probe_value<float>("FIN", "CFO", probe_buff));
 
 	tools::Reporter_probe rep_decstat_stats("Decoders Decoding Status", "('1' = success, '0' = fail)", params.n_frames);
-	uptr<Probe<int8_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int8_t>("LDPC"));
-	uptr<Probe<int8_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int8_t>("BCH"));
+	uptr<Probe<int8_t>> prb_decstat_ldpc(rep_decstat_stats.create_probe_value<int8_t>("LDPC", "", probe_buff));
+	uptr<Probe<int8_t>> prb_decstat_bch (rep_decstat_stats.create_probe_value<int8_t>("BCH", "", probe_buff));
 
 	tools::Reporter_probe rep_noise_stats("Signal Noise Ratio", "(SNR)", params.n_frames);
-	uptr<Probe<float>> prb_noise_sig(rep_noise_stats.create_probe_value<float>("SIGMA", "", 1,
+	uptr<Probe<float>> prb_noise_sig(rep_noise_stats.create_probe_value<float>("SIGMA", "", probe_buff, 1,
 	                                                                           std::ios_base::dec |
 	                                                                           std::ios_base::fixed,
 	                                                                           4));
-	uptr<Probe<float>> prb_noise_es(rep_noise_stats.create_probe_value<float>("Es/N0", "(dB)", 1,
+	uptr<Probe<float>> prb_noise_es(rep_noise_stats.create_probe_value<float>("Es/N0", "(dB)", probe_buff, 1,
 	                                                                          std::ios_base::dec |
 	                                                                          std::ios_base::fixed));
-	uptr<Probe<float>> prb_noise_eb(rep_noise_stats.create_probe_value<float>("Eb/N0", "(dB)", 1,
+	uptr<Probe<float>> prb_noise_eb(rep_noise_stats.create_probe_value<float>("Eb/N0", "(dB)", probe_buff, 1,
 	                                                                          std::ios_base::dec |
 	                                                                          std::ios_base::fixed));
 
 	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER)", "and Frame Error Rate (FER)", params.n_frames);
-	uptr<Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE"));
-	uptr<Probe<int32_t>> prb_bfer_fe (rep_BFER_stats.create_probe_value<int32_t>("FE"));
-	uptr<Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe_value<float  >("BER"));
-	uptr<Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe_value<float  >("FER"));
+	uptr<Probe<int32_t>> prb_bfer_be (rep_BFER_stats.create_probe_value<int32_t>("BE", "", probe_buff));
+	uptr<Probe<int32_t>> prb_bfer_fe (rep_BFER_stats.create_probe_value<int32_t>("FE", "", probe_buff));
+	uptr<Probe<float  >> prb_bfer_ber(rep_BFER_stats.create_probe_value<float  >("BER", "", probe_buff));
+	uptr<Probe<float  >> prb_bfer_fer(rep_BFER_stats.create_probe_value<float  >("FER", "", probe_buff));
 
 	tools::Reporter_probe rep_thr_stats("Throughput", "and elapsed time", params.n_frames);
-	uptr<Probe<int32_t>> prb_thr_thr (rep_thr_stats.create_probe_throughput<int32_t>("THR", params.K_bch));
-	uptr<Probe<double> > prb_thr_the (rep_thr_stats.create_probe_value     <double >("TTHR", "Theory", 1,
-	                                                                                 std::ios_base::dec |
-	                                                                                 std::ios_base::fixed));
-	uptr<Probe<int32_t>> prb_thr_lat (rep_thr_stats.create_probe_latency   <int32_t>("LAT"));
-	uptr<Probe<int32_t>> prb_thr_time(rep_thr_stats.create_probe_time      <int32_t>("TIME"));
-	uptr<Probe<int32_t>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp <int32_t>("TSTA"));
+	uptr<Probe<>> prb_thr_thr (rep_thr_stats.create_probe_throughput_mbps("THR", params.K_bch, probe_buff));
+	uptr<Probe<double> > prb_thr_the (rep_thr_stats.create_probe_value<double >("TTHR", "Theory", probe_buff, 1,
+	                                                                             std::ios_base::dec |
+	                                                                             std::ios_base::fixed));
+	uptr<Probe<>> prb_thr_lat (rep_thr_stats.create_probe_latency  ("LAT", probe_buff));
+	uptr<Probe<>> prb_thr_time(rep_thr_stats.create_probe_time     ("TIME", probe_buff));
+	uptr<Probe<>> prb_thr_tsta(rep_thr_stats.create_probe_timestamp("TSTA", probe_buff));
 
 	tools::Terminal_dump terminal_stats({ &rep_fra_stats, &rep_rad_stats,     &rep_sfm_stats,   &rep_stm_stats,
 	                                      &rep_frq_stats, &rep_decstat_stats, &rep_noise_stats, &rep_BFER_stats,
@@ -144,63 +153,64 @@ int main(int argc, char** argv)
 	matched_flt  ->set_custom_name("Matched Flt" );
 	sync_coarse_f->set_custom_name("Coarse_Synch");
 	sync_step_mf ->set_custom_name("MF Synch"    );
+	mult_agc     ->set_custom_name("Mult agc"    );
 
 	std::vector<double> theoretical_thr(params.n_frames, params.p_rad.rx_rate/1e6 * (double)params.K_bch /
 	                                                     ((double)params.pl_frame_size * (double)params.p_shp.osf));
 
 	// the full transmission chain binding
-	(*front_agc       )[mlt::sck::imultiply    ::X_N ] = (*radio        )[rad::sck::receive      ::Y_N1  ];
-	(*sync_coarse_f   )[sfc::sck::synchronize  ::X_N1] = (*front_agc    )[mlt::sck::imultiply    ::Z_N   ];
-	(*matched_flt     )[flt::sck::filter       ::X_N1] = (*sync_coarse_f)[sfc::sck::synchronize  ::Y_N2  ];
-	(*sync_timing     )[stm::sck::synchronize  ::X_N1] = (*matched_flt  )[flt::sck::filter       ::Y_N2  ];
-	(*sync_timing     )[stm::sck::extract      ::B_N1] = (*sync_timing  )[stm::sck::synchronize  ::B_N1  ];
-	(*sync_timing     )[stm::sck::extract      ::Y_N1] = (*sync_timing  )[stm::sck::synchronize  ::Y_N1  ];
-	(*mult_agc        )[mlt::sck::imultiply    ::X_N ] = (*sync_timing  )[stm::sck::extract      ::Y_N2  ];
-	(*sync_frame      )[sfm::sck::synchronize  ::X_N1] = (*mult_agc     )[mlt::sck::imultiply    ::Z_N   ];
-	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1] = (*sync_frame   )[sfm::sck::synchronize  ::Y_N2  ];
-	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1] = (*pl_scrambler )[scr::sck::descramble   ::Y_N2  ];
-	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1] = (*sync_fine_lr )[sff::sck::synchronize  ::Y_N2  ];
-	(*framer          )[frm::sck::remove_plh   ::Y_N1] = (*sync_fine_pf )[sff::sck::synchronize  ::Y_N2  ];
-	(*estimator       )[est::sck::estimate     ::X_N ] = (*framer       )[frm::sck::remove_plh   ::Y_N2  ];
-	(*modem           )[mdm::sck::demodulate   ::CP  ] = (*estimator    )[est::sck::estimate     ::SIG   ];
-	(*modem           )[mdm::sck::demodulate   ::Y_N1] = (*framer       )[frm::sck::remove_plh   ::Y_N2  ];
-	(*itl_rx          )[itl::sck::deinterleave ::itl ] = (*modem        )[mdm::sck::demodulate   ::Y_N2  ];
-	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N ] = (*itl_rx       )[itl::sck::deinterleave ::nat   ];
-	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N ] = (*LDPC_decoder )[dec::sck::decode_siho  ::V_K   ];
-	(*bb_scrambler    )[scr::sck::descramble   ::Y_N1] = (*BCH_decoder  )[dec::sck::decode_hiho  ::V_K   ];
-	(*monitor         )[mnt::sck::check_errors2::U   ] = (*source       )[src::sck::generate     ::U_K   ];
-	(*monitor         )[mnt::sck::check_errors2::V   ] = (*bb_scrambler )[scr::sck::descramble   ::Y_N2  ];
-	(*sink            )[snk::sck::send         ::V   ] = (*bb_scrambler )[scr::sck::descramble   ::Y_N2  ];
+	(*front_agc       )[mlt::sck::imultiply    ::X_N    ] = (*radio        )[rad::sck::receive      ::Y_N1    ];
+	(*sync_coarse_f   )[sfc::sck::synchronize  ::X_N1   ] = (*front_agc    )[mlt::sck::imultiply    ::Z_N     ];
+	(*matched_flt     )[flt::sck::filter       ::X_N1   ] = (*sync_coarse_f)[sfc::sck::synchronize  ::Y_N2    ];
+	(*sync_timing     )[stm::sck::synchronize  ::X_N1   ] = (*matched_flt  )[flt::sck::filter       ::Y_N2    ];
+	(*sync_timing     )[stm::sck::extract      ::B_N1   ] = (*sync_timing  )[stm::sck::synchronize  ::B_N1    ];
+	(*sync_timing     )[stm::sck::extract      ::Y_N1   ] = (*sync_timing  )[stm::sck::synchronize  ::Y_N1    ];
+	(*mult_agc        )[mlt::sck::imultiply    ::X_N    ] = (*sync_timing  )[stm::sck::extract      ::Y_N2    ];
+	(*sync_frame      )[sfm::sck::synchronize  ::X_N1   ] = (*mult_agc     )[mlt::sck::imultiply    ::Z_N     ];
+	(*pl_scrambler    )[scr::sck::descramble   ::Y_N1   ] = (*sync_frame   )[sfm::sck::synchronize  ::Y_N2    ];
+	(*sync_fine_lr    )[sff::sck::synchronize  ::X_N1   ] = (*pl_scrambler )[scr::sck::descramble   ::Y_N2    ];
+	(*sync_fine_pf    )[sff::sck::synchronize  ::X_N1   ] = (*sync_fine_lr )[sff::sck::synchronize  ::Y_N2    ];
+	(*framer          )[frm::sck::remove_plh   ::Y_N1   ] = (*sync_fine_pf )[sff::sck::synchronize  ::Y_N2    ];
+	(*estimator       )[est::sck::estimate     ::X_N    ] = (*framer       )[frm::sck::remove_plh   ::Y_N2    ];
+	(*modem           )[mdm::sck::demodulate   ::CP     ] = (*estimator    )[est::sck::estimate     ::SIG     ];
+	(*modem           )[mdm::sck::demodulate   ::Y_N1   ] = (*framer       )[frm::sck::remove_plh   ::Y_N2    ];
+	(*itl_rx          )[itl::sck::deinterleave ::itl    ] = (*modem        )[mdm::sck::demodulate   ::Y_N2    ];
+	(*LDPC_decoder    )[dec::sck::decode_siho  ::Y_N    ] = (*itl_rx       )[itl::sck::deinterleave ::nat     ];
+	(*BCH_decoder     )[dec::sck::decode_hiho  ::Y_N    ] = (*LDPC_decoder )[dec::sck::decode_siho  ::V_K     ];
+	(*bb_scrambler    )[scr::sck::descramble   ::Y_N1   ] = (*BCH_decoder  )[dec::sck::decode_hiho  ::V_K     ];
+	(*monitor         )[mnt::sck::check_errors2::U      ] = (*source       )[src::sck::generate     ::out_data];
+	(*monitor         )[mnt::sck::check_errors2::V      ] = (*bb_scrambler )[scr::sck::descramble   ::Y_N2    ];
+	(*sink            )[snk::sck::send         ::in_data] = (*bb_scrambler )[scr::sck::descramble   ::Y_N2    ];
 	// bind the probes
-	(*prb_thr_the     )[prb::sck::probe        ::in  ] = theoretical_thr.data()                           ;
-	(*prb_rad_ovf     )[prb::sck::probe        ::in  ] = (*radio        )[rad::sck::receive      ::OVF   ];
-	(*prb_rad_seq     )[prb::sck::probe        ::in  ] = (*radio        )[rad::sck::receive      ::SEQ   ];
-	(*prb_frq_coa     )[prb::sck::probe        ::in  ] = (*sync_coarse_f)[sfc::sck::synchronize  ::FRQ   ];
-	(*prb_stm_del     )[prb::sck::probe        ::in  ] = (*sync_timing  )[stm::sck::synchronize  ::MU    ];
-	(*prb_stm_uff     )[prb::sck::probe        ::in  ] = (*sync_timing  )[stm::sck::extract      ::UFW   ];
-	(*prb_sfm_del     )[prb::sck::probe        ::in  ] = (*sync_frame   )[sfm::sck::synchronize  ::DEL   ];
-	(*prb_sfm_tri     )[prb::sck::probe        ::in  ] = (*sync_frame   )[sfm::sck::synchronize  ::TRI   ];
-	(*prb_sfm_flg     )[prb::sck::probe        ::in  ] = (*sync_frame   )[sfm::sck::synchronize  ::FLG   ];
-	(*prb_frq_lr      )[prb::sck::probe        ::in  ] = (*sync_fine_lr )[sff::sck::synchronize  ::FRQ   ];
-	(*prb_frq_fin     )[prb::sck::probe        ::in  ] = (*sync_fine_pf )[sff::sck::synchronize  ::FRQ   ];
-	(*prb_noise_es    )[prb::sck::probe        ::in  ] = (*estimator    )[est::sck::estimate     ::Es_N0 ];
-	(*prb_noise_eb    )[prb::sck::probe        ::in  ] = (*estimator    )[est::sck::estimate     ::Eb_N0 ];
-	(*prb_noise_sig   )[prb::sck::probe        ::in  ] = (*estimator    )[est::sck::estimate     ::SIG   ];
-	(*prb_decstat_ldpc)[prb::sck::probe        ::in  ] = (*LDPC_decoder )[dec::sck::decode_siho  ::CWD   ];
-	(*prb_decstat_bch )[prb::sck::probe        ::in  ] = (*BCH_decoder  )[dec::sck::decode_hiho  ::CWD   ];
-	(*prb_thr_thr     )[prb::sck::probe        ::in  ] = (*bb_scrambler )[scr::sck::descramble   ::Y_N2  ];
-	(*prb_thr_lat     )[prb::sck::probe        ::in  ] = (*sink         )[snk::sck::send         ::status];
-	(*prb_thr_time    )[prb::sck::probe        ::in  ] = (*sink         )[snk::sck::send         ::status];
-	(*prb_thr_tsta    )[prb::sck::probe        ::in  ] = (*sink         )[snk::sck::send         ::status];
-	(*prb_bfer_be     )[prb::sck::probe        ::in  ] = (*monitor      )[mnt::sck::check_errors2::BE    ];
-	(*prb_bfer_fe     )[prb::sck::probe        ::in  ] = (*monitor      )[mnt::sck::check_errors2::FE    ];
-	(*prb_bfer_ber    )[prb::sck::probe        ::in  ] = (*monitor      )[mnt::sck::check_errors2::BER   ];
-	(*prb_bfer_fer    )[prb::sck::probe        ::in  ] = (*monitor      )[mnt::sck::check_errors2::FER   ];
-	(*prb_fra_id      )[prb::sck::probe        ::in  ] = (*sink         )[snk::sck::send         ::status];
+	(*prb_thr_the     )[prb::sck::probe        ::in     ] = theoretical_thr.data();
+	(*prb_rad_ovf     )[prb::sck::probe        ::in     ] = (*radio        )[rad::sck::receive      ::OVF     ];
+	(*prb_rad_seq     )[prb::sck::probe        ::in     ] = (*radio        )[rad::sck::receive      ::SEQ     ];
+	(*prb_frq_coa     )[prb::sck::probe        ::in     ] = (*sync_coarse_f)[sfc::sck::synchronize  ::FRQ     ];
+	(*prb_stm_del     )[prb::sck::probe        ::in     ] = (*sync_timing  )[stm::sck::synchronize  ::MU      ];
+	(*prb_stm_uff     )[prb::sck::probe        ::in     ] = (*sync_timing  )[stm::sck::extract      ::UFW     ];
+	(*prb_sfm_del     )[prb::sck::probe        ::in     ] = (*sync_frame   )[sfm::sck::synchronize  ::DEL     ];
+	(*prb_sfm_tri     )[prb::sck::probe        ::in     ] = (*sync_frame   )[sfm::sck::synchronize  ::TRI     ];
+	(*prb_sfm_flg     )[prb::sck::probe        ::in     ] = (*sync_frame   )[sfm::sck::synchronize  ::FLG     ];
+	(*prb_frq_lr      )[prb::sck::probe        ::in     ] = (*sync_fine_lr )[sff::sck::synchronize  ::FRQ     ];
+	(*prb_frq_fin     )[prb::sck::probe        ::in     ] = (*sync_fine_pf )[sff::sck::synchronize  ::FRQ     ];
+	(*prb_noise_es    )[prb::sck::probe        ::in     ] = (*estimator    )[est::sck::estimate     ::Es_N0   ];
+	(*prb_noise_eb    )[prb::sck::probe        ::in     ] = (*estimator    )[est::sck::estimate     ::Eb_N0   ];
+	(*prb_noise_sig   )[prb::sck::probe        ::in     ] = (*estimator    )[est::sck::estimate     ::SIG     ];
+	(*prb_decstat_ldpc)[prb::sck::probe        ::in     ] = (*LDPC_decoder )[dec::sck::decode_siho  ::CWD     ];
+	(*prb_decstat_bch )[prb::sck::probe        ::in     ] = (*BCH_decoder  )[dec::sck::decode_hiho  ::CWD     ];
+	(*prb_thr_thr     )[prb::tsk::probe                 ] = (*bb_scrambler )[scr::sck::descramble   ::Y_N2    ];
+	(*prb_thr_lat     )[prb::tsk::probe                 ] = (*sink         )[snk::sck::send         ::status  ];
+	(*prb_thr_time    )[prb::tsk::probe                 ] = (*sink         )[snk::sck::send         ::status  ];
+	(*prb_thr_tsta    )[prb::tsk::probe                 ] = (*sink         )[snk::sck::send         ::status  ];
+	(*prb_bfer_be     )[prb::sck::probe        ::in     ] = (*monitor      )[mnt::sck::check_errors2::BE      ];
+	(*prb_bfer_fe     )[prb::sck::probe        ::in     ] = (*monitor      )[mnt::sck::check_errors2::FE      ];
+	(*prb_bfer_ber    )[prb::sck::probe        ::in     ] = (*monitor      )[mnt::sck::check_errors2::BER     ];
+	(*prb_bfer_fer    )[prb::sck::probe        ::in     ] = (*monitor      )[mnt::sck::check_errors2::FER     ];
+	(*prb_fra_id      )[prb::tsk::probe                 ] = (*sink         )[snk::sck::send         ::status  ];
 
 	// first stages of the whole transmission sequence
-	const std::vector<module::Task*> firsts_t = { &(*radio)[rad::tsk::receive], &(*source)[src::tsk::generate],
-	                                              &(*prb_thr_the)[prb::tsk::probe] };
+	const std::vector<runtime::Task*> firsts_t = { &(*radio)[rad::tsk::receive], &(*source)[src::tsk::generate],
+	                                               &(*prb_thr_the)[prb::tsk::probe] };
 
 #ifdef MULTI_THREADED
 	auto start_clone = std::chrono::system_clock::now();
@@ -208,50 +218,50 @@ int main(int argc, char** argv)
 	std::cout.flush();
 
 	// pipeline definition with separation stages
-	const std::vector<std::tuple<std::vector<module::Task*>,
-	                             std::vector<module::Task*>,
-	                             std::vector<module::Task*>>> sep_stages =
+	const std::vector<std::tuple<std::vector<runtime::Task*>,
+	                             std::vector<runtime::Task*>,
+	                             std::vector<runtime::Task*>>> sep_stages =
 	{ // pipeline stage 0
-	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*radio)[rad::tsk::receive], &(*source)[src::tsk::generate], &(*prb_rad_ovf)[prb::tsk::probe],
 	      &(*prb_rad_seq)[prb::tsk::probe], &(*prb_thr_the)[prb::tsk::probe] },
 	    { &(*radio)[rad::tsk::receive], &(*source)[src::tsk::generate] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 1
-	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*front_agc)[mlt::tsk::imultiply] },
 	    { &(*matched_flt)[flt::tsk::filter], &(*prb_frq_coa)[prb::tsk::probe] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 2
-	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*sync_timing)[stm::tsk::synchronize], &(*prb_stm_del)[prb::tsk::probe] },
 	    { &(*sync_timing)[stm::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 3
-	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*sync_timing)[stm::tsk::extract], &(*prb_sfm_del)[prb::tsk::probe], &(*prb_sfm_tri)[prb::tsk::probe],
 	      &(*prb_sfm_flg)[prb::tsk::probe] },
 	    { &(*sync_frame)[sfm::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 4
-	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*pl_scrambler)[scr::tsk::descramble], &(*prb_frq_fin)[prb::tsk::probe] },
 	    { &(*sync_fine_pf)[sff::tsk::synchronize], &(*prb_frq_lr)[prb::tsk::probe] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 5
-	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*framer)[frm::tsk::remove_plh], &(*prb_noise_sig)[prb::tsk::probe], &(*prb_noise_es)[prb::tsk::probe],
 	      &(*prb_noise_eb)[prb::tsk::probe] },
 	    { &(*estimator)[est::tsk::estimate] },
 	    { &(*modem)[mdm::tsk::demodulate] } ),
 	  // pipeline stage 6
-	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*modem)[mdm::tsk::demodulate] },
 	    { &(*bb_scrambler)[scr::tsk::descramble] },
 	    { &(*prb_decstat_ldpc)[prb::tsk::probe], &(*prb_decstat_bch)[prb::tsk::probe],
 	      &(*prb_thr_thr)[prb::tsk::probe] } ),
 	  // pipeline stage 7
-	  std::make_tuple<std::vector<module::Task*>, std::vector<module::Task*>, std::vector<module::Task*>>(
+	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
 	    { &(*monitor)[mnt::tsk::check_errors2], &(*sink)[snk::tsk::send], &(*prb_decstat_ldpc)[prb::tsk::probe],
 	      &(*prb_decstat_bch)[prb::tsk::probe], &(*prb_thr_thr)[prb::tsk::probe] },
 	    { /* end of the sequence */ },
@@ -279,10 +289,8 @@ int main(int argc, char** argv)
 	                                                   43, 44, 45, 46, 47 },
 	                                                 { 8 } };                          // for stage 7
 
-	tools::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
-	                                      thread_pinnigs, puids);
-
-	pipeline_transmission.set_auto_stop(false);
+	runtime::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
+	                                        thread_pinnigs, puids);
 
 	if (enable_logs)
 	{
@@ -299,8 +307,7 @@ int main(int argc, char** argv)
 	if (thread_pinnig)
 		tools::Thread_pinning::pin(0);
 #else
-	tools::Sequence sequence_transmission(firsts_t);
-	sequence_transmission.set_auto_stop(false);
+	runtime::Sequence sequence_transmission(firsts_t);
 	if (enable_logs)
 	{
 		std::ofstream f("rx_sequence_transmission.dot");
@@ -323,183 +330,193 @@ int main(int argc, char** argv)
 			tsk->set_fast(true);
 	}
 
-	// ================================================================================================================
-	// WAITING PHASE ==================================================================================================
-	// ================================================================================================================
-	auto start_waiting = std::chrono::system_clock::now();
-	std::cout << "Waiting phase... ";
-	std::cout.flush();
+	std::ofstream stats_file("stats.txt");
+	if (!params.no_wl_phases) {
+		// ============================================================================================================
+		// WAITING PHASE ==============================================================================================
+		// ============================================================================================================
+		auto start_waiting = std::chrono::system_clock::now();
+		std::cout << "Waiting phase... ";
+		std::cout.flush();
 
-	// partial unbinding
-	(*sync_coarse_f)[sfc::sck::synchronize::X_N1].unbind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
-	(*sync_timing  )[stm::sck::extract    ::B_N1].unbind((*sync_timing  )[stm::sck::synchronize::B_N1]);
-	(*sync_timing  )[stm::sck::extract    ::Y_N1].unbind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
-	(*prb_frq_coa  )[prb::sck::probe      ::in  ].unbind((*sync_coarse_f)[sfc::sck::synchronize::FRQ ]);
-	(*prb_stm_del  )[prb::sck::probe      ::in  ].unbind((*sync_timing  )[stm::sck::synchronize::MU  ]);
+		// partial unbinding
+		(*sync_coarse_f)[sfc::sck::synchronize::X_N1].unbind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
+		(*sync_timing  )[stm::sck::extract    ::B_N1].unbind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+		(*sync_timing  )[stm::sck::extract    ::Y_N1].unbind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+		(*prb_frq_coa  )[prb::sck::probe      ::in  ].unbind((*sync_coarse_f)[sfc::sck::synchronize::FRQ ]);
+		(*prb_stm_del  )[prb::sck::probe      ::in  ].unbind((*sync_timing  )[stm::sck::synchronize::MU  ]);
 
-	// partial binding
-	(*sync_step_mf)[smf::sck::synchronize::X_N1] = (*front_agc   )[mlt::sck::imultiply  ::Z_N ];
-	(*sync_step_mf)[smf::sck::synchronize::DEL ] = (*feedbr      )[fbr::sck::produce    ::Y_N ];
-	(*feedbr      )[fbr::sck::memorize   ::X_N ] = (*sync_frame  )[sfm::sck::synchronize::DEL ];
-	(*sync_timing )[stm::sck::extract    ::B_N1] = (*sync_step_mf)[smf::sck::synchronize::B_N1];
-	(*sync_timing )[stm::sck::extract    ::Y_N1] = (*sync_step_mf)[smf::sck::synchronize::Y_N1];
-	(*prb_frq_coa )[prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::FRQ ];
-	(*prb_stm_del )[prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::MU  ];
+		// partial binding
+		(*sync_step_mf)[smf::sck::synchronize::X_N1] = (*front_agc   )[mlt::sck::imultiply  ::Z_N ];
+		(*sync_step_mf)[smf::sck::synchronize::DEL ] = (*feedbr      )[fbr::sck::produce    ::Y_N ];
+		(*feedbr      )[fbr::sck::memorize   ::X_N ] = (*sync_frame  )[sfm::sck::synchronize::DEL ];
+		(*sync_timing )[stm::sck::extract    ::B_N1] = (*sync_step_mf)[smf::sck::synchronize::B_N1];
+		(*sync_timing )[stm::sck::extract    ::Y_N1] = (*sync_step_mf)[smf::sck::synchronize::Y_N1];
+		(*prb_frq_coa )[prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::FRQ ];
+		(*prb_stm_del )[prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::MU  ];
 
-	std::vector<Task*> firsts_wl12 = { &(*radio       )[rad::tsk::receive], &(*prb_sfm_del )[prb::tsk::probe],
-	                                   &(*prb_sfm_tri )[prb::tsk::probe  ], &(*prb_sfm_flg )[prb::tsk::probe],
-	                                   &(*prb_thr_lat )[prb::tsk::probe  ], &(*prb_thr_time)[prb::tsk::probe],
-	                                   &(*prb_thr_tsta)[prb::tsk::probe  ], &(*prb_fra_id  )[prb::tsk::probe],
-	                                   &(*feedbr      )[fbr::tsk::produce]                                     };
+		std::vector<runtime::Task*> firsts_wl12 = { &(*radio       )[rad::tsk::receive],
+		                                            &(*prb_sfm_del )[prb::tsk::probe  ],
+		                                            &(*prb_sfm_tri )[prb::tsk::probe  ],
+		                                            &(*prb_sfm_flg )[prb::tsk::probe  ],
+		                                            &(*prb_thr_lat )[prb::tsk::probe  ],
+		                                            &(*prb_thr_time)[prb::tsk::probe  ],
+		                                            &(*prb_thr_tsta)[prb::tsk::probe  ],
+		                                            &(*prb_fra_id  )[prb::tsk::probe  ],
+		                                            &(*feedbr      )[fbr::tsk::produce] };
 
-	std::vector<Task*> lasts_wl12 = { &(*feedbr)[fbr::tsk::memorize] };
-	std::vector<Task*> exclude_wl12 = { &(*pl_scrambler)[scr::tsk::descramble] };
+		std::vector<runtime::Task*> lasts_wl12 = { &(*feedbr)[fbr::tsk::memorize] };
+		std::vector<runtime::Task*> exclude_wl12 = { &(*pl_scrambler)[scr::tsk::descramble] };
 
-	tools::Sequence sequence_waiting_and_learning_1_2(firsts_wl12, lasts_wl12, exclude_wl12);
-	sequence_waiting_and_learning_1_2.set_auto_stop(false);
+		runtime::Sequence sequence_waiting_and_learning_1_2(firsts_wl12, lasts_wl12, exclude_wl12);
+		sequence_waiting_and_learning_1_2.set_auto_stop(false);
 
-	if (enable_logs)
-	{
-		std::ofstream fs1("rx_sequence_waiting_and_learning_1_2.dot");
-		sequence_waiting_and_learning_1_2.export_dot(fs1);
-	}
+		if (enable_logs)
+		{
+			std::ofstream fs1("rx_sequence_waiting_and_learning_1_2.dot");
+			sequence_waiting_and_learning_1_2.export_dot(fs1);
+		}
 
-	// display the legend in the terminal
-	std::ofstream waiting_stats("waiting_stats.txt");
-	waiting_stats << "#################" << std::endl;
-	waiting_stats << "# WAITING PHASE #" << std::endl;
-	waiting_stats << "#################" << std::endl;
-	terminal_stats.legend(waiting_stats);
+		// display the legend in the terminal
+		std::ofstream waiting_stats("waiting_stats.txt");
+		waiting_stats << "#################" << std::endl;
+		waiting_stats << "# WAITING PHASE #" << std::endl;
+		waiting_stats << "#################" << std::endl;
+		terminal_stats.legend(waiting_stats);
 
 #ifdef DVBS2_LINK_UHD
-	const int radio_flush_period = params.n_frames * 100;
-	auto radio_usrp = dynamic_cast<Radio_USRP<>*>(radio.get());
+		const int radio_flush_period = params.n_frames * 100;
+		auto radio_usrp = dynamic_cast<Radio_USRP<>*>(radio.get());
 #endif
-	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
-	prb_thr_thr ->reset();
-	prb_thr_lat ->reset();
-	prb_thr_time->reset();
-	sequence_waiting_and_learning_1_2.exec([&](const std::vector<const int*>& statuses)
-	{
-		const auto m = prb_fra_id->get_occurrences();
-		if (statuses.back() != nullptr)
-			terminal_stats.temp_report(waiting_stats);
-		else if (enable_logs)
-			std::clog << rang::tag::warning << "Sequence aborted! (waiting phase, m = " << m << ")" << std::endl;
+		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
+		prb_thr_thr ->reset();
+		prb_thr_lat ->reset();
+		prb_thr_time->reset();
+		sequence_waiting_and_learning_1_2.exec([&](const std::vector<const int*>& statuses)
+		{
+			const auto m = prb_fra_id->get_occurrences();
+			if (statuses.back() != nullptr)
+				terminal_stats.temp_report(waiting_stats);
+			else if (enable_logs)
+				std::clog << rang::tag::warning << "Sequence aborted! (waiting phase, m = " << m << ")" << std::endl;
 #ifdef DVBS2_LINK_UHD
-		if (radio_usrp != nullptr && m % radio_flush_period == 0 && !sync_frame->get_packet_flag())
+			if (radio_usrp != nullptr && m % radio_flush_period == 0 && !sync_frame->get_packet_flag())
+				radio_usrp->flush();
+#endif
+			return sync_frame->get_packet_flag();
+		});
+
+#ifdef DVBS2_LINK_UHD
+		if (radio_usrp != nullptr)
 			radio_usrp->flush();
 #endif
-		return sync_frame->get_packet_flag();
-	});
+		sync_step_mf->reset();
+		sync_frame  ->reset();
+		sync_timing ->reset();
+		sync_frame  ->reset();
+		prb_fra_id  ->reset();
 
-#ifdef DVBS2_LINK_UHD
-	if (radio_usrp != nullptr)
-		radio_usrp->flush();
-#endif
-	sync_step_mf->reset();
-	sync_frame  ->reset();
-	sync_timing ->reset();
-	sync_frame  ->reset();
-	prb_fra_id  ->reset();
+		auto end_waiting = std::chrono::system_clock::now();
+		std::chrono::duration<double> elapsed_seconds_waiting = end_waiting - start_waiting;
+		std::cout << "Done (" << elapsed_seconds_waiting.count() << "s)." << std::endl;
 
-	auto end_waiting = std::chrono::system_clock::now();
-	std::chrono::duration<double> elapsed_seconds_waiting = end_waiting - start_waiting;
-	std::cout << "Done (" << elapsed_seconds_waiting.count() << "s)." << std::endl;
+		// ============================================================================================================
+		// LEARNING PHASE 1 & 2 =======================================================================================
+		// ============================================================================================================
+		auto start_learning = std::chrono::system_clock::now();
+		std::cout << "Learning phase... ";
+		std::cout.flush();
 
-	// ================================================================================================================
-	// LEARNING PHASE 1 & 2 ===========================================================================================
-	// ================================================================================================================
-	auto start_learning = std::chrono::system_clock::now();
-	std::cout << "Learning phase... ";
-	std::cout.flush();
+		// display the legend in the terminal
+		stats_file << "####################" << std::endl;
+		stats_file << "# LEARNING PHASE 1 #" << std::endl;
+		stats_file << "####################" << std::endl;
+		terminal_stats.legend(stats_file);
 
-	// display the legend in the terminal
-	std::ofstream stats_file("stats.txt");
-	stats_file << "####################" << std::endl;
-	stats_file << "# LEARNING PHASE 1 #" << std::endl;
-	stats_file << "####################" << std::endl;
-	terminal_stats.legend(stats_file);
-
-	int limit = 150;
-	sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
-	prb_thr_thr ->reset();
-	prb_thr_lat ->reset();
-	prb_thr_time->reset();
-	sequence_waiting_and_learning_1_2.exec([&](const std::vector<const int*>& statuses)
-	{
-		const auto m = prb_fra_id->get_occurrences();
-		if (statuses.back() != nullptr)
-			terminal_stats.temp_report(stats_file);
-		else if (enable_logs)
-			std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")" << std::endl;
-
-		if (limit == 150 && m >= 150)
+		int limit = 150;
+		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
+		prb_thr_thr ->reset();
+		prb_thr_lat ->reset();
+		prb_thr_time->reset();
+		sequence_waiting_and_learning_1_2.exec([&](const std::vector<const int*>& statuses)
 		{
-			stats_file << "####################" << std::endl;
-			stats_file << "# LEARNING PHASE 2 #" << std::endl;
-			stats_file << "####################" << std::endl;
-			terminal_stats.legend(stats_file);
-			limit = m + 150;
-			sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
+			const auto m = prb_fra_id->get_occurrences();
+			if (statuses.back() != nullptr)
+				terminal_stats.temp_report(stats_file);
+			else if (enable_logs)
+				std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")"
+				          << std::endl;
+
+			if (limit == 150 && m >= 150)
+			{
+				stats_file << "####################" << std::endl;
+				stats_file << "# LEARNING PHASE 2 #" << std::endl;
+				stats_file << "####################" << std::endl;
+				terminal_stats.legend(stats_file);
+				limit = m + 150;
+				sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
+			}
+			return m >= limit;
+		});
+
+		// ============================================================================================================
+		// LEARNING PHASE 3 ===========================================================================================
+		// ============================================================================================================
+		// partial unbinding
+		(*sync_step_mf)[smf::sck::synchronize::X_N1].unbind((*front_agc   )[mlt::sck::imultiply  ::Z_N ]);
+		(*feedbr      )[fbr::sck::memorize   ::X_N ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
+		(*sync_timing )[stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
+		(*sync_timing )[stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
+		(*prb_frq_coa )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::FRQ ]);
+		(*prb_stm_del )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::MU  ]);
+
+		// partial binding
+		(*sync_coarse_f)[sfc::sck::synchronize::X_N1] = (*front_agc    )[mlt::sck::imultiply  ::Z_N ];
+		(*sync_timing  )[stm::sck::extract    ::B_N1] = (*sync_timing  )[stm::sck::synchronize::B_N1];
+		(*sync_timing  )[stm::sck::extract    ::Y_N1] = (*sync_timing  )[stm::sck::synchronize::Y_N1];
+		(*prb_frq_coa  )[prb::sck::probe      ::in  ] = (*sync_coarse_f)[sfc::sck::synchronize::FRQ ];
+		(*prb_stm_del  )[prb::sck::probe      ::in  ] = (*sync_timing  )[stm::sck::synchronize::MU  ];
+
+		std::vector<runtime::Task*> firsts_l3 = { &(*radio       )[rad::tsk::receive],
+		                                          &(*prb_thr_lat )[prb::tsk::probe  ],
+		                                          &(*prb_thr_time)[prb::tsk::probe  ],
+		                                          &(*prb_thr_tsta)[prb::tsk::probe  ],
+		                                          &(*prb_fra_id  )[prb::tsk::probe  ],
+		                                          &(*prb_frq_fin )[prb::tsk::probe  ] };
+
+		std::vector<runtime::Task*> lasts_l3 = { &(*sync_fine_pf)[sff::tsk::synchronize] };
+
+		runtime::Sequence sequence_learning_3(firsts_l3, lasts_l3);
+		sequence_learning_3.set_auto_stop(false);
+
+		if (enable_logs)
+		{
+			std::ofstream fs2("rx_sequence_learning_3.dot");
+			sequence_learning_3.export_dot(fs2);
 		}
-		return m >= limit;
-	});
 
-	// ================================================================================================================
-	// LEARNING PHASE 3 ===============================================================================================
-	// ================================================================================================================
-	// partial unbinding
-	(*sync_step_mf)[smf::sck::synchronize::X_N1].unbind((*front_agc   )[mlt::sck::imultiply  ::Z_N ]);
-	(*feedbr      )[fbr::sck::memorize   ::X_N ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
-	(*sync_timing )[stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
-	(*sync_timing )[stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
-	(*prb_frq_coa )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::FRQ ]);
-	(*prb_stm_del )[prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::MU  ]);
+		stats_file << "####################" << std::endl;
+		stats_file << "# LEARNING PHASE 3 #" << std::endl;
+		stats_file << "####################" << std::endl;
+		terminal_stats.legend(stats_file);
 
-	// partial binding
-	(*sync_coarse_f)[sfc::sck::synchronize::X_N1] = (*front_agc    )[mlt::sck::imultiply  ::Z_N ];
-	(*sync_timing  )[stm::sck::extract    ::B_N1] = (*sync_timing  )[stm::sck::synchronize::B_N1];
-	(*sync_timing  )[stm::sck::extract    ::Y_N1] = (*sync_timing  )[stm::sck::synchronize::Y_N1];
-	(*prb_frq_coa  )[prb::sck::probe      ::in  ] = (*sync_coarse_f)[sfc::sck::synchronize::FRQ ];
-	(*prb_stm_del  )[prb::sck::probe      ::in  ] = (*sync_timing  )[stm::sck::synchronize::MU  ];
+		limit = prb_fra_id->get_occurrences() + 200;
+		prb_thr_thr->reset();
+		prb_thr_lat->reset();
+		sequence_learning_3.exec([&](const std::vector<const int*>& statuses)
+		{
+			const auto m = prb_fra_id->get_occurrences();
+			if (statuses.back() != nullptr)
+				terminal_stats.temp_report(stats_file);
+			else if (enable_logs)
+				std::clog << rang::tag::warning << "Sequence aborted! (learning phase 3, m = " << m << ")" << std::endl;
+			return m >= limit;
+		});
 
-	std::vector<Task*> firsts_l3 = { &(*radio       )[rad::tsk::receive], &(*prb_thr_lat )[prb::tsk::probe],
-	                                 &(*prb_thr_time)[prb::tsk::probe  ], &(*prb_thr_tsta)[prb::tsk::probe],
-	                                 &(*prb_fra_id  )[prb::tsk::probe  ], &(*prb_frq_fin )[prb::tsk::probe] };
-
-	std::vector<Task*> lasts_l3 = { &(*sync_fine_pf)[sff::tsk::synchronize] };
-
-	tools::Sequence sequence_learning_3(firsts_l3, lasts_l3);
-	sequence_learning_3.set_auto_stop(false);
-
-	if (enable_logs)
-	{
-		std::ofstream fs2("rx_sequence_learning_3.dot");
-		sequence_learning_3.export_dot(fs2);
+		auto end_learning = std::chrono::system_clock::now();
+		std::chrono::duration<double> elapsed_seconds_learning = end_learning - start_learning;
+		std::cout << "Done (" << elapsed_seconds_learning.count() << "s)." << std::endl;
 	}
-
-	stats_file << "####################" << std::endl;
-	stats_file << "# LEARNING PHASE 3 #" << std::endl;
-	stats_file << "####################" << std::endl;
-	terminal_stats.legend(stats_file);
-
-	limit = prb_fra_id->get_occurrences() + 200;
-	prb_thr_thr->reset();
-	prb_thr_lat->reset();
-	sequence_learning_3.exec([&](const std::vector<const int*>& statuses)
-	{
-		const auto m = prb_fra_id->get_occurrences();
-		if (statuses.back() != nullptr)
-			terminal_stats.temp_report(stats_file);
-		else if (enable_logs)
-			std::clog << rang::tag::warning << "Sequence aborted! (learning phase 3, m = " << m << ")" << std::endl;
-		return m >= limit;
-	});
-
-	auto end_learning = std::chrono::system_clock::now();
-	std::chrono::duration<double> elapsed_seconds_learning = end_learning - start_learning;
-	std::cout << "Done (" << elapsed_seconds_learning.count() << "s)." << std::endl;
 
 	// ================================================================================================================
 	// TRANSMISSION PHASE =============================================================================================
@@ -536,31 +553,31 @@ int main(int argc, char** argv)
 #ifdef MULTI_THREADED
 	pipeline_transmission.bind_adaptors();
 	pipeline_transmission.exec({
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 0
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 1
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 2
-		[&prb_fra_id] (const std::vector<const int*>& statuses)                                   // stop condition stage 3
+		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s0
+		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s1
+		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s2
+		[&prb_fra_id] (const std::vector<const int*>& statuses)                  // stop condition s3
 		{
 			if (statuses.back() == nullptr && enable_logs)
 				std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, stage = 3"
 				          << ", m = " << prb_fra_id->get_occurrences() << ")" << std::endl;
-			return tools::Terminal::is_interrupt();
+			return false;
 		},
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 4
-		[&noise_est, &estimator] (const std::vector<const int*>& statuses)                        // stop condition stage 5
+		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s4
+		[&noise_est, &estimator] (const std::vector<const int*>& statuses)       // stop condition s5
 		{
 			// update "noise_est" for the terminal display
 			if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
 				noise_est.set_values(((float*)(*estimator)[est::sck::estimate::SIG  ].get_dataptr())[0],
 				                     ((float*)(*estimator)[est::sck::estimate::Eb_N0].get_dataptr())[0],
 				                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
-			return tools::Terminal::is_interrupt();
+			return false;
 		},
-		[] (const std::vector<const int*>& statuses) { return tools::Terminal::is_interrupt(); }, // stop condition stage 6
-		[&prb_thr_the, &terminal_stats, &stats_file] (const std::vector<const int*>& statuses)    // stop condition stage 7
+		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s6
+		[&terminal_stats, &stats_file] (const std::vector<const int*>& statuses) // stop condition s7
 		{
 			terminal_stats.temp_report(stats_file);
-			return tools::Terminal::is_interrupt();
+			return false;
 		}});
 #else
 	// start the transmission sequence
@@ -579,7 +596,7 @@ int main(int argc, char** argv)
 			else if (enable_logs)
 				std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, m = "
 				          << prb_fra_id->get_occurrences() << ")" << std::endl;
-			return tools::Terminal::is_interrupt();
+			return false;
 		});
 #endif /* MULTI_THREADED */
 
@@ -595,19 +612,23 @@ int main(int argc, char** argv)
 
 	if (params.stats)
 	{
+		std::ofstream file_stream;
+		if (!params.stats_path.empty())
+			file_stream.open(params.stats_path);
+		std::ostream& stats_out = params.stats_path.empty() ? std::cout : file_stream;
 		const auto ordered = true;
 #ifdef MULTI_THREADED
 		auto stages = pipeline_transmission.get_stages();
 		for (size_t ss = 0; ss < stages.size(); ss++)
 		{
-			std::cout << "#" << std::endl << "# Sequence stage " << ss << " (" << stages[ss]->get_n_threads()
+			stats_out << "#" << std::endl << "# Sequence stage " << ss << " (" << stages[ss]->get_n_threads()
 			          << " thread(s)): " << std::endl;
-			tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered);
+			tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered, true, stats_out);
 		}
 #else
-		std::cout << "#" << std::endl << "# Sequence sequential (" << sequence_transmission.get_n_threads()
+		stats_out << "#" << std::endl << "# Sequence sequential (" << sequence_transmission.get_n_threads()
 		          << " thread(s)): " << std::endl;
-		tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
+		tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered, true, stats_out);
 #endif /* MULTI_THREADED */
 	}
 
