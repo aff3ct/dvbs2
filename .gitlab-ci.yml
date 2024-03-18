@@ -48,7 +48,7 @@ build-linux-gcc:
     - export CC="gcc"
     - export CXX="g++"
     - export CFLAGS="-Wall -Wno-overloaded-virtual -funroll-loops -mavx2"
-    - export CMAKE_OPT="-DDVBS2_LINK_UHD=OFF"
+    - export CMAKE_OPT="-DDVBS2_LINK_UHD=OFF -DAFF3CT_OVERRIDE_VERSION=v3.0.2"
     - export BUILD="build_linux_gcc"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
@@ -74,7 +74,7 @@ build-linux-clang:
     - export CC="clang"
     - export CXX="clang++"
     - export CFLAGS="-Wall -Wno-overloaded-virtual -funroll-loops -mavx2"
-    - export CMAKE_OPT="-DDVBS2_LINK_UHD=OFF"
+    - export CMAKE_OPT="-DDVBS2_LINK_UHD=OFF -DAFF3CT_OVERRIDE_VERSION=v3.0.2"
     - export BUILD="build_linux_clang"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
