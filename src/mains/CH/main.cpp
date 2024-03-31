@@ -22,7 +22,7 @@ template<class T> using uptr = std::unique_ptr<T>;
 int main(int argc, char** argv)
 {
 	// setup signal handlers
-	tools::setup_signal_handler();
+	tools::Signal_handler::init();
 
 	// get the parameter to configure the tools and modules
 	const auto params = factory::DVBS2(argc, argv);
