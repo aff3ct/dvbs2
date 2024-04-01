@@ -1,6 +1,7 @@
 #include <sstream>
 #include <iomanip>
 #include <utility>
+#include <tuple>
 #include <ios>
 
 #include "Tools/general_utils.h"
@@ -28,11 +29,11 @@ Reporter_throughput_DVBS2<T>
 	auto& throughput_title = throughput_group.first;
 	auto& throughput_cols  = throughput_group.second;
 
-	throughput_title = std::make_pair("Throughput", "and elapsed time");
+	throughput_title = std::make_tuple("Throughput", "and elapsed time", 0);
 
-	throughput_cols.push_back(std::make_pair("CUR_THR", "(Mb/s)"));
-	throughput_cols.push_back(std::make_pair("AVG_THR", "(Mb/s)"));
-	throughput_cols.push_back(std::make_pair("ET/RT", "(hhmmss)"));
+	throughput_cols.push_back(std::make_tuple("CUR_THR", "(Mb/s)", 0));
+	throughput_cols.push_back(std::make_tuple("AVG_THR", "(Mb/s)", 0));
+	throughput_cols.push_back(std::make_tuple("ET/RT", "(hhmmss)", 0));
 
 	this->cols_groups.push_back(throughput_group);
 }

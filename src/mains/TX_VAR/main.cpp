@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 #endif /* MULTI_THREADED */
 
 	// setup signal handlers
-	tools::setup_signal_handler();
+	tools::Signal_handler::init();
 
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);

@@ -1,4 +1,5 @@
 #include <utility>
+#include <tuple>
 #include <iomanip>
 #include <sstream>
 #include <cassert>
@@ -24,16 +25,15 @@ Reporter_noise_DVBS2<R>
 	auto& Noise_title = noise_group.first;
 	auto& Noise_cols  = noise_group.second;
 
-	Noise_title = {"Signal Noise Ratio", "(SNR)"};
-	Noise_cols.push_back(std::make_pair("Es/N0", "(dB)"));
-	Noise_cols.push_back(std::make_pair("Eb/N0", "(dB)"));
-	Noise_cols.push_back(std::make_pair("AVG Eb/N0", "(dB)"));
+	Noise_title = {"Signal Noise Ratio", "(SNR)", 0};
+	Noise_cols.push_back(std::make_tuple("Es/N0", "(dB)", 0));
+	Noise_cols.push_back(std::make_tuple("Eb/N0", "(dB)", 0));
+	Noise_cols.push_back(std::make_tuple("AVG Eb/N0", "(dB)", 0));
 	if (show_ground_truth)
 	{
-		Noise_cols.push_back(std::make_pair("GT Es/N0", "(dB)"));
-		Noise_cols.push_back(std::make_pair("GT Eb/N0", "(dB)"));
+		Noise_cols.push_back(std::make_tuple("GT Es/N0", "(dB)", 0));
+		Noise_cols.push_back(std::make_tuple("GT Eb/N0", "(dB)", 0));
 	}
-
 
 	this->cols_groups.push_back(noise_group);
 }
