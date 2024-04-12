@@ -115,6 +115,8 @@ cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall 
 The source code of this project is in the `src/` directory:
 - `src/mains/TX`: source code of the transmitter,
 - `src/mains/TX_VAR`: source code of the transmitter with variable SNRs,
+- `src/mains/CH`: source code of the channel (useful to add noise after TX when
+running without a real radio),
 - `src/mains/RX`: source code of the receiver,
 - `src/mains/TX_RX`: source code of the Monte-Carlo simulation with the
 transmitter and the receiver,
@@ -125,6 +127,8 @@ filters and synchro,
 The compiled binaries are:
 - `build/bin/dvbs2_tx`: the transmitter,
 - `build/bin/dvbs2_tx_var`: the transmitter with variable SNRs,
+- `build/bin/dvbs2_ch`: executable that takes the TX IQs file and adds noise to 
+it (it produces a noisy file that can be consumed by the RX without real radio),
 - `build/bin/dvbs2_rx`: the receiver,
 - `build/bin/dvbs2_rx_dump`: dumps the symbols received by the RX in the
 `dump.bin` file,
