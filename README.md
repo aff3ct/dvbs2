@@ -141,7 +141,7 @@ Some refs with according command line instructions can be found in the `refs/`
 directory for `build/bin/dvbs2_tx_rx` and
 `build/bin/dvbs2_tx_rx_bb`.
 
-### Testing
+### Testing Tx and Rx Separately
 
 Run the transmitter (TX) to generate symbols (IQ) without noise:
 ```bash
