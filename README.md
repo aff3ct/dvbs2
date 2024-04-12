@@ -100,14 +100,14 @@ Generate the Makefile and compile the DVB-S2 project:
 ```bash
 mkdir build
 cd build
-cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native" -DAFF3CT_LINK_HWLOC=ON
+cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native" -DAFF3CT_CORE_LINK_HWLOC=ON
 make -j20
 ```
 
 If you don't want to compile the code with USRPs you can add the `-DDVBS2_LINK_UHD=OFF` option:
 
 ```bash
-cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native" -DAFF3CT_LINK_HWLOC=ON -DDVBS2_LINK_UHD=OFF
+cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native" -DAFF3CT_CORE_LINK_HWLOC=ON -DDVBS2_LINK_UHD=OFF
 ```
 
 ## Binaries
