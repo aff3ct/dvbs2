@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.5)
 cmake_policy(SET CMP0054 NEW)
 
-project (dvbs2)
+project (dvbs2 CXX)
 
 # Enable C++11
 set(CMAKE_CXX_STANDARD 11)
