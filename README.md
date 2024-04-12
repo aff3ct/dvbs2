@@ -154,7 +154,7 @@ Add AWGN noise on the previously emitted IQs (`-m` controls the noise level
 ./bin/dvbs2_ch --sim-stats --rad-type USER_BIN --rad-rx-file-path out_tx.bin --rad-tx-file-path out_tx_noisy.bin --rad-rx-no-loop -F 8 --mod-cod QPSK-S_8/9 -m 4.0
 ```
 
-Run the receiver (RX) on the noisy IQs (without waiting and leaning phase, see 
+Run the receiver (RX) on the noisy IQs (without waiting and learning phases, see 
 the `--no-wl-phases` option):
 ```bash
 ./bin/dvbs2_rx --sim-stats --src-type USER --src-path ../conf/src/K_14232.src --rad-type USER_BIN --rad-rx-file-path out_tx_noisy.bin -F 8 --mod-cod QPSK-S_8/9 --dec-implem NMS --dec-ite 10 --dec-simd INTER --snk-path /dev/null --rad-rx-no-loop --no-wl-phases
