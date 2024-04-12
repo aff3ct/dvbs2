@@ -140,27 +140,48 @@ int main(int argc, char** argv)
 			tsk->set_fast(true);
 	}
 
-#ifdef MULTI_THREADED
+	unsigned n_frames = 0;
 	auto t_start = std::chrono::steady_clock::now();
-	pipeline_transmission.exec({
-		[t_start, &params] (const std::vector<const int*>& statuses) {                        // stop condition stage 0
-			if (params.tx_time_limit)
-			{
-				std::chrono::nanoseconds duration = std::chrono::steady_clock::now() - t_start;
-				if (duration.count() > params.tx_time_limit*1e6)
-					return true;
+	std::function<bool(const std::vector<const int*>&)> stop_condition =
+		[&n_frames, &t_start, &params] (const std::vector<const int*>& statuses) {
+			if (statuses.back() != nullptr) {
+				if (params.tx_time_limit)
+				{
+					std::chrono::nanoseconds duration = std::chrono::steady_clock::now() - t_start;
+					if (duration.count() > params.tx_time_limit*1e6)
+						return true;
+				}
+				if (n_frames % (20 * params.n_frames) == 0) {
+					auto t_stop = std::chrono::steady_clock::now();
+					auto time_duration =
+						(int64_t)std::chrono::duration_cast<std::chrono::microseconds>(t_stop - t_start).count();
+					auto time_duration_sec = time_duration * 1e-6;
+					float fps = (1.f * n_frames) / (1.f * time_duration_sec);
+					float info_tp = (fps * params.K_bch) / (1024.f * 1024.f);
+					float iqs_size_mb = (n_frames * 2 * params.p_rad.N * sizeof(R)) / (1024.f * 1024.f);
+					std::clog << rang::tag::info;
+					fprintf(stderr, "Frame n°%4u", n_frames);
+					fprintf(stderr, " -- Time = %6.3f sec", time_duration_sec);
+					fprintf(stderr, " -- FPS = %4.1f", fps);
+					fprintf(stderr, " -- Info. throughput = %5.2f Mbps", info_tp);
+					fprintf(stderr, " -- Out IQs size = %5.0f MB\r", iqs_size_mb);
+					fflush(stderr);
+				}
+				n_frames += params.n_frames;
 			}
 			return false;
-		},
-		[] (const std::vector<const int*>& statuses) { return false; },                       // stop condition stage 1
-		[] (const std::vector<const int*>& statuses) { return false; }});                     // stop condition stage 2
+		};
+
+#ifdef MULTI_THREADED
+	pipeline_transmission.exec(stop_condition);
 	// no need to stop the radio thread here, it is automatically done by the pipeline
 #else
-	sequence_transmission.exec([]() { return tools::Terminal::is_interrupt(); });
+	sequence_transmission.exec(stop_condition);
 	// stop the radio thread
 	for (auto &m : sequence_transmission.get_modules<tools::Interface_waiting>())
 		m->cancel_waiting();
 #endif /* MULTI_THREADED */
+	std::clog << std::endl;
 
 #ifdef DVBS2_LINK_UHD
 	// stop the radio thread

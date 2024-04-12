@@ -141,6 +141,34 @@ Some refs with according command line instructions can be found in the `refs/`
 directory for `build/bin/dvbs2_tx_rx` and
 `build/bin/dvbs2_tx_rx_bb`.
 
+### Testing
+
+Run the transmitter (TX) to generate symbols (IQ) without noise:
+```bash
+./bin/dvbs2_tx --sim-stats --rad-type USER_BIN --rad-tx-file-path out_tx.bin -F 8 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9 --tx-time-limit 10000
+```
+
+Add AWGN noise on the previous emitted IQ (`-m` controls the noise level `Eb/N0` 
+in dB):
+```bash
+./bin/dvbs2_ch --sim-stats --rad-type USER_BIN --rad-rx-file-path out_tx.bin --rad-tx-file-path out_tx_chn.bin --rad-rx-no-loop -F 8 --mod-cod QPSK-S_8/9 -m 4.0
+```
+
+Run the receiver (RX) on the noisy IQ (without waiting and leaning phase, see 
+the `--no-wl-phases` option):
+```bash
+./bin/dvbs2_rx --sim-stats --src-type USER --src-path ../conf/src/K_14232.src --rad-type USER_BIN --rad-rx-file-path out_tx_chn.bin -F 8 --mod-cod QPSK-S_8/9 --dec-implem NMS --dec-ite 10 --dec-simd INTER --snk-path /dev/null --rad-rx-no-loop --no-wl-phases
+``` 
+
+Note: In the previous command lines, the `-F 8` option controls the inter-frame 
+level (= the number of frames processed in each task). The latest will maximize 
+the throughput if `-F` is equal to the number of 32-bit floating point elements 
+that can be contained in a SIMD register (for instance: in SSE/NEON optimal `-F` 
+is equal to 4, in AVX optimal `-F` is equal to 8, and in AVX-512 optimal `-F` is 
+equal to 16). Be aware that increasing `-F` will have a negative impact on the 
+latency and on the memory footprint of the system. This is linear with the `-F` 
+value.
+
 ### Radio
 
 #### BER / FER

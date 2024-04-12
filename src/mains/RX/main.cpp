@@ -86,6 +86,7 @@ int main(int argc, char** argv)
 	tools::Reporter_probe rep_fra_stats("Counter");
 	Probe_occurrence prb_fra_id("FRAME");
 	Probe_stream prb_fra_sid("STREAM");
+	prb_fra_sid.set_custom_name("Probe<STREA>");
 	rep_fra_stats.register_probes({ &prb_fra_id, &prb_fra_sid });
 	rep_fra_stats.set_cols_buff_size(probe_buff);
 	rep_fra_stats.set_n_frames(params.n_frames);
