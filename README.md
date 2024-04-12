@@ -147,7 +147,8 @@ directory for `build/bin/dvbs2_tx_rx` and
 
 ### Testing TX and RX Separately
 
-Run the transmitter (TX) to generate symbols (= IQs) without noise:
+Run the transmitter (TX) to generate symbols (= IQs) without noise (here the TX 
+stops after 10 seconds, see the `--tx-time-limit 10000` option):
 ```bash
 ./bin/dvbs2_tx --sim-stats --rad-type USER_BIN --rad-tx-file-path out_tx.bin -F 8 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9 --tx-time-limit 10000
 ```
