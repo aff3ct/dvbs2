@@ -68,8 +68,8 @@ Radio_USRP<R>
 	}
 	else
 	{
-		throw::runtime_error(__FILE__, __LINE__, __func__,
-		                     "This data type (" + std::string(typeid(R).name()) + ") is not supported.");
+		throw tools::runtime_error(__FILE__, __LINE__, __func__,
+		                           "This data type (" + std::string(typeid(R).name()) + ") is not supported.");
 	}
 
 	// uhd::log::set_console_level(uhd::log::severity_level(3));
@@ -347,7 +347,7 @@ void Radio_USRP<R>
 				// Otherwise, it's an error
 			default:
 				// UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
-				throw::runtime_error(__FILE__, __LINE__, __func__, "Error in the Radio USRP streaming.");
+				throw tools::runtime_error(__FILE__, __LINE__, __func__, "Error in the Radio USRP streaming.");
 				// std::cerr << "[" << "] Receiver error: " << md.strerror()
 				//           << std::endl;
 				// std::cerr << "[" << "] Unexpected error on recv, continuing..."
