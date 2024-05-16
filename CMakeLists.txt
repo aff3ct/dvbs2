@@ -110,6 +110,7 @@ if(DVBS2_LINK_UHD)
         target_link_libraries(dvbs2_common PRIVATE ${Boost_FILESYSTEM_LIBRARY}
                                                    ${Boost_SYSTEM_LIBRARY}
                                                    ${Boost_THREAD_LIBRARY})
+        include_directories(${Boost_INCLUDE_DIRS})
     endif (Boost_FOUND)
 else()
     message(STATUS "DVBS2 - UHD: off")

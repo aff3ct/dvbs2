@@ -75,12 +75,23 @@ Radio_USRP<R>
 	// uhd::log::set_console_level(uhd::log::severity_level(3));
 	// uhd::log::set_file_level   (uhd::log::severity_level(2));
 
-	usrp = uhd::usrp::multi_usrp::make("addr=" + params.usrp_addr + ",master_clock_rate=" + std::to_string(params.clk_rate));
-	usrp->set_master_clock_rate(params.clk_rate);
+	std::string multi_usrp_str;
+	if (!params.usrp_type.empty())
+		multi_usrp_str += (multi_usrp_str.empty() ? std::string("") : std::string(",")) + "type=" + params.usrp_type;
+	if (!params.usrp_addr.empty())
+		multi_usrp_str += (multi_usrp_str.empty() ? std::string("") : std::string(",")) + "addr=" + params.usrp_addr;
+	if (params.clk_rate != 0)
+		multi_usrp_str += (multi_usrp_str.empty() ? std::string("") : std::string(",")) + "master_clock_rate=" + std::to_string(params.clk_rate);
+
+	usrp = uhd::usrp::multi_usrp::make(multi_usrp_str);
+
+	if (params.clk_rate != 0)
+		usrp->set_master_clock_rate(params.clk_rate);
 
 	if (params.rx_enabled)
 	{
-		usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t(params.rx_subdev_spec));
+		if (!params.rx_subdev_spec.empty())
+			usrp->set_rx_subdev_spec(uhd::usrp::subdev_spec_t(params.rx_subdev_spec));
 		usrp->set_rx_antenna(params.rx_antenna);
 		usrp->set_rx_freq(params.rx_freq);
 		usrp->set_rx_gain(params.rx_gain);
@@ -90,7 +101,8 @@ Radio_USRP<R>
 
 	if (params.tx_enabled)
 	{
-		usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t(params.tx_subdev_spec));
+		if (!params.tx_subdev_spec.empty())
+			usrp->set_tx_subdev_spec(uhd::usrp::subdev_spec_t(params.tx_subdev_spec));
 		usrp->set_tx_freq(params.tx_freq);
 		usrp->set_tx_gain(params.tx_gain);
 		usrp->set_tx_antenna(params.tx_antenna);
