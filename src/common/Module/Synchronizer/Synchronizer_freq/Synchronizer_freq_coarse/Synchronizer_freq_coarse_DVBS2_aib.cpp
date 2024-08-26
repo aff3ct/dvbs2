@@ -27,7 +27,7 @@ Synchronizer_freq_coarse_DVBS2_aib<R>
 	// std::cerr << "# PL rand seq size             = " << this->PL_RAND_SEQ.size() << std::endl;
 	for (size_t i = 0; i < this->PL_RAND_SEQ.size(); i++)
 	{
-		this->scrambled_pilots[i] = std::complex<R>(std::cos((R)M_PI_2*((R)PL_RAND_SEQ[i]+0.5)), std::sin((R)M_PI_2*((R)PL_RAND_SEQ[i]+0.5)));
+		this->scrambled_pilots[i] = i < 90 ? 0 : std::complex<R>(std::cos((R)M_PI_2*((R)PL_RAND_SEQ[i-90]+0.5)), std::sin((R)M_PI_2*((R)PL_RAND_SEQ[i-90]+0.5)));
 	}
 }
 
