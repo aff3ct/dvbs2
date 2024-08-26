@@ -46,6 +46,7 @@ void Radio
 	args.add({p+"-tx-freq"       }, cli::Real(cli::Positive(), cli::Non_zero())             , "");
 	args.add({p+"-tx-gain"       }, cli::Real(cli::Positive(), cli::Non_zero())             , "");
 	args.add({p+"-ip-addr"       }, cli::Text()                                             , "");
+	args.add({p+"-usrp-type"     }, cli::Text()                                             , "");
 	args.add({p+"-rx-no-loop"    }, cli::None()                                             , "");
 }
 
@@ -74,6 +75,7 @@ void Radio
 	if (vals.exist({p+"-tx-freq"       })) this->tx_freq        = vals.to_float ({p+"-tx-freq"       });
 	if (vals.exist({p+"-tx-gain"       })) this->tx_gain        = vals.to_float ({p+"-tx-gain"       });
 	if (vals.exist({p+"-ip-addr"       })) this->usrp_addr      = vals.at       ({p+"-ip-addr"       });
+	if (vals.exist({p+"-usrp-type"     })) this->usrp_type      = vals.at       ({p+"-usrp-type"     });
 	if (vals.exist({p+"-rx-no-loop"    })) this->rx_no_loop     = true                                 ;
 }
 
@@ -82,26 +84,31 @@ void Radio
 {
 	auto p = this->get_prefix();
 
-	headers[p].push_back(std::make_pair("N. samples", std::to_string(this->N        )));
-	headers[p].push_back(std::make_pair("Type      ", this->type                     ));
-	headers[p].push_back(std::make_pair("Threaded  ", this->threaded ? "YES" : "NO"  ));
-	headers[p].push_back(std::make_pair("Fifo size ", std::to_string(this->fifo_size)));
-	headers[p].push_back(std::make_pair("Clk rate  ", std::to_string(this->clk_rate )));
-	headers[p].push_back(std::make_pair("Rx rate   ", std::to_string(this->rx_rate  )));
-	headers[p].push_back(std::make_pair("Rx subdev ", this->rx_subdev_spec           ));
-	headers[p].push_back(std::make_pair("Rx antenna", this->rx_antenna               ));
-	headers[p].push_back(std::make_pair("Rx freq   ", std::to_string(this->rx_freq  )));
-	headers[p].push_back(std::make_pair("Rx gain   ", std::to_string(this->rx_gain  )));
-	headers[p].push_back(std::make_pair("Rx File   ", this->rx_filepath              ));
-	headers[p].push_back(std::make_pair("Rx no loop", this->rx_no_loop ? "YES" : "NO"));
-	headers[p].push_back(std::make_pair("Tx File   ", this->tx_filepath              ));
-	headers[p].push_back(std::make_pair("Tx subdev ", this->tx_subdev_spec           ));
-	headers[p].push_back(std::make_pair("Tx antenna", this->tx_antenna               ));
-	headers[p].push_back(std::make_pair("Tx rate   ", std::to_string(this->tx_rate  )));
-	headers[p].push_back(std::make_pair("Tx rate   ", std::to_string(this->tx_rate  )));
-	headers[p].push_back(std::make_pair("Tx rate   ", std::to_string(this->tx_rate  )));
-	headers[p].push_back(std::make_pair("Tx freq   ", std::to_string(this->tx_freq  )));
-	headers[p].push_back(std::make_pair("Tx gain   ", std::to_string(this->tx_gain  )));
+	headers[p].push_back(std::make_pair("N. samples", std::to_string(this->N)));
+	headers[p].push_back(std::make_pair("Type      ", this->type             ));
+	if (this->type == "USRP")
+	{
+		headers[p].push_back(std::make_pair("USRP type      ", this->usrp_type));
+		headers[p].push_back(std::make_pair("USRP ip addr   ", this->usrp_addr));
+		headers[p].push_back(std::make_pair("USRP Clk rate  ", std::to_string(this->clk_rate )));
+		headers[p].push_back(std::make_pair("USRP Threaded  ", this->threaded ? "YES" : "NO"  ));
+		headers[p].push_back(std::make_pair("USRP Fifo size ", std::to_string(this->fifo_size)));
+		headers[p].push_back(std::make_pair("USRP Rx rate   ", std::to_string(this->rx_rate  )));
+		headers[p].push_back(std::make_pair("USRP Rx subdev ", this->rx_subdev_spec           ));
+		headers[p].push_back(std::make_pair("USRP Rx antenna", this->rx_antenna               ));
+		headers[p].push_back(std::make_pair("USRP Rx freq   ", std::to_string(this->rx_freq  )));
+		headers[p].push_back(std::make_pair("USRP Rx gain   ", std::to_string(this->rx_gain  )));
+		headers[p].push_back(std::make_pair("USRP Rx File   ", this->rx_filepath              ));
+		headers[p].push_back(std::make_pair("USRP Rx no loop", this->rx_no_loop ? "YES" : "NO"));
+		headers[p].push_back(std::make_pair("USRP Tx File   ", this->tx_filepath              ));
+		headers[p].push_back(std::make_pair("USRP Tx subdev ", this->tx_subdev_spec           ));
+		headers[p].push_back(std::make_pair("USRP Tx antenna", this->tx_antenna               ));
+		headers[p].push_back(std::make_pair("USRP Tx rate   ", std::to_string(this->tx_rate  )));
+		headers[p].push_back(std::make_pair("USRP Tx rate   ", std::to_string(this->tx_rate  )));
+		headers[p].push_back(std::make_pair("USRP Tx rate   ", std::to_string(this->tx_rate  )));
+		headers[p].push_back(std::make_pair("USRP Tx freq   ", std::to_string(this->tx_freq  )));
+		headers[p].push_back(std::make_pair("USRP Tx gain   ", std::to_string(this->tx_gain  )));
+	}
 }
 
 template <typename R>

@@ -395,6 +395,11 @@ int main(int argc, char** argv)
 			tsk->set_fast(true);
 	}
 
+#ifdef DVBS2_LINK_UHD
+	const int radio_flush_period = params.n_frames * 100;
+	auto radio_usrp = dynamic_cast<Radio_USRP<>*>(radio.get());
+#endif
+
 	std::ofstream stats_file("stats.txt");
 	if (!params.no_wl_phases) {
 		// ============================================================================================================
@@ -450,10 +455,6 @@ int main(int argc, char** argv)
 		waiting_stats << "#################" << std::endl;
 		terminal_stats.legend(waiting_stats);
 
-#ifdef DVBS2_LINK_UHD
-		const int radio_flush_period = params.n_frames * 100;
-		auto radio_usrp = dynamic_cast<Radio_USRP<>*>(radio.get());
-#endif
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 		prb_thr_thr .reset();
 		prb_thr_lat .reset();

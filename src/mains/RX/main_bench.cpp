@@ -226,6 +226,11 @@ int main(int argc, char** argv)
 			tsk->set_fast(true);
 	}
 
+#ifdef DVBS2_LINK_UHD
+	const int radio_flush_period = params.n_frames * 100;
+	auto radio_usrp = dynamic_cast<Radio_USRP<>*>(radio.get());
+#endif
+
 	if (!params.no_wl_phases) {
 		// ============================================================================================================
 		// WAITING PHASE ==============================================================================================
@@ -267,10 +272,6 @@ int main(int argc, char** argv)
 		// # WAITING PHASE #"
 		// #################"
 
-#ifdef DVBS2_LINK_UHD
-		const int radio_flush_period = params.n_frames * 100;
-		auto radio_usrp = dynamic_cast<Radio_USRP<>*>(radio.get());
-#endif
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 		sequence_waiting_and_learning_1_2.exec([&](const std::vector<const int*>& statuses)
 		{
@@ -309,7 +310,7 @@ int main(int argc, char** argv)
 		// ####################
 
 		m = 0;
-		int limit = 150;
+		unsigned int limit = 150;
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 		sequence_waiting_and_learning_1_2.exec([&](const std::vector<const int*>& statuses)
 		{
