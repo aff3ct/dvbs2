@@ -11,8 +11,8 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <streampu.hpp>
 
-#include "Module/Module.hpp"
 #include "Tools/Noise/noise_utils.h"
 
 namespace aff3ct
@@ -40,12 +40,12 @@ namespace module
  * Please use Multiplier for inheritance (instead of Multiplier)
  */
 template <typename R = float>
-class Multiplier : public Module
+class Multiplier : public spu::module::Stateful
 {
 public:
-	inline runtime::Task&   operator[](const mlt::tsk            t) { return Module::operator[]((int)t);                                }
-	inline runtime::Socket& operator[](const mlt::sck::multiply  s) { return Module::operator[]((int)mlt::tsk::multiply        )[(int)s]; }
-	inline runtime::Socket& operator[](const mlt::sck::imultiply s) { return Module::operator[]((int)mlt::tsk::imultiply       )[(int)s]; }
+	inline spu::runtime::Task&   operator[](const mlt::tsk            t) { return spu::module::Module::operator[]((int)t);                                }
+	inline spu::runtime::Socket& operator[](const mlt::sck::multiply  s) { return spu::module::Module::operator[]((int)mlt::tsk::multiply        )[(int)s]; }
+	inline spu::runtime::Socket& operator[](const mlt::sck::imultiply s) { return spu::module::Module::operator[]((int)mlt::tsk::imultiply       )[(int)s]; }
 
 protected:
 	const int N;     /*!< Size of one frame (= number of samples in one frame) */

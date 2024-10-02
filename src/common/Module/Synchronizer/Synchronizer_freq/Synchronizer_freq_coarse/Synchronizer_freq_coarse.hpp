@@ -3,8 +3,7 @@
 
 #include <vector>
 #include <complex>
-
-#include "Module/Module.hpp"
+#include <streampu.hpp>
 
 namespace aff3ct
 {
@@ -21,11 +20,11 @@ namespace module
 	}
 
 template <typename R = float>
-class Synchronizer_freq_coarse : public Module
+class Synchronizer_freq_coarse : public spu::module::Stateful
 {
 public:
-	inline runtime::Task&   operator[](const sfc::tsk                      t) { return Module::operator[]((int)t);                                     }
-	inline runtime::Socket& operator[](const sfc::sck::synchronize         s) { return Module::operator[]((int)sfc::tsk::synchronize        )[(int)s]; }
+	inline spu::runtime::Task&   operator[](const sfc::tsk              t) { return spu::module::Module::operator[]((int)t);                             }
+	inline spu::runtime::Socket& operator[](const sfc::sck::synchronize s) { return spu::module::Module::operator[]((int)sfc::tsk::synchronize)[(int)s]; }
 
 protected:
 	const int N;  /*!< Size of one frame (= number of samples in one frame) */

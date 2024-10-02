@@ -5,7 +5,7 @@
 #include <string>
 #include <iostream>
 
-#include "Module/Module.hpp"
+#include <streampu.hpp>
 
 namespace aff3ct
 {
@@ -23,12 +23,12 @@ namespace module
 	}
 
 template <typename D = int>
-class Feedbacker : public Module
+class Feedbacker : public spu::module::Stateful
 {
 public:
-	inline runtime::Task&   operator[](const fbr::tsk           t) { return Module::operator[]((int)t);                          }
-	inline runtime::Socket& operator[](const fbr::sck::memorize s) { return Module::operator[]((int)fbr::tsk::memorize)[(int)s]; }
-	inline runtime::Socket& operator[](const fbr::sck::produce  s) { return Module::operator[]((int)fbr::tsk::produce )[(int)s]; }
+	inline spu::runtime::Task&   operator[](const fbr::tsk           t) { return spu::module::Module::operator[]((int)t);                          }
+	inline spu::runtime::Socket& operator[](const fbr::sck::memorize s) { return spu::module::Module::operator[]((int)fbr::tsk::memorize)[(int)s]; }
+	inline spu::runtime::Socket& operator[](const fbr::sck::produce  s) { return spu::module::Module::operator[]((int)fbr::tsk::produce )[(int)s]; }
 
 protected:
 	const int N; // Size of one frame (= number of datas in one frame)

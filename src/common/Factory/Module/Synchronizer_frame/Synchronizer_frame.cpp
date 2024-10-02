@@ -66,7 +66,7 @@ module::Synchronizer_frame<R>* Synchronizer_frame
 	if (this->type == "PERFECT")
 	{
 		return dynamic_cast<module::Synchronizer_frame<R>*>(new module::Synchronizer_frame_perfect<R>(2 * this->N, this->ref_delay, this->n_frames));
-		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_frame type.");
+		throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_frame type.");
 	}
 	else if (this->type == "FAST")
 		return dynamic_cast<module::Synchronizer_frame<R>*>(new module::Synchronizer_frame_DVBS2_fast<R>(2 * this->N, this->alpha, this->trigger, this->n_frames));
@@ -75,7 +75,7 @@ module::Synchronizer_frame<R>* Synchronizer_frame
 		return dynamic_cast<module::Synchronizer_frame<R>*>(new module::Synchronizer_frame_DVBS2_aib <R>(2 * this->N, this->alpha, this->trigger, this->n_frames));
 
 	else
-		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_frame type.");
+		throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_frame type.");
 }
 
 // ==================================================================================== explicit template instantiation

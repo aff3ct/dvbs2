@@ -15,6 +15,8 @@ Estimator_DVBS2<R>::
 Estimator_DVBS2(const int N, const float code_rate, const int bps, const int n_frames)
 : Estimator<R>(N, n_frames), bps(bps), code_rate(code_rate)
 {
+	for (auto& t : this->tasks)
+		t->set_replicability(true);
 }
 
 template <typename R>

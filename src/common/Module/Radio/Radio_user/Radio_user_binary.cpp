@@ -26,7 +26,7 @@ Radio_user_binary<R>
 		{
 			std::stringstream message;
 			message << "'input_filename' file name is invalid: failbit is set.";
-			throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+			throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 		}
 	}
 
@@ -37,7 +37,7 @@ Radio_user_binary<R>
 		{
 			std::stringstream message;
 			message << "'output_filename' file name is invalid: failbit is set.";
-			throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+			throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 		}
 	}
 }
@@ -60,13 +60,13 @@ void Radio_user_binary<R>
 	{
 		std::stringstream message;
 		message << "'input_file' is not open.";
-		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	output_file.write(reinterpret_cast<const char*>(X_N1), 2 * this->N * sizeof(R));
 
 	if (output_file.fail())
-		throw tools::runtime_error(__FILE__, __LINE__, __func__, "Unknown error during file reading.");
+		throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, "Unknown error during file reading.");
 }
 
 template <typename R>
@@ -77,7 +77,7 @@ void Radio_user_binary<R>
 	{
 		std::stringstream message;
 		message << "'input_file' is not open.";
-		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	input_file.read(reinterpret_cast<char*>(Y_N1), 2 * this->N * sizeof(R));
@@ -90,12 +90,12 @@ void Radio_user_binary<R>
 				this->reset();
 			else {
 				this->done = true;
-				throw tools::processing_aborted(__FILE__, __LINE__, __func__);
+				throw spu::tools::processing_aborted(__FILE__, __LINE__, __func__);
 			}
 		}
 
 		if (input_file.fail())
-			throw tools::runtime_error(__FILE__, __LINE__, __func__, "Unknown error during file reading.");
+			throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, "Unknown error during file reading.");
 	}
 }
 

@@ -4,9 +4,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
-
-#include "Module/Estimator/Estimator.hpp"
-#include "Tools/Interface/Interface_reset.hpp"
+#include <streampu.hpp>
 
 namespace aff3ct
 {
@@ -30,11 +28,11 @@ namespace module
  * \tparam R: type of the data in the Estimator.
  */
 template <typename R = float>
-class Estimator : public Module, tools::Interface_reset
+class Estimator : public spu::module::Stateful, spu::tools::Interface_reset
 {
 public:
-	inline runtime::Task&   operator[](const est::tsk           t) { return Module::operator[]((int)t);                          }
-	inline runtime::Socket& operator[](const est::sck::estimate s) { return Module::operator[]((int)est::tsk::estimate)[(int)s]; }
+	inline spu::runtime::Task&   operator[](const est::tsk           t) { return spu::module::Module::operator[]((int)t);                          }
+	inline spu::runtime::Socket& operator[](const est::sck::estimate s) { return spu::module::Module::operator[]((int)est::tsk::estimate)[(int)s]; }
 
 protected:
 	const int N; // Size of one frame (= number of datas in one frame)

@@ -9,8 +9,6 @@
 #include "Module/Estimator/Estimator_DVBS2.hpp"
 #include "Module/Estimator/Estimator_perfect.hpp"
 
-#include "Module/Sink/User/Sink_user_binary.hpp"
-
 using namespace aff3ct;
 using namespace aff3ct::factory;
 
@@ -126,7 +124,7 @@ void DVBS2
 	{
 		std::stringstream message;
 		message << "Argument 'max_delay' has to be greater than 2.";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 	ldpc_nite                = vals.exist({"dec-ite"}            ) ? vals.to_int  ({"dec-ite"}           ) : 50          ;
 	max_fe                   = vals.exist({"max-fe","e"}         ) ? vals.to_int  ({"max-fe","e"}        ) : 100         ;
@@ -307,7 +305,7 @@ modcod_init(std::string modcod)
 		read_order = "TOP_LEFT";
 	}
 	else
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not supported.");
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, modcod + " mod-cod scheme not supported.");
 
 	if ( mod == "QPSK"  )
 	{
@@ -348,32 +346,32 @@ modcod_init(std::string modcod)
 
 
 template <typename B>
-module::Source<B>* DVBS2
+spu::module::Source<B>* DVBS2
 ::build_source(const DVBS2& params, const int seed)
 {
-	module::Source<B>* src = nullptr;
+	spu::module::Source<B>* src = nullptr;
 	if (params.src_type == "RAND")
 		src = new module::Source_random_fast<B>(params.K_bch, seed);
 	else if (params.src_type == "USER")
-		src = new module::Source_user<B>(params.K_bch, params.src_path, !params.src_no_loop);
+		src = new spu::module::Source_user<B>(params.K_bch, params.src_path, !params.src_no_loop);
 	else if (params.src_type == "USER_BIN")
-		src = new module::Source_user_binary<B>(params.K_bch, params.src_path, !params.src_no_loop, params.src_fifo);
+		src = new spu::module::Source_user_binary<B>(params.K_bch, params.src_path, !params.src_no_loop, params.src_fifo);
 	else if (params.src_type == "AZCW")
-		src = new module::Source_AZCW<B>(params.K_bch);
+		src = new spu::module::Source_AZCW<B>(params.K_bch);
 	else
-		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Source type.");
+		throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Source type.");
 
 	src->set_n_frames(params.n_frames);
 	return src;
 }
 
 template <typename B>
-module::Sink<B>* DVBS2
+spu::module::Sink<B>* DVBS2
 ::build_sink(const DVBS2& params)
 {
-	module::Sink<B>* snk = nullptr;
+	spu::module::Sink<B>* snk = nullptr;
 
-	snk = new module::Sink_user_binary<B>(params.K_bch, params.sink_path);
+	snk = new spu::module::Sink_user_binary<B>(params.K_bch, params.sink_path);
 
 	snk->set_n_frames(params.n_frames);
 	return snk;
@@ -553,14 +551,14 @@ module::Estimator<R>* DVBS2
 		{
 			std::stringstream message;
 			message << "'sigma_ref' should not be nullptr.";
-			throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+			throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 		}
 		return new module::Estimator_perfect<R>(2 * params.N_xfec_frame, sigma_ref, params.n_frames);
 	}
 	else if (params.est_type == "DVBS2" )
 		return new module::Estimator_DVBS2<R>(2 * params.N_xfec_frame, code_rate, params.bps, params.n_frames);
 
-	throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Estimator type.");
+	throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Estimator type.");
 }
 
 template <typename B>
@@ -597,7 +595,7 @@ module::Channel<R>* DVBS2
 		if (filtered) chn = new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size * params.p_shp.osf, gen, false);
 		else          chn = new module::Channel_AWGN_LLR<R>(2 * params.pl_frame_size                   , gen, false);
 	else
-		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Channel type.");
+		throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Channel type.");
 
 	chn->set_n_frames(params.n_frames);
 	return chn;
@@ -701,8 +699,8 @@ module::Feedbacker<D>* DVBS2
 	return fbr;
 }
 
-template aff3ct::module::Source<B>*                            DVBS2::build_source<B>                   (const DVBS2& params, const int seed);
-template aff3ct::module::Sink<B>*                              DVBS2::build_sink<B>                     (const DVBS2& params);
+template spu   ::module::Source<B>*                            DVBS2::build_source<B>                   (const DVBS2& params, const int seed);
+template spu   ::module::Sink<B>*                              DVBS2::build_sink<B>                     (const DVBS2& params);
 template aff3ct::module::Encoder_BCH<B>*                       DVBS2::build_bch_encoder<B>              (const DVBS2& params, tools::BCH_polynomial_generator<B>& poly_gen);
 template aff3ct::module::Decoder_BCH_std<B>*                   DVBS2::build_bch_decoder<B>              (const DVBS2& params, tools::BCH_polynomial_generator<B>& poly_gen);
 template aff3ct::tools ::Codec_LDPC<B,Q>*                      DVBS2::build_ldpc_cdc<B,Q>               (const DVBS2& params);

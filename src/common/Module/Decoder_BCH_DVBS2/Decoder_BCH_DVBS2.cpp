@@ -43,21 +43,21 @@ template <typename B, typename R>
 int Decoder_BCH_DVBS2<B, R>
 ::_decode_hiho_cw(const B *Y_N, int8_t *CWD, B *V_N, const size_t frame_id)
 {
-	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+	throw spu::tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename B, typename R>
 int Decoder_BCH_DVBS2<B, R>
 ::_decode_siho(const R *Y_N, int8_t *CWD, B *V_K, const size_t frame_id)
 {
-	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+	throw spu::tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename B, typename R>
 int Decoder_BCH_DVBS2<B, R>
 ::_decode_siho_cw(const R *Y_N, int8_t *CWD, B *V_N, const size_t frame_id)
 {
-	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+	throw spu::tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 

@@ -15,7 +15,7 @@ using namespace aff3ct::tools;
 template <typename R>
 Reporter_noise_DVBS2<R>
 ::Reporter_noise_DVBS2(const Noise<R>& noise_estimated, const Noise<R>& noise, const bool show_ground_truth, R alpha)
-: Reporter(),
+: spu::tools::Reporter(),
   noise_estimated(noise_estimated),
   noise(noise),
   show_ground_truth(show_ground_truth),
@@ -39,7 +39,7 @@ Reporter_noise_DVBS2<R>
 }
 
 template <typename R>
-Reporter::report_t Reporter_noise_DVBS2<R>
+spu::tools::Reporter::report_t Reporter_noise_DVBS2<R>
 ::report(bool final)
 {
 	assert(this->cols_groups.size() == 1);
@@ -68,7 +68,7 @@ Reporter::report_t Reporter_noise_DVBS2<R>
 		stream << std::setprecision(2) << std::fixed << this->Eb_N0_avg;
 		noise_report.push_back(stream.str());
 	}
-	catch(tools::runtime_error const& e)
+	catch(spu::tools::runtime_error const& e)
 	{
 		stream.str("-");
 

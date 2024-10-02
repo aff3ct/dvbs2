@@ -16,7 +16,7 @@ Synchronizer_step_mf_cc<B,R>
                            aff3ct::module::Filter_RRC_ccr_naive<R>     *matched_filter,
                            aff3ct::module::Synchronizer_timing<B,R>    *sync_timing,
                            const int n_frames)
-: Module(),
+: spu::module::Stateful(),
   last_delay(0),
   N_in(sync_coarse_f->get_N()),
   N_out(sync_timing->get_N_in()),
@@ -36,14 +36,14 @@ Synchronizer_step_mf_cc<B,R>
 	{
 		std::stringstream message;
 		message << "'N_in' has to be greater than 0 ('N_in' = " << N_in << ").";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (N_out <= 0)
 	{
 		std::stringstream message;
 		message << "'N_out' has to be greater than 0 ('N_out' = " << N_out << ").";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	auto &p1 = this->create_task("synchronize");
@@ -54,7 +54,9 @@ Synchronizer_step_mf_cc<B,R>
 	auto p1s_PHS   = this->template create_socket_out<R  >(p1, "PHS"  , 1          );
 	auto p1s_Y_N1  = this->template create_socket_out<R  >(p1, "Y_N1" , this->N_out);
 	auto p1s_B_N1  = this->template create_socket_out<B  >(p1, "B_N1" , this->N_out);
-	this->create_codelet(p1, [p1s_delay, p1s_X_N1, p1s_MU, p1s_FRQ, p1s_PHS, p1s_Y_N1, p1s_B_N1](Module &m, runtime::Task &t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_delay, p1s_X_N1, p1s_MU, p1s_FRQ, p1s_PHS, p1s_Y_N1, p1s_B_N1](spu::module::Module &m,
+	                                                                                             spu::runtime::Task &t,
+	                                                                                             const size_t frame_id) -> int
 	{
 		static_cast<Synchronizer_step_mf_cc<B,R>&>(m).synchronize(static_cast<int*>(t[p1s_delay].get_dataptr()),
 		                                                          static_cast<R*  >(t[p1s_X_N1 ].get_dataptr()),
@@ -104,7 +106,7 @@ void Synchronizer_step_mf_cc<B,R>
 		std::stringstream message;
 		message << "'DEL.size()' has to be equal to 'n_frames' ('DEL.size()' = " << DEL.size()
 		        << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->N_in * this->n_frames != (int)X_N1.size())
@@ -112,7 +114,7 @@ void Synchronizer_step_mf_cc<B,R>
 		std::stringstream message;
 		message << "'X_N1.size()' has to be equal to 'N' * 'n_frames' ('X_N1.size()' = " << X_N1.size()
 		        << ", 'N' = " << this->N_in << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->n_frames != (int)MU.size())
@@ -120,7 +122,7 @@ void Synchronizer_step_mf_cc<B,R>
 		std::stringstream message;
 		message << "'MU.size()' has to be equal to 'n_frames' ('MU.size()' = " << MU.size()
 		        << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->n_frames != (int)FRQ.size())
@@ -128,7 +130,7 @@ void Synchronizer_step_mf_cc<B,R>
 		std::stringstream message;
 		message << "'FRQ.size()' has to be equal to 'n_frames' ('FRQ.size()' = " << FRQ.size()
 		        << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 
@@ -137,7 +139,7 @@ void Synchronizer_step_mf_cc<B,R>
 		std::stringstream message;
 		message << "'PHS.size()' has to be equal to 'n_frames' ('PHS.size()' = " << PHS.size()
 		        << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->N_out * this->n_frames != (int)Y_N1.size())
@@ -145,7 +147,7 @@ void Synchronizer_step_mf_cc<B,R>
 		std::stringstream message;
 		message << "'Y_N1.size()' has to be equal to 'N' * 'n_frames' ('Y_N1.size()' = " << Y_N1.size()
 		        << ", 'N' = " << this->N_out << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->N_out * this->n_frames != (int)B_N1.size())
@@ -153,7 +155,7 @@ void Synchronizer_step_mf_cc<B,R>
 		std::stringstream message;
 		message << "'B_N1.size()' has to be equal to 'N' * 'n_frames' ('B_N1.size()' = " << B_N1.size()
 		        << ", 'N' = " << this->N_out << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 	this->synchronize(DEL.data(), X_N1.data(), MU.data(), FRQ.data(), PHS.data(), Y_N1.data(), B_N1.data(), frame_id);
 }

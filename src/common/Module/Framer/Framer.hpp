@@ -11,8 +11,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
-
-#include "Module/Module.hpp"
+#include <streampu.hpp>
 
 namespace aff3ct
 {
@@ -39,12 +38,12 @@ namespace module
  * Please use Framer for inheritance (instead of Framer).
  */
 template <typename B = float>
-class Framer : public Module
+class Framer : public spu::module::Stateful
 {
 public:
-	inline runtime::Task&   operator[](const frm::tsk             t) { return Module::operator[]((int)t);                            }
-	inline runtime::Socket& operator[](const frm::sck::generate   s) { return Module::operator[]((int)frm::tsk::generate  )[(int)s]; }
-	inline runtime::Socket& operator[](const frm::sck::remove_plh s) { return Module::operator[]((int)frm::tsk::remove_plh)[(int)s]; }
+	inline spu::runtime::Task&   operator[](const frm::tsk             t) { return spu::module::Module::operator[]((int)t);                            }
+	inline spu::runtime::Socket& operator[](const frm::sck::generate   s) { return spu::module::Module::operator[]((int)frm::tsk::generate  )[(int)s]; }
+	inline spu::runtime::Socket& operator[](const frm::sck::remove_plh s) { return spu::module::Module::operator[]((int)frm::tsk::remove_plh)[(int)s]; }
 
 protected:
 	const int xfec_frame_size; /*!< Number of complex symbols x2 in one XFEC frame */

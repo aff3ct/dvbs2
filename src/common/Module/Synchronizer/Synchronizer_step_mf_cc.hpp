@@ -4,6 +4,7 @@
 #include <vector>
 #include <complex>
 #include <aff3ct.hpp>
+#include <streampu.hpp>
 
 #include "Module/Synchronizer/Synchronizer.hpp"
 #include "Module/Synchronizer/Synchronizer_timing/Synchronizer_timing.hpp"
@@ -34,11 +35,11 @@ namespace module
  * Please use Synchronizer for inheritance (instead of Synchronizer)
  */
 template <typename B = int, typename R = float>
-class Synchronizer_step_mf_cc : public Module
+class Synchronizer_step_mf_cc : public spu::module::Stateful
 {
 public:
-	inline runtime::Task&   operator[](const smf::tsk              t) {return Module::operator[]((int)t);                            }
-	inline runtime::Socket& operator[](const smf::sck::synchronize s) {return Module::operator[]((int)smf::tsk::synchronize)[(int)s];}
+	inline spu::runtime::Task&   operator[](const smf::tsk              t) {return spu::module::Module::operator[]((int)t);                            }
+	inline spu::runtime::Socket& operator[](const smf::sck::synchronize s) {return spu::module::Module::operator[]((int)smf::tsk::synchronize)[(int)s];}
 
 private:
 	int last_delay;

@@ -185,7 +185,7 @@ Here are example command lines for RX and TX, considering `QPSK-S_8/9`:
 ```
 
 ```bash
-./bin/dvbs2_tx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 -F  8 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9
+./bin/dvbs2_tx --sim-stats --rad-threaded --rad-tx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 -F  8 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9
 ```
 
 #### Video Streaming
@@ -197,7 +197,7 @@ and a third for displaying the video.
 - Stream that video from TX computer:
 
 ```bash
-./bin/dvbs2_tx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 -F  8 --src-type USER_BIN --src-path /path/to/input/ts/video.ts --mod-cod QPSK-S_8/9
+./bin/dvbs2_tx --sim-stats --rad-threaded --rad-tx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 -F  8 --src-type USER_BIN --src-path /path/to/input/ts/video.ts --mod-cod QPSK-S_8/9
 ```
 
 - Create a fifo on RX computer `mkfifo output_stream_fifo.ts`

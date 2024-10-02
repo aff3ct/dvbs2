@@ -1,5 +1,6 @@
 #include <fstream>
 #include <aff3ct.hpp>
+#include <streampu.hpp>
 
 #include "Factory/DVBS2/DVBS2.hpp"
 #ifdef DVBS2_LINK_UHD
@@ -26,13 +27,13 @@ int main(int argc, char** argv)
 #ifdef MULTI_THREADED
 	if (thread_pinnig)
 	{
-		tools::Thread_pinning::init();
-		// tools::Thread_pinning::set_logs(enable_logs);
+		spu::tools::Thread_pinning::init();
+		// spu::tools::Thread_pinning::set_logs(enable_logs);
 	}
 #endif /* MULTI_THREADED */
 
 	// setup signal handlers
-	tools::Signal_handler::init();
+	spu::tools::Signal_handler::init();
 
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
@@ -48,16 +49,16 @@ int main(int argc, char** argv)
 	tools::BCH_polynomial_generator<B> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	uptr<Source<>        > source        (factory::DVBS2::build_source      <>(params, 0         ));
-	uptr<Scrambler<>     > bb_scrambler  (factory::DVBS2::build_bb_scrambler<>(params            ));
-	uptr<Encoder<>       > BCH_encoder   (factory::DVBS2::build_bch_encoder <>(params, poly_gen  ));
-	uptr<tools::Codec<>  > LDPC_cdc      (factory::DVBS2::build_ldpc_cdc    <>(params            ));
-	uptr<Interleaver<>   > itl           (factory::DVBS2::build_itl         <>(params, *itl_core ));
-	uptr<Modem<>         > modem         (factory::DVBS2::build_modem       <>(params, cstl.get()));
-	uptr<Framer<>        > framer        (factory::DVBS2::build_framer      <>(params            ));
-	uptr<Scrambler<float>> pl_scrambler  (factory::DVBS2::build_pl_scrambler<>(params            ));
-	uptr<Filter<>        > shaping_filter(factory::DVBS2::build_uprrc_filter<>(params            ));
-	uptr<Radio<>         > radio         (factory::DVBS2::build_radio       <>(params            ));
+	uptr<spu::module::Source<>> source        (factory::DVBS2::build_source      <>(params, 0         ));
+	uptr<Scrambler<>          > bb_scrambler  (factory::DVBS2::build_bb_scrambler<>(params            ));
+	uptr<Encoder<>            > BCH_encoder   (factory::DVBS2::build_bch_encoder <>(params, poly_gen  ));
+	uptr<tools::Codec<>       > LDPC_cdc      (factory::DVBS2::build_ldpc_cdc    <>(params            ));
+	uptr<Interleaver<>        > itl           (factory::DVBS2::build_itl         <>(params, *itl_core ));
+	uptr<Modem<>              > modem         (factory::DVBS2::build_modem       <>(params, cstl.get()));
+	uptr<Framer<>             > framer        (factory::DVBS2::build_framer      <>(params            ));
+	uptr<Scrambler<float>     > pl_scrambler  (factory::DVBS2::build_pl_scrambler<>(params            ));
+	uptr<Filter<>             > shaping_filter(factory::DVBS2::build_uprrc_filter<>(params            ));
+	uptr<Radio<>              > radio         (factory::DVBS2::build_radio       <>(params            ));
 
 	auto* LDPC_encoder = &LDPC_cdc->get_encoder();
 
@@ -66,32 +67,32 @@ int main(int argc, char** argv)
 	LDPC_encoder->set_custom_name("Encoder LDPC");
 
 	// the full transmission chain binding
-	(*bb_scrambler  )[scr::sck::scramble  ::X_N1] = (*source        )[src::sck::generate  ::out_data];
-	(*BCH_encoder   )[enc::sck::encode    ::U_K ] = (*bb_scrambler  )[scr::sck::scramble  ::X_N2    ];
-	(*LDPC_encoder  )[enc::sck::encode    ::U_K ] = (*BCH_encoder   )[enc::sck::encode    ::X_N     ];
-	(*itl           )[itl::sck::interleave::nat ] = (*LDPC_encoder  )[enc::sck::encode    ::X_N     ];
-	(*modem         )[mdm::sck::modulate  ::X_N1] = (*itl           )[itl::sck::interleave::itl     ];
-	(*framer        )[frm::sck::generate  ::Y_N1] = (*modem         )[mdm::sck::modulate  ::X_N2    ];
-	(*pl_scrambler  )[scr::sck::scramble  ::X_N1] = (*framer        )[frm::sck::generate  ::Y_N2    ];
-	(*shaping_filter)[flt::sck::filter    ::X_N1] = (*pl_scrambler  )[scr::sck::scramble  ::X_N2    ];
-	(*radio         )[rad::sck::send      ::X_N1] = (*shaping_filter)[flt::sck::filter    ::Y_N2    ];
+	(*bb_scrambler  )[scr::sck::scramble  ::X_N1] = (*source        )[spu::module::src::sck::generate  ::out_data];
+	(*BCH_encoder   )[enc::sck::encode    ::U_K ] = (*bb_scrambler  )[             scr::sck::scramble  ::X_N2    ];
+	(*LDPC_encoder  )[enc::sck::encode    ::U_K ] = (*BCH_encoder   )[             enc::sck::encode    ::X_N     ];
+	(*itl           )[itl::sck::interleave::nat ] = (*LDPC_encoder  )[             enc::sck::encode    ::X_N     ];
+	(*modem         )[mdm::sck::modulate  ::X_N1] = (*itl           )[             itl::sck::interleave::itl     ];
+	(*framer        )[frm::sck::generate  ::Y_N1] = (*modem         )[             mdm::sck::modulate  ::X_N2    ];
+	(*pl_scrambler  )[scr::sck::scramble  ::X_N1] = (*framer        )[             frm::sck::generate  ::Y_N2    ];
+	(*shaping_filter)[flt::sck::filter    ::X_N1] = (*pl_scrambler  )[             scr::sck::scramble  ::X_N2    ];
+	(*radio         )[rad::sck::send      ::X_N1] = (*shaping_filter)[             flt::sck::filter    ::Y_N2    ];
 
 	// first stages of the whole transmission sequence
-	const std::vector<runtime::Task*> firsts_t = { &(*source)[src::tsk::generate] };
+	const std::vector<spu::runtime::Task*> firsts_t = { &(*source)[spu::module::src::tsk::generate] };
 
 #ifdef MULTI_THREADED
 	// pipeline definition with separation stages
-	const std::vector<std::pair<std::vector<runtime::Task*>, std::vector<runtime::Task*>>> sep_stages =
+	const std::vector<std::pair<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>> sep_stages =
 	{ // pipeline stage 0
-	  std::make_pair<std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
-	    { &(*source)[src::tsk::generate] },
-	    { &(*source)[src::tsk::generate] }),
+	  std::make_pair<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
+	    { &(*source)[spu::module::src::tsk::generate] },
+	    { &(*source)[spu::module::src::tsk::generate] }),
 	  // pipeline stage 1
-	  std::make_pair<std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_pair<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*bb_scrambler)[scr::tsk::scramble] },
 	    { &(*pl_scrambler)[scr::tsk::scramble] }),
 	  // pipeline stage 2
-	  std::make_pair<std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_pair<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*shaping_filter)[flt::tsk::filter] },
 	    { }),
 	};
@@ -108,8 +109,8 @@ int main(int argc, char** argv)
 	                                                 { 0, 1, 2, 5, 7, 8 }, // for stage 1
 	                                                 { 6 } };              // for stage 2
 
-	runtime::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
-	                                        thread_pinnigs, puids);
+	spu::runtime::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes,
+	                                             active_waitings, thread_pinnigs, puids);
 	if (enable_logs)
 	{
 		std::ofstream f("tx_pipeline_transmission.dot");
@@ -199,7 +200,7 @@ int main(int argc, char** argv)
 		{
 			std::cout << "#" << std::endl << "# Sequence stage " << ss << " (" << stages[ss]->get_n_threads()
 			          << " thread(s)): " << std::endl;
-			tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered);
+			spu::tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered);
 		}
 #else
 		std::cout << "#" << std::endl << "# Sequence sequential (" << sequence_transmission.get_n_threads()
@@ -210,7 +211,7 @@ int main(int argc, char** argv)
 
 #ifdef MULTI_THREADED
 	if (thread_pinnig)
-		tools::Thread_pinning::destroy();
+		spu::tools::Thread_pinning::destroy();
 #endif /* MULTI_THREADED */
 
 	return EXIT_SUCCESS;
