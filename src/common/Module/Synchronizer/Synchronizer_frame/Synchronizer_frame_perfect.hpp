@@ -23,7 +23,7 @@ public:
 	Synchronizer_frame_perfect (const int N, const int frame_delay, const int n_frames = 1);
 	virtual ~Synchronizer_frame_perfect();
 	void step(const std::complex<R>* x_elt, R* y_elt);
-	void reset();
+	virtual void reset();
 	R    _get_metric() const;
 	bool _get_packet_flag() const;
 

@@ -20,7 +20,7 @@ namespace module
 	}
 
 template <typename R = float>
-class Synchronizer_freq_coarse : public spu::module::Stateful
+class Synchronizer_freq_coarse : public spu::module::Stateful, public spu::tools::Interface_reset
 {
 public:
 	inline spu::runtime::Task&   operator[](const sfc::tsk              t) { return spu::module::Module::operator[]((int)t);                             }

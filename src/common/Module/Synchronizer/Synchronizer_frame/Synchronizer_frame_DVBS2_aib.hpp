@@ -33,7 +33,7 @@ public:
 	Synchronizer_frame_DVBS2_aib (const int N, const R alpha = 0, const R trigger = 25, const int n_frames = 1);
 	virtual ~Synchronizer_frame_DVBS2_aib();
 	void step(const std::complex<R>* x_elt, R* y_elt);
-	void reset();
+	virtual void reset();
 	R _get_metric() const {return this->max_corr;};
 	bool _get_packet_flag() const {return(this->max_corr > this->trigger);};
 

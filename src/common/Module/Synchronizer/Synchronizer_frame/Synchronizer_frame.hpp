@@ -22,7 +22,7 @@ namespace sfm
 	}
 }
 template <typename R = float>
-class Synchronizer_frame : public spu::module::Stateful
+class Synchronizer_frame : public spu::module::Stateful, public spu::tools::Interface_reset
 {
 protected:
 	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */

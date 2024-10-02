@@ -262,6 +262,8 @@ int main(int argc, char** argv)
 
 	for (auto& mod : sequence_transmission.get_modules<spu::tools::Interface_reset>(false))
 		mod->reset();
+	for (auto& rep : terminal_stats.get_reporters())
+		rep->reset();
 
 	auto start_sched = std::chrono::system_clock::now();
 	std::cout << "Run OTAC scheduler (R = " << params.sched_R << ")... ";

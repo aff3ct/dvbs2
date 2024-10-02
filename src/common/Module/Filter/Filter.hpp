@@ -37,7 +37,7 @@ namespace module
  * Please use Filter for inheritance (instead of Filter)
  */
 template <typename R = float>
-class Filter : public spu::module::Stateful
+class Filter : public spu::module::Stateful, public spu::tools::Interface_reset
 {
 public:
 	inline spu::runtime::Task&   operator[](const flt::tsk                 t) { return spu::module::Module::operator[]((int)t);                        }

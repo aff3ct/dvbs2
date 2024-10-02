@@ -31,7 +31,7 @@ namespace module
  * Please use Synchronizer for inheritance (instead of Synchronizer)
  */
 template <typename B = int, typename R = float>
-class Synchronizer_timing : public spu::module::Stateful
+class Synchronizer_timing : public spu::module::Stateful, public spu::tools::Interface_reset
 {
 public:
 	inline spu::runtime::Task&   operator[](const stm::tsk              t) { return spu::module::Module::operator[]((int)t);                             }
