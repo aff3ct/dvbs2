@@ -13,7 +13,7 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Multiplier_sine_ccc_naive : public Multiplier<R>
+class Multiplier_sine_ccc_naive : public Multiplier<R>, public spu::tools::Interface_reset
 {
 private:
 	R n;        // Current time instant

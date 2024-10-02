@@ -35,7 +35,7 @@ namespace module
  * Please use Synchronizer for inheritance (instead of Synchronizer)
  */
 template <typename B = int, typename R = float>
-class Synchronizer_step_mf_cc : public spu::module::Stateful
+class Synchronizer_step_mf_cc : public spu::module::Stateful, public spu::tools::Interface_reset
 {
 public:
 	inline spu::runtime::Task&   operator[](const smf::tsk              t) {return spu::module::Module::operator[]((int)t);                            }

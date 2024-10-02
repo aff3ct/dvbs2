@@ -13,7 +13,7 @@ namespace aff3ct
 namespace module
 {
 template <typename R = float>
-class Multiplier_fading_DVBS2 : public Multiplier<R>
+class Multiplier_fading_DVBS2 : public Multiplier<R>, public spu::tools::Interface_reset
 {
 private:
 	std::vector<R> gain_sequence;
