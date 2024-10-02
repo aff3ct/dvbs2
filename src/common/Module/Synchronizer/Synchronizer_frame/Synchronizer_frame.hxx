@@ -7,8 +7,6 @@
 #include <cmath>
 #include <sstream>
 
-#include "Tools/Exception/exception.hpp"
-
 namespace aff3ct
 {
 namespace module
@@ -17,7 +15,7 @@ namespace module
 template <typename R>
 Synchronizer_frame<R>::
 Synchronizer_frame(const int N, const int n_frames)
-: Module(), N_in(N), N_out(N), delay(0)
+: spu::module::Stateful(), N_in(N), N_out(N), delay(0)
 {
 	const std::string name = "Synchronizer_frame";
 	this->set_name(name);
@@ -29,14 +27,14 @@ Synchronizer_frame(const int N, const int n_frames)
 	{
 		std::stringstream message;
 		message << "'N_in' has to be greater than 0 ('N_in' = " << N_in << ").";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (N_out <= 0)
 	{
 		std::stringstream message;
 		message << "'N_out' has to be greater than 0 ('N_out' = " << N_out << ").";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	auto &p1 = this->create_task("synchronize");
@@ -45,7 +43,9 @@ Synchronizer_frame(const int N, const int n_frames)
 	auto p1s_FLG  = this->template create_socket_out<int>(p1, "FLG", 1            );
 	auto p1s_TRI  = this->template create_socket_out<R>  (p1, "TRI", 1            );
 	auto p1s_Y_N2 = this->template create_socket_out<R>  (p1, "Y_N2" , this->N_out);
-	this->create_codelet(p1, [p1s_X_N1, p1s_DEL, p1s_FLG, p1s_TRI, p1s_Y_N2](Module &m, runtime::Task &t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_X_N1, p1s_DEL, p1s_FLG, p1s_TRI, p1s_Y_N2](spu::module::Module &m,
+	                                                                         spu::runtime::Task &t,
+	                                                                         const size_t frame_id) -> int
 	{
 		static_cast<Synchronizer_frame<R>&>(m).synchronize(static_cast<R*  >(t[p1s_X_N1 ].get_dataptr()),
 		                                                   static_cast<int*>(t[p1s_DEL  ].get_dataptr()),
@@ -88,7 +88,7 @@ synchronize(const std::vector<R,AR>& X_N1, std::vector<int>& DEL, std::vector<in
 		std::stringstream message;
 		message << "'X_N1.size()' has to be equal to 'N' * 'n_frames' ('X_N1.size()' = " << X_N1.size()
 		        << ", 'N' = " << this->N_in << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->n_frames != (int)DEL.size())
@@ -96,7 +96,7 @@ synchronize(const std::vector<R,AR>& X_N1, std::vector<int>& DEL, std::vector<in
 		std::stringstream message;
 		message << "'DEL.size()' has to be equal to '1' * 'n_frames' ('DEL.size()' = " << DEL.size()
 		        << ", 'N' = " << this->N_out << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->n_frames != (int)FLG.size())
@@ -104,7 +104,7 @@ synchronize(const std::vector<R,AR>& X_N1, std::vector<int>& DEL, std::vector<in
 		std::stringstream message;
 		message << "'FLG.size()' has to be equal to '1' * 'n_frames' ('FLG.size()' = " << FLG.size()
 		        << ", 'N' = " << this->N_out << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->n_frames != (int)TRI.size())
@@ -112,7 +112,7 @@ synchronize(const std::vector<R,AR>& X_N1, std::vector<int>& DEL, std::vector<in
 		std::stringstream message;
 		message << "'TRI.size()' has to be equal to '1' * 'n_frames' ('TRI.size()' = " << TRI.size()
 		        << ", 'N' = " << this->N_out << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->N_out * this->n_frames != (int)Y_N2.size())
@@ -120,7 +120,7 @@ synchronize(const std::vector<R,AR>& X_N1, std::vector<int>& DEL, std::vector<in
 		std::stringstream message;
 		message << "'Y_N2.size()' has to be equal to 'N' * 'n_frames' ('Y_N2.size()' = " << Y_N2.size()
 		        << ", 'N' = " << this->N_out << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	this->synchronize(X_N1.data(), DEL.data(), FLG.data(), TRI.data(), Y_N2.data(), frame_id);
@@ -149,7 +149,7 @@ template <typename R>
 void Synchronizer_frame<R>::
 _synchronize(const R *X_N1, int* DEL, R *Y_N2, const int frame_id)
 {
-	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+	throw spu::tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 }

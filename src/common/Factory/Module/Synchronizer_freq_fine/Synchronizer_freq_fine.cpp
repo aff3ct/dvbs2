@@ -65,7 +65,7 @@ module::Synchronizer_freq_fine<R>* Synchronizer_freq_fine
 	else if (this->type == "NORMAL")
 		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_Luise_Reggiannini_DVBS2_aib<R>(2 * this->N, this->lr_alpha, this->n_frames));
 
-	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);
+	throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }
 
 template <typename R>
@@ -77,7 +77,7 @@ module::Synchronizer_freq_fine<R>* Synchronizer_freq_fine
 	else if (this->type == "NORMAL")
 		return dynamic_cast<module::Synchronizer_freq_fine<R>*>(new module::Synchronizer_freq_phase_DVBS2_aib<R>(2 * this->N, this->n_frames));
 
-	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);
+	throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }
 
 // ==================================================================================== explicit template instantiation

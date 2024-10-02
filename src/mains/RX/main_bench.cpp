@@ -1,6 +1,7 @@
 #include <chrono>
 #include <fstream>
 #include <aff3ct.hpp>
+#include <streampu.hpp>
 
 #include "Factory/DVBS2/DVBS2.hpp"
 #ifdef DVBS2_LINK_UHD
@@ -27,14 +28,14 @@ int main(int argc, char** argv)
 #ifdef MULTI_THREADED
 	if (thread_pinnig)
 	{
-		tools::Thread_pinning::init();
-		// tools::Thread_pinning::set_logs(enable_logs);
-		tools::Thread_pinning::pin(0);
+		spu::tools::Thread_pinning::init();
+		// spu::tools::Thread_pinning::set_logs(enable_logs);
+		spu::tools::Thread_pinning::pin(0);
 	}
 #endif /* MULTI_THREADED */
 
 	// setup signal handlers
-	tools::Signal_handler::init();
+	spu::tools::Signal_handler::init();
 
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
@@ -50,7 +51,7 @@ int main(int argc, char** argv)
 	tools::BCH_polynomial_generator<> poly_gen(params.N_bch_unshortened, 12, params.bch_prim_poly);
 
 	// construct modules
-	uptr<Sink<>                     > sink         (factory::DVBS2::build_sink                    <>(params            ));
+	uptr<spu::module::Sink<>        > sink         (factory::DVBS2::build_sink                    <>(params            ));
 	uptr<Radio<>                    > radio        (factory::DVBS2::build_radio                   <>(params            ));
 	uptr<Scrambler<>                > bb_scrambler (factory::DVBS2::build_bb_scrambler            <>(params            ));
 	uptr<Decoder_HIHO<>             > BCH_decoder  (factory::DVBS2::build_bch_decoder             <>(params, poly_gen  ));
@@ -89,29 +90,29 @@ int main(int argc, char** argv)
 	mult_agc     ->set_custom_name("Mult agc"    );
 
 	// the full transmission chain binding
-	(*front_agc    )[mlt::sck::imultiply   ::X_N    ] = (*radio        )[rad::sck::receive     ::Y_N1];
-	(*sync_coarse_f)[sfc::sck::synchronize ::X_N1   ] = (*front_agc    )[mlt::sck::imultiply   ::Z_N ];
-	(*matched_flt  )[flt::sck::filter      ::X_N1   ] = (*sync_coarse_f)[sfc::sck::synchronize ::Y_N2];
-	(*sync_timing  )[stm::sck::synchronize ::X_N1   ] = (*matched_flt  )[flt::sck::filter      ::Y_N2];
-	(*sync_timing  )[stm::sck::extract     ::B_N1   ] = (*sync_timing  )[stm::sck::synchronize ::B_N1];
-	(*sync_timing  )[stm::sck::extract     ::Y_N1   ] = (*sync_timing  )[stm::sck::synchronize ::Y_N1];
-	(*mult_agc     )[mlt::sck::imultiply   ::X_N    ] = (*sync_timing  )[stm::sck::extract     ::Y_N2];
-	(*sync_frame   )[sfm::sck::synchronize ::X_N1   ] = (*mult_agc     )[mlt::sck::imultiply   ::Z_N ];
-	(*pl_scrambler )[scr::sck::descramble  ::Y_N1   ] = (*sync_frame   )[sfm::sck::synchronize ::Y_N2];
-	(*sync_fine_lr )[sff::sck::synchronize ::X_N1   ] = (*pl_scrambler )[scr::sck::descramble  ::Y_N2];
-	(*sync_fine_pf )[sff::sck::synchronize ::X_N1   ] = (*sync_fine_lr )[sff::sck::synchronize ::Y_N2];
-	(*framer       )[frm::sck::remove_plh  ::Y_N1   ] = (*sync_fine_pf )[sff::sck::synchronize ::Y_N2];
-	(*estimator    )[est::sck::estimate    ::X_N    ] = (*framer       )[frm::sck::remove_plh  ::Y_N2];
-	(*modem        )[mdm::sck::demodulate  ::CP     ] = (*estimator    )[est::sck::estimate    ::SIG ];
-	(*modem        )[mdm::sck::demodulate  ::Y_N1   ] = (*framer       )[frm::sck::remove_plh  ::Y_N2];
-	(*itl_rx       )[itl::sck::deinterleave::itl    ] = (*modem        )[mdm::sck::demodulate  ::Y_N2];
-	(*LDPC_decoder )[dec::sck::decode_siho ::Y_N    ] = (*itl_rx       )[itl::sck::deinterleave::nat ];
-	(*BCH_decoder  )[dec::sck::decode_hiho ::Y_N    ] = (*LDPC_decoder )[dec::sck::decode_siho ::V_K ];
-	(*bb_scrambler )[scr::sck::descramble  ::Y_N1   ] = (*BCH_decoder  )[dec::sck::decode_hiho ::V_K ];
-	(*sink         )[snk::sck::send        ::in_data] = (*bb_scrambler )[scr::sck::descramble  ::Y_N2];
+	(*front_agc    )[             mlt::sck::imultiply   ::X_N    ] = (*radio        )[rad::sck::receive     ::Y_N1];
+	(*sync_coarse_f)[             sfc::sck::synchronize ::X_N1   ] = (*front_agc    )[mlt::sck::imultiply   ::Z_N ];
+	(*matched_flt  )[             flt::sck::filter      ::X_N1   ] = (*sync_coarse_f)[sfc::sck::synchronize ::Y_N2];
+	(*sync_timing  )[             stm::sck::synchronize ::X_N1   ] = (*matched_flt  )[flt::sck::filter      ::Y_N2];
+	(*sync_timing  )[             stm::sck::extract     ::B_N1   ] = (*sync_timing  )[stm::sck::synchronize ::B_N1];
+	(*sync_timing  )[             stm::sck::extract     ::Y_N1   ] = (*sync_timing  )[stm::sck::synchronize ::Y_N1];
+	(*mult_agc     )[             mlt::sck::imultiply   ::X_N    ] = (*sync_timing  )[stm::sck::extract     ::Y_N2];
+	(*sync_frame   )[             sfm::sck::synchronize ::X_N1   ] = (*mult_agc     )[mlt::sck::imultiply   ::Z_N ];
+	(*pl_scrambler )[             scr::sck::descramble  ::Y_N1   ] = (*sync_frame   )[sfm::sck::synchronize ::Y_N2];
+	(*sync_fine_lr )[             sff::sck::synchronize ::X_N1   ] = (*pl_scrambler )[scr::sck::descramble  ::Y_N2];
+	(*sync_fine_pf )[             sff::sck::synchronize ::X_N1   ] = (*sync_fine_lr )[sff::sck::synchronize ::Y_N2];
+	(*framer       )[             frm::sck::remove_plh  ::Y_N1   ] = (*sync_fine_pf )[sff::sck::synchronize ::Y_N2];
+	(*estimator    )[             est::sck::estimate    ::X_N    ] = (*framer       )[frm::sck::remove_plh  ::Y_N2];
+	(*modem        )[             mdm::sck::demodulate  ::CP     ] = (*estimator    )[est::sck::estimate    ::SIG ];
+	(*modem        )[             mdm::sck::demodulate  ::Y_N1   ] = (*framer       )[frm::sck::remove_plh  ::Y_N2];
+	(*itl_rx       )[             itl::sck::deinterleave::itl    ] = (*modem        )[mdm::sck::demodulate  ::Y_N2];
+	(*LDPC_decoder )[             dec::sck::decode_siho ::Y_N    ] = (*itl_rx       )[itl::sck::deinterleave::nat ];
+	(*BCH_decoder  )[             dec::sck::decode_hiho ::Y_N    ] = (*LDPC_decoder )[dec::sck::decode_siho ::V_K ];
+	(*bb_scrambler )[             scr::sck::descramble  ::Y_N1   ] = (*BCH_decoder  )[dec::sck::decode_hiho ::V_K ];
+	(*sink         )[spu::module::snk::sck::send        ::in_data] = (*bb_scrambler )[scr::sck::descramble  ::Y_N2];
 
 	// first stages of the whole transmission sequence
-	const std::vector<runtime::Task*> firsts_t = { &(*radio)[rad::tsk::receive] };
+	const std::vector<spu::runtime::Task*> firsts_t = { &(*radio)[rad::tsk::receive] };
 
 #ifdef MULTI_THREADED
 	auto start_clone = std::chrono::system_clock::now();
@@ -119,47 +120,47 @@ int main(int argc, char** argv)
 	std::cout.flush();
 
 	// pipeline definition with separation stages
-	const std::vector<std::tuple<std::vector<runtime::Task*>,
-	                             std::vector<runtime::Task*>,
-	                             std::vector<runtime::Task*>>> sep_stages =
+	const std::vector<std::tuple<std::vector<spu::runtime::Task*>,
+	                             std::vector<spu::runtime::Task*>,
+	                             std::vector<spu::runtime::Task*>>> sep_stages =
 	{ // pipeline stage 0
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*radio)[rad::tsk::receive], },
 	    { &(*radio)[rad::tsk::receive], },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 1
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*front_agc)[mlt::tsk::imultiply] },
 	    { &(*matched_flt)[flt::tsk::filter] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 2
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*sync_timing)[stm::tsk::synchronize] },
 	    { &(*sync_timing)[stm::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 3
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*sync_timing)[stm::tsk::extract] },
 	    { &(*sync_frame)[sfm::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 4
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*pl_scrambler)[scr::tsk::descramble]  },
 	    { &(*sync_fine_pf)[sff::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 5
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*framer)[frm::tsk::remove_plh] },
 	    { &(*estimator)[est::tsk::estimate] },
 	    { &(*modem)[mdm::tsk::demodulate] } ),
 	  // pipeline stage 6
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*modem)[mdm::tsk::demodulate] },
 	    { &(*bb_scrambler)[scr::tsk::descramble] },
 	    { } ),
 	  // pipeline stage 7
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
-	    { &(*sink)[snk::tsk::send] },
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
+	    { &(*sink)[spu::module::snk::tsk::send] },
 	    { /* end of the sequence */ },
 	    { /* no exclusions in this stage */ } ),
 	};
@@ -185,8 +186,8 @@ int main(int argc, char** argv)
 	                                                   43, 44, 45, 46, 47 },
 	                                                 { 8 } };                          // for stage 7
 
-	runtime::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings,
-	                                        thread_pinnigs, puids);
+	spu::runtime::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes,
+	                                             active_waitings, thread_pinnigs, puids);
 
 	if (enable_logs)
 	{
@@ -201,9 +202,9 @@ int main(int argc, char** argv)
 	std::cout << "Done (" << elapsed_seconds_clone.count() << "s)." << std::endl;
 
 	if (thread_pinnig)
-		tools::Thread_pinning::pin(0);
+		spu::tools::Thread_pinning::pin(0);
 #else
-	runtime::Sequence sequence_transmission(firsts_t);
+	spu::runtime::Sequence sequence_transmission(firsts_t);
 	if (enable_logs)
 	{
 		std::ofstream f("rx_sequence_transmission.dot");
@@ -251,12 +252,12 @@ int main(int argc, char** argv)
 		(*sync_timing )[stm::sck::extract    ::B_N1] = (*sync_step_mf)[smf::sck::synchronize::B_N1];
 		(*sync_timing )[stm::sck::extract    ::Y_N1] = (*sync_step_mf)[smf::sck::synchronize::Y_N1];
 
-		std::vector<runtime::Task*> firsts_wl12 = { &(*radio )[rad::tsk::receive], &(*feedbr)[fbr::tsk::produce] };
+		std::vector<spu::runtime::Task*> firsts_wl12 = { &(*radio )[rad::tsk::receive], &(*feedbr)[fbr::tsk::produce] };
 
-		std::vector<runtime::Task*> lasts_wl12 = { &(*feedbr)[fbr::tsk::memorize] };
-		std::vector<runtime::Task*> exclude_wl12 = { &(*pl_scrambler)[scr::tsk::descramble] };
+		std::vector<spu::runtime::Task*> lasts_wl12 = { &(*feedbr)[fbr::tsk::memorize] };
+		std::vector<spu::runtime::Task*> exclude_wl12 = { &(*pl_scrambler)[scr::tsk::descramble] };
 
-		runtime::Sequence sequence_waiting_and_learning_1_2(firsts_wl12, lasts_wl12, exclude_wl12);
+		spu::runtime::Sequence sequence_waiting_and_learning_1_2(firsts_wl12, lasts_wl12, exclude_wl12);
 		sequence_waiting_and_learning_1_2.set_auto_stop(false);
 
 		if (enable_logs)
@@ -344,11 +345,11 @@ int main(int argc, char** argv)
 		(*sync_timing  )[stm::sck::extract    ::B_N1] = (*sync_timing)[stm::sck::synchronize::B_N1];
 		(*sync_timing  )[stm::sck::extract    ::Y_N1] = (*sync_timing)[stm::sck::synchronize::Y_N1];
 
-		std::vector<runtime::Task*> firsts_l3 = { &(*radio)[rad::tsk::receive] };
+		std::vector<spu::runtime::Task*> firsts_l3 = { &(*radio)[rad::tsk::receive] };
 
-		std::vector<runtime::Task*> lasts_l3 = { &(*sync_fine_pf)[sff::tsk::synchronize] };
+		std::vector<spu::runtime::Task*> lasts_l3 = { &(*sync_fine_pf)[sff::tsk::synchronize] };
 
-		runtime::Sequence sequence_learning_3(firsts_l3, lasts_l3);
+		spu::runtime::Sequence sequence_learning_3(firsts_l3, lasts_l3);
 		sequence_learning_3.set_auto_stop(false);
 
 		if (enable_logs)
@@ -423,12 +424,12 @@ int main(int argc, char** argv)
 		{
 			stats_out << "#" << std::endl << "# Sequence stage " << ss << " (" << stages[ss]->get_n_threads()
 			          << " thread(s)): " << std::endl;
-			tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered, true, stats_out);
+			spu::tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered, true, stats_out);
 		}
 #else
 		stats_out << "#" << std::endl << "# Sequence sequential (" << sequence_transmission.get_n_threads()
 		          << " thread(s)): " << std::endl;
-		tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered, true, stats_out);
+		spu::tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered, true, stats_out);
 #endif /* MULTI_THREADED */
 	}
 
@@ -437,7 +438,7 @@ int main(int argc, char** argv)
 
 #ifdef MULTI_THREADED
 	if (thread_pinnig)
-		tools::Thread_pinning::destroy();
+		spu::tools::Thread_pinning::destroy();
 #endif /* MULTI_THREADED */
 
 	return EXIT_SUCCESS;

@@ -246,95 +246,66 @@ int main(int argc, char** argv)
 	                                                    &prb_thr_the[spu::module::prb::tsk::probe] };
 
 #ifdef MULTI_THREADED
+	auto start_profile = std::chrono::system_clock::now();
+	std::cout << "Profile the time of the tasks (n_execs = " << params.sched_P << ")... ";
+	std::cout.flush();
+
+	spu::runtime::Sequence sequence_transmission(firsts_t);
+	std::unique_ptr<spu::sched::Scheduler> sched;
+	sched.reset(new spu::sched::Scheduler_OTAC(sequence_transmission, params.sched_R));
+	sched->profile(params.sched_P);
+	auto end_profile = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds_profile = end_profile - start_profile;
+	std::cout << "Done (" << elapsed_seconds_profile.count() << "s)." << std::endl;
+	if (enable_logs)
+		sched->print_profiling();
+
+	for (auto& mod : sequence_transmission.get_modules<spu::tools::Interface_reset>(false))
+		mod->reset();
+
+	auto start_sched = std::chrono::system_clock::now();
+	std::cout << "Run OTAC scheduler (R = " << params.sched_R << ")... ";
+	std::cout.flush();
+	sched->schedule();
+	auto end_sched = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds_sched = end_sched - start_sched;
+	std::cout << "Done (" << elapsed_seconds_sched.count() << "s)." << std::endl;
+	if (enable_logs)
+	{
+		std::vector<std::pair<size_t, size_t>> solution = sched->get_solution();
+		std::cout << "# Solution stages {(n,r)}"
+		          << ": {";
+		for (auto& pair_s : solution)
+		    std::cout << "(" << pair_s.first << ", " << pair_s.second << ")";
+		std::cout << "}" << std::endl;
+	}
+
+	std::string pinning_policy;
+	if (thread_pinnig)
+	{
+		pinning_policy = sched->perform_threads_mapping();
+#ifdef SPU_HWLOC
+		if (enable_logs)
+			std::cout << "# Effective pinning policy: " << pinning_policy << std::endl;
+#endif
+	}
+
 	auto start_clone = std::chrono::system_clock::now();
 	std::cout << "Cloning the modules of the parallel sequence... ";
 	std::cout.flush();
-
-	// pipeline definition with separation stages
-	const std::vector<std::tuple<std::vector<spu::runtime::Task*>,
-	                             std::vector<spu::runtime::Task*>,
-	                             std::vector<spu::runtime::Task*>>> sep_stages =
-	{ // pipeline stage 0
-	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
-	    { &(*radio)[rad::tsk::receive], &(*source)[spu::module::src::tsk::generate],
-	      &prb_rad_ovf[spu::module::prb::tsk::probe], &prb_rad_seq[spu::module::prb::tsk::probe],
-	      &prb_thr_the[spu::module::prb::tsk::probe] },
-	    { &(*radio)[rad::tsk::receive], &(*source)[spu::module::src::tsk::generate] },
-	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 1
-	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
-	    { &(*front_agc)[mlt::tsk::imultiply] },
-	    { &(*matched_flt)[flt::tsk::filter], &prb_frq_coa[spu::module::prb::tsk::probe] },
-	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 2
-	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
-	    { &(*sync_timing)[stm::tsk::synchronize], &prb_stm_del[spu::module::prb::tsk::probe] },
-	    { &(*sync_timing)[stm::tsk::synchronize] },
-	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 3
-	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
-	    { &(*sync_timing)[stm::tsk::extract], &prb_sfm_del[spu::module::prb::tsk::probe],
-	      &prb_sfm_tri[spu::module::prb::tsk::probe], &prb_sfm_flg[spu::module::prb::tsk::probe] },
-	    { &(*sync_frame)[sfm::tsk::synchronize] },
-	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 4
-	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
-	    { &(*pl_scrambler)[scr::tsk::descramble], &prb_frq_fin[spu::module::prb::tsk::probe] },
-	    { &(*sync_fine_pf)[sff::tsk::synchronize], &prb_frq_lr[spu::module::prb::tsk::probe] },
-	    { /* no exclusions in this stage */ } ),
-	  // pipeline stage 5
-	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
-	    { &(*framer)[frm::tsk::remove_plh], &prb_noise_sig[spu::module::prb::tsk::probe],
-	      &prb_noise_es[spu::module::prb::tsk::probe], &prb_noise_eb[spu::module::prb::tsk::probe] },
-	    { &(*estimator)[est::tsk::estimate] },
-	    { &(*modem)[mdm::tsk::demodulate] } ),
-	  // pipeline stage 6
-	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
-	    { &(*modem)[mdm::tsk::demodulate] },
-	    { &(*bb_scrambler)[scr::tsk::descramble] },
-	    { &prb_decstat_ldpc[spu::module::prb::tsk::probe], &prb_decstat_bch[spu::module::prb::tsk::probe],
-	      &prb_thr_thr[spu::module::prb::tsk::probe] } ),
-	  // pipeline stage 7
-	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
-	    { &(*monitor)[mnt::tsk::check_errors2], &(*sink)[spu::module::snk::tsk::send],
-	      &prb_decstat_ldpc[spu::module::prb::tsk::probe], &prb_decstat_bch[spu::module::prb::tsk::probe],
-	      &prb_thr_thr[spu::module::prb::tsk::probe] },
-	    { /* end of the sequence */ },
-	    { /* no exclusions in this stage */ } ),
-	};
-	// number of threads per stages
-	const std::vector<size_t> n_threads_per_stages = { 1, 1, 1, 1, 1, 1, 28, 1 };
-	// synchronization buffer size between stages
-	const std::vector<size_t> buffer_sizes(sep_stages.size() -1, 1);
-	// type of waiting between stages (true = active, false = passive)
-	const std::vector<bool> active_waitings(sep_stages.size() -1, active_waiting);
-	// enable thread pinning
-	const std::vector<bool> thread_pinnigs(sep_stages.size(), thread_pinnig);
-	// process unit (pu) ids per stage for thread pinning
-	const std::vector<std::vector<size_t>> puids = { { 2 },                            // for stage 0
-	                                                 { 3 },                            // for stage 1
-	                                                 { 4 },                            // for stage 2
-	                                                 { 5 },                            // for stage 3
-	                                                 { 6 },                            // for stage 4
-	                                                 { 7 },                            // for stage 5
-	                                                 { 12, 24, 25, 26, 27, 28, 29, 13, // for stage 6
-	                                                   30, 14, 31, 15, 32, 16, 33, 17,
-	                                                   34, 18, 35, 19, 36, 20, 37, 21,
-	                                                   38, 22, 39, 23, 39, 40, 41, 42,
-	                                                   43, 44, 45, 46, 47 },
-	                                                 { 8 } };                          // for stage 7
-
-	spu::runtime::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes,
-	                                             active_waitings, thread_pinnigs, puids);
+	std::unique_ptr<spu::runtime::Pipeline> pipeline_transmission;
+	size_t buffer_size = 1;
+	pipeline_transmission.reset(sched->instantiate_pipeline(buffer_size, active_waiting, thread_pinnig,
+		pinning_policy));
 
 	if (enable_logs)
 	{
 		std::ofstream f("rx_pipeline_transmission.dot");
-		pipeline_transmission.export_dot(f);
+		pipeline_transmission->export_dot(f);
 	}
 
-	auto tasks_per_types = pipeline_transmission.get_tasks_per_types();
-	pipeline_transmission.unbind_adaptors();
+	auto tasks_per_types = pipeline_transmission->get_tasks_per_types();
+	pipeline_transmission->unbind_adaptors();
 	auto end_clone = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds_clone = end_clone - start_clone;
 	std::cout << "Done (" << elapsed_seconds_clone.count() << "s)." << std::endl;
@@ -590,34 +561,17 @@ int main(int argc, char** argv)
 	prb_thr_thr.reset();
 	prb_thr_lat.reset();
 #ifdef MULTI_THREADED
-	pipeline_transmission.bind_adaptors();
-	pipeline_transmission.exec({
-		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s0
-		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s1
-		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s2
-		[&prb_fra_id] (const std::vector<const int*>& statuses)                  // stop condition s3
-		{
-			if (statuses.back() == nullptr && enable_logs)
-				std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, stage = 3"
-				          << ", m = " << prb_fra_id.get_occurrences() << ")" << std::endl;
-			return false;
-		},
-		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s4
-		[&noise_est, &estimator] (const std::vector<const int*>& statuses)       // stop condition s5
-		{
-			// update "noise_est" for the terminal display
-			if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
-				noise_est.set_values(((float*)(*estimator)[est::sck::estimate::SIG  ].get_dataptr())[0],
-				                     ((float*)(*estimator)[est::sck::estimate::Eb_N0].get_dataptr())[0],
-				                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
-			return false;
-		},
-		[] (const std::vector<const int*>& statuses) { return false; },          // stop condition s6
-		[&terminal_stats, &stats_file] (const std::vector<const int*>& statuses) // stop condition s7
-		{
-			terminal_stats.temp_report(stats_file);
-			return false;
-		}});
+	pipeline_transmission->bind_adaptors();
+	pipeline_transmission->exec([&noise_est, &estimator, &terminal_stats, &stats_file] (const std::vector<const int*>& statuses)
+	{
+		// update "noise_est" for the terminal display
+		if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
+			noise_est.set_values(((float*)(*estimator)[est::sck::estimate::SIG  ].get_dataptr())[0],
+			                     ((float*)(*estimator)[est::sck::estimate::Eb_N0].get_dataptr())[0],
+			                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
+		terminal_stats.temp_report(stats_file);
+		return false;
+	});
 #else
 	// start the transmission sequence
 	sequence_transmission.exec([&prb_fra_id, &terminal_stats, &stats_file, &noise_est, &estimator]
@@ -657,7 +611,7 @@ int main(int argc, char** argv)
 		std::ostream& stats_out = params.stats_path.empty() ? std::cout : file_stream;
 		const auto ordered = true;
 #ifdef MULTI_THREADED
-		auto stages = pipeline_transmission.get_stages();
+		auto stages = pipeline_transmission->get_stages();
 		for (size_t ss = 0; ss < stages.size(); ss++)
 		{
 			stats_out << "#" << std::endl << "# Sequence stage " << ss << " (" << stages[ss]->get_n_threads()

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <complex>
+#include <streampu.hpp>
 
 #include "Module/Synchronizer/Synchronizer.hpp"
 
@@ -21,7 +22,7 @@ namespace sfm
 	}
 }
 template <typename R = float>
-class Synchronizer_frame : public Module
+class Synchronizer_frame : public spu::module::Stateful
 {
 protected:
 	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */
@@ -29,8 +30,8 @@ protected:
 	int delay;
 
 public:
-	inline runtime::Task&   operator[](const sfm::tsk              t) { return Module::operator[]((int)t);                             }
-	inline runtime::Socket& operator[](const sfm::sck::synchronize s) { return Module::operator[]((int)syn::tsk::synchronize)[(int)s]; }
+	inline spu::runtime::Task&   operator[](const sfm::tsk              t) { return spu::module::Module::operator[]((int)t);                             }
+	inline spu::runtime::Socket& operator[](const sfm::sck::synchronize s) { return spu::module::Module::operator[]((int)syn::tsk::synchronize)[(int)s]; }
 
 public:
 	Synchronizer_frame(const int N, const int n_frames = 1);

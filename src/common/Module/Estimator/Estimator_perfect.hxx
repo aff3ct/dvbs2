@@ -12,6 +12,8 @@ Estimator_perfect<R>::
 Estimator_perfect(const int N, tools::Sigma<R>* noise_ref, const int n_frames)
 : Estimator<R>(N, n_frames), noise_ref(noise_ref)
 {
+	for (auto& t : this->tasks)
+		t->set_replicability(true);
 }
 
 template <typename R>
@@ -38,7 +40,7 @@ tools::Sigma<>& Estimator_perfect<R>
 	{
 		std::stringstream message;
 		message << "'noise' should not be nullptr.";
-		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	return *this->noise_ref;
@@ -52,7 +54,7 @@ void Estimator_perfect<R>
 	{
 		std::stringstream message;
 		message << "'noise_ref' should not be nullptr.";
-		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	this->sigma_estimated = this->noise_ref->get_value();

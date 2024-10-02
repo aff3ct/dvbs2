@@ -114,11 +114,11 @@ module::Synchronizer_timing<B,R>* Synchronizer_timing
 		                                                                                                                   this->detector_gain,
 		                                                                                                                   this->n_frames));
 		else
-			throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
+			throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
 	}
 	else
 	{
-		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
+		throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_timing type.");
 	}
 	return sync_timing;
 }

@@ -14,8 +14,6 @@
 #include <cmath>
 #include <sstream>
 
-#include "Tools/Exception/exception.hpp"
-
 #include "Module/Filter/Filter.hpp"
 
 namespace aff3ct
@@ -26,7 +24,7 @@ namespace module
 template <typename R>
 Filter<R>::
 Filter(const int N, const int N_fil, const int n_frames)
-: Module(), N(N), N_fil(N_fil)
+: spu::module::Stateful(), N(N), N_fil(N_fil)
 {
 	const std::string name = "Filter";
 	this->set_name(name);
@@ -38,14 +36,14 @@ Filter(const int N, const int N_fil, const int n_frames)
 	{
 		std::stringstream message;
 		message << "'N' has to be greater than 0 ('N' = " << N << ").";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (N_fil <= 0)
 	{
 		std::stringstream message;
 		message << "'N_fil' has to be greater than 0 ('N_fil' = " << N_fil << ").";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	this->init_processes();
@@ -58,7 +56,9 @@ init_processes()
 	auto &p1 = this->create_task("filter");
 	auto p1s_X_N1 = this->template create_socket_in <R>(p1, "X_N1", this->N    );
 	auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N_fil);
-	this->create_codelet(p1, [p1s_X_N1, p1s_Y_N2](Module &m, runtime::Task &t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_X_N1, p1s_Y_N2](spu::module::Module &m,
+	                                              spu::runtime::Task &t,
+	                                              const size_t frame_id) -> int
 	{
 		static_cast<Filter<R>&>(m).filter(static_cast<R*>(t[p1s_X_N1].get_dataptr()),
 		                                  static_cast<R*>(t[p1s_Y_N2].get_dataptr()));
@@ -91,7 +91,7 @@ filter(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_i
 		std::stringstream message;
 		message << "'X_N1.size()' has to be equal to 'N' * 'n_frames' ('X_N1.size()' = " << X_N1.size()
 		        << ", 'N' = " << this->N << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->N_fil * this->n_frames != (int)Y_N2.size())
@@ -99,7 +99,7 @@ filter(const std::vector<R,AR>& X_N1, std::vector<R,AR>& Y_N2, const int frame_i
 		std::stringstream message;
 		message << "'Y_N2.size()' has to be equal to 'N_fil' * 'n_frames' ('Y_N2.size()' = " << Y_N2.size()
 		        << ", 'N_fil' = " << this->N_fil << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	this->filter(X_N1.data(), Y_N2.data(), frame_id);
@@ -122,7 +122,7 @@ template <typename R>
 void Filter<R>::
 _filter(const R *X_N1, R *Y_N2, const int frame_id)
 {
-	throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+	throw spu::tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 

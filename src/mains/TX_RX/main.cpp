@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include <aff3ct.hpp>
+#include <streampu.hpp>
 
 #include "Factory/DVBS2/DVBS2.hpp"
 #include "Tools/Reporter/Reporter_throughput_DVBS2.hpp"
@@ -29,7 +30,7 @@ template<class T> using uptr = std::unique_ptr<T>;
 int main(int argc, char** argv)
 {
 	// setup signal handlers
-	tools::Signal_handler::init();
+	spu::tools::Signal_handler::init();
 
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
@@ -41,7 +42,7 @@ int main(int argc, char** argv)
 	tools::Header::print_parameters(param_vec, false, std::cout);
 
 	// the list of the allocated modules for the simulation
-	std::vector<const module::Module*> modules_each_snr;
+	std::vector<const spu::module::Module*> modules_each_snr;
 
 	// construct tools
 	tools::Constellation_user<float> cstl(params.constellation_file);
@@ -51,8 +52,8 @@ int main(int argc, char** argv)
 	tools::Sigma<> noise_ref;
 
 	// construct modules
-	uptr<Source<>                    > source        (factory::DVBS2::build_source                   <>(params             ));
-	uptr<Sink<>                      > sink          (factory::DVBS2::build_sink                     <>(params             ));
+	uptr<spu::module::Source<>       > source        (factory::DVBS2::build_source                   <>(params             ));
+	uptr<spu::module::Sink<>         > sink          (factory::DVBS2::build_sink                     <>(params             ));
 	uptr<Channel<>                   > channel       (factory::DVBS2::build_channel                  <>(params, gen        ));
 	uptr<Scrambler<>                 > bb_scrambler  (factory::DVBS2::build_bb_scrambler             <>(params             ));
 	uptr<Scrambler<>                 > bb_descrambler(factory::DVBS2::build_bb_scrambler             <>(params             ));
@@ -90,51 +91,51 @@ int main(int argc, char** argv)
 
 	const size_t probe_buff = 200;
 	// create reporters and probes for the statistics file
-	tools::Reporter_probe rep_fra_stats("Counter");
-	Probe_occurrence prb_fra_id("FRAME");
-	Probe_stream prb_fra_sid("STREAM");
+	spu::tools::Reporter_probe rep_fra_stats("Counter");
+	spu::module::Probe_occurrence prb_fra_id("FRAME");
+	spu::module::Probe_stream prb_fra_sid("STREAM");
 	rep_fra_stats.register_probes({ &prb_fra_id, &prb_fra_sid });
 	rep_fra_stats.set_cols_buff_size(probe_buff);
 	rep_fra_stats.set_n_frames(params.n_frames);
 
-	tools::Reporter_probe rep_sfm_stats("Frame Synchronization");
-	Probe_value<int32_t> prb_sfm_del(1, "DEL");
-	Probe_value<int32_t> prb_sfm_flg(1, "FLG");
-	Probe_value<float  > prb_sfm_tri(1, "TRI");
+	spu::tools::Reporter_probe rep_sfm_stats("Frame Synchronization");
+	spu::module::Probe_value<int32_t> prb_sfm_del(1, "DEL");
+	spu::module::Probe_value<int32_t> prb_sfm_flg(1, "FLG");
+	spu::module::Probe_value<float  > prb_sfm_tri(1, "TRI");
 	rep_sfm_stats.register_probes({ &prb_sfm_del, &prb_sfm_flg, &prb_sfm_tri });
 	prb_sfm_tri.set_col_fmtflags(std::ios_base::dec | std::ios_base::fixed);
 	rep_sfm_stats.set_cols_buff_size(probe_buff);
 	rep_sfm_stats.set_n_frames(params.n_frames);
 
-	tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm");
-	Probe_value<int32_t> prb_stm_uff(1, "UFW");
-	Probe_value<float  > prb_stm_del(1, "DEL");
+	spu::tools::Reporter_probe rep_stm_stats("Timing Synchronization", "Gardner Algorithm");
+	spu::module::Probe_value<int32_t> prb_stm_uff(1, "UFW");
+	spu::module::Probe_value<float  > prb_stm_del(1, "DEL");
 	rep_stm_stats.register_probes({ &prb_stm_uff, &prb_stm_del });
 	prb_stm_uff.set_col_unit("FLAG");
 	prb_stm_del.set_col_unit("FRAC");
 	rep_stm_stats.set_cols_buff_size(probe_buff);
 	rep_stm_stats.set_n_frames(params.n_frames);
 
-	tools::Reporter_probe rep_frq_stats("Frequency Synchronization");
-	Probe_value<float> prb_frq_coa(1, "COA");
-	Probe_value<float> prb_frq_lr (1, "L&R");
-	Probe_value<float> prb_frq_fin(1, "FIN");
+	spu::tools::Reporter_probe rep_frq_stats("Frequency Synchronization");
+	spu::module::Probe_value<float> prb_frq_coa(1, "COA");
+	spu::module::Probe_value<float> prb_frq_lr (1, "L&R");
+	spu::module::Probe_value<float> prb_frq_fin(1, "FIN");
 	rep_frq_stats.register_probes({ &prb_frq_coa, &prb_frq_lr, &prb_frq_fin });
 	rep_frq_stats.set_cols_unit("CFO");
 	rep_frq_stats.set_cols_buff_size(probe_buff);
 	rep_frq_stats.set_n_frames(params.n_frames);
 
-	tools::Reporter_probe rep_decstat_stats("Decoders Decoding Status", "('1' = success, '0' = fail)");
-	Probe_value<int8_t> prb_decstat_ldpc(1, "LDPC");
-	Probe_value<int8_t> prb_decstat_bch(1, "BCH");
+	spu::tools::Reporter_probe rep_decstat_stats("Decoders Decoding Status", "('1' = success, '0' = fail)");
+	spu::module::Probe_value<int8_t> prb_decstat_ldpc(1, "LDPC");
+	spu::module::Probe_value<int8_t> prb_decstat_bch(1, "BCH");
 	rep_decstat_stats.register_probes({ &prb_decstat_ldpc, &prb_decstat_bch });
 	rep_decstat_stats.set_cols_buff_size(probe_buff);
 	rep_decstat_stats.set_n_frames(params.n_frames);
 
-	tools::Reporter_probe rep_noise_rea_stats("Signal Noise Ratio", "Real (SNR)");
-	Probe_value<float> prb_noise_rsig(1, "SIGMA");
-	Probe_value<float> prb_noise_res(1, "Es/N0");
-	Probe_value<float> prb_noise_reb(1, "Eb/N0");
+	spu::tools::Reporter_probe rep_noise_rea_stats("Signal Noise Ratio", "Real (SNR)");
+	spu::module::Probe_value<float> prb_noise_rsig(1, "SIGMA");
+	spu::module::Probe_value<float> prb_noise_res(1, "Es/N0");
+	spu::module::Probe_value<float> prb_noise_reb(1, "Eb/N0");
 	rep_noise_rea_stats.register_probes({ &prb_noise_rsig, &prb_noise_res, &prb_noise_reb });
 	prb_noise_rsig.set_col_prec(4);
 	prb_noise_res.set_col_unit("(dB)");
@@ -143,10 +144,10 @@ int main(int argc, char** argv)
 	rep_noise_rea_stats.set_cols_buff_size(probe_buff);
 	rep_noise_rea_stats.set_n_frames(params.n_frames);
 
-	tools::Reporter_probe rep_noise_est_stats("Signal Noise Ratio", "Estimated (SNR)");
-	Probe_value<float> prb_noise_esig(1, "SIGMA");
-	Probe_value<float> prb_noise_ees(1, "Es/N0");
-	Probe_value<float> prb_noise_eeb(1, "Eb/N0");
+	spu::tools::Reporter_probe rep_noise_est_stats("Signal Noise Ratio", "Estimated (SNR)");
+	spu::module::Probe_value<float> prb_noise_esig(1, "SIGMA");
+	spu::module::Probe_value<float> prb_noise_ees(1, "Es/N0");
+	spu::module::Probe_value<float> prb_noise_eeb(1, "Eb/N0");
 	rep_noise_est_stats.register_probes({ &prb_noise_esig, &prb_noise_ees, &prb_noise_eeb });
 	prb_noise_esig.set_col_prec(4);
 	prb_noise_ees.set_col_unit("(dB)");
@@ -155,28 +156,28 @@ int main(int argc, char** argv)
 	rep_noise_est_stats.set_cols_buff_size(probe_buff);
 	rep_noise_est_stats.set_n_frames(params.n_frames);
 
-	tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER)", "and Frame Error Rate (FER)");
-	Probe_value<int32_t> prb_bfer_be(1, "BE");
-	Probe_value<int32_t> prb_bfer_fe(1, "FE");
-	Probe_value<float> prb_bfer_ber(1, "BER");
-	Probe_value<float> prb_bfer_fer(1, "FER");
+	spu::tools::Reporter_probe rep_BFER_stats("Bit Error Rate (BER)", "and Frame Error Rate (FER)");
+	spu::module::Probe_value<int32_t> prb_bfer_be(1, "BE");
+	spu::module::Probe_value<int32_t> prb_bfer_fe(1, "FE");
+	spu::module::Probe_value<float> prb_bfer_ber(1, "BER");
+	spu::module::Probe_value<float> prb_bfer_fer(1, "FER");
 	rep_BFER_stats.register_probes({ &prb_bfer_be, &prb_bfer_fe, &prb_bfer_ber, &prb_bfer_fer });
 	rep_BFER_stats.set_cols_buff_size(probe_buff);
 	rep_BFER_stats.set_n_frames(params.n_frames);
 
-	tools::Reporter_probe rep_thr_stats("Throughput", "and elapsed time");
-	Probe_throughput prb_thr_thr(params.K_bch, "THR");
-	Probe_latency prb_thr_lat("LAT");
-	Probe_time prb_thr_time("TIME");
-	Probe_timestamp prb_thr_tsta("TSTA");
+	spu::tools::Reporter_probe rep_thr_stats("Throughput", "and elapsed time");
+	spu::module::Probe_throughput prb_thr_thr(params.K_bch, "THR");
+	spu::module::Probe_latency prb_thr_lat("LAT");
+	spu::module::Probe_time prb_thr_time("TIME");
+	spu::module::Probe_timestamp prb_thr_tsta("TSTA");
 	rep_thr_stats.register_probes({ &prb_thr_thr, &prb_thr_lat, &prb_thr_time, &prb_thr_tsta });
 	prb_thr_thr.set_col_unit("(Mbps)");
 	rep_thr_stats.set_cols_buff_size(probe_buff);
 	rep_thr_stats.set_n_frames(params.n_frames);
 
-	tools::Terminal_dump terminal_stats({ &rep_fra_stats,       &rep_sfm_stats,     &rep_stm_stats,
-	                                      &rep_frq_stats,       &rep_decstat_stats, &rep_noise_rea_stats,
-	                                      &rep_noise_est_stats, &rep_BFER_stats,    &rep_thr_stats });
+	spu::tools::Terminal_dump terminal_stats({ &rep_fra_stats,       &rep_sfm_stats,     &rep_stm_stats,
+	                                           &rep_frq_stats,       &rep_decstat_stats, &rep_noise_rea_stats,
+	                                           &rep_noise_est_stats, &rep_BFER_stats,    &rep_thr_stats });
 
 	delay        ->set_custom_name("TX/RX Delay");
 	LDPC_encoder ->set_custom_name("LDPC Encoder");
@@ -199,76 +200,76 @@ int main(int argc, char** argv)
 	// socket binding of the full transmission sequence
 	std::vector<float> sigma(params.n_frames);
 	// delay line for BER/FER
-	(*delay         )[flt::sck::filter       ::X_N1   ] = (*source        )[src::sck::generate     ::out_data];
+	(*delay         )[             flt::sck::filter       ::X_N1   ] = (*source        )[spu::module::src::sck::generate     ::out_data];
 	// TX
-	(*bb_scrambler  )[scr::sck::scramble     ::X_N1   ] = (*source        )[src::sck::generate     ::out_data];
-	(*BCH_encoder   )[enc::sck::encode       ::U_K    ] = (*bb_scrambler  )[scr::sck::scramble     ::X_N2    ];
-	(*LDPC_encoder  )[enc::sck::encode       ::U_K    ] = (*BCH_encoder   )[enc::sck::encode       ::X_N     ];
-	(*itl_tx        )[itl::sck::interleave   ::nat    ] = (*LDPC_encoder  )[enc::sck::encode       ::X_N     ];
-	(*modem         )[mdm::sck::modulate     ::X_N1   ] = (*itl_tx        )[itl::sck::interleave   ::itl     ];
-	(*framer        )[frm::sck::generate     ::Y_N1   ] = (*modem         )[mdm::sck::modulate     ::X_N2    ];
-	(*pl_scrambler  )[scr::sck::scramble     ::X_N1   ] = (*framer        )[frm::sck::generate     ::Y_N2    ];
-	(*shaping_flt   )[flt::sck::filter       ::X_N1   ] = (*pl_scrambler  )[scr::sck::scramble     ::X_N2    ];
+	(*bb_scrambler  )[             scr::sck::scramble     ::X_N1   ] = (*source        )[spu::module::src::sck::generate     ::out_data];
+	(*BCH_encoder   )[             enc::sck::encode       ::U_K    ] = (*bb_scrambler  )[             scr::sck::scramble     ::X_N2    ];
+	(*LDPC_encoder  )[             enc::sck::encode       ::U_K    ] = (*BCH_encoder   )[             enc::sck::encode       ::X_N     ];
+	(*itl_tx        )[             itl::sck::interleave   ::nat    ] = (*LDPC_encoder  )[             enc::sck::encode       ::X_N     ];
+	(*modem         )[             mdm::sck::modulate     ::X_N1   ] = (*itl_tx        )[             itl::sck::interleave   ::itl     ];
+	(*framer        )[             frm::sck::generate     ::Y_N1   ] = (*modem         )[             mdm::sck::modulate     ::X_N2    ];
+	(*pl_scrambler  )[             scr::sck::scramble     ::X_N1   ] = (*framer        )[             frm::sck::generate     ::Y_N2    ];
+	(*shaping_flt   )[             flt::sck::filter       ::X_N1   ] = (*pl_scrambler  )[             scr::sck::scramble     ::X_N2    ];
 	// Channel
-	(*fad_mlt       )[mlt::sck::imultiply    ::X_N    ] = (*shaping_flt   )[flt::sck::filter       ::Y_N2    ];
-	(*chn_frm_del   )[flt::sck::filter       ::X_N1   ] = (*fad_mlt       )[mlt::sck::imultiply    ::Z_N     ];
-	(*chn_int_del   )[flt::sck::filter       ::X_N1   ] = (*chn_frm_del   )[flt::sck::filter       ::Y_N2    ];
-	(*chn_frac_del  )[flt::sck::filter       ::X_N1   ] = (*chn_int_del   )[flt::sck::filter       ::Y_N2    ];
-	(*freq_shift    )[mlt::sck::imultiply    ::X_N    ] = (*chn_frac_del  )[flt::sck::filter       ::Y_N2    ];
-	(*channel       )[chn::sck::add_noise    ::CP     ] =                                            sigma    ;
-	(*channel       )[chn::sck::add_noise    ::X_N    ] = (*freq_shift    )[mlt::sck::imultiply    ::Z_N     ];
+	(*fad_mlt       )[             mlt::sck::imultiply    ::X_N    ] = (*shaping_flt   )[             flt::sck::filter       ::Y_N2    ];
+	(*chn_frm_del   )[             flt::sck::filter       ::X_N1   ] = (*fad_mlt       )[             mlt::sck::imultiply    ::Z_N     ];
+	(*chn_int_del   )[             flt::sck::filter       ::X_N1   ] = (*chn_frm_del   )[             flt::sck::filter       ::Y_N2    ];
+	(*chn_frac_del  )[             flt::sck::filter       ::X_N1   ] = (*chn_int_del   )[             flt::sck::filter       ::Y_N2    ];
+	(*freq_shift    )[             mlt::sck::imultiply    ::X_N    ] = (*chn_frac_del  )[             flt::sck::filter       ::Y_N2    ];
+	(*channel       )[             chn::sck::add_noise    ::CP     ] =                                                         sigma    ;
+	(*channel       )[             chn::sck::add_noise    ::X_N    ] = (*freq_shift    )[             mlt::sck::imultiply    ::Z_N     ];
 	// RX
-	(*sync_coarse_f )[sfc::sck::synchronize  ::X_N1   ] = (*channel       )[chn::sck::add_noise    ::Y_N     ];
-	(*matched_flt   )[flt::sck::filter       ::X_N1   ] = (*sync_coarse_f )[sfc::sck::synchronize  ::Y_N2    ];
-	(*sync_timing   )[stm::sck::synchronize  ::X_N1   ] = (*matched_flt   )[flt::sck::filter       ::Y_N2    ];
-	(*sync_timing   )[stm::sck::extract      ::B_N1   ] = (*sync_timing   )[stm::sck::synchronize  ::B_N1    ];
-	(*sync_timing   )[stm::sck::extract      ::Y_N1   ] = (*sync_timing   )[stm::sck::synchronize  ::Y_N1    ];
-	(*mult_agc      )[mlt::sck::imultiply    ::X_N    ] = (*sync_timing   )[stm::sck::extract      ::Y_N2    ];
-	(*sync_frame    )[sfm::sck::synchronize  ::X_N1   ] = (*mult_agc      )[mlt::sck::imultiply    ::Z_N     ];
-	(*pl_scrambler  )[scr::sck::descramble   ::Y_N1   ] = (*sync_frame    )[sfm::sck::synchronize  ::Y_N2    ];
-	(*sync_fine_lr  )[sff::sck::synchronize  ::X_N1   ] = (*pl_scrambler  )[scr::sck::descramble   ::Y_N2    ];
-	(*sync_fine_pf  )[sff::sck::synchronize  ::X_N1   ] = (*sync_fine_lr  )[sff::sck::synchronize  ::Y_N2    ];
-	(*framer        )[frm::sck::remove_plh   ::Y_N1   ] = (*sync_fine_pf  )[sff::sck::synchronize  ::Y_N2    ];
-	(*estimator     )[est::sck::estimate     ::X_N    ] = (*framer        )[frm::sck::remove_plh   ::Y_N2    ];
-	(*modem         )[mdm::sck::demodulate   ::CP     ] = (*estimator     )[est::sck::estimate     ::SIG     ];
-	(*modem         )[mdm::sck::demodulate   ::Y_N1   ] = (*framer        )[frm::sck::remove_plh   ::Y_N2    ];
-	(*itl_rx        )[itl::sck::deinterleave ::itl    ] = (*modem         )[mdm::sck::demodulate   ::Y_N2    ];
-	(*LDPC_decoder  )[dec::sck::decode_siho  ::Y_N    ] = (*itl_rx        )[itl::sck::deinterleave ::nat     ];
-	(*BCH_decoder   )[dec::sck::decode_hiho  ::Y_N    ] = (*LDPC_decoder  )[dec::sck::decode_siho  ::V_K     ];
-	(*bb_descrambler)[scr::sck::descramble   ::Y_N1   ] = (*BCH_decoder   )[dec::sck::decode_hiho  ::V_K     ];
-	(*monitor       )[mnt::sck::check_errors2::U      ] = (*delay         )[flt::sck::filter       ::Y_N2    ];
-	(*monitor       )[mnt::sck::check_errors2::V      ] = (*bb_descrambler)[scr::sck::descramble   ::Y_N2    ];
-	(*sink          )[snk::sck::send         ::in_data] = (*bb_descrambler)[scr::sck::descramble   ::Y_N2    ];
+	(*sync_coarse_f )[             sfc::sck::synchronize  ::X_N1   ] = (*channel       )[             chn::sck::add_noise    ::Y_N     ];
+	(*matched_flt   )[             flt::sck::filter       ::X_N1   ] = (*sync_coarse_f )[             sfc::sck::synchronize  ::Y_N2    ];
+	(*sync_timing   )[             stm::sck::synchronize  ::X_N1   ] = (*matched_flt   )[             flt::sck::filter       ::Y_N2    ];
+	(*sync_timing   )[             stm::sck::extract      ::B_N1   ] = (*sync_timing   )[             stm::sck::synchronize  ::B_N1    ];
+	(*sync_timing   )[             stm::sck::extract      ::Y_N1   ] = (*sync_timing   )[             stm::sck::synchronize  ::Y_N1    ];
+	(*mult_agc      )[             mlt::sck::imultiply    ::X_N    ] = (*sync_timing   )[             stm::sck::extract      ::Y_N2    ];
+	(*sync_frame    )[             sfm::sck::synchronize  ::X_N1   ] = (*mult_agc      )[             mlt::sck::imultiply    ::Z_N     ];
+	(*pl_scrambler  )[             scr::sck::descramble   ::Y_N1   ] = (*sync_frame    )[             sfm::sck::synchronize  ::Y_N2    ];
+	(*sync_fine_lr  )[             sff::sck::synchronize  ::X_N1   ] = (*pl_scrambler  )[             scr::sck::descramble   ::Y_N2    ];
+	(*sync_fine_pf  )[             sff::sck::synchronize  ::X_N1   ] = (*sync_fine_lr  )[             sff::sck::synchronize  ::Y_N2    ];
+	(*framer        )[             frm::sck::remove_plh   ::Y_N1   ] = (*sync_fine_pf  )[             sff::sck::synchronize  ::Y_N2    ];
+	(*estimator     )[             est::sck::estimate     ::X_N    ] = (*framer        )[             frm::sck::remove_plh   ::Y_N2    ];
+	(*modem         )[             mdm::sck::demodulate   ::CP     ] = (*estimator     )[             est::sck::estimate     ::SIG     ];
+	(*modem         )[             mdm::sck::demodulate   ::Y_N1   ] = (*framer        )[             frm::sck::remove_plh   ::Y_N2    ];
+	(*itl_rx        )[             itl::sck::deinterleave ::itl    ] = (*modem         )[             mdm::sck::demodulate   ::Y_N2    ];
+	(*LDPC_decoder  )[             dec::sck::decode_siho  ::Y_N    ] = (*itl_rx        )[             itl::sck::deinterleave ::nat     ];
+	(*BCH_decoder   )[             dec::sck::decode_hiho  ::Y_N    ] = (*LDPC_decoder  )[             dec::sck::decode_siho  ::V_K     ];
+	(*bb_descrambler)[             scr::sck::descramble   ::Y_N1   ] = (*BCH_decoder   )[             dec::sck::decode_hiho  ::V_K     ];
+	(*monitor       )[             mnt::sck::check_errors2::U      ] = (*delay         )[             flt::sck::filter       ::Y_N2    ];
+	(*monitor       )[             mnt::sck::check_errors2::V      ] = (*bb_descrambler)[             scr::sck::descramble   ::Y_N2    ];
+	(*sink          )[spu::module::snk::sck::send         ::in_data] = (*bb_descrambler)[             scr::sck::descramble   ::Y_N2    ];
 	// bind the RX probes
-	prb_frq_coa      [prb::sck::probe        ::in     ] = (*sync_coarse_f )[sfc::sck::synchronize  ::FRQ     ];
-	prb_stm_del      [prb::sck::probe        ::in     ] = (*sync_timing   )[stm::sck::synchronize  ::MU      ];
-	prb_stm_uff      [prb::sck::probe        ::in     ] = (*sync_timing   )[stm::sck::extract      ::UFW     ];
-	prb_sfm_del      [prb::sck::probe        ::in     ] = (*sync_frame    )[sfm::sck::synchronize  ::DEL     ];
-	prb_sfm_tri      [prb::sck::probe        ::in     ] = (*sync_frame    )[sfm::sck::synchronize  ::TRI     ];
-	prb_sfm_flg      [prb::sck::probe        ::in     ] = (*sync_frame    )[sfm::sck::synchronize  ::FLG     ];
-	prb_frq_lr       [prb::sck::probe        ::in     ] = (*sync_fine_lr  )[sff::sck::synchronize  ::FRQ     ];
-	prb_frq_fin      [prb::sck::probe        ::in     ] = (*sync_fine_pf  )[sff::sck::synchronize  ::FRQ     ];
-	prb_noise_ees    [prb::sck::probe        ::in     ] = (*estimator     )[est::sck::estimate     ::Es_N0   ];
-	prb_noise_eeb    [prb::sck::probe        ::in     ] = (*estimator     )[est::sck::estimate     ::Eb_N0   ];
-	prb_noise_esig   [prb::sck::probe        ::in     ] = (*estimator     )[est::sck::estimate     ::SIG     ];
-	prb_decstat_ldpc [prb::sck::probe        ::in     ] = (*LDPC_decoder  )[dec::sck::decode_siho  ::CWD     ];
-	prb_decstat_bch  [prb::sck::probe        ::in     ] = (*BCH_decoder   )[dec::sck::decode_hiho  ::CWD     ];
-	prb_thr_thr      [prb::tsk::probe                 ] = (*bb_descrambler)[scr::sck::descramble   ::Y_N2    ];
-	prb_thr_lat      [prb::tsk::probe                 ] = (*sink          )[snk::sck::send         ::status  ];
-	prb_thr_time     [prb::tsk::probe                 ] = (*sink          )[snk::sck::send         ::status  ];
-	prb_thr_tsta     [prb::tsk::probe                 ] = (*sink          )[snk::sck::send         ::status  ];
-	prb_bfer_be      [prb::sck::probe        ::in     ] = (*monitor       )[mnt::sck::check_errors2::BE      ];
-	prb_bfer_fe      [prb::sck::probe        ::in     ] = (*monitor       )[mnt::sck::check_errors2::FE      ];
-	prb_bfer_ber     [prb::sck::probe        ::in     ] = (*monitor       )[mnt::sck::check_errors2::BER     ];
-	prb_bfer_fer     [prb::sck::probe        ::in     ] = (*monitor       )[mnt::sck::check_errors2::FER     ];
-	prb_fra_id       [prb::tsk::probe                 ] = (*sink          )[snk::sck::send         ::status  ];
-	prb_fra_sid      [prb::tsk::probe                 ] = (*sink          )[snk::sck::send         ::status  ];
+	prb_frq_coa      [spu::module::prb::sck::probe        ::in     ] = (*sync_coarse_f )[             sfc::sck::synchronize  ::FRQ     ];
+	prb_stm_del      [spu::module::prb::sck::probe        ::in     ] = (*sync_timing   )[             stm::sck::synchronize  ::MU      ];
+	prb_stm_uff      [spu::module::prb::sck::probe        ::in     ] = (*sync_timing   )[             stm::sck::extract      ::UFW     ];
+	prb_sfm_del      [spu::module::prb::sck::probe        ::in     ] = (*sync_frame    )[             sfm::sck::synchronize  ::DEL     ];
+	prb_sfm_tri      [spu::module::prb::sck::probe        ::in     ] = (*sync_frame    )[             sfm::sck::synchronize  ::TRI     ];
+	prb_sfm_flg      [spu::module::prb::sck::probe        ::in     ] = (*sync_frame    )[             sfm::sck::synchronize  ::FLG     ];
+	prb_frq_lr       [spu::module::prb::sck::probe        ::in     ] = (*sync_fine_lr  )[             sff::sck::synchronize  ::FRQ     ];
+	prb_frq_fin      [spu::module::prb::sck::probe        ::in     ] = (*sync_fine_pf  )[             sff::sck::synchronize  ::FRQ     ];
+	prb_noise_ees    [spu::module::prb::sck::probe        ::in     ] = (*estimator     )[             est::sck::estimate     ::Es_N0   ];
+	prb_noise_eeb    [spu::module::prb::sck::probe        ::in     ] = (*estimator     )[             est::sck::estimate     ::Eb_N0   ];
+	prb_noise_esig   [spu::module::prb::sck::probe        ::in     ] = (*estimator     )[             est::sck::estimate     ::SIG     ];
+	prb_decstat_ldpc [spu::module::prb::sck::probe        ::in     ] = (*LDPC_decoder  )[             dec::sck::decode_siho  ::CWD     ];
+	prb_decstat_bch  [spu::module::prb::sck::probe        ::in     ] = (*BCH_decoder   )[             dec::sck::decode_hiho  ::CWD     ];
+	prb_thr_thr      [spu::module::prb::tsk::probe                 ] = (*bb_descrambler)[             scr::sck::descramble   ::Y_N2    ];
+	prb_thr_lat      [spu::module::prb::tsk::probe                 ] = (*sink          )[spu::module::snk::sck::send         ::status  ];
+	prb_thr_time     [spu::module::prb::tsk::probe                 ] = (*sink          )[spu::module::snk::sck::send         ::status  ];
+	prb_thr_tsta     [spu::module::prb::tsk::probe                 ] = (*sink          )[spu::module::snk::sck::send         ::status  ];
+	prb_bfer_be      [spu::module::prb::sck::probe        ::in     ] = (*monitor       )[             mnt::sck::check_errors2::BE      ];
+	prb_bfer_fe      [spu::module::prb::sck::probe        ::in     ] = (*monitor       )[             mnt::sck::check_errors2::FE      ];
+	prb_bfer_ber     [spu::module::prb::sck::probe        ::in     ] = (*monitor       )[             mnt::sck::check_errors2::BER     ];
+	prb_bfer_fer     [spu::module::prb::sck::probe        ::in     ] = (*monitor       )[             mnt::sck::check_errors2::FER     ];
+	prb_fra_id       [spu::module::prb::tsk::probe                 ] = (*sink          )[spu::module::snk::sck::send         ::status  ];
+	prb_fra_sid      [spu::module::prb::tsk::probe                 ] = (*sink          )[spu::module::snk::sck::send         ::status  ];
 
 	// first stages of the whole transmission sequence
-	const std::vector<runtime::Task*> firsts_t = { &(*source     )[src::tsk::generate],
-	                                               &prb_noise_res [prb::tsk::probe   ],
-	                                               &prb_noise_reb [prb::tsk::probe   ],
-	                                               &prb_noise_rsig[prb::tsk::probe   ] };
+	const std::vector<spu::runtime::Task*> firsts_t = { &(*source     )[spu::module::src::tsk::generate],
+	                                                    &prb_noise_res [spu::module::prb::tsk::probe   ],
+	                                                    &prb_noise_reb [spu::module::prb::tsk::probe   ],
+	                                                    &prb_noise_rsig[spu::module::prb::tsk::probe   ] };
 
 #ifdef MULTI_THREADED
 	auto start_clone = std::chrono::system_clock::now();
@@ -276,68 +277,69 @@ int main(int argc, char** argv)
 	std::cout.flush();
 
 	// pipeline definition with separation stages
-	const std::vector<std::tuple<std::vector<runtime::Task*>,
-	                             std::vector<runtime::Task*>,
-	                             std::vector<runtime::Task*>>> sep_stages =
+	const std::vector<std::tuple<std::vector<spu::runtime::Task*>,
+	                             std::vector<spu::runtime::Task*>,
+	                             std::vector<spu::runtime::Task*>>> sep_stages =
 	{ // pipeline stage 0 -> TX
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
-	    { &(*source)[src::tsk::generate], &(*delay)[flt::tsk::filter], &prb_noise_res[prb::tsk::probe],
-	      &prb_noise_reb[prb::tsk::probe], &prb_noise_rsig[prb::tsk::probe] },
-	    { &(*source)[src::tsk::generate] },
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
+	    { &(*source)[spu::module::src::tsk::generate], &(*delay)[flt::tsk::filter],
+	      &prb_noise_res[spu::module::prb::tsk::probe], &prb_noise_reb[spu::module::prb::tsk::probe],
+	      &prb_noise_rsig[spu::module::prb::tsk::probe] },
+	    { &(*source)[spu::module::src::tsk::generate] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 1 -> TX
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*bb_scrambler)[scr::tsk::scramble] },
 	    { &(*pl_scrambler)[scr::tsk::scramble] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 2 -> TX
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*shaping_flt)[flt::tsk::filter] },
 	    { &(*shaping_flt)[flt::tsk::filter] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 3 -> channel
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*fad_mlt)[mlt::tsk::imultiply] },
 	    { &(*channel)[chn::tsk::add_noise] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 4 -> RX
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*sync_coarse_f)[sfc::tsk::synchronize] },
-	    { &(*matched_flt)[flt::tsk::filter], &prb_frq_coa[prb::tsk::probe] },
+	    { &(*matched_flt)[flt::tsk::filter], &prb_frq_coa[spu::module::prb::tsk::probe] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 5 -> RX
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
-	    { &(*sync_timing)[stm::tsk::synchronize], &prb_stm_del[prb::tsk::probe] },
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
+	    { &(*sync_timing)[stm::tsk::synchronize], &prb_stm_del[spu::module::prb::tsk::probe] },
 	    { &(*sync_timing)[stm::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 6 -> RX
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
-	    { &(*sync_timing)[stm::tsk::extract], &prb_sfm_del[prb::tsk::probe], &prb_sfm_tri[prb::tsk::probe],
-	      &prb_sfm_flg[prb::tsk::probe] },
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
+	    { &(*sync_timing)[stm::tsk::extract], &prb_sfm_del[spu::module::prb::tsk::probe],
+	      &prb_sfm_tri[spu::module::prb::tsk::probe], &prb_sfm_flg[spu::module::prb::tsk::probe] },
 	    { &(*sync_frame)[sfm::tsk::synchronize] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 7 -> RX
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
-	    { &(*pl_scrambler)[scr::tsk::descramble], &prb_frq_fin[prb::tsk::probe] },
-	    { &(*sync_fine_pf)[sff::tsk::synchronize], &prb_frq_lr[prb::tsk::probe] },
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
+	    { &(*pl_scrambler)[scr::tsk::descramble], &prb_frq_fin[spu::module::prb::tsk::probe] },
+	    { &(*sync_fine_pf)[sff::tsk::synchronize], &prb_frq_lr[spu::module::prb::tsk::probe] },
 	    { /* no exclusions in this stage */ } ),
 	  // pipeline stage 8 -> RX
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
-	    { &(*framer)[frm::tsk::remove_plh], &prb_noise_esig[prb::tsk::probe], &prb_noise_ees[prb::tsk::probe],
-	      &prb_noise_eeb[prb::tsk::probe] },
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
+	    { &(*framer)[frm::tsk::remove_plh], &prb_noise_esig[spu::module::prb::tsk::probe],
+	      &prb_noise_ees[spu::module::prb::tsk::probe], &prb_noise_eeb[spu::module::prb::tsk::probe] },
 	    { &(*estimator)[est::tsk::estimate] },
 	    { &(*modem)[mdm::tsk::demodulate] } ),
 	  // pipeline stage 9 -> RX
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
 	    { &(*modem)[mdm::tsk::demodulate] },
 	    { &(*bb_descrambler)[scr::tsk::descramble] },
-	    { &prb_decstat_ldpc[prb::tsk::probe], &prb_decstat_bch[prb::tsk::probe],
-	      &prb_thr_thr[prb::tsk::probe] } ),
+	    { &prb_decstat_ldpc[spu::module::prb::tsk::probe], &prb_decstat_bch[spu::module::prb::tsk::probe],
+	      &prb_thr_thr[spu::module::prb::tsk::probe] } ),
 	  // pipeline stage 10 -> RX
-	  std::make_tuple<std::vector<runtime::Task*>, std::vector<runtime::Task*>, std::vector<runtime::Task*>>(
-	    { &(*monitor)[mnt::tsk::check_errors2], &(*sink)[snk::tsk::send],
-	      &prb_decstat_ldpc[prb::tsk::probe], &prb_decstat_bch[prb::tsk::probe],
-	      &prb_thr_thr[prb::tsk::probe] },
+	  std::make_tuple<std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>, std::vector<spu::runtime::Task*>>(
+	    { &(*monitor)[mnt::tsk::check_errors2], &(*sink)[spu::module::snk::tsk::send],
+	      &prb_decstat_ldpc[spu::module::prb::tsk::probe], &prb_decstat_bch[spu::module::prb::tsk::probe],
+	      &prb_thr_thr[spu::module::prb::tsk::probe] },
 	    { /* end of the sequence */ },
 	    { /* no exclusions in this stage */ } ),
 	};
@@ -348,7 +350,8 @@ int main(int argc, char** argv)
 	// type of waiting between stages (true = active, false = passive)
 	const std::vector<bool> active_waitings(sep_stages.size() -1, active_waiting);
 
-	runtime::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes, active_waitings);
+	spu::runtime::Pipeline pipeline_transmission(firsts_t, sep_stages, n_threads_per_stages, buffer_sizes,
+                                                 active_waitings);
 
 	if (enable_logs)
 	{
@@ -390,7 +393,7 @@ int main(int argc, char** argv)
 	tools::Reporter_throughput<> rep_thr  (*monitor        );
 
 	// allocate a terminal that will display the collected data from the reporters
-	tools::Terminal_std terminal({ &rep_noise, &rep_BFER, &rep_thr });
+	spu::tools::Terminal_std terminal({ &rep_noise, &rep_BFER, &rep_thr });
 
 	// display the legend in the terminal
 	terminal.legend();
@@ -410,9 +413,9 @@ int main(int argc, char** argv)
 		std::vector<float> ebvec (params.n_frames, ebn0    );
 		std::vector<float> sigvec(params.n_frames, sigma[0]);
 
-		prb_noise_res [prb::sck::probe::in].bind(esvec );
-		prb_noise_reb [prb::sck::probe::in].bind(ebvec );
-		prb_noise_rsig[prb::sck::probe::in].bind(sigvec);
+		prb_noise_res [spu::module::prb::sck::probe::in].bind(esvec );
+		prb_noise_reb [spu::module::prb::sck::probe::in].bind(ebvec );
+		prb_noise_rsig[spu::module::prb::sck::probe::in].bind(sigvec);
 
 		std::stringstream sigma_ss;
 		sigma_ss << std::fixed << std::setprecision(3) << sigma[0];
@@ -451,39 +454,39 @@ int main(int argc, char** argv)
 			terminal_stats.legend(waiting_stats);
 
 			// partial unbinding
-			(*sync_coarse_f)[sfc::sck::synchronize::X_N1].unbind((*channel      )[chn::sck::add_noise  ::Y_N ]);
-			(*sync_timing  )[stm::sck::extract    ::B_N1].unbind((*sync_timing  )[stm::sck::synchronize::B_N1]);
-			(*sync_timing  )[stm::sck::extract    ::Y_N1].unbind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
-			prb_frq_coa     [prb::sck::probe      ::in  ].unbind((*sync_coarse_f)[sfc::sck::synchronize::FRQ ]);
-			prb_stm_del     [prb::sck::probe      ::in  ].unbind((*sync_timing  )[stm::sck::synchronize::MU  ]);
+			(*sync_coarse_f)[             sfc::sck::synchronize::X_N1].unbind((*channel      )[chn::sck::add_noise  ::Y_N ]);
+			(*sync_timing  )[             stm::sck::extract    ::B_N1].unbind((*sync_timing  )[stm::sck::synchronize::B_N1]);
+			(*sync_timing  )[             stm::sck::extract    ::Y_N1].unbind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+			prb_frq_coa     [spu::module::prb::sck::probe      ::in  ].unbind((*sync_coarse_f)[sfc::sck::synchronize::FRQ ]);
+			prb_stm_del     [spu::module::prb::sck::probe      ::in  ].unbind((*sync_timing  )[stm::sck::synchronize::MU  ]);
 
 			// partial binding
-			(*sync_step_mf)[smf::sck::synchronize::X_N1] = (*channel     )[chn::sck::add_noise  ::Y_N ];
-			(*feedbr      )[fbr::sck::memorize   ::X_N ] = (*sync_frame  )[sfm::sck::synchronize::DEL ];
-			(*sync_step_mf)[smf::sck::synchronize::DEL ] = (*feedbr      )[fbr::sck::produce    ::Y_N ];
-			(*sync_timing )[stm::sck::extract    ::B_N1] = (*sync_step_mf)[smf::sck::synchronize::B_N1];
-			(*sync_timing )[stm::sck::extract    ::Y_N1] = (*sync_step_mf)[smf::sck::synchronize::Y_N1];
-			prb_frq_coa    [prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::FRQ ];
-			prb_stm_del    [prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::MU  ];
+			(*sync_step_mf)[             smf::sck::synchronize::X_N1] = (*channel     )[chn::sck::add_noise  ::Y_N ];
+			(*feedbr      )[             fbr::sck::memorize   ::X_N ] = (*sync_frame  )[sfm::sck::synchronize::DEL ];
+			(*sync_step_mf)[             smf::sck::synchronize::DEL ] = (*feedbr      )[fbr::sck::produce    ::Y_N ];
+			(*sync_timing )[             stm::sck::extract    ::B_N1] = (*sync_step_mf)[smf::sck::synchronize::B_N1];
+			(*sync_timing )[             stm::sck::extract    ::Y_N1] = (*sync_step_mf)[smf::sck::synchronize::Y_N1];
+			prb_frq_coa    [spu::module::prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::FRQ ];
+			prb_stm_del    [spu::module::prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize::MU  ];
 
-			std::vector<runtime::Task*> firsts_wl12 = { &(*source    )[src::tsk::generate],
-			                                            &prb_sfm_del  [prb::tsk::probe   ],
-			                                            &prb_sfm_tri  [prb::tsk::probe   ],
-			                                            &prb_sfm_flg  [prb::tsk::probe   ],
-			                                            &prb_thr_lat  [prb::tsk::probe   ],
-			                                            &prb_thr_time [prb::tsk::probe   ],
-			                                            &prb_thr_tsta [prb::tsk::probe   ],
-			                                            &prb_fra_id   [prb::tsk::probe   ],
-			                                            &prb_fra_sid  [prb::tsk::probe   ],
-			                                            &(*feedbr    )[fbr::tsk::produce ] };
+			std::vector<spu::runtime::Task*> firsts_wl12 = { &(*source    )[spu::module::src::tsk::generate],
+			                                                 &prb_sfm_del  [spu::module::prb::tsk::probe   ],
+			                                                 &prb_sfm_tri  [spu::module::prb::tsk::probe   ],
+			                                                 &prb_sfm_flg  [spu::module::prb::tsk::probe   ],
+			                                                 &prb_thr_lat  [spu::module::prb::tsk::probe   ],
+			                                                 &prb_thr_time [spu::module::prb::tsk::probe   ],
+			                                                 &prb_thr_tsta [spu::module::prb::tsk::probe   ],
+			                                                 &prb_fra_id   [spu::module::prb::tsk::probe   ],
+			                                                 &prb_fra_sid  [spu::module::prb::tsk::probe   ],
+			                                                 &(*feedbr    )[             fbr::tsk::produce ] };
 
-			std::vector<runtime::Task*> lasts_wl12 = { &(*feedbr)[fbr::tsk::memorize] };
-			std::vector<runtime::Task*> exclude_wl12 = { &(*pl_scrambler)[scr::tsk::descramble] };
+			std::vector<spu::runtime::Task*> lasts_wl12 = { &(*feedbr)[fbr::tsk::memorize] };
+			std::vector<spu::runtime::Task*> exclude_wl12 = { &(*pl_scrambler)[scr::tsk::descramble] };
 
 			prb_thr_thr .reset();
 			prb_thr_lat .reset();
 			prb_thr_time.reset();
-			runtime::Sequence sequence_waiting_and_learning_1_2(firsts_wl12, lasts_wl12, exclude_wl12);
+			spu::runtime::Sequence sequence_waiting_and_learning_1_2(firsts_wl12, lasts_wl12, exclude_wl12);
 
 			if (enable_logs && ebn0 == params.ebn0_min)
 			{
@@ -560,31 +563,31 @@ int main(int argc, char** argv)
 			terminal_stats.legend(stats_file);
 
 			// partial unbinding
-			(*sync_step_mf)[smf::sck::synchronize::X_N1].unbind((*channel     )[chn::sck::add_noise  ::Y_N ]);
-			(*feedbr      )[fbr::sck::memorize   ::X_N ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
-			(*sync_timing )[stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
-			(*sync_timing )[stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
-			prb_frq_coa    [prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::FRQ ]);
-			prb_stm_del    [prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::MU  ]);
+			(*sync_step_mf)[             smf::sck::synchronize::X_N1].unbind((*channel     )[chn::sck::add_noise  ::Y_N ]);
+			(*feedbr      )[             fbr::sck::memorize   ::X_N ].unbind((*sync_frame  )[sfm::sck::synchronize::DEL ]);
+			(*sync_timing )[             stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize::B_N1]);
+			(*sync_timing )[             stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize::Y_N1]);
+			prb_frq_coa    [spu::module::prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::FRQ ]);
+			prb_stm_del    [spu::module::prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize::MU  ]);
 
 			// partial binding
-			(*sync_coarse_f)[sfc::sck::synchronize::X_N1] = (*channel      )[chn::sck::add_noise  ::Y_N ];
-			(*sync_timing  )[stm::sck::extract    ::B_N1] = (*sync_timing  )[stm::sck::synchronize::B_N1];
-			(*sync_timing  )[stm::sck::extract    ::Y_N1] = (*sync_timing  )[stm::sck::synchronize::Y_N1];
-			prb_frq_coa     [prb::sck::probe      ::in  ] = (*sync_coarse_f)[sfc::sck::synchronize::FRQ ];
-			prb_stm_del     [prb::sck::probe      ::in  ] = (*sync_timing  )[stm::sck::synchronize::MU  ];
+			(*sync_coarse_f)[             sfc::sck::synchronize::X_N1] = (*channel      )[chn::sck::add_noise  ::Y_N ];
+			(*sync_timing  )[             stm::sck::extract    ::B_N1] = (*sync_timing  )[stm::sck::synchronize::B_N1];
+			(*sync_timing  )[             stm::sck::extract    ::Y_N1] = (*sync_timing  )[stm::sck::synchronize::Y_N1];
+			prb_frq_coa     [spu::module::prb::sck::probe      ::in  ] = (*sync_coarse_f)[sfc::sck::synchronize::FRQ ];
+			prb_stm_del     [spu::module::prb::sck::probe      ::in  ] = (*sync_timing  )[stm::sck::synchronize::MU  ];
 
-			std::vector<runtime::Task*> firsts_l3 = { &(*source   )[src::tsk::generate],
-			                                          &prb_thr_lat [prb::tsk::probe   ],
-			                                          &prb_thr_time[prb::tsk::probe   ],
-			                                          &prb_thr_tsta[prb::tsk::probe   ],
-			                                          &prb_fra_id  [prb::tsk::probe   ],
-			                                          &prb_fra_sid [prb::tsk::probe   ],
-			                                          &prb_frq_fin [prb::tsk::probe   ] };
+			std::vector<spu::runtime::Task*> firsts_l3 = { &(*source   )[spu::module::src::tsk::generate],
+			                                               &prb_thr_lat [spu::module::prb::tsk::probe   ],
+			                                               &prb_thr_time[spu::module::prb::tsk::probe   ],
+			                                               &prb_thr_tsta[spu::module::prb::tsk::probe   ],
+			                                               &prb_fra_id  [spu::module::prb::tsk::probe   ],
+			                                               &prb_fra_sid [spu::module::prb::tsk::probe   ],
+			                                               &prb_frq_fin [spu::module::prb::tsk::probe   ] };
 
-			std::vector<runtime::Task*> lasts_l3 = { &(*sync_fine_pf)[sff::tsk::synchronize] };
+			std::vector<spu::runtime::Task*> lasts_l3 = { &(*sync_fine_pf)[sff::tsk::synchronize] };
 
-			runtime::Sequence sequence_learning_3(firsts_l3, lasts_l3);
+			spu::runtime::Sequence sequence_learning_3(firsts_l3, lasts_l3);
 
 			if (enable_logs && ebn0 == params.ebn0_min)
 			{
@@ -708,12 +711,12 @@ int main(int argc, char** argv)
 			{
 				std::cout << "#" << std::endl << "# Sequence stage " << ss << " (" << stages[ss]->get_n_threads()
 				          << " thread(s)): " << std::endl;
-				tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered);
+				spu::tools::Stats::show(stages[ss]->get_tasks_per_types(), ordered);
 			}
 #else
 			std::cout << "#" << std::endl << "# Sequence sequential (" << sequence_transmission.get_n_threads()
 			          << " thread(s)): " << std::endl;
-			tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
+			spu::tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
 #endif /* MULTI_THREADED */
 			for (auto &tt : tasks_per_types)
 				for (auto &t : tt)

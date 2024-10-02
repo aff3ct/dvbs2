@@ -15,7 +15,7 @@ Multiplier_sequence_ccc_naive
 		std::stringstream message;
 		message << "'sequence.size()' has to be equal to 'N' ('sequence.size()' = " << sequence.size()
 		        << ", 'N' = " << this->N << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 	for (auto i=0 ; i< N/2; i++)
 		this->cplx_sequence[i] = std::complex<float>(sequence[2*i],sequence[2*i+1]);

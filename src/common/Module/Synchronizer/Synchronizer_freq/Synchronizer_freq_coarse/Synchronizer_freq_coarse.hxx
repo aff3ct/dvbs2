@@ -9,7 +9,6 @@
 #include <sstream>
 
 #include "Synchronizer_freq_coarse.hpp"
-#include "Tools/Exception/exception.hpp"
 
 namespace aff3ct
 {
@@ -18,7 +17,7 @@ namespace module
 	template <typename R>
 	Synchronizer_freq_coarse<R>::
 	Synchronizer_freq_coarse(const int N, const int n_frames)
-	: Module(), N(N), is_active(false), curr_idx(0)
+	: spu::module::Stateful(), N(N), is_active(false), curr_idx(0)
 	{
 		const std::string name = "Synchronizer_freq_coarse";
 		this->set_name(name);
@@ -30,7 +29,7 @@ namespace module
 		{
 			std::stringstream message;
 			message << "'N' has to be greater than 0 ('N' = " << N << ").";
-			throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+			throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 		}
 
 		auto &p1 = this->create_task("synchronize");
@@ -38,7 +37,9 @@ namespace module
 		auto p1s_FRQ  = this->template create_socket_out<R>(p1, "FRQ" , 1      );
 		auto p1s_PHS  = this->template create_socket_out<R>(p1, "PHS" , 1      );
 		auto p1s_Y_N2 = this->template create_socket_out<R>(p1, "Y_N2", this->N);
-		this->create_codelet(p1, [p1s_X_N1, p1s_FRQ, p1s_PHS, p1s_Y_N2](Module &m, runtime::Task &t, const size_t frame_id) -> int
+		this->create_codelet(p1, [p1s_X_N1, p1s_FRQ, p1s_PHS, p1s_Y_N2](spu::module::Module &m,
+		                                                                spu::runtime::Task &t,
+		                                                                const size_t frame_id) -> int
 		{
 			static_cast<Synchronizer_freq_coarse<R>&>(m).synchronize(static_cast<R*>(t[p1s_X_N1].get_dataptr()),
 			                                                         static_cast<R*>(t[p1s_FRQ] .get_dataptr()),
@@ -76,7 +77,7 @@ namespace module
 			std::stringstream message;
 			message << "'X_N1.size()' has to be equal to 'N' * 'n_frames' ('X_N1.size()' = " << X_N1.size()
 					<< ", 'N' = " << this->N << ", 'n_frames' = " << this->n_frames << ").";
-			throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+			throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 		}
 
 		if (this->n_frames != (int)FRQ.size())
@@ -84,7 +85,7 @@ namespace module
 			std::stringstream message;
 			message << "'FRQ.size()' has to be equal to 'n_frames' ('FRQ.size()' = " << FRQ.size()
 					<< ", 'n_frames' = " << this->n_frames << ").";
-			throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+			throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 		}
 
 		if (this->n_frames != (int)PHS.size())
@@ -92,7 +93,7 @@ namespace module
 			std::stringstream message;
 			message << "'PHS.size()' has to be equal to 'n_frames' ('PHS.size()' = " << PHS.size()
 					<< ", 'n_frames' = " << this->n_frames << ").";
-			throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+			throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 		}
 
 		if (this->N * this->n_frames != (int)Y_N2.size())
@@ -100,7 +101,7 @@ namespace module
 			std::stringstream message;
 			message << "'Y_N2.size()' has to be equal to 'N_fil' * 'n_frames' ('Y_N2.size()' = " << Y_N2.size()
 					<< ", 'N' = " << this->N << ", 'n_frames' = " << this->n_frames << ").";
-			throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+			throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 		}
 
 		this->synchronize(X_N1.data(), Y_N2.data(), frame_id);
@@ -127,7 +128,7 @@ namespace module
 	void Synchronizer_freq_coarse<R>::
 	_synchronize(const R *X_N1, R *Y_N2, const int frame_id)
 	{
-		throw tools::unimplemented_error(__FILE__, __LINE__, __func__);
+		throw spu::tools::unimplemented_error(__FILE__, __LINE__, __func__);
 	}
 
 }

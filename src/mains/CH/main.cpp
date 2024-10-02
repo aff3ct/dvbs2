@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include <aff3ct.hpp>
+#include <streampu.hpp>
 
 #include "Factory/DVBS2/DVBS2.hpp"
 
@@ -22,7 +23,7 @@ template<class T> using uptr = std::unique_ptr<T>;
 int main(int argc, char** argv)
 {
 	// setup signal handlers
-	tools::Signal_handler::init();
+	spu::tools::Signal_handler::init();
 
 	// get the parameter to configure the tools and modules
 	const auto params = factory::DVBS2(argc, argv);
@@ -70,7 +71,7 @@ int main(int argc, char** argv)
 		(*radio_snd)[rad::sck::send     ::X_N1] = (*channel  )[chn::sck::add_noise::Y_N ];
 	}
 	
-	runtime::Sequence sequence_channel((*radio_rcv)[rad::tsk::receive]);
+	spu::runtime::Sequence sequence_channel((*radio_rcv)[rad::tsk::receive]);
 
 	uint64_t bytes = 0;
 	sequence_channel.exec([&bytes, &params]()

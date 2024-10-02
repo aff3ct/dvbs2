@@ -15,6 +15,9 @@ Synchronizer_freq_fine_perfect<R>
 ::Synchronizer_freq_fine_perfect(const int N, const R frequency_offset, const R phase_offset, const int n_frames)
 :Synchronizer_freq_fine<R>(N, n_frames)
 {
+	for (auto& t : this->tasks)
+		t->set_replicability(true);
+
 	this->estimated_freq  = frequency_offset;
 	this->estimated_phase = phase_offset;
 }

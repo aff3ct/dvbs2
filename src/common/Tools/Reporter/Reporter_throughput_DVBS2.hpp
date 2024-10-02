@@ -9,18 +9,18 @@
 #include <cstdint>
 #include <functional>
 #include <type_traits>
+#include <streampu.hpp>
 
 #include "Module/Monitor/MI/Monitor_MI.hpp"
 #include "Module/Monitor/BFER/Monitor_BFER.hpp"
 #include "Module/Monitor/EXIT/Monitor_EXIT.hpp"
-#include "Tools/Reporter/Reporter.hpp"
 
 namespace aff3ct
 {
 namespace tools
 {
 template <typename T = uint64_t>
-class Reporter_throughput_DVBS2 : public Reporter
+class Reporter_throughput_DVBS2 : public spu::tools::Reporter
 {
 	static_assert(std::is_convertible<T, double>::value, "T type must be convertible to a double.");
 
@@ -55,7 +55,7 @@ public:
 
 	virtual ~Reporter_throughput_DVBS2() = default;
 
-	report_t report(bool final = false);
+	spu::tools::Reporter::report_t report(bool final = false);
 
 	void init();
 };
