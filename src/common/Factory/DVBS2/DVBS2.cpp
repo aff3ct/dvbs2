@@ -1,4 +1,5 @@
 #include <type_traits>
+#include <thread>
 
 #include "DVBS2.hpp"
 
@@ -147,8 +148,8 @@ void DVBS2
 	no_wl_phases             = vals.exist({"no-wl-phases"}       ) ? true                                  : false       ;
 	tx_time_limit            = vals.exist({"tx-time-limit"}      ) ? vals.to_int  ({"tx-time-limit"}     ) : 0           ;
 	stats_path               = vals.exist({"stats-path"}         ) ? vals.at      ({"stats-path"}        ) : stats_path;
-    sched_R                  = vals.exist({"sched-r", "R"}       ) ? vals.to_int  ({"sched-r", "R"}      ) : 1           ;
-    sched_P                  = vals.exist({"sched-p", "P"}       ) ? vals.to_int  ({"sched-p", "P"}      ) : 1           ;
+    sched_R                  = vals.exist({"sched-r", "R"}       ) ? vals.to_int  ({"sched-r", "R"}      ) : std::thread::hardware_concurrency();
+    sched_P                  = vals.exist({"sched-p", "P"}       ) ? vals.to_int  ({"sched-p", "P"}      ) : 100         ;
 	display_help = false;
 	if(vals.exist({"help","h"}))
 		display_help = true;
