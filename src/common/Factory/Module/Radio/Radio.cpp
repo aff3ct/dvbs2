@@ -125,7 +125,7 @@ module::Radio<R>* Radio
 		return new module::Radio_USRP<R>(*this);
 	#endif
 
-	throw tools::cannot_allocate(__FILE__, __LINE__, __func__);
+	throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }
 
 // ==================================================================================== explicit template instantiation

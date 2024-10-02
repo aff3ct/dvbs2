@@ -4,8 +4,6 @@
 #include <sstream>
 #include <complex>
 
-#include "Tools/Exception/exception.hpp"
-
 #include "Module/Feedbacker/Feedbacker.hpp"
 
 namespace aff3ct
@@ -16,22 +14,26 @@ namespace module
 template <typename D>
 Feedbacker<D>
 ::Feedbacker(const int N, const D init_val)
-: Module(), N(N), init_val(init_val), data(this->N * this->n_frames, init_val)
+: spu::module::Stateful(), N(N), init_val(init_val), data(this->N * this->n_frames, init_val)
 {
 	const std::string name = "Feedbacker";
 	this->set_name(name);
 	this->set_short_name(name);
+	for (auto& t : this->tasks)
+		t->set_replicability(true);
 
 	if (N <= 0)
 	{
 		std::stringstream message;
 		message << "'N' has to be greater than 0 ('N' = " << N << ").";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	auto &p1 = this->create_task("memorize");
 	auto p1s_X_N = this->template create_socket_in <D>(p1, "X_N", this->N);
-	this->create_codelet(p1, [p1s_X_N](Module &m, runtime::Task &t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_X_N](spu::module::Module &m,
+	                                   spu::runtime::Task &t,
+	                                   const size_t frame_id) -> int
 	{
 		static_cast<Feedbacker<D>&>(m)._memorize(static_cast<D*>(t[p1s_X_N].get_dataptr()), frame_id);
 		return 0;
@@ -39,7 +41,9 @@ Feedbacker<D>
 
 	auto &p2 = this->create_task("produce");
 	auto p2s_Y_N = this->template create_socket_out<D>(p2, "Y_N", this->N);
-	this->create_codelet(p2, [p2s_Y_N](Module &m, runtime::Task &t, const size_t frame_id) -> int
+	this->create_codelet(p2, [p2s_Y_N](spu::module::Module &m,
+	                                   spu::runtime::Task &t,
+	                                   const size_t frame_id) -> int
 	{
 		static_cast<Feedbacker<D>&>(m)._produce(static_cast<D*>(t[p2s_Y_N].get_dataptr()), frame_id);
 		return 0;

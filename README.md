@@ -100,14 +100,14 @@ Generate the Makefile and compile the DVB-S2 project:
 ```bash
 mkdir build
 cd build
-cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native" -DAFF3CT_CORE_LINK_HWLOC=ON
+cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native" -DSPU_LINK_HWLOC=ON
 make -j20
 ```
 
 If you don't want to compile the code with USRPs you can add the `-DDVBS2_LINK_UHD=OFF` option:
 
 ```bash
-cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native" -DAFF3CT_CORE_LINK_HWLOC=ON -DDVBS2_LINK_UHD=OFF
+cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -funroll-loops -march=native" -DSPU_HWLOC=ON -DDVBS2_LINK_UHD=OFF
 ```
 
 ## Binaries
@@ -130,6 +130,7 @@ The compiled binaries are:
 - `build/bin/dvbs2_ch`: executable that takes the TX IQs file and adds noise to 
 it (it produces a noisy file that can be consumed by the RX without real radio),
 - `build/bin/dvbs2_rx`: the receiver,
+- `build/bin/dvbs2_rx_sched`: the receiver with automatic pipeline scheduling,
 - `build/bin/dvbs2_rx_dump`: dumps the symbols received by the RX in the
 `dump.bin` file,
 - `build/bin/dvbs2_tx_rx`: the Monte-Carlo simulation of the transmitter
@@ -185,7 +186,7 @@ Here are example command lines for RX and TX, considering `QPSK-S_8/9`:
 ```
 
 ```bash
-./bin/dvbs2_tx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 -F  8 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9
+./bin/dvbs2_tx --sim-stats --rad-threaded --rad-tx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 -F  8 --src-type USER --src-path ../conf/src/K_14232.src --mod-cod QPSK-S_8/9
 ```
 
 #### Video Streaming
@@ -197,7 +198,7 @@ and a third for displaying the video.
 - Stream that video from TX computer:
 
 ```bash
-./bin/dvbs2_tx --sim-stats --rad-threaded --rad-rx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 -F  8 --src-type USER_BIN --src-path /path/to/input/ts/video.ts --mod-cod QPSK-S_8/9
+./bin/dvbs2_tx --sim-stats --rad-threaded --rad-tx-subdev-spec "A:0" --rad-tx-rate 30e6 --rad-tx-freq 2360e6 --rad-tx-gain 30 -F  8 --src-type USER_BIN --src-path /path/to/input/ts/video.ts --mod-cod QPSK-S_8/9
 ```
 
 - Create a fifo on RX computer `mkfifo output_stream_fifo.ts`

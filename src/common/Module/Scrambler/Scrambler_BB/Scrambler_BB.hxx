@@ -23,6 +23,8 @@ Scrambler_BB(const int N, const int n_frames)
 	const std::string name = "Scrambler_BB";
 	this->set_name(name);
 	this->set_short_name(name);
+	for (auto& t : this->tasks)
+		t->set_replicability(true);
 
 	lfsr.resize(15);
 }

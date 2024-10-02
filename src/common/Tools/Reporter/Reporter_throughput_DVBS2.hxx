@@ -15,7 +15,7 @@ template <typename T>
 Reporter_throughput_DVBS2<T>
 ::Reporter_throughput_DVBS2(std::function<T(void)>  progress_function, const T progress_limit,
                       std::function<T(void)> get_nbits_function, const T nbits_factor, const T n_frames, double alpha)
-: Reporter(),
+: spu::tools::Reporter(),
   progress_function(progress_function),
   get_nbits_function(get_nbits_function),
   progress_limit(progress_limit),
@@ -74,7 +74,7 @@ Reporter_throughput_DVBS2<T>
 }
 
 template <typename T>
-Reporter::report_t Reporter_throughput_DVBS2<T>
+spu::tools::Reporter::report_t Reporter_throughput_DVBS2<T>
 ::report(bool final)
 {
 	if (final)

@@ -28,7 +28,8 @@ Scrambler_PL(const int N, const int start_ix, const int n_frames)
 	const std::string name = "Scrambler_PL";
 	this->set_name(name);
 	this->set_short_name(name);
-
+	for (auto& t : this->tasks)
+		t->set_replicability(true);
 }
 
 template <typename D>

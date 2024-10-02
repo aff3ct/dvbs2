@@ -11,8 +11,6 @@
 #include <sstream>
 #include <complex>
 
-#include "Tools/Exception/exception.hpp"
-
 #include "Module/Framer/Framer.hpp"
 
 namespace aff3ct
@@ -23,13 +21,15 @@ namespace module
 template <typename B>
 Framer<B>::
 Framer(const int xfec_frame_size, const int pl_frame_size, const std::string modcod, const int n_frames)
-: Module(), xfec_frame_size(xfec_frame_size), pl_frame_size(pl_frame_size), modcod(modcod)
+: spu::module::Stateful(), xfec_frame_size(xfec_frame_size), pl_frame_size(pl_frame_size), modcod(modcod)
 {
 	const std::string name = "Framer";
 	this->set_name(name);
 	this->set_short_name(name);
 	this->set_n_frames(n_frames);
 	this->set_single_wave(true);
+	for (auto& t : this->tasks)
+		t->set_replicability(true);
 
 	this->generate_plh();
 
@@ -41,19 +41,21 @@ Framer(const int xfec_frame_size, const int pl_frame_size, const std::string mod
 	{
 		std::stringstream message;
 		message << "'xfec_frame_size' has to be greater than 0 ('xfec_frame_size' = " << xfec_frame_size << ").";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 	if (pl_frame_size <= 0)
 	{
 		std::stringstream message;
 		message << "'pl_frame_size' has to be greater than 0 ('pl_frame_size' = " << pl_frame_size << ").";
-		throw tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	auto &p1 = this->create_task("generate");
 	auto p1s_Y_N1 = this->template create_socket_in <B>(p1, "Y_N1", this->xfec_frame_size);
 	auto p1s_Y_N2 = this->template create_socket_out<B>(p1, "Y_N2", this->pl_frame_size  );
-	this->create_codelet(p1, [p1s_Y_N1, p1s_Y_N2](Module &m, runtime::Task &t, const size_t frame_id) -> int
+	this->create_codelet(p1, [p1s_Y_N1, p1s_Y_N2](spu::module::Module &m,
+	                                              spu::runtime::Task &t,
+	                                              const size_t frame_id) -> int
 	{
 		static_cast<Framer<B>&>(m).generate(static_cast<B*>(t[p1s_Y_N1].get_dataptr()),
 		                                    static_cast<B*>(t[p1s_Y_N2].get_dataptr()));
@@ -63,7 +65,9 @@ Framer(const int xfec_frame_size, const int pl_frame_size, const std::string mod
 	auto &p2 = this->create_task("remove_plh");
 	auto p2s_Y_N1 = this->template create_socket_in <B>(p2, "Y_N1", this->pl_frame_size  );
 	auto p2s_Y_N2 = this->template create_socket_out<B>(p2, "Y_N2", this->xfec_frame_size);
-	this->create_codelet(p2, [p2s_Y_N1, p2s_Y_N2](Module &m, runtime::Task &t, const size_t frame_id) -> int
+	this->create_codelet(p2, [p2s_Y_N1, p2s_Y_N2](spu::module::Module &m,
+	                                              spu::runtime::Task &t,
+	                                              const size_t frame_id) -> int
 	{
 		static_cast<Framer<B>&>(m).remove_plh(static_cast<B*>(t[p2s_Y_N1].get_dataptr()),
 		                                      static_cast<B*>(t[p2s_Y_N2].get_dataptr()));
@@ -201,14 +205,14 @@ generate(std::vector<B,A>& Y_N1, std::vector<B,A>& Y_N2, const int frame_id)
 		std::stringstream message;
 		message << "'Y_N1.size()' has to be equal to 'xfec_frame_size' * 'n_frames' ('Y_N1.size()' = " << Y_N1.size()
 		        << ", 'xfec_frame_size' = " << this->xfec_frame_size << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 	if (this->pl_frame_size * this->n_frames != (int)Y_N2.size())
 	{
 		std::stringstream message;
 		message << "'Y_N2.size()' has to be equal to 'pl_frame_size' * 'n_frames' ('Y_N2.size()' = " << Y_N2.size()
 		        << ", 'pl_frame_size' = " << this->pl_frame_size << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	this->generate(Y_N1.data(), Y_N2.data(), frame_id);
@@ -299,14 +303,14 @@ remove_plh(std::vector<B,A>& Y_N1, std::vector<B,A>& Y_N2, const int frame_id)
 		std::stringstream message;
 		message << "'Y_N2.size()' has to be equal to 'xfec_frame_size' * 'n_frames' ('Y_N2.size()' = " << Y_N2.size()
 		        << ", 'xfec_frame_size' = " << this->xfec_frame_size << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 	if (this->pl_frame_size * this->n_frames != (int)Y_N1.size())
 	{
 		std::stringstream message;
 		message << "'PL_frame.size()' has to be equal to 'pl_frame_size' * 'n_frames' ('PL_frame.size()' = " << Y_N1.size()
 		        << ", 'pl_frame_size' = " << this->pl_frame_size << ", 'n_frames' = " << this->n_frames << ").";
-		throw tools::length_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	this->remove_plh(Y_N1.data(), Y_N2.data(), frame_id);

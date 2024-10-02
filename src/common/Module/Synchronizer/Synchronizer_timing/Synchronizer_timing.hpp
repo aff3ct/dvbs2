@@ -2,6 +2,7 @@
 #define SYNCHRONIZER_TIMING
 
 #include <complex>
+#include <streampu.hpp>
 
 #include "Module/Synchronizer/Synchronizer.hpp"
 
@@ -30,12 +31,12 @@ namespace module
  * Please use Synchronizer for inheritance (instead of Synchronizer)
  */
 template <typename B = int, typename R = float>
-class Synchronizer_timing : public Module
+class Synchronizer_timing : public spu::module::Stateful
 {
 public:
-	inline runtime::Task&   operator[](const stm::tsk              t) { return Module::operator[]((int)t);                             }
-	inline runtime::Socket& operator[](const stm::sck::synchronize s) { return Module::operator[]((int)stm::tsk::synchronize)[(int)s]; }
-	inline runtime::Socket& operator[](const stm::sck::extract     s) { return Module::operator[]((int)stm::tsk::extract    )[(int)s]; }
+	inline spu::runtime::Task&   operator[](const stm::tsk              t) { return spu::module::Module::operator[]((int)t);                             }
+	inline spu::runtime::Socket& operator[](const stm::sck::synchronize s) { return spu::module::Module::operator[]((int)stm::tsk::synchronize)[(int)s]; }
+	inline spu::runtime::Socket& operator[](const stm::sck::extract     s) { return spu::module::Module::operator[]((int)stm::tsk::extract    )[(int)s]; }
 
 protected:
 	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */

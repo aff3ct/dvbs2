@@ -15,6 +15,9 @@ Synchronizer_freq_phase_DVBS2_aib<R>
 ::Synchronizer_freq_phase_DVBS2_aib(const int N, const int n_frames)
 : Synchronizer_freq_fine<R>(N, n_frames), pilot_start()
 {
+	for (auto& t : this->tasks)
+		t->set_replicability(true);
+
 	int idx = 1530;
 	while (idx < N/2)
 	{

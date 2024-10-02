@@ -80,7 +80,7 @@ module::Synchronizer_freq_coarse<R>* Synchronizer_freq_coarse
 		                                                                                                            this->normalized_bandwidth,
 		                                                                                                            this->n_frames));
 	else
-		throw tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_coarse type.");
+		throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__, "Wrong Synchronizer_coarse type.");
 
 }
 

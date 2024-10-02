@@ -9,8 +9,8 @@
 #define FILTER_HPP_
 
 #include <vector>
+#include <streampu.hpp>
 
-#include "Module/Module.hpp"
 #include "Tools/Noise/noise_utils.h"
 
 namespace aff3ct
@@ -39,13 +39,13 @@ namespace module
  * Please use Filter for inheritance (instead of Filter)
  */
 template <typename R = float>
-class Filter : public Module
+class Filter : public spu::module::Stateful
 {
 public:
-	inline runtime::Task&   operator[](const flt::tsk                 t) { return Module::operator[]((int)t);                         }
-	inline runtime::Socket& operator[](const flt::sck::filter         s) { return Module::operator[]((int)flt::tsk::filter )[(int)s]; }
-	inline runtime::Socket& operator[](const flt::sck::filter1        s) { return Module::operator[]((int)flt::tsk::filter1)[(int)s]; }
-	inline runtime::Socket& operator[](const flt::sck::filter2        s) { return Module::operator[]((int)flt::tsk::filter2)[(int)s]; }
+	inline spu::runtime::Task&   operator[](const flt::tsk                 t) { return spu::module::Module::operator[]((int)t);                         }
+	inline spu::runtime::Socket& operator[](const flt::sck::filter         s) { return spu::module::Module::operator[]((int)flt::tsk::filter )[(int)s]; }
+	inline spu::runtime::Socket& operator[](const flt::sck::filter1        s) { return spu::module::Module::operator[]((int)flt::tsk::filter1)[(int)s]; }
+	inline spu::runtime::Socket& operator[](const flt::sck::filter2        s) { return spu::module::Module::operator[]((int)flt::tsk::filter2)[(int)s]; }
 
 protected:
 	const int N;     /*!< Size of one frame (= number of samples in one frame) */

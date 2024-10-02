@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <aff3ct.hpp>
+#include <streampu.hpp>
 
 #include "Factory/DVBS2/DVBS2.hpp"
 
@@ -27,7 +28,7 @@ template<class T> using uptr = std::unique_ptr<T>;
 int main(int argc, char** argv)
 {
 	// setup signal handlers
-	tools::Signal_handler::init();
+	spu::tools::Signal_handler::init();
 
 	// get the parameter to configure the tools and modules
 	auto params = factory::DVBS2(argc, argv);
@@ -46,7 +47,7 @@ int main(int argc, char** argv)
 	uptr<tools::Interleaver_core<>> itl_core(factory::DVBS2::build_itl_core<>(params));
 
 	// construct modules
-	uptr<Source<>                   > source      (factory::DVBS2::build_source           <>(params            ));
+	uptr<spu::module::Source<>      > source      (factory::DVBS2::build_source           <>(params            ));
 	uptr<Scrambler<>                > bb_scrambler(factory::DVBS2::build_bb_scrambler     <>(params            ));
 	uptr<Encoder<>                  > BCH_encoder (factory::DVBS2::build_bch_encoder      <>(params, poly_gen  ));
 	uptr<Decoder_HIHO<>             > BCH_decoder (factory::DVBS2::build_bch_decoder      <>(params, poly_gen  ));
@@ -71,28 +72,28 @@ int main(int argc, char** argv)
 
 	// socket binding
 	std::vector<float> sigma(params.n_frames);
-	(*bb_scrambler)[scr::sck::scramble    ::X_N1] = (*source      )[src::sck::generate    ::out_data];
-	(*BCH_encoder )[enc::sck::encode      ::U_K ] = (*bb_scrambler)[scr::sck::scramble    ::X_N2    ];
-	(*LDPC_encoder)[enc::sck::encode      ::U_K ] = (*BCH_encoder )[enc::sck::encode      ::X_N     ];
-	(*itl_tx      )[itl::sck::interleave  ::nat ] = (*LDPC_encoder)[enc::sck::encode      ::X_N     ];
-	(*modem       )[mdm::sck::modulate    ::X_N1] = (*itl_tx      )[itl::sck::interleave  ::itl     ];
-	(*framer      )[frm::sck::generate    ::Y_N1] = (*modem       )[mdm::sck::modulate    ::X_N2    ];
-	(*pl_scrambler)[scr::sck::scramble    ::X_N1] = (*framer      )[frm::sck::generate    ::Y_N2    ];
-	(*channel     )[chn::sck::add_noise   ::CP  ] =                                         sigma    ;
-	(*channel     )[chn::sck::add_noise   ::X_N ] = (*pl_scrambler)[scr::sck::scramble    ::X_N2    ];
-	(*pl_scrambler)[scr::sck::descramble  ::Y_N1] = (*channel     )[chn::sck::add_noise   ::Y_N     ];
-	(*framer      )[frm::sck::remove_plh  ::Y_N1] = (*pl_scrambler)[scr::sck::descramble  ::Y_N2    ];
-	(*estimator   )[est::sck::estimate    ::X_N ] = (*framer      )[frm::sck::remove_plh  ::Y_N2    ];
-	(*modem       )[mdm::sck::demodulate  ::CP  ] = (*estimator   )[est::sck::estimate    ::SIG     ];
-	(*modem       )[mdm::sck::demodulate  ::Y_N1] = (*framer      )[frm::sck::remove_plh  ::Y_N2    ];
-	(*itl_rx      )[itl::sck::deinterleave::itl ] = (*modem       )[mdm::sck::demodulate  ::Y_N2    ];
-	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ] = (*itl_rx      )[itl::sck::deinterleave::nat     ];
-	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ] = (*LDPC_decoder)[dec::sck::decode_siho ::V_K     ];
-	(*bb_scrambler)[scr::sck::descramble  ::Y_N1] = (*BCH_decoder )[dec::sck::decode_hiho ::V_K     ];
-	(*monitor     )[mnt::sck::check_errors::U   ] = (*source      )[src::sck::generate    ::out_data];
-	(*monitor     )[mnt::sck::check_errors::V   ] = (*bb_scrambler)[scr::sck::descramble  ::Y_N2    ];
+	(*bb_scrambler)[scr::sck::scramble    ::X_N1] = (*source      )[spu::module::src::sck::generate    ::out_data];
+	(*BCH_encoder )[enc::sck::encode      ::U_K ] = (*bb_scrambler)[             scr::sck::scramble    ::X_N2    ];
+	(*LDPC_encoder)[enc::sck::encode      ::U_K ] = (*BCH_encoder )[             enc::sck::encode      ::X_N     ];
+	(*itl_tx      )[itl::sck::interleave  ::nat ] = (*LDPC_encoder)[             enc::sck::encode      ::X_N     ];
+	(*modem       )[mdm::sck::modulate    ::X_N1] = (*itl_tx      )[             itl::sck::interleave  ::itl     ];
+	(*framer      )[frm::sck::generate    ::Y_N1] = (*modem       )[             mdm::sck::modulate    ::X_N2    ];
+	(*pl_scrambler)[scr::sck::scramble    ::X_N1] = (*framer      )[             frm::sck::generate    ::Y_N2    ];
+	(*channel     )[chn::sck::add_noise   ::CP  ] =                                                      sigma    ;
+	(*channel     )[chn::sck::add_noise   ::X_N ] = (*pl_scrambler)[             scr::sck::scramble    ::X_N2    ];
+	(*pl_scrambler)[scr::sck::descramble  ::Y_N1] = (*channel     )[             chn::sck::add_noise   ::Y_N     ];
+	(*framer      )[frm::sck::remove_plh  ::Y_N1] = (*pl_scrambler)[             scr::sck::descramble  ::Y_N2    ];
+	(*estimator   )[est::sck::estimate    ::X_N ] = (*framer      )[             frm::sck::remove_plh  ::Y_N2    ];
+	(*modem       )[mdm::sck::demodulate  ::CP  ] = (*estimator   )[             est::sck::estimate    ::SIG     ];
+	(*modem       )[mdm::sck::demodulate  ::Y_N1] = (*framer      )[             frm::sck::remove_plh  ::Y_N2    ];
+	(*itl_rx      )[itl::sck::deinterleave::itl ] = (*modem       )[             mdm::sck::demodulate  ::Y_N2    ];
+	(*LDPC_decoder)[dec::sck::decode_siho ::Y_N ] = (*itl_rx      )[             itl::sck::deinterleave::nat     ];
+	(*BCH_decoder )[dec::sck::decode_hiho ::Y_N ] = (*LDPC_decoder)[             dec::sck::decode_siho ::V_K     ];
+	(*bb_scrambler)[scr::sck::descramble  ::Y_N1] = (*BCH_decoder )[             dec::sck::decode_hiho ::V_K     ];
+	(*monitor     )[mnt::sck::check_errors::U   ] = (*source      )[spu::module::src::sck::generate    ::out_data];
+	(*monitor     )[mnt::sck::check_errors::V   ] = (*bb_scrambler)[             scr::sck::descramble  ::Y_N2    ];
 
-	runtime::Sequence sequence_transmission((*source)[src::tsk::generate], n_threads);
+	spu::runtime::Sequence sequence_transmission((*source)[spu::module::src::tsk::generate], n_threads);
 
 	if (enable_logs)
 	{
@@ -116,7 +117,7 @@ int main(int argc, char** argv)
 
 	// set different seeds in the modules that uses PRNG
 	std::mt19937 prng;
-	for (auto &m : sequence_transmission.get_modules<tools::Interface_set_seed>())
+	for (auto &m : sequence_transmission.get_modules<spu::tools::Interface_set_seed>())
 		m->set_seed(prng());
 
 	// allocate a common monitor module to reduce all the monitors
@@ -130,7 +131,7 @@ int main(int argc, char** argv)
 	tools::Reporter_throughput<> rep_thr  (monitor_red); // report the simulation throughputs
 
 	// allocate a terminal that will display the collected data from the reporters
-	tools::Terminal_std terminal({ &rep_noise, &rep_BFER, &rep_thr });
+	spu::tools::Terminal_std terminal({ &rep_noise, &rep_BFER, &rep_thr });
 
 	// display the legend in the terminal
 	terminal.legend();
@@ -171,7 +172,7 @@ int main(int argc, char** argv)
 		{
 			std::cout << "#" << std::endl;
 			const auto ordered = true;
-			tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
+			spu::tools::Stats::show(sequence_transmission.get_tasks_per_types(), ordered);
 
 			for (auto &tt : sequence_transmission.get_tasks_per_types())
 				for (auto &t : tt)

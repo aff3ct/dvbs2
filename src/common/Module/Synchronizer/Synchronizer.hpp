@@ -9,8 +9,8 @@
 #define SYNCHONIZER_HPP_
 
 #include <vector>
+#include <streampu.hpp>
 
-#include "Module/Module.hpp"
 #include "Tools/Noise/noise_utils.h"
 
 namespace aff3ct
@@ -37,11 +37,11 @@ namespace module
  * Please use Synchronizer for inheritance (instead of Synchronizer)
  */
 template <typename R = float>
-class Synchronizer : public Module
+class Synchronizer : public spu::module::Stateful
 {
 public:
-	inline runtime::Task&   operator[](const syn::tsk              t) { return Module::operator[]((int)t);                             }
-	inline runtime::Socket& operator[](const syn::sck::synchronize s) { return Module::operator[]((int)syn::tsk::synchronize)[(int)s]; }
+	inline spu::runtime::Task&   operator[](const syn::tsk              t) { return spu::module::Module::operator[]((int)t);                             }
+	inline spu::runtime::Socket& operator[](const syn::sck::synchronize s) { return spu::module::Module::operator[]((int)syn::tsk::synchronize)[(int)s]; }
 protected:
 	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */
 	const int N_out; /*!< Number of samples after the synchronization process */

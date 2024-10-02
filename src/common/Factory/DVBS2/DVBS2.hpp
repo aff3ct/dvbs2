@@ -2,6 +2,7 @@
 #define FACTORY_DVBS2_HPP
 
 #include <aff3ct.hpp>
+#include <streampu.hpp>
 
 #include "Factory/DVBS2/DVBS2.hpp"
 
@@ -31,7 +32,6 @@
 #include "Module/Synchronizer/Synchronizer_step_mf_cc.hpp"
 #include "Module/Estimator/Estimator.hpp"
 #include "Module/Radio/Radio.hpp"
-#include "Module/Sink/Sink.hpp"
 #include "Module/Feedbacker/Feedbacker.hpp"
 
 namespace aff3ct
@@ -89,6 +89,8 @@ public:
 	int   n_frames;
 	int   debug_limit;
 	int   tx_time_limit;
+    int   sched_R;
+    int   sched_P;
 
 	std::chrono::milliseconds ter_freq;
 
@@ -135,11 +137,11 @@ public:
 
 public:
 	template <typename B = int>
-	static module::Source<B>*
+	static spu::module::Source<B>*
 	build_source(const DVBS2& params, const int seed = 0);
 
 	template <typename B = int>
-	static module::Sink<B>*
+	static spu::module::Sink<B>*
 	build_sink(const DVBS2& params);
 
 	template <typename B = int>

@@ -11,8 +11,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
-
-#include "Module/Module.hpp"
+#include <streampu.hpp>
 
 namespace aff3ct
 {
@@ -37,12 +36,12 @@ namespace module
  * \tparam D: type of the data in the Scrambler.
  */
 template <typename D = int>
-class Scrambler : public Module
+class Scrambler : public spu::module::Stateful
 {
 public:
-	inline runtime::Task&   operator[](const scr::tsk             t) { return Module::operator[]((int)t);                            }
-	inline runtime::Socket& operator[](const scr::sck::scramble   s) { return Module::operator[]((int)scr::tsk::scramble  )[(int)s]; }
-	inline runtime::Socket& operator[](const scr::sck::descramble s) { return Module::operator[]((int)scr::tsk::descramble)[(int)s]; }
+	inline spu::runtime::Task&   operator[](const scr::tsk             t) { return spu::module::Module::operator[]((int)t);                            }
+	inline spu::runtime::Socket& operator[](const scr::sck::scramble   s) { return spu::module::Module::operator[]((int)scr::tsk::scramble  )[(int)s]; }
+	inline spu::runtime::Socket& operator[](const scr::sck::descramble s) { return spu::module::Module::operator[]((int)scr::tsk::descramble)[(int)s]; }
 
 protected:
 	const int N;          // Size of one frame (= number of datas in one frame)
