@@ -29,7 +29,7 @@ namespace module
  *
  */
 template <typename R = double>
-class Radio_USRP : public Radio<R>, public tools::Interface_waiting
+class Radio_USRP : public Radio<R>, public spu::tools::Interface_waiting
 {
 private:
 	uhd::usrp::multi_usrp::sptr usrp;
