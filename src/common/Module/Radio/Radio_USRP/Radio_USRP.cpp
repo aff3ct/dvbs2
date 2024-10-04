@@ -68,8 +68,8 @@ Radio_USRP<R>
 	}
 	else
 	{
-		throw tools::runtime_error(__FILE__, __LINE__, __func__,
-		                           "This data type (" + std::string(typeid(R).name()) + ") is not supported.");
+		throw spu::tools::runtime_error(__FILE__, __LINE__, __func__,
+		                                "This data type (" + std::string(typeid(R).name()) + ") is not supported.");
 	}
 
 	// uhd::log::set_console_level(uhd::log::severity_level(3));
@@ -146,7 +146,7 @@ void Radio_USRP<R>
 	{
 		std::stringstream message;
 		message << "send has been called while tx_rate has not been set.";
-		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->threaded && !this->start_thread_send)
@@ -169,7 +169,7 @@ void Radio_USRP<R>
 	{
 		std::stringstream message;
 		message << "receive has been called while rx_rate has not been set.";
-		throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+		throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
 	}
 
 	if (this->threaded && !this->start_thread_receive)
@@ -269,7 +269,7 @@ template <typename R>
 void Radio_USRP<R>
 ::thread_function_send()
 {
-	aff3ct::tools::Thread_pinning::pin(3);
+	spu::tools::Thread_pinning::pin(3);
 
 	uhd::set_thread_priority_safe();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
@@ -277,14 +277,14 @@ void Radio_USRP<R>
 	while (!stop_threads)
 		this->fifo_send_read();
 
-	aff3ct::tools::Thread_pinning::unpin();
+	spu::tools::Thread_pinning::unpin();
 }
 
 template <typename R>
 void Radio_USRP<R>
 ::thread_function_receive()
 {
-	aff3ct::tools::Thread_pinning::pin(1);
+	spu::tools::Thread_pinning::pin(1);
 
 	uhd::set_thread_priority_safe();
 	usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
@@ -292,7 +292,7 @@ void Radio_USRP<R>
 	while (!stop_threads)
 		this->fifo_receive_write();
 
-	aff3ct::tools::Thread_pinning::unpin();
+	spu::tools::Thread_pinning::unpin();
 }
 
 template <typename R>
@@ -359,7 +359,7 @@ void Radio_USRP<R>
 				// Otherwise, it's an error
 			default:
 				// UHD_LOGGER_ERROR("RADIO USRP") << "Receiver error: " << md.strerror();
-				throw tools::runtime_error(__FILE__, __LINE__, __func__, "Error in the Radio USRP streaming.");
+				throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, "Error in the Radio USRP streaming.");
 				// std::cerr << "[" << "] Receiver error: " << md.strerror()
 				//           << std::endl;
 				// std::cerr << "[" << "] Unexpected error on recv, continuing..."
