@@ -364,7 +364,7 @@ int main(int argc, char** argv)
 	std::chrono::duration<double> elapsed_seconds_clone = end_clone - start_clone;
 	std::cout << "Done (" << elapsed_seconds_clone.count() << "s)." << std::endl;
 #else
-	runtime::Sequence sequence_transmission(firsts_t);
+	spu::runtime::Sequence sequence_transmission(firsts_t);
 	if (enable_logs)
 	{
 		std::ofstream f("tx_rx_sequence_transmission.dot");

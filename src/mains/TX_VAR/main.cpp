@@ -120,7 +120,7 @@ int main(int argc, char** argv)
 	}
 	auto tasks_per_types = pipeline_transmission.get_tasks_per_types();
 #else
-	runtime::Sequence sequence_transmission(firsts_t);
+	spu::runtime::Sequence sequence_transmission(firsts_t);
 	if (enable_logs)
 	{
 		std::ofstream f("tx_sequence_transmission.dot");

@@ -342,7 +342,7 @@ int main(int argc, char** argv)
 	if (thread_pinnig)
 		spu::tools::Thread_pinning::pin(0);
 #else
-	runtime::Sequence sequence_transmission(firsts_t);
+	spu::runtime::Sequence sequence_transmission(firsts_t);
 	if (enable_logs)
 	{
 		std::ofstream f("rx_sequence_transmission.dot");
