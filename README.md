@@ -129,7 +129,9 @@ The compiled binaries are:
 - `build/bin/dvbs2_tx_var`: the transmitter with variable SNRs,
 - `build/bin/dvbs2_ch`: executable that takes the TX IQs file and adds noise to 
 it (it produces a noisy file that can be consumed by the RX without real radio),
-- `build/bin/dvbs2_rx`: the receiver,
+- `build/bin/dvbs2_rx`: the receiver (alias of `dvbs2_rx_sched`),
+- `build/bin/dvbs2_rx8`: the receiver with handmade 8-stage pipeline,
+- `build/bin/dvbs2_rx13`: the receiver with handmade 13-stage pipeline,
 - `build/bin/dvbs2_rx_sched`: the receiver with automatic pipeline scheduling,
 - `build/bin/dvbs2_rx_dump`: dumps the symbols received by the RX in the
 `dump.bin` file,

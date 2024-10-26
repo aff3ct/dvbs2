@@ -61,9 +61,9 @@ public:
 	bool _get_packet_flag() const {return(this->max_corr > this->trigger);};
 
 protected:
-	void _synchronize (const R *X_N1, int* delay, R *Y_N2, const int frame_id);
-	void _synchronize1(const R *X_N1,                      const int frame_id);
-	void _synchronize2(const R *X_N1, int* delay, R *Y_N2, const int frame_id);
+	void _synchronize (const R *X_N1, int* delay,                                      R *Y_N2, const int frame_id);
+	void _synchronize1(const R *X_N1,       R *cor_SOF,       R *cor_PLSC,                      const int frame_id);
+	void _synchronize2(const R *X_N1, const R *cor_SOF, const R *cor_PLSC, int* delay, R *Y_N2, const int frame_id);
 };
 
 }

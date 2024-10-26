@@ -57,31 +57,38 @@ Synchronizer_frame(const int N, const int n_frames)
 	});
 
 	auto &p2 = this->create_task("synchronize1");
-	auto p2s_X_N1 = this->template create_socket_in <R>  (p2, "X_N1" , this->N_in);
-	this->create_codelet(p2, [p2s_X_N1](spu::module::Module &m,
-	                                    spu::runtime::Task &t,
-	                                    const size_t frame_id) -> int
+	auto p2s_X_N1     = this->template create_socket_in <R>(p2, "X_N1",     this->N_in);
+	auto p2s_cor_SOF  = this->template create_socket_out<R>(p2, "cor_SOF",  this->N_in);
+	auto p2s_cor_PLSC = this->template create_socket_out<R>(p2, "cor_PLSC", this->N_in);
+	this->create_codelet(p2, [p2s_X_N1, p2s_cor_SOF, p2s_cor_PLSC](spu::module::Module &m,
+	                                                               spu::runtime::Task &t,
+	                                                               const size_t frame_id) -> int
 	{
-		static_cast<Synchronizer_frame<R>&>(m).synchronize1(static_cast<R*>(t[p2s_X_N1].get_dataptr()));
+		static_cast<Synchronizer_frame<R>&>(m).synchronize1(static_cast<R*>(t[p2s_X_N1    ].get_dataptr()),
+		                                                    static_cast<R*>(t[p2s_cor_SOF ].get_dataptr()),
+		                                                    static_cast<R*>(t[p2s_cor_PLSC].get_dataptr()));
 
 		return 0;
 	});
 
 	auto &p3 = this->create_task("synchronize2");
-	auto p3s_X_N1 = this->template create_socket_in <R>  (p3, "X_N1" , this->N_in );
-	auto p3s_DEL  = this->template create_socket_out<int>(p3, "DEL", 1            );
-	auto p3s_FLG  = this->template create_socket_out<int>(p3, "FLG", 1            );
-	auto p3s_TRI  = this->template create_socket_out<R>  (p3, "TRI", 1            );
-	auto p3s_Y_N2 = this->template create_socket_out<R>  (p3, "Y_N2" , this->N_out);
-	this->create_codelet(p3, [p3s_X_N1, p3s_DEL, p3s_FLG, p3s_TRI, p3s_Y_N2](spu::module::Module &m,
-	                                                                         spu::runtime::Task &t,
-	                                                                         const size_t frame_id) -> int
+	auto p3s_X_N1     = this->template create_socket_in <R>  (p3, "X_N1",     this->N_in);
+	auto p3s_cor_SOF  = this->template create_socket_in <R>  (p3, "cor_SOF",  this->N_in);
+	auto p3s_cor_PLSC = this->template create_socket_in <R>  (p3, "cor_PLSC", this->N_in);
+	auto p3s_DEL      = this->template create_socket_out<int>(p3, "DEL", 1              );
+	auto p3s_FLG      = this->template create_socket_out<int>(p3, "FLG", 1              );
+	auto p3s_TRI      = this->template create_socket_out<R>  (p3, "TRI", 1              );
+	auto p3s_Y_N2     = this->template create_socket_out<R>  (p3, "Y_N2",    this->N_out);
+	this->create_codelet(p3, [p3s_X_N1, p3s_cor_SOF, p3s_cor_PLSC, p3s_DEL, p3s_FLG, p3s_TRI, p3s_Y_N2]
+	    (spu::module::Module &m, spu::runtime::Task &t, const size_t frame_id) -> int
 	{
-		static_cast<Synchronizer_frame<R>&>(m).synchronize2(static_cast<R*  >(t[p3s_X_N1 ].get_dataptr()),
-		                                                    static_cast<int*>(t[p3s_DEL  ].get_dataptr()),
-		                                                    static_cast<int*>(t[p3s_FLG  ].get_dataptr()),
-		                                                    static_cast<R*  >(t[p3s_TRI  ].get_dataptr()),
-		                                                    static_cast<R*  >(t[p3s_Y_N2 ].get_dataptr()));
+		static_cast<Synchronizer_frame<R>&>(m).synchronize2(static_cast<R*  >(t[p3s_X_N1    ].get_dataptr()),
+		                                                    static_cast<R*  >(t[p3s_cor_SOF ].get_dataptr()),
+		                                                    static_cast<R*  >(t[p3s_cor_PLSC].get_dataptr()),
+		                                                    static_cast<int*>(t[p3s_DEL     ].get_dataptr()),
+		                                                    static_cast<int*>(t[p3s_FLG     ].get_dataptr()),
+		                                                    static_cast<R*  >(t[p3s_TRI     ].get_dataptr()),
+		                                                    static_cast<R*  >(t[p3s_Y_N2    ].get_dataptr()));
 
 		return 0;
 	});
@@ -177,18 +184,22 @@ synchronize(const R *X_N1, int* DEL, int* FLG, R *TRI, R *Y_N2, const int frame_
 
 template <typename R>
 void Synchronizer_frame<R>::
-synchronize1(const R *X_N1, const int frame_id)
+synchronize1(const R *X_N1, R *cor_SOF, R *cor_PLSC, const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
 
 	for (auto f = f_start; f < f_stop; f++)
-		this->_synchronize1(X_N1 + f * this->N_in, f);
+		this->_synchronize1(X_N1 + f * this->N_in,
+		                    cor_SOF + f * this->N_out,
+		                    cor_PLSC + f * this->N_out,
+		                    f);
 }
 
 template <typename R>
 void Synchronizer_frame<R>::
-synchronize2(const R *X_N1, int* DEL, int* FLG, R *TRI, R *Y_N2, const int frame_id)
+synchronize2(const R *X_N1, const R *cor_SOF, const R *cor_PLSC, int* DEL, int* FLG, R *TRI, R *Y_N2,
+             const int frame_id)
 {
 	const auto f_start = (frame_id < 0) ? 0 : frame_id % this->n_frames;
 	const auto f_stop  = (frame_id < 0) ? this->n_frames : f_start +1;
@@ -196,6 +207,8 @@ synchronize2(const R *X_N1, int* DEL, int* FLG, R *TRI, R *Y_N2, const int frame
 	for (auto f = f_start; f < f_stop; f++)
 	{
 		this->_synchronize2(X_N1 + f * this->N_in,
+		                    cor_SOF + f * this->N_in,
+		                    cor_PLSC + f * this->N_in,
 		                    DEL + f,
 		                    Y_N2 + f * this->N_out,
 		                    f);
@@ -214,14 +227,14 @@ _synchronize(const R *X_N1, int* DEL, R *Y_N2, const int frame_id)
 
 template <typename R>
 void Synchronizer_frame<R>::
-_synchronize1(const R *X_N1, const int frame_id)
+_synchronize1(const R *X_N1, R *cor_SOF, R *cor_PLSC, const int frame_id)
 {
 	throw spu::tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }
 
 template <typename R>
 void Synchronizer_frame<R>::
-_synchronize2(const R *X_N1, int* DEL, R *Y_N2, const int frame_id)
+_synchronize2(const R *X_N1, const R *cor_SOF, const R *cor_PLSC, int* DEL, R *Y_N2, const int frame_id)
 {
 	throw spu::tools::unimplemented_error(__FILE__, __LINE__, __func__);
 }

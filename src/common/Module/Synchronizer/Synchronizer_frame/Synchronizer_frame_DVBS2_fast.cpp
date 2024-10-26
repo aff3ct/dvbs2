@@ -131,7 +131,7 @@ void Synchronizer_frame_DVBS2_fast<R>
 
 template <typename R>
 void Synchronizer_frame_DVBS2_fast<R>
-::_synchronize1(const R *X_N1, const int frame_id)
+::_synchronize1(const R *X_N1, R *cor_SOF, R *cor_PLSC, const int frame_id)
 {
 	int cplx_in_sz = this->N_in/2;
 
@@ -219,7 +219,7 @@ void Synchronizer_frame_DVBS2_fast<R>
 
 template <typename R>
 void Synchronizer_frame_DVBS2_fast<R>
-::_synchronize2(const R *X_N1, int* delay, R *Y_N2, const int frame_id)
+::_synchronize2(const R *X_N1, const R *cor_SOF, const R *cor_PLSC, int* delay, R *Y_N2, const int frame_id)
 {
 	int cplx_in_sz = this->N_in/2;
 
