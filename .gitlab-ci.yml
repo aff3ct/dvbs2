@@ -52,6 +52,11 @@ build-linux-gcc:
     - export BUILD="build_linux_gcc"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
+    - rm -rf build_linux_gcc/CMakeFiles
+    - rm -rf build_linux_gcc/lib/
+    - rm build_linux_gcc/bin/dvbs2_rx*
+    - rm build_linux_gcc/bin/dvbs2_tx
+    - rm build_linux_gcc/bin/dvbs2_ch
 
 build-linux-clang:
   image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_clang:v10.0.0
@@ -78,6 +83,11 @@ build-linux-clang:
     - export BUILD="build_linux_clang"
     - source ./ci/tools/threads.sh
     - ./ci/build-linux-macos.sh
+    - rm -rf build_linux_clang/CMakeFiles
+    - rm -rf build_linux_clang/lib/
+    - rm build_linux_clang/bin/dvbs2_rx*
+    - rm build_linux_clang/bin/dvbs2_tx
+    - rm build_linux_clang/bin/dvbs2_ch
 
 test-regression-tx-rx-bb:
   image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_python:v3.8.5
