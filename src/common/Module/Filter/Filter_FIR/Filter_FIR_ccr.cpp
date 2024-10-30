@@ -285,7 +285,8 @@ void Filter_FIR_ccr<R>
 	{
 		for (size_t k = 0; k < b_size; k++)
 		{
-			Y_N2[i] = b[k] + X_N1[-2 * (b_size -1) + i + (2 * k)];
+			//for(auto j = 0; j < this->M; j ++)
+				Y_N2[i] += b[k] * X_N1[-2 * (b_size -1) + i + (2 * k)];
 		}
 	}
 }
