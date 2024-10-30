@@ -242,7 +242,7 @@ void Filter_FIR_ccr<R>
 	size_t b_size = b.size();
 	size_t b_size_unrolled4 = (b_size / 4) * 4;
 
-	for (auto i = this->N/2; i < this->N ; i += this->M)
+	for (auto i = this->N/2; i < (int)(this->N/2 + (this->N/2 / this->M) * this->M) ; i += this->M)
 	{
 		ps0 = (R)0;
 		ps1 = (R)0;
@@ -279,6 +279,14 @@ void Filter_FIR_ccr<R>
 		}
 
 		ps.store(Y_N2 + i);
+	}
+
+	for (auto i = (int)(this->N/2 + (this->N/2 / this->M) * this->M); i < this->N; i ++)
+	{
+		for (size_t k = 0; k < b_size; k++)
+		{
+			Y_N2[i] = b[k] + X_N1[-2 * (b_size -1) + i + (2 * k)];
+		}
 	}
 }
 
