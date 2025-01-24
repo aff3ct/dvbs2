@@ -98,9 +98,11 @@ void DVBS2
 	args.add({"no-wl-phases"},       cli::None(),                                                  "Skip waiting and learning phases."                               );
 	args.add({"tx-time-limit"},      cli::Integer(cli::Positive()),                                "TX time limit in ms (if zero then no time limit)."               );
 	args.add({"stats-path"},         cli::Text(),                                                  "Path of statistics of the tasks."                                );
-    args.add({"sched-r", "R"},       cli::Integer(cli::Positive()),                                "Number of allowed ressources for the scheduler."                 );
+    args.add({"sched-r", "R"},       cli::Integer(cli::Positive()),                                "Number of allowed resources for the scheduler."                  );
     args.add({"sched-p", "P"},       cli::Integer(cli::Positive()),                                "Number of times to run the sequence for the scheduler profiling.");
-	p_shp.get_description(args);
+    args.add({"sched-t", "T"},       cli::Text(cli::Including_set("OTAC", "FILE")),                "Scheduling algorithm to use."                                    );
+	args.add({"sched-j", "J"},       cli::Text(),                                                  "Path of the JSON file containing the scheduling."                );
+    p_shp.get_description(args);
 	p_sfc.get_description(args);
 	p_stm.get_description(args);
 	p_sfm.get_description(args);
@@ -150,6 +152,8 @@ void DVBS2
 	stats_path               = vals.exist({"stats-path"}         ) ? vals.at      ({"stats-path"}        ) : stats_path;
     sched_R                  = vals.exist({"sched-r", "R"}       ) ? vals.to_int  ({"sched-r", "R"}      ) : std::thread::hardware_concurrency();
     sched_P                  = vals.exist({"sched-p", "P"}       ) ? vals.to_int  ({"sched-p", "P"}      ) : 100         ;
+    sched_T                  = vals.exist({"sched-t", "T"}       ) ? vals.at      ({"sched-t", "T"}      ) : "OTAC"      ;
+    sched_J                  = vals.exist({"sched-j", "J"}       ) ? vals.at      ({"sched-j", "J"}      ) : "sched.json";
 	display_help = false;
 	if(vals.exist({"help","h"}))
 		display_help = true;

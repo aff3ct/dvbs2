@@ -12,6 +12,7 @@ using namespace aff3ct;
 using namespace aff3ct::module;
 
 #define MULTI_THREADED // comment this line to disable multi-threaded RX
+#define ENABLE_PROBES // comment this line to disable the probes in the chain
 
 // global parameters
 constexpr bool enable_logs = false;
@@ -82,6 +83,7 @@ int main(int argc, char** argv)
 	monitor->disable_is_done(true); // this prevents the monitor to stop the sequence or pipeline with the `is_done()`
 	                                // interface
 
+#ifdef ENABLE_PROBES
 	const size_t probe_buff = 200;
 	// create reporters and probes for the statistics file
 	spu::tools::Reporter_probe rep_fra_stats("Counter");
@@ -173,6 +175,7 @@ int main(int argc, char** argv)
 	spu::tools::Terminal_dump terminal_stats({ &rep_fra_stats, &rep_rad_stats,     &rep_sfm_stats,   &rep_stm_stats,
 	                                           &rep_frq_stats, &rep_decstat_stats, &rep_noise_stats, &rep_BFER_stats,
 	                                           &rep_thr_stats });
+#endif
 
 	// add custom name to some modules
 	LDPC_decoder ->set_custom_name("LDPC Decoder");
@@ -217,6 +220,7 @@ int main(int argc, char** argv)
 	(*monitor      )[             mnt::sck::check_errors2::U       ] = (*source       )[spu::module::src::sck::generate     ::out_data];
 	(*monitor      )[             mnt::sck::check_errors2::V       ] = (*bb_scrambler )[             scr::sck::descramble   ::Y_N2    ];
 	(*sink         )[spu::module::snk::sck::send         ::in_data ] = (*bb_scrambler )[             scr::sck::descramble   ::Y_N2    ];
+#ifdef ENABLE_PROBES
 	// bind the probes
 	prb_thr_the     [spu::module::prb::sck::probe        ::in      ] = theoretical_thr.data();
 	prb_rad_ovf     [spu::module::prb::sck::probe        ::in      ] = (*radio        )[             rad::sck::receive      ::OVF     ];
@@ -244,11 +248,15 @@ int main(int argc, char** argv)
 	prb_bfer_fer    [spu::module::prb::sck::probe        ::in      ] = (*monitor      )[             mnt::sck::check_errors2::FER     ];
 	prb_fra_id      [spu::module::prb::tsk::probe                  ] = (*sink         )[spu::module::snk::sck::send         ::status  ];
 	prb_fra_sid     [spu::module::prb::tsk::probe                  ] = (*sink         )[spu::module::snk::sck::send         ::status  ];
+#endif
 
 	// first stages of the whole transmission sequence
 	const std::vector<spu::runtime::Task*> firsts_t = { &(*radio)[rad::tsk::receive],
 	                                                    &(*source)[spu::module::src::tsk::generate],
-	                                                    &prb_thr_the[spu::module::prb::tsk::probe] };
+#ifdef ENABLE_PROBES
+	                                                    &prb_thr_the[spu::module::prb::tsk::probe]
+#endif
+	                                                   };
 
 #ifdef MULTI_THREADED
 	auto start_profile = std::chrono::system_clock::now();
@@ -256,30 +264,39 @@ int main(int argc, char** argv)
 	std::cout.flush();
 
 	spu::runtime::Sequence sequence_transmission(firsts_t);
-	std::unique_ptr<spu::sched::Scheduler> sched;
-	sched.reset(new spu::sched::Scheduler_OTAC(sequence_transmission, params.sched_R));
-	sched->profile(params.sched_P);
+	std::unique_ptr<spu::sched::Scheduler> sched_ptr;
+	if (params.sched_T == "OTAC")
+		sched_ptr.reset(new spu::sched::Scheduler_OTAC(sequence_transmission, params.sched_R));
+	else if (params.sched_T == "FILE")
+		sched_ptr.reset(new spu::sched::Scheduler_from_file(sequence_transmission, params.sched_J));
+	sched_ptr->profile(params.sched_P);
 	auto end_profile = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds_profile = end_profile - start_profile;
 	std::cout << "Done (" << elapsed_seconds_profile.count() << "s)." << std::endl;
+
 	if (enable_logs)
-		sched->print_profiling();
+		sched_ptr->print_profiling();
 
 	for (auto& mod : sequence_transmission.get_modules<spu::tools::Interface_reset>(false))
 		mod->reset();
+#ifdef ENABLE_PROBES
 	for (auto& rep : terminal_stats.get_reporters())
 		rep->reset();
+#endif
 
 	auto start_sched = std::chrono::system_clock::now();
-	std::cout << "Run OTAC scheduler (R = " << params.sched_R << ")... ";
+	if (params.sched_T == "OTAC")
+		std::cout << "Run OTAC scheduler (R = " << params.sched_R << ")... ";
+	else if (params.sched_T == "FILE")
+		std::cout << "Run FILE scheduler... ";
 	std::cout.flush();
-	sched->schedule();
+	sched_ptr->schedule();
 	auto end_sched = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds_sched = end_sched - start_sched;
 	std::cout << "Done (" << elapsed_seconds_sched.count() << "s)." << std::endl;
 	if (enable_logs)
 	{
-		std::vector<std::pair<size_t, size_t>> solution = sched->get_solution();
+		std::vector<std::pair<size_t, size_t>> solution = sched_ptr->get_solution();
 		std::cout << "# Solution stages {(n,r)}"
 		          << ": {";
 		for (auto& pair_s : solution)
@@ -290,7 +307,7 @@ int main(int argc, char** argv)
 	std::string pinning_policy;
 	if (thread_pinnig)
 	{
-		pinning_policy = sched->perform_threads_mapping();
+		pinning_policy = sched_ptr->get_threads_mapping();
 #ifdef SPU_HWLOC
 		if (enable_logs)
 			std::cout << "# Effective pinning policy: " << pinning_policy << std::endl;
@@ -302,7 +319,7 @@ int main(int argc, char** argv)
 	std::cout.flush();
 	std::unique_ptr<spu::runtime::Pipeline> pipeline_transmission;
 	size_t buffer_size = 1;
-	pipeline_transmission.reset(sched->instantiate_pipeline(buffer_size, active_waiting, thread_pinnig,
+	pipeline_transmission.reset(sched_ptr->instantiate_pipeline(buffer_size, active_waiting, thread_pinnig,
 		pinning_policy));
 
 	if (enable_logs)
@@ -348,8 +365,13 @@ int main(int argc, char** argv)
 	auto radio_usrp = dynamic_cast<Radio_USRP<>*>(radio.get());
 #endif
 
+#ifdef ENABLE_PROBES
 	std::ofstream stats_file("stats.txt");
+#endif
 	if (!params.no_wl_phases) {
+		// id of the current frame
+		unsigned m = 0;
+
 		// ============================================================================================================
 		// WAITING PHASE ==============================================================================================
 		// ============================================================================================================
@@ -361,8 +383,10 @@ int main(int argc, char** argv)
 		(*sync_coarse_f)[             sfc::sck::synchronize::X_N1].unbind((*front_agc    )[mlt::sck::imultiply  ::Z_N ]);
 		(*sync_timing  )[             stm::sck::extract    ::B_N1].unbind((*sync_timing  )[stm::sck::synchronize::B_N1]);
 		(*sync_timing  )[             stm::sck::extract    ::Y_N1].unbind((*sync_timing  )[stm::sck::synchronize::Y_N1]);
+#ifdef ENABLE_PROBES
 		prb_frq_coa     [spu::module::prb::sck::probe      ::in  ].unbind((*sync_coarse_f)[sfc::sck::synchronize::FRQ ]);
 		prb_stm_del     [spu::module::prb::sck::probe      ::in  ].unbind((*sync_timing  )[stm::sck::synchronize::MU  ]);
+#endif
 
 		// partial binding
 		(*sync_step_mf)[             smf::sck::synchronize::X_N1] = (*front_agc   )[mlt::sck::imultiply   ::Z_N ];
@@ -370,10 +394,13 @@ int main(int argc, char** argv)
 		(*feedbr      )[             fbr::sck::memorize   ::X_N ] = (*sync_frame  )[sfm::sck::synchronize2::DEL ];
 		(*sync_timing )[             stm::sck::extract    ::B_N1] = (*sync_step_mf)[smf::sck::synchronize ::B_N1];
 		(*sync_timing )[             stm::sck::extract    ::Y_N1] = (*sync_step_mf)[smf::sck::synchronize ::Y_N1];
+#ifdef ENABLE_PROBES
 		prb_frq_coa    [spu::module::prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize ::FRQ ];
 		prb_stm_del    [spu::module::prb::sck::probe      ::in  ] = (*sync_step_mf)[smf::sck::synchronize ::MU  ];
+#endif
 
 		std::vector<spu::runtime::Task*> firsts_wl12 = { &(*radio    )[             rad::tsk::receive],
+#ifdef ENABLE_PROBES
 		                                                 &prb_sfm_del [spu::module::prb::tsk::probe  ],
 		                                                 &prb_sfm_tri [spu::module::prb::tsk::probe  ],
 		                                                 &prb_sfm_flg [spu::module::prb::tsk::probe  ],
@@ -382,6 +409,7 @@ int main(int argc, char** argv)
 		                                                 &prb_thr_tsta[spu::module::prb::tsk::probe  ],
 		                                                 &prb_fra_id  [spu::module::prb::tsk::probe  ],
 		                                                 &prb_fra_sid [spu::module::prb::tsk::probe  ],
+#endif
 		                                                 &(*feedbr   )[             fbr::tsk::produce] };
 
 		std::vector<spu::runtime::Task*> lasts_wl12 = { &(*feedbr)[fbr::tsk::memorize] };
@@ -396,22 +424,30 @@ int main(int argc, char** argv)
 			sequence_waiting_and_learning_1_2.export_dot(fs1);
 		}
 
+#ifdef ENABLE_PROBES
 		// display the legend in the terminal
 		std::ofstream waiting_stats("waiting_stats.txt");
 		waiting_stats << "#################" << std::endl;
 		waiting_stats << "# WAITING PHASE #" << std::endl;
 		waiting_stats << "#################" << std::endl;
 		terminal_stats.legend(waiting_stats);
+#endif
 
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
+#ifdef ENABLE_PROBES
 		prb_thr_thr .reset();
 		prb_thr_lat .reset();
 		prb_thr_time.reset();
+#endif
 		sequence_waiting_and_learning_1_2.exec([&](const std::vector<const int*>& statuses)
 		{
-			const auto m = prb_fra_id.get_occurrences();
+			m += params.n_frames;
 			if (statuses.back() != nullptr)
+			{
+#ifdef ENABLE_PROBES
 				terminal_stats.temp_report(waiting_stats);
+#endif
+			}
 			else if (enable_logs)
 				std::clog << rang::tag::warning << "Sequence aborted! (waiting phase, m = " << m << ")" << std::endl;
 #ifdef DVBS2_LINK_UHD
@@ -428,8 +464,10 @@ int main(int argc, char** argv)
 		sync_step_mf->reset();
 		sync_frame  ->reset();
 		sync_timing ->reset();
+#ifdef ENABLE_PROBES
 		prb_fra_id   .reset();
 		prb_fra_sid  .reset();
+#endif
 
 		auto end_waiting = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds_waiting = end_waiting - start_waiting;
@@ -442,32 +480,43 @@ int main(int argc, char** argv)
 		std::cout << "Learning phase... ";
 		std::cout.flush();
 
+#ifdef ENABLE_PROBES
 		// display the legend in the terminal
 		stats_file << "####################" << std::endl;
 		stats_file << "# LEARNING PHASE 1 #" << std::endl;
 		stats_file << "####################" << std::endl;
 		terminal_stats.legend(stats_file);
+#endif
 
+		m = 0;
 		int limit = 150;
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
+#ifdef ENABLE_PROBES
 		prb_thr_thr .reset();
 		prb_thr_lat .reset();
 		prb_thr_time.reset();
+#endif
 		sequence_waiting_and_learning_1_2.exec([&](const std::vector<const int*>& statuses)
 		{
-			const auto m = prb_fra_id.get_occurrences();
+			m += params.n_frames;
 			if (statuses.back() != nullptr)
+			{
+#ifdef ENABLE_PROBES
 				terminal_stats.temp_report(stats_file);
+#endif
+			}
 			else if (enable_logs)
 				std::clog << rang::tag::warning << "Sequence aborted! (learning phase 1&2, m = " << m << ")"
 				          << std::endl;
 
 			if (limit == 150 && m >= 150)
 			{
+#ifdef ENABLE_PROBES
 				stats_file << "####################" << std::endl;
 				stats_file << "# LEARNING PHASE 2 #" << std::endl;
 				stats_file << "####################" << std::endl;
 				terminal_stats.legend(stats_file);
+#endif
 				limit = m + 150;
 				sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 5e-5);
 			}
@@ -482,23 +531,30 @@ int main(int argc, char** argv)
 		(*feedbr      )[             fbr::sck::memorize   ::X_N ].unbind((*sync_frame  )[sfm::sck::synchronize2::DEL ]);
 		(*sync_timing )[             stm::sck::extract    ::B_N1].unbind((*sync_step_mf)[smf::sck::synchronize ::B_N1]);
 		(*sync_timing )[             stm::sck::extract    ::Y_N1].unbind((*sync_step_mf)[smf::sck::synchronize ::Y_N1]);
+#ifdef ENABLE_PROBES
 		prb_frq_coa    [spu::module::prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize ::FRQ ]);
 		prb_stm_del    [spu::module::prb::sck::probe      ::in  ].unbind((*sync_step_mf)[smf::sck::synchronize ::MU  ]);
+#endif
 
 		// partial binding
 		(*sync_coarse_f)[             sfc::sck::synchronize::X_N1] = (*front_agc    )[mlt::sck::imultiply  ::Z_N ];
 		(*sync_timing  )[             stm::sck::extract    ::B_N1] = (*sync_timing  )[stm::sck::synchronize::B_N1];
 		(*sync_timing  )[             stm::sck::extract    ::Y_N1] = (*sync_timing  )[stm::sck::synchronize::Y_N1];
+#ifdef ENABLE_PROBES
 		prb_frq_coa     [spu::module::prb::sck::probe      ::in  ] = (*sync_coarse_f)[sfc::sck::synchronize::FRQ ];
 		prb_stm_del     [spu::module::prb::sck::probe      ::in  ] = (*sync_timing  )[stm::sck::synchronize::MU  ];
+#endif
 
 		std::vector<spu::runtime::Task*> firsts_l3 = { &(*radio    )[             rad::tsk::receive],
+#ifdef ENABLE_PROBES
 		                                               &prb_thr_lat [spu::module::prb::tsk::probe  ],
 		                                               &prb_thr_time[spu::module::prb::tsk::probe  ],
 		                                               &prb_thr_tsta[spu::module::prb::tsk::probe  ],
 		                                               &prb_fra_id  [spu::module::prb::tsk::probe  ],
 		                                               &prb_fra_sid [spu::module::prb::tsk::probe  ],
-		                                               &prb_frq_fin [spu::module::prb::tsk::probe  ] };
+		                                               &prb_frq_fin [spu::module::prb::tsk::probe  ]
+#endif
+		                                             };
 
 		std::vector<spu::runtime::Task*> lasts_l3 = { &(*sync_fine_pf)[sff::tsk::synchronize] };
 
@@ -511,19 +567,27 @@ int main(int argc, char** argv)
 			sequence_learning_3.export_dot(fs2);
 		}
 
+#ifdef ENABLE_PROBES
 		stats_file << "####################" << std::endl;
 		stats_file << "# LEARNING PHASE 3 #" << std::endl;
 		stats_file << "####################" << std::endl;
 		terminal_stats.legend(stats_file);
+#endif
 
-		limit = prb_fra_id.get_occurrences() + 200;
+		limit = m + 200;
+#ifdef ENABLE_PROBES
 		prb_thr_thr.reset();
 		prb_thr_lat.reset();
+#endif
 		sequence_learning_3.exec([&](const std::vector<const int*>& statuses)
 		{
-			const auto m = prb_fra_id.get_occurrences();
+			m += params.n_frames;
 			if (statuses.back() != nullptr)
+			{
+#ifdef ENABLE_PROBES
 				terminal_stats.temp_report(stats_file);
+#endif
+			}
 			else if (enable_logs)
 				std::clog << rang::tag::warning << "Sequence aborted! (learning phase 3, m = " << m << ")" << std::endl;
 			return m >= limit;
@@ -554,38 +618,58 @@ int main(int argc, char** argv)
 
 	sync_timing->set_act(true);
 
+#ifdef ENABLE_PROBES
 	stats_file << "######################" << std::endl;
 	stats_file << "# TRANSMISSION PHASE #" << std::endl;
 	stats_file << "######################" << std::endl;
 	terminal_stats.legend(stats_file);
+#endif
 
 	// reset the statistics of the tasks before the transmission phase
 	for (auto& type : tasks_per_types)
 		for (auto& tsk : type)
 			tsk->reset();
 
+#ifdef ENABLE_PROBES
 	prb_thr_thr.reset();
 	prb_thr_lat.reset();
+#endif
 #ifdef MULTI_THREADED
 	pipeline_transmission->bind_adaptors();
-	pipeline_transmission->exec([&noise_est, &estimator, &terminal_stats, &stats_file] (const std::vector<const int*>& statuses)
+	pipeline_transmission->exec(
+#ifdef ENABLE_PROBES
+		[&noise_est, &estimator, &stats_file, &terminal_stats]
+#else
+		[&noise_est, &estimator]
+#endif
+		(const std::vector<const int*>& statuses)
 	{
 		// update "noise_est" for the terminal display
 		if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
 			noise_est.set_values(((float*)(*estimator)[est::sck::estimate::SIG  ].get_dataptr())[0],
 			                     ((float*)(*estimator)[est::sck::estimate::Eb_N0].get_dataptr())[0],
 			                     ((float*)(*estimator)[est::sck::estimate::Es_N0].get_dataptr())[0]);
+#ifdef ENABLE_PROBES
 		terminal_stats.temp_report(stats_file);
+#endif
 		return false;
 	});
 #else
 	// start the transmission sequence
-	sequence_transmission.exec([&prb_fra_id, &terminal_stats, &stats_file, &noise_est, &estimator]
+	sequence_transmission.exec(
+#ifdef ENABLE_PROBES
+		[&noise_est, &estimator, &terminal_stats, &stats_file]
+#else
+		[&noise_est, &estimator]
+#endif
 		(const std::vector<const int*>& statuses)
 		{
+			m += params.n_frames;
 			if (statuses.back() != nullptr)
 			{
+#ifdef ENABLE_PROBES
 				terminal_stats.temp_report(stats_file);
+#endif
 				// update "noise_est" for the terminal display
 				if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
 					noise_est.set_values(((float*)(*estimator)[est::sck::estimate::SIG  ].get_dataptr())[0],
@@ -594,7 +678,7 @@ int main(int argc, char** argv)
 			}
 			else if (enable_logs)
 				std::clog << std::endl << rang::tag::warning << "Sequence aborted! (transmission phase, m = "
-				          << prb_fra_id.get_occurrences() << ")" << std::endl;
+				          << m << ")" << std::endl;
 			return false;
 		});
 #endif /* MULTI_THREADED */
@@ -606,8 +690,10 @@ int main(int argc, char** argv)
 #endif
 
 	// display the performance (BER and FER) in the terminals
-	terminal      .final_report(          );
+	terminal.final_report();
+#ifdef ENABLE_PROBES
 	terminal_stats.final_report(stats_file);
+#endif
 
 	if (params.stats)
 	{

@@ -111,6 +111,8 @@ public:
 	std::string channel_type;
 	std::string dump_filename;
 	std::string stats_path;
+    std::string sched_T;
+    std::string sched_J;
 
 	factory::Radio                    p_rad;
 	factory::Synchronizer_freq_fine   p_sff;
