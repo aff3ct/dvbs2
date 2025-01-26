@@ -80,6 +80,10 @@ target_include_directories(dvbs2_tx_rx    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sr
 target_include_directories(dvbs2_tx_rx_bb PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 target_include_directories(dvbs2_ch       PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 
+# compile `StreamPU` static lib
+option(SPU_TESTS "" OFF) # do NOT compile the tests
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/streampu/)
+
 # Configure the AFF3CT library before compiling it
 option(AFF3CT_COMPILE_EXE        ""      OFF            )
 option(AFF3CT_COMPILE_STATIC_LIB ""      ON             )
@@ -87,6 +91,7 @@ option(AFF3CT_COMPILE_SHARED_LIB ""      OFF            )
 option(AFF3CT_LINK_GSL           ""      OFF            )
 option(AFF3CT_LINK_MKL           ""      OFF            )
 set   (AFF3CT_PREC               "MULTI" CACHE STRING "") # can be '8', '16', '32', '64' or 'MULTI'
+option(AFF3CT_INCLUDE_SPU_LIB    ""      OFF            )
 
 # Compile the AFF3CT library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/aff3ct/)

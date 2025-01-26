@@ -1,3 +1,6 @@
 [submodule "lib/aff3ct"]
 	path = lib/aff3ct
 	url = ../aff3ct
+[submodule "lib/streampu"]
+	path = lib/streampu
+	url = ../streampu
