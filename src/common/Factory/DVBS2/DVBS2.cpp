@@ -97,7 +97,8 @@ void DVBS2
 	args.add({"perfect-sync"},       cli::None(),                                                  "Enable genie aided synchronization."                             );
 	args.add({"no-wl-phases"},       cli::None(),                                                  "Skip waiting and learning phases."                               );
 	args.add({"tx-time-limit"},      cli::Integer(cli::Positive()),                                "TX time limit in ms (if zero then no time limit)."               );
-	args.add({"stats-path"},         cli::Text(),                                                  "Path of statistics of the tasks."                                );
+	args.add({"rx-time-limit"},      cli::Integer(cli::Positive()),                                "RX time limit in ms (if zero then no time limit)."               );
+    args.add({"stats-path"},         cli::Text(),                                                  "Path of statistics of the tasks."                                );
     args.add({"sched-r", "R"},       cli::Integer(cli::Positive()),                                "Number of allowed resources for the scheduler."                  );
     args.add({"sched-p", "P"},       cli::Integer(cli::Positive()),                                "Number of times to run the sequence for the scheduler profiling.");
     args.add({"sched-t", "T"},       cli::Text(cli::Including_set("OTAC", "FILE")),                "Scheduling algorithm to use."                                    );
@@ -149,6 +150,7 @@ void DVBS2
 	perfect_sync             = vals.exist({"perfect-sync"}       ) ? true                                  : false       ;
 	no_wl_phases             = vals.exist({"no-wl-phases"}       ) ? true                                  : false       ;
 	tx_time_limit            = vals.exist({"tx-time-limit"}      ) ? vals.to_int  ({"tx-time-limit"}     ) : 0           ;
+    rx_time_limit            = vals.exist({"rx-time-limit"}      ) ? vals.to_int  ({"rx-time-limit"}     ) : 0           ;
 	stats_path               = vals.exist({"stats-path"}         ) ? vals.at      ({"stats-path"}        ) : stats_path;
     sched_R                  = vals.exist({"sched-r", "R"}       ) ? vals.to_int  ({"sched-r", "R"}      ) : std::thread::hardware_concurrency();
     sched_P                  = vals.exist({"sched-p", "P"}       ) ? vals.to_int  ({"sched-p", "P"}      ) : 100         ;

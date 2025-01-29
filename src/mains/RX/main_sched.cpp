@@ -12,10 +12,10 @@ using namespace aff3ct;
 using namespace aff3ct::module;
 
 #define MULTI_THREADED // comment this line to disable multi-threaded RX
-#define ENABLE_PROBES // comment this line to disable the probes in the chain
+// #define ENABLE_PROBES // comment this line to disable the probes in the chain
 
 // global parameters
-constexpr bool enable_logs = false;
+constexpr bool enable_logs = true;
 #ifdef MULTI_THREADED
 constexpr bool thread_pinnig = true;
 constexpr bool active_waiting = false;
@@ -269,6 +269,7 @@ int main(int argc, char** argv)
 		sched_ptr.reset(new spu::sched::Scheduler_OTAC(sequence_transmission, params.sched_R));
 	else if (params.sched_T == "FILE")
 		sched_ptr.reset(new spu::sched::Scheduler_from_file(sequence_transmission, params.sched_J));
+	// sched_ptr->profile({0,2}, params.sched_P);
 	sched_ptr->profile(params.sched_P);
 	auto end_profile = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds_profile = end_profile - start_profile;
@@ -634,16 +635,24 @@ int main(int argc, char** argv)
 	prb_thr_thr.reset();
 	prb_thr_lat.reset();
 #endif
+	auto t_start = std::chrono::steady_clock::now();
 #ifdef MULTI_THREADED
 	pipeline_transmission->bind_adaptors();
 	pipeline_transmission->exec(
 #ifdef ENABLE_PROBES
-		[&noise_est, &estimator, &stats_file, &terminal_stats]
+		[&noise_est, &estimator, &t_start, &params, &stats_file, &terminal_stats]
 #else
-		[&noise_est, &estimator]
+		[&noise_est, &estimator, &t_start, &params]
 #endif
 		(const std::vector<const int*>& statuses)
 	{
+		if (params.rx_time_limit)
+		{
+			std::chrono::nanoseconds duration = std::chrono::steady_clock::now() - t_start;
+			if (duration.count() > params.rx_time_limit*1e6)
+				return true;
+		}
+
 		// update "noise_est" for the terminal display
 		if (((float*)(*estimator)[est::sck::estimate::SIG].get_dataptr())[0] > 0)
 			noise_est.set_values(((float*)(*estimator)[est::sck::estimate::SIG  ].get_dataptr())[0],
@@ -658,12 +667,19 @@ int main(int argc, char** argv)
 	// start the transmission sequence
 	sequence_transmission.exec(
 #ifdef ENABLE_PROBES
-		[&noise_est, &estimator, &terminal_stats, &stats_file]
+		[&noise_est, &estimator, &t_start, &params, &terminal_stats, &stats_file]
 #else
-		[&noise_est, &estimator]
+		[&noise_est, &estimator, &t_start, &params]
 #endif
 		(const std::vector<const int*>& statuses)
 		{
+			if (params.rx_time_limit)
+			{
+				std::chrono::nanoseconds duration = std::chrono::steady_clock::now() - t_start;
+				if (duration.count() > params.rx_time_limit*1e6)
+					return true;
+			}
+
 			m += params.n_frames;
 			if (statuses.back() != nullptr)
 			{

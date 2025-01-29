@@ -89,6 +89,7 @@ public:
 	int   n_frames;
 	int   debug_limit;
 	int   tx_time_limit;
+    int   rx_time_limit;
     int   sched_R;
     int   sched_P;
 
