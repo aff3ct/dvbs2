@@ -490,7 +490,7 @@ int main(int argc, char** argv)
 #endif
 
 		m = 0;
-		int limit = 150;
+		unsigned limit = 150;
 		sync_coarse_f->set_PLL_coeffs(1, 1/std::sqrt(2.0), 1e-4);
 #ifdef ENABLE_PROBES
 		prb_thr_thr .reset();
