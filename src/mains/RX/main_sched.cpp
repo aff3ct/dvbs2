@@ -17,8 +17,9 @@ using namespace aff3ct::module;
 // global parameters
 constexpr bool enable_logs = true;
 #ifdef MULTI_THREADED
-constexpr bool thread_pinnig = true;
+constexpr bool thread_pinning = true;
 constexpr bool active_waiting = false;
+constexpr size_t buffer_size = 1;
 #endif /* MULTI_THREADED */
 
 // aliases
@@ -27,7 +28,7 @@ template<class T> using uptr = std::unique_ptr<T>;
 int main(int argc, char** argv)
 {
 #ifdef MULTI_THREADED
-	if (thread_pinnig)
+	if (thread_pinning)
 	{
 		spu::tools::Thread_pinning::init();
 		// spu::tools::Thread_pinning::set_logs(enable_logs);
@@ -301,12 +302,13 @@ int main(int argc, char** argv)
 		std::cout << "# Solution stages {(n,r)}"
 		          << ": {";
 		for (auto& pair_s : solution)
-		    std::cout << "(" << pair_s.first << ", " << pair_s.second << ")";
+			std::cout << "(" << pair_s.first << ", " << pair_s.second << ")";
 		std::cout << "}" << std::endl;
 	}
 
 	std::string pinning_policy;
-	if (thread_pinnig)
+	std::vector<bool> thread_pinnings(sched_ptr->get_solution().size(), thread_pinning);
+	if (thread_pinning)
 	{
 		pinning_policy = sched_ptr->get_threads_mapping();
 #ifdef SPU_HWLOC
@@ -315,13 +317,43 @@ int main(int argc, char** argv)
 #endif
 	}
 
+	std::vector<size_t> sync_buff_sizes;
+	std::vector<bool> sync_active_waitings;
+	if (params.sched_T == "FILE")
+	{
+		sync_buff_sizes = sched_ptr->get_sync_buff_sizes();
+		sync_active_waitings = sched_ptr->get_sync_active_waitings();
+	}
+	else
+	{
+		sync_buff_sizes = std::vector<size_t>(sched_ptr->get_solution().size() - 1, buffer_size);
+		sync_active_waitings = std::vector<bool>(sched_ptr->get_solution().size() - 1, active_waiting);
+	}
+
+	if (enable_logs)
+	{
+		std::cout << "# Sync buff sizes: {";
+		for (auto sb : sync_buff_sizes)
+			std::cout << sb << ", ";
+		std::cout << "}" << std::endl;
+
+		std::cout << "# Sync active waitings: {";
+		for (auto sw : sync_active_waitings)
+			std::cout << sw << ", ";
+		std::cout << "}" << std::endl;
+
+		std::cout << "# Thread pinnings: {";
+		for (auto tp : thread_pinnings)
+			std::cout << tp << ", ";
+		std::cout << "}" << std::endl;
+	}
+
 	auto start_clone = std::chrono::system_clock::now();
 	std::cout << "Cloning the modules of the parallel sequence... ";
 	std::cout.flush();
 	std::unique_ptr<spu::runtime::Pipeline> pipeline_transmission;
-	size_t buffer_size = 1;
-	pipeline_transmission.reset(sched_ptr->instantiate_pipeline(buffer_size, active_waiting, thread_pinnig,
-		pinning_policy));
+	pipeline_transmission.reset(sched_ptr->instantiate_pipeline(sync_buff_sizes, sync_active_waitings, thread_pinnings,
+	    pinning_policy));
 
 	if (enable_logs)
 	{
@@ -335,7 +367,7 @@ int main(int argc, char** argv)
 	std::chrono::duration<double> elapsed_seconds_clone = end_clone - start_clone;
 	std::cout << "Done (" << elapsed_seconds_clone.count() << "s)." << std::endl;
 
-	if (thread_pinnig)
+	if (thread_pinning)
 		spu::tools::Thread_pinning::pin(0);
 #else
 	spu::runtime::Sequence sequence_transmission(firsts_t);
@@ -737,7 +769,7 @@ int main(int argc, char** argv)
 	std::cout << "# End of the simulation" << std::endl;
 
 #ifdef MULTI_THREADED
-	if (thread_pinnig)
+	if (thread_pinning)
 		spu::tools::Thread_pinning::destroy();
 #endif /* MULTI_THREADED */
 
