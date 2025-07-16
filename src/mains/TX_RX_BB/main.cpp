@@ -104,7 +104,6 @@ int main(int argc, char** argv)
 	// configuration of the sequence tasks
 	for (auto& type : sequence_transmission.get_tasks_per_types()) for (auto& tsk : type)
 	{
-		tsk->set_autoalloc      (true              ); // enable the automatic allocation of the data in the tasks
 		tsk->set_debug          (params.debug      ); // disable the debug mode
 		tsk->set_debug_limit    (params.debug_limit); // display only the 16 first bits if the debug mode is enabled
 		tsk->set_debug_precision(8                 );

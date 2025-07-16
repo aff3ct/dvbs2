@@ -2,8 +2,8 @@
 
 #include <typeinfo>
 #include <uhd/utils/thread.hpp>
+#include <streampu.hpp>
 
-#include "Tools/Thread_pinning/Thread_pinning.hpp"
 #include "Module/Radio/Radio_USRP/Radio_USRP.hpp"
 
 using namespace aff3ct;
