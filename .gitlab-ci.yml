@@ -76,6 +76,7 @@ build-linux-clang:
     paths:
       - build_linux_clang
   script:
+    - apt update && apt install -y pkg-config
     - export CC="clang"
     - export CXX="clang++"
     - export CFLAGS="-Wall -Wno-overloaded-virtual -funroll-loops -mavx2"
