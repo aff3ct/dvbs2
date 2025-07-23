@@ -101,7 +101,7 @@ void DVBS2
     args.add({"stats-path"},         cli::Text(),                                                  "Path of statistics of the tasks."                                );
     args.add({"sched-r", "R"},       cli::Integer(cli::Positive()),                                "Number of allowed resources for the scheduler."                  );
     args.add({"sched-p", "P"},       cli::Integer(cli::Positive()),                                "Number of times to run the sequence for the scheduler profiling.");
-    args.add({"sched-t", "T"},       cli::Text(cli::Including_set("OTAC", "FILE")),                "Scheduling algorithm to use."                                    );
+    args.add({"sched-t", "T"},       cli::Text(cli::Including_set("OTAC", "GR", "FILE")),          "Scheduling algorithm to use."                                    );
 	args.add({"sched-j", "J"},       cli::Text(),                                                  "Path of the JSON file containing the scheduling."                );
     p_shp.get_description(args);
 	p_sfc.get_description(args);

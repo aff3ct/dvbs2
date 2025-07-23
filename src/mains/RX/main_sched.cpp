@@ -268,6 +268,8 @@ int main(int argc, char** argv)
 	std::unique_ptr<spu::sched::Scheduler> sched_ptr;
 	if (params.sched_T == "OTAC")
 		sched_ptr.reset(new spu::sched::Scheduler_OTAC(sequence_transmission, params.sched_R));
+    else if (params.sched_T == "GR")
+        sched_ptr.reset(new spu::sched::Scheduler_GR(sequence_transmission, params.sched_R));
 	else if (params.sched_T == "FILE")
 		sched_ptr.reset(new spu::sched::Scheduler_from_file(sequence_transmission, params.sched_J));
 	// sched_ptr->profile({0,2}, params.sched_P);
@@ -289,6 +291,8 @@ int main(int argc, char** argv)
 	auto start_sched = std::chrono::system_clock::now();
 	if (params.sched_T == "OTAC")
 		std::cout << "Run OTAC scheduler (R = " << params.sched_R << ")... ";
+    else if (params.sched_T == "GR")
+        std::cout << "Run GR scheduler (R = " << params.sched_R << ")... ";
 	else if (params.sched_T == "FILE")
 		std::cout << "Run FILE scheduler... ";
 	std::cout.flush();
