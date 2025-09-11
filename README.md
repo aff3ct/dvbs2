@@ -1,4 +1,4 @@
-# DVB-S2 SDR Transceiver
+# DVB-S2 Software SDR Transceiver
 
 ## Machines installation
 
